@@ -2,6 +2,9 @@ import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggler";
 import Link from "next/link";
 import Image from "next/image";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { SimplePricingButtons } from "@/components/simple-pricing-buttons";
+import { AuthHeader } from "@/components/auth-header";
 
 export default function PricingPage() {
 	return (
@@ -17,9 +20,15 @@ export default function PricingPage() {
 
 			{/* Header */}
 			<header className="flex items-center justify-between p-6 max-w-7xl mx-auto">
-				<div className="flex items-center gap-3">
-					<Image src="/logo.svg" alt="TradersUtopia" width={32} height={32} />
-					<span className="text-white text-xl font-bold">TradersUtopia</span>
+				<div className="flex items-center gap-6">
+					{/* Logo and Title */}
+					<div className="flex items-center gap-3">
+						<Image src="/logo.svg" alt="TradersUtopia" width={32} height={32} />
+						<span className="text-white text-xl font-bold">TradersUtopia</span>
+					</div>
+					
+					{/* Authentication Section */}
+					<AuthHeader />
 				</div>
 				<div className="flex items-center gap-4">
 					<Link href="/dashboard">
@@ -109,25 +118,24 @@ export default function PricingPage() {
 						</div>
 					</div>
 
-					<div className="space-y-4">
-						<a 
-							href="https://www.launchpass.com/traders-utopia/launchpass-com-traders-utopia?via=shehroze-afridi"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="block"
-						>
+					<SignedIn>
+						<SimplePricingButtons />
+					</SignedIn>
+					<SignedOut>
+						<div className="space-y-4">
 							<Button 
 								size="lg" 
+								onClick={() => window.location.href = "https://buy.stripe.com/3cI5kC46X5Bmbft2Kc4Ja0k"}
 								className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
 							>
-								Start Your Trial - $149.99/month
+								Start 14-Day Free Trial - $149.99/month
 							</Button>
-						</a>
-						
-						<p className="text-gray-400 text-sm text-center">
-							Automatic recurring payments • Cancel anytime
-						</p>
-					</div>
+							
+							<p className="text-gray-400 text-sm text-center">
+								14-day free trial • Cancel anytime
+							</p>
+						</div>
+					</SignedOut>
 				</div>
 
 				{/* Discord Access Button */}

@@ -4,6 +4,7 @@ import { ModeToggle } from "@/components/mode-toggler";
 import { initProfile, getFirstServer } from "@/lib/query";
 import {InitialModel} from "@/components/modals/initial-model";
 import { redirect } from "next/navigation";
+import { SimplePaymentGate } from "@/components/simple-payment-gate";
 
 export default async function Dashboard() {
 	const profile = await initProfile();
@@ -16,7 +17,7 @@ export default async function Dashboard() {
 	// If we reach this point, the user has no servers and should see the dashboard
 
 	return (
-		<>
+		<SimplePaymentGate>
 			<main className="max-w-[75rem] w-full mx-auto">
 				<div className="grid grid-cols-[1fr_20.5rem] gap-10 pb-10">
 					<div>
@@ -40,6 +41,6 @@ export default async function Dashboard() {
 					</div>
 				</div>
 			</main>
-		</>
+		</SimplePaymentGate>
 	);
 } 

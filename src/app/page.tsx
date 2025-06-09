@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggler";
 import Link from "next/link";
 import Image from "next/image";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 export default function HomePage() {
 	return (
@@ -17,9 +18,45 @@ export default function HomePage() {
 
 			{/* Header */}
 			<header className="flex items-center justify-between p-6 max-w-7xl mx-auto">
-				<div className="flex items-center gap-3">
-					<Image src="/logo.svg" alt="TradersUtopia" width={32} height={32} />
-					<span className="text-white text-xl font-bold">TradersUtopia</span>
+				<div className="flex items-center gap-6">
+					{/* Logo and Title */}
+					<div className="flex items-center gap-3">
+						<Image src="/logo.svg" alt="TradersUtopia" width={32} height={32} />
+						<span className="text-white text-xl font-bold">TradersUtopia</span>
+					</div>
+					
+					{/* Authentication Section */}
+					<div className="flex items-center gap-3">
+						<SignedOut>
+							<Link href="/sign-in">
+								<Button 
+									variant="outline" 
+									className="bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white/30"
+								>
+									Sign In
+								</Button>
+							</Link>
+							<Link href="/sign-up">
+								<Button 
+									className="bg-indigo-600 hover:bg-indigo-700 text-white"
+								>
+									Register
+								</Button>
+							</Link>
+						</SignedOut>
+						<SignedIn>
+							<div className="flex items-center gap-2">
+								<span className="text-white/80 text-sm">Welcome back!</span>
+								<UserButton 
+									appearance={{
+										elements: {
+											avatarBox: "w-8 h-8"
+										}
+									}}
+								/>
+							</div>
+						</SignedIn>
+					</div>
 				</div>
 				<ModeToggle />
 			</header>
@@ -42,17 +79,30 @@ export default function HomePage() {
 					</p>
 
 					<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-						<Link href="/pricing">
-							<Button 
-								size="lg" 
-								className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
-							>
-								Enter Traders Utopia
-							</Button>
-						</Link>
+						<SignedIn>
+							<Link href="/pricing">
+								<Button 
+									size="lg" 
+									className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
+								>
+									Go to Dashboard
+								</Button>
+							</Link>
+						</SignedIn>
+						<SignedOut>
+							<Link href="/pricing">
+								<Button 
+									size="lg" 
+									className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
+								>
+									Enter Traders Utopia
+								</Button>
+							</Link>
+						</SignedOut>
 						
 						<p className="text-gray-400 text-sm">
-							Click to access your servers and communities
+							<SignedIn>View pricing and subscription options</SignedIn>
+							<SignedOut>Click to access your servers and communities</SignedOut>
 						</p>
 					</div>
 				</div>

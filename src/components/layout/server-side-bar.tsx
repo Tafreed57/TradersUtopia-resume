@@ -7,10 +7,12 @@ import { ServerSearch } from "@/components/server-search";
 import { ServerSection } from "@/components/server-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { getCurrentProfile, getServer } from "@/lib/query";
 import { ChannelType, MemberRole } from "@prisma/client";
-import { Hash, Mic, ShieldAlert, ShieldCheck, Video } from "lucide-react";
+import { Hash, Mic, ShieldAlert, ShieldCheck, Video, Home } from "lucide-react";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 interface ServerSideBarProps {
 	serverId: string;
 }
@@ -152,6 +154,19 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
 					</div>
 				)}
 			</ScrollArea>
+			
+			{/* Homepage Button */}
+			<div className="pb-3 px-3 w-full">
+				<Link href="/">
+					<Button 
+						variant="ghost" 
+						className="w-full justify-start text-zinc-500 dark:text-zinc-400 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 hover:text-zinc-600 dark:hover:text-zinc-300 transition"
+					>
+						<Home className="h-4 w-4 mr-2" />
+						Back to Homepage
+					</Button>
+				</Link>
+			</div>
 		</div>
 	);
 }
