@@ -1,4 +1,5 @@
 import { ServerSideBar } from "@/components/layout/server-side-bar";
+import { ServerPaymentGate } from "@/components/server-payment-gate";
 import { prisma } from "@/lib/prismadb";
 import { getCurrentProfile, getServer } from "@/lib/query";
 import { auth, currentUser } from "@clerk/nextjs/server";
@@ -14,11 +15,13 @@ export default async function ServerIdLayout({children,params}: {children: React
         return redirect("/");
     }
     return (
-		<section className="h-full">
-			<div className="hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0">
-				<ServerSideBar serverId={params.serverId} />
-			</div>
-			<main className="h-full md:pl-60">{children}</main>
-		</section>
-	);
+        <ServerPaymentGate>
+            <section className="h-full">
+                <div className="hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0">
+                    <ServerSideBar serverId={params.serverId} />
+                </div>
+                <main className="h-full md:pl-60">{children}</main>
+            </section>
+        </ServerPaymentGate>
+    );
 }

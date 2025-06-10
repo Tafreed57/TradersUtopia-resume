@@ -23,6 +23,13 @@ model Profile {
   members  Member[]
   channels Channel[]
 
+  // Payment fields
+  subscriptionStatus SubscriptionStatus @default(FREE)
+  subscriptionStart  DateTime?
+  subscriptionEnd    DateTime?
+  stripeCustomerId   String?
+  stripeSessionId    String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -137,4 +144,11 @@ enum MemberRole {
   MODERATOR
   GUEST
   ADMIN
+}
+
+enum SubscriptionStatus {
+  FREE
+  ACTIVE
+  EXPIRED
+  CANCELLED
 }
