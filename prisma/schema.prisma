@@ -29,6 +29,7 @@ model Profile {
   subscriptionEnd    DateTime?
   stripeCustomerId   String?
   stripeSessionId    String?
+  stripeProductId    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

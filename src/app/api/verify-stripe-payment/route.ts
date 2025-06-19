@@ -117,9 +117,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 6: Update subscription status based on Stripe data
-    const subscriptionEnd = hasActiveSubscription 
-      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days for subscription (fallback)
-      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now for one-time payments
+    let subscriptionEnd: Date;
+    
+    if (hasActiveSubscription && subscriptions.data.length > 0) {
+      // Use the actual subscription end date from Stripe
+      const activeSubscription = subscriptions.data[0];
+      if (activeSubscription.current_period_end) {
+        subscriptionEnd = new Date(activeSubscription.current_period_end * 1000);
+        console.log(`📅 Using actual subscription end date: ${subscriptionEnd.toISOString()}`);
+      } else {
+        subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        console.log(`📅 No period end found, using 30-day fallback`);
+      }
+    } else {
+      // For one-time payments or when no active subscription
+      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      console.log(`📅 Using 30-day fallback for one-time payment`);
+    }
+    
+    // Validate the date
+    if (isNaN(subscriptionEnd.getTime())) {
+      console.log('⚠️ Invalid subscription end date, using 30-day fallback');
+      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    }
 
     const updatedProfile = await db.profile.update({
       where: { id: profile.id },

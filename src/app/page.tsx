@@ -3,6 +3,7 @@ import { ModeToggle } from "@/components/mode-toggler";
 import Link from "next/link";
 import Image from "next/image";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { SecureEntryButton } from "@/components/secure-entry-button";
 
 export default function HomePage() {
 	return (
@@ -80,14 +81,7 @@ export default function HomePage() {
 
 					<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
 						<SignedIn>
-							<Link href="/dashboard">
-								<Button 
-									size="lg" 
-									className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
-								>
-									Enter Traders Utopia
-								</Button>
-							</Link>
+							<SecureEntryButton />
 						</SignedIn>
 						<SignedOut>
 							<Link href="/pricing">
@@ -101,7 +95,7 @@ export default function HomePage() {
 						</SignedOut>
 						
 						<p className="text-gray-400 text-sm">
-							<SignedIn>Click to access your servers and communities</SignedIn>
+							<SignedIn>Secure access verification will run automatically</SignedIn>
 							<SignedOut>Sign up to join the trading community</SignedOut>
 						</p>
 					</div>

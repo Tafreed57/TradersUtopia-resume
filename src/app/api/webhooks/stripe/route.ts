@@ -69,6 +69,21 @@ export async function POST(request: NextRequest) {
         if (allProfiles.length === 0) {
           console.log(`No profiles found for email: ${email}, creating new profile...`);
           
+          // Get product ID from the checkout session
+          let stripeProductId = null;
+          if (session.line_items) {
+            try {
+              const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+              if (lineItems.data.length > 0 && lineItems.data[0].price) {
+                const price = await stripe.prices.retrieve(lineItems.data[0].price.id);
+                stripeProductId = price.product as string;
+                console.log(`📦 Product ID from checkout: ${stripeProductId}`);
+              }
+            } catch (error) {
+              console.log('Could not retrieve product ID from line items:', error);
+            }
+          }
+          
           // Create a new profile for this user
           const profile = await db.profile.create({
             data: {
@@ -81,10 +96,11 @@ export async function POST(request: NextRequest) {
               subscriptionEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
               stripeCustomerId: customerId,
               stripeSessionId: session.id,
+              stripeProductId: stripeProductId,
             }
           });
           
-          console.log(`✅ Created new profile for user: ${email}`);
+          console.log(`✅ Created new profile for user: ${email} with product: ${stripeProductId}`);
         } else {
           console.log(`✅ Found ${allProfiles.length} profile(s) for email: ${email}`);
           
@@ -92,6 +108,21 @@ export async function POST(request: NextRequest) {
           allProfiles.forEach((profile, index) => {
             console.log(`   Profile ${index + 1}: ${profile.id} (${profile.userId}) - Status: ${profile.subscriptionStatus}`);
           });
+          
+          // Get product ID from the checkout session
+          let stripeProductId = null;
+          if (session.line_items) {
+            try {
+              const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+              if (lineItems.data.length > 0 && lineItems.data[0].price) {
+                const price = await stripe.prices.retrieve(lineItems.data[0].price.id);
+                stripeProductId = price.product as string;
+                console.log(`📦 Product ID from checkout: ${stripeProductId}`);
+              }
+            } catch (error) {
+              console.log('Could not retrieve product ID from line items:', error);
+            }
+          }
           
           // Update ALL profiles with the same email to ACTIVE status
           // This ensures no matter which account the user is logged into, they'll have access
@@ -110,10 +141,11 @@ export async function POST(request: NextRequest) {
                   subscriptionEnd: subscriptionEnd,
                   stripeCustomerId: customerId, // This might be null, which is fine
                   stripeSessionId: session.id,
+                  stripeProductId: stripeProductId,
                 }
               });
               
-              console.log(`   ✅ Updated profile: ${updated.id} (${updated.userId})`);
+              console.log(`   ✅ Updated profile: ${updated.id} (${updated.userId}) with product: ${stripeProductId}`);
               return updated;
             })
           );

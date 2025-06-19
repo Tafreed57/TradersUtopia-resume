@@ -5,6 +5,7 @@ import Image from "next/image";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { SimplePricingButtons } from "@/components/simple-pricing-buttons";
 import { AuthHeader } from "@/components/auth-header";
+import { EnhancedTrialButton } from "@/components/enhanced-trial-button";
 
 export default function PricingPage() {
 	return (
@@ -123,13 +124,9 @@ export default function PricingPage() {
 					</SignedIn>
 					<SignedOut>
 						<div className="space-y-4">
-													<Button 
-							size="lg" 
-							onClick={() => window.open("https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01", "_blank")}
-							className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
-						>
-							Start 14-Day Free Trial - $149.99/month
-						</Button>
+							<EnhancedTrialButton isSignedIn={false}>
+								Start 14-Day Free Trial - $149.99/month
+							</EnhancedTrialButton>
 							
 							<p className="text-gray-400 text-sm text-center">
 								14-day free trial • Cancel anytime

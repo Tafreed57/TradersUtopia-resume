@@ -4,7 +4,7 @@ import { ModeToggle } from "@/components/mode-toggler";
 import { initProfile, getFirstServer } from "@/lib/query";
 import {InitialModel} from "@/components/modals/initial-model";
 import { redirect } from "next/navigation";
-import { SimplePaymentGate } from "@/components/simple-payment-gate";
+import { ProductPaymentGate } from "@/components/product-payment-gate";
 
 export default async function Dashboard() {
 	const profile = await initProfile();
@@ -16,8 +16,24 @@ export default async function Dashboard() {
 	// If getFirstServer found a server, it will have already redirected
 	// If we reach this point, the user has no servers and should see the dashboard
 
+	// Configure which Stripe products are allowed for dashboard access
+	const allowedProductIds = [
+		"prod_SWIyAf2tfVrJao", // Your current product ID
+		// Add more product IDs here as you create them
+	];
+
 	return (
-		<SimplePaymentGate>
+		<ProductPaymentGate 
+			allowedProductIds={allowedProductIds}
+			productName="Premium Dashboard Access"
+			upgradeUrl="https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01"
+			features={[
+				"Exclusive dashboard access",
+				"Advanced server management",
+				"Premium support",
+				"Priority features"
+			]}
+		>
 			<main className="max-w-[75rem] w-full mx-auto">
 				<div className="grid grid-cols-[1fr_20.5rem] gap-10 pb-10">
 					<div>
@@ -41,6 +57,6 @@ export default async function Dashboard() {
 					</div>
 				</div>
 			</main>
-		</SimplePaymentGate>
+		</ProductPaymentGate>
 	);
 } 
