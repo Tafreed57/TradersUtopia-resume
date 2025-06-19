@@ -3,11 +3,17 @@ import { ModeToggle } from "@/components/mode-toggler";
 import Link from "next/link";
 import Image from "next/image";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { SecureEntryButton } from "@/components/secure-entry-button";
+import { SmartEntryButton } from "@/components/smart-entry-button";
+import { AutoRouteAfterSignIn } from "@/components/auto-route-after-signin";
+import { Suspense } from "react";
 
 export default function HomePage() {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+			{/* Auto-route component for handling post-sign-in routing */}
+			<Suspense fallback={null}>
+				<AutoRouteAfterSignIn />
+			</Suspense>
 			{/* Promotional Banner */}
 			<div className="bg-gradient-to-r from-purple-800 to-indigo-900 text-white text-center py-7 px-4">
 				<div className="flex items-center justify-center gap-2 text-sm md:text-base font-semibold">
@@ -80,23 +86,11 @@ export default function HomePage() {
 					</p>
 
 					<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-						<SignedIn>
-							<SecureEntryButton />
-						</SignedIn>
-						<SignedOut>
-							<Link href="/pricing">
-								<Button 
-									size="lg" 
-									className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
-								>
-									Enter Traders Utopia
-								</Button>
-							</Link>
-						</SignedOut>
+						<SmartEntryButton />
 						
 						<p className="text-gray-400 text-sm">
-							<SignedIn>Secure access verification will run automatically</SignedIn>
-							<SignedOut>Sign up to join the trading community</SignedOut>
+							<SignedIn>Access verification will run automatically</SignedIn>
+							<SignedOut>Sign in first, then we'll check your subscription</SignedOut>
 						</p>
 					</div>
 				</div>
