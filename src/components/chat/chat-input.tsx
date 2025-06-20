@@ -11,6 +11,9 @@ import qs from "query-string";
 import { useStore } from "@/store/store";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
+
 interface ChatInputProps {
 	apiUrl: string;
 	query: Record<string, any>;
@@ -21,9 +24,14 @@ interface ChatInputProps {
 const formSchema = z.object({
 	content: z.string().min(1),
 });
+
 export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
 	const router = useRouter();
+	const { user } = useUser();
 	const onOpen = useStore.use.onOpen();
+	const [isAdmin, setIsAdmin] = useState(false);
+	const [checkingPermissions, setCheckingPermissions] = useState(true);
+	
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
@@ -31,6 +39,31 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
 		},
 	});
 	const isLoading = form.formState.isSubmitting;
+
+	// Check if user has admin permissions
+	useEffect(() => {
+		const checkAdminStatus = async () => {
+			if (!user) return;
+			
+			try {
+				const response = await fetch('/api/admin/check-status', {
+					method: 'GET',
+				});
+				
+				if (response.ok) {
+					const data = await response.json();
+					setIsAdmin(data.isAdmin);
+				}
+			} catch (error) {
+				console.error('Error checking admin status:', error);
+				setIsAdmin(false);
+			} finally {
+				setCheckingPermissions(false);
+			}
+		};
+
+		checkAdminStatus();
+	}, [user]);
 
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
 		try {
@@ -45,6 +78,24 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
             console.error(error);
         }
 	};
+
+	// Show loading state briefly
+	if (checkingPermissions) {
+		return (
+			<div className="p-4 pb-6">
+				<div className="px-14 py-6 bg-zinc-200/90 dark:bg-zinc-700/75 rounded-md text-center text-zinc-500">
+					Loading...
+				</div>
+			</div>
+		);
+	}
+
+	// Hide chat input completely for non-admin users
+	if (!isAdmin) {
+		return null;
+	}
+
+	// Show full chat input interface for admin users only
 	return (
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)}>

@@ -49,8 +49,33 @@ export function SmartEntryButton() {
       console.log('📊 Subscription check result:', productResult);
 
       if (productResult.hasAccess) {
-        console.log('✅ User has valid subscription, redirecting to dashboard...');
-        router.push('/dashboard');
+        console.log('✅ User has valid subscription, getting default server...');
+        
+        // Get or create the default server and redirect to it
+        const serverResponse = await fetch('/api/servers/ensure-default', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const serverResult = await serverResponse.json();
+        
+        if (serverResult.success && serverResult.server) {
+          const server = serverResult.server;
+          const firstChannel = server.channels?.[0];
+          
+          if (firstChannel) {
+            console.log('🎯 Redirecting to server channel:', `${server.name}/${firstChannel.name}`);
+            router.push(`/servers/${server.id}/channels/${firstChannel.id}`);
+          } else {
+            console.log('🎯 Redirecting to server:', server.name);
+            router.push(`/servers/${server.id}`);
+          }
+        } else {
+          console.log('⚠️ Could not get server, falling back to dashboard...');
+          router.push('/dashboard');
+        }
       } else {
         console.log('❌ User needs subscription, redirecting to pricing...');
         router.push('/pricing');

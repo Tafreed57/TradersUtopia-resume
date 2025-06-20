@@ -31,8 +31,32 @@ model Profile {
   stripeSessionId    String?
   stripeProductId    String?
 
+  // Two-Factor Authentication
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String?
+  backupCodes       String[]
+
+  // Admin Role
+  isAdmin           Boolean   @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id          String            @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String           @db.Text
+  read        Boolean          @default(false)
+  actionUrl   String?          @db.Text
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  @@index([userId])
+  @@index([read])
 }
 
 model Server {
@@ -152,4 +176,14 @@ enum SubscriptionStatus {
   ACTIVE
   EXPIRED
   CANCELLED
+}
+
+enum NotificationType {
+  MESSAGE
+  MENTION
+  SERVER_UPDATE
+  FRIEND_REQUEST
+  SYSTEM
+  PAYMENT
+  SECURITY
 }

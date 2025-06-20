@@ -4,12 +4,15 @@ import { ModalProvider } from "@/contexts/modal-provider";
 import { QueryProvider } from "@/contexts/query-provider";
 import { SocketProvider } from "@/contexts/socket-provider";
 import { ThemeProvider } from "@/contexts/theme-provider";
+import { AuthWrapper } from "@/components/auth-wrapper";
+import { TwoFactorGuard } from "@/components/2fa-guard";
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import type { Metadata } from "next";
 import { Open_Sans } from "next/font/google";
 import { extractRouterConfig } from "uploadthing/server";
+import { Toaster } from "sonner";
 
 const open_sans = Open_Sans({ subsets: ["latin"] });
 
@@ -64,8 +67,18 @@ export default function RootLayout({
 						/>
 						<SocketProvider>
 							<QueryProvider>
-								<ModalProvider />
-								{children}
+								<AuthWrapper>
+									<TwoFactorGuard>
+										<ModalProvider />
+										<Toaster 
+											position="top-right"
+											expand={true}
+											richColors
+											closeButton
+										/>
+										{children}
+									</TwoFactorGuard>
+								</AuthWrapper>
 							</QueryProvider>
 						</SocketProvider>
 					</ThemeProvider>

@@ -15,7 +15,7 @@ export default function PricingPage() {
 				<div className="flex items-center justify-center gap-2 text-sm md:text-base font-semibold">
 					<span className="text-2xl">⏳</span>
 					<span>PRICE INCREASING AGAIN</span>
-					<span className="text-yellow-300">Time's up!</span>
+					<span className="text-yellow-300">Time&apos;s up!</span>
 				</div>
 			</div>
 
@@ -98,7 +98,7 @@ export default function PricingPage() {
 							<span className="text-green-400 text-xl">🔒</span>
 							<div>
 								<p className="text-white font-semibold">Private Access Channels</p>
-								<p className="text-gray-300 text-sm">Get alerts and insights that free members can't see</p>
+								<p className="text-gray-300 text-sm">Get alerts and insights that free members can&apos;t see</p>
 							</div>
 						</div>
 

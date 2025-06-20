@@ -33,7 +33,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
 		<div
 			className={cn(
 				"bg-white dark:bg-[#313338] flex flex-col h-full",
-				"overflow-hidden" && (channel.type === ChannelType.VIDEO || channel.type === ChannelType.AUDIO)
+				(channel.type === ChannelType.VIDEO || channel.type === ChannelType.AUDIO) && "overflow-hidden"
 			)}
 		>
 			<ChatHeader name={channel?.name} serverId={channel?.serverId} type="channel" />

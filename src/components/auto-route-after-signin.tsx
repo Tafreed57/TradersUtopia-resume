@@ -19,9 +19,9 @@ export function AutoRouteAfterSignIn() {
       }
 
       // Check if user just came from sign-in and should be auto-routed
-      const autoRoute = searchParams.get('auto_route');
-      const hasRedirectParam = searchParams.get('redirect_url') !== null;
-      const hasClerkParam = searchParams.get('__clerk_redirect_url') !== null;
+      const autoRoute = searchParams?.get('auto_route');
+      const hasRedirectParam = searchParams?.get('redirect_url') !== null;
+      const hasClerkParam = searchParams?.get('__clerk_redirect_url') !== null;
       const shouldAutoRoute = autoRoute === 'true' || hasRedirectParam || hasClerkParam;
 
       if (!shouldAutoRoute) {

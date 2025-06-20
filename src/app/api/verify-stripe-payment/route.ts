@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     
     if (hasActiveSubscription && subscriptions.data.length > 0) {
       // Use the actual subscription end date from Stripe
-      const activeSubscription = subscriptions.data[0];
+      const activeSubscription = subscriptions.data[0] as any;
       if (activeSubscription.current_period_end) {
         subscriptionEnd = new Date(activeSubscription.current_period_end * 1000);
         console.log(`📅 Using actual subscription end date: ${subscriptionEnd.toISOString()}`);

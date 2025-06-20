@@ -74,9 +74,37 @@ export function SecureEntryButton() {
         
         setShowResult(true);
         
-        // Redirect to dashboard after short delay
-        setTimeout(() => {
-          router.push('/dashboard');
+        // Get default server and redirect to it after short delay
+        setTimeout(async () => {
+          try {
+            const serverResponse = await fetch('/api/servers/ensure-default', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            const serverResult = await serverResponse.json();
+            
+            if (serverResult.success && serverResult.server) {
+              const server = serverResult.server;
+              const firstChannel = server.channels?.[0];
+              
+              if (firstChannel) {
+                console.log('🎯 Redirecting to server channel:', `${server.name}/${firstChannel.name}`);
+                router.push(`/servers/${server.id}/channels/${firstChannel.id}`);
+              } else {
+                console.log('🎯 Redirecting to server:', server.name);
+                router.push(`/servers/${server.id}`);
+              }
+            } else {
+              console.log('⚠️ Could not get server, falling back to dashboard...');
+              router.push('/dashboard');
+            }
+          } catch (error) {
+            console.log('⚠️ Error getting server, falling back to dashboard...', error);
+            router.push('/dashboard');
+          }
         }, 1500);
         
       } else {
@@ -166,7 +194,7 @@ export function SecureEntryButton() {
           <CardContent className="text-center">
             {verificationResult.success ? (
               <p className="text-sm text-muted-foreground">
-                Redirecting to dashboard...
+                Redirecting to Traders Utopia server...
               </p>
             ) : (
               <div className="space-y-3">

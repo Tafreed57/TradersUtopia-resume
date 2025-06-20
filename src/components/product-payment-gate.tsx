@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ export function ProductPaymentGate({
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
 
-  const checkProductAccess = async () => {
+  const checkProductAccess = useCallback(async () => {
     if (!isLoaded || !user) {
       setLoading(false);
       return;
@@ -70,7 +70,7 @@ export function ProductPaymentGate({
     } finally {
       setLoading(false);
     }
-  };
+  }, [isLoaded, user, allowedProductIds]);
 
   const verifyStripePayment = async () => {
     setVerifying(true);
@@ -100,10 +100,15 @@ export function ProductPaymentGate({
 
   useEffect(() => {
     checkProductAccess();
-  }, [isLoaded, user]);
+  }, [isLoaded, user, checkProductAccess]);
+
+  useEffect(() => {
+    if (!isLoaded || !user) {
+      router.push("/sign-in");
+    }
+  }, [isLoaded, user, router]);
 
   if (!isLoaded || !user) {
-    router.push("/sign-in");
     return null;
   }
 
@@ -169,7 +174,11 @@ export function ProductPaymentGate({
                 <Button 
                   size="lg" 
                   className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  onClick={() => window.open(upgradeUrl, '_blank')}
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      window.open(upgradeUrl, '_blank');
+                    }
+                  }}
                 >
                   Subscribe to {productName}
                 </Button>

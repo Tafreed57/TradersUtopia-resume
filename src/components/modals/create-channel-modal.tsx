@@ -150,7 +150,7 @@ export function CreateChannelModal() {
 							/>
 						</div>
 						<DialogFooter className="bg-gray-100 px-6 py-4">
-							<Button type="submit" variant="primary" disabled={isLoading} className="w-full">
+							<Button type="submit" variant="default" disabled={isLoading} className="w-full">
 								Create Channel
 							</Button>
 						</DialogFooter>

@@ -154,9 +154,9 @@ export async function POST(request: NextRequest) {
     // Calculate subscription end date with proper error handling
     let subscriptionEnd: Date;
     
-    if (validSubscription && validSubscription.current_period_end) {
+    if (validSubscription && (validSubscription as any).current_period_end) {
       // Convert Stripe timestamp to Date
-      subscriptionEnd = new Date(validSubscription.current_period_end * 1000);
+      subscriptionEnd = new Date((validSubscription as any).current_period_end * 1000);
       console.log(`📅 Subscription end from Stripe: ${subscriptionEnd.toISOString()}`);
     } else {
       // Fallback: 30 days from now for one-time payments or invalid subscription data

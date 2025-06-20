@@ -49,7 +49,7 @@ export function LeaveServerModal() {
 						<Button disabled={isLoading} onClick={onClose} variant="ghost">
 							Cancel
 						</Button>
-						<Button disabled={isLoading} onClick={handleLeaveServer} variant="primary">
+						<Button disabled={isLoading} onClick={handleLeaveServer} variant="default">
 							Confirm
 						</Button>
 					</div>

@@ -5,6 +5,7 @@ const isPublicRoute = createRouteMatcher([
 	"/pricing", 
 	"/sign-in(.*)", 
 	"/sign-up(.*)", 
+	"/2fa-verify",
 	"/api/uploadthing", 
 	"/api/socket(.*)", 
 	"/api/webhooks(.*)",
@@ -16,7 +17,9 @@ const isPublicRoute = createRouteMatcher([
 	"/api/check-payment-status",
 	"/api/verify-stripe-payment",
 	"/api/test-login-sync",
-	"/api/setup-login-sync-test"
+	"/api/setup-login-sync-test",
+	"/api/2fa/verify-login",
+	"/api/auth/signout"
 ]);
 
 // protect all routes except the public ones

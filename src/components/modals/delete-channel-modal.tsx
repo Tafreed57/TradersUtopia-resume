@@ -58,7 +58,7 @@ export function DeleteChannelModal() {
 						<Button disabled={isLoading} onClick={onClose} variant="ghost">
 							Cancel
 						</Button>
-						<Button disabled={isLoading} onClick={handleDeleteServer} variant="primary">
+						<Button disabled={isLoading} onClick={handleDeleteServer} variant="default">
 							Confirm
 						</Button>
 					</div>

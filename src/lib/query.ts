@@ -3,6 +3,7 @@ import { auth, currentUser,getAuth } from "@clerk/nextjs/server";
 import { NextApiRequest } from "next";
 import { unstable_noStore as noStore } from "next/cache";
 import { redirect } from "next/navigation";
+import { createNotification } from "@/lib/notifications";
 
 // Login-triggered auto sync function
 async function performLoginSync(userEmail: string) {
@@ -27,37 +28,29 @@ async function performLoginSync(userEmail: string) {
 		const freeProfiles = allProfiles.filter(p => p.subscriptionStatus === 'FREE' && p.id !== activeProfile?.id);
 
 		if (activeProfile && freeProfiles.length > 0) {
-			console.log(`✨ [Login Sync] Syncing ${freeProfiles.length} FREE profile(s) from ACTIVE profile ${activeProfile.id}`);
+			console.log(`✅ [Login Sync] Found ACTIVE profile ${activeProfile.id}, syncing to ${freeProfiles.length} FREE profile(s)`);
 			
 			// Update all FREE profiles to match the ACTIVE one
-			const updatePromises = freeProfiles.map(async (freeProfile) => {
-				try {
-					const updated = await prisma.profile.update({
-						where: { id: freeProfile.id },
-						data: {
-							subscriptionStatus: 'ACTIVE',
-							subscriptionStart: activeProfile.subscriptionStart,
-							subscriptionEnd: activeProfile.subscriptionEnd,
-							stripeCustomerId: activeProfile.stripeCustomerId,
-							stripeSessionId: activeProfile.stripeSessionId,
-						}
-					});
-					console.log(`   ✅ [Login Sync] Synced profile ${updated.id} (${updated.userId})`);
-					return updated;
-				} catch (error) {
-					console.error(`   ❌ [Login Sync] Failed to sync profile ${freeProfile.id}:`, error);
-					return null;
-				}
-			});
-
-			await Promise.all(updatePromises);
-			console.log(`🎉 [Login Sync] Successfully synced profiles for ${userEmail}`);
+			for (const freeProfile of freeProfiles) {
+				await prisma.profile.update({
+					where: { id: freeProfile.id },
+					data: {
+						subscriptionStatus: activeProfile.subscriptionStatus,
+						subscriptionStart: activeProfile.subscriptionStart,
+						subscriptionEnd: activeProfile.subscriptionEnd,
+						stripeCustomerId: activeProfile.stripeCustomerId,
+						stripeSessionId: activeProfile.stripeSessionId,
+						stripeProductId: activeProfile.stripeProductId,
+					}
+				});
+				console.log(`🔄 [Login Sync] Synced profile ${freeProfile.id} to ACTIVE status`);
+			}
 		} else {
-			console.log(`ℹ️ [Login Sync] No sync needed for ${userEmail} - ${activeProfile ? 'no FREE profiles to sync' : 'no ACTIVE profile found'}`);
+			console.log(`ℹ️ [Login Sync] No ACTIVE profile found to sync from, or no FREE profiles to sync to`);
 		}
+
 	} catch (error) {
-		console.error(`❌ [Login Sync] Error during sync for ${userEmail}:`, error);
-		// Don't throw error - login should continue even if sync fails
+		console.error(`❌ [Login Sync] Failed for ${userEmail}:`, error);
 	}
 }
 
@@ -109,6 +102,19 @@ export async function initProfile() {
 		}).catch((error) => {
 			console.error(`❌ [Login Sync] Background sync failed for ${userEmail}:`, error);
 		});
+	}
+
+	// Create welcome notification for new users
+	try {
+		await createNotification({
+			userId: user.id,
+			type: 'SYSTEM',
+			title: 'Welcome to TradersUtopia! 🎉',
+			message: 'Your account has been successfully created. Explore the dashboard to set up two-factor authentication and customize your experience.',
+			actionUrl: '/dashboard?tab=security'
+		});
+	} catch (error) {
+		console.error('Failed to create welcome notification:', error);
 	}
 
 	return newProfile;

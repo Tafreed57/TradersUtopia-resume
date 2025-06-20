@@ -19,7 +19,7 @@ export default function HomePage() {
 				<div className="flex items-center justify-center gap-2 text-sm md:text-base font-semibold">
 					<span className="text-2xl">⏳</span>
 					<span>PRICE INCREASING AGAIN</span>
-					<span className="text-yellow-300">Time's up!</span>
+					<span className="text-yellow-300">Time&apos;s up!</span>
 				</div>
 			</div>
 
@@ -90,7 +90,7 @@ export default function HomePage() {
 						
 						<p className="text-gray-400 text-sm">
 							<SignedIn>Access verification will run automatically</SignedIn>
-							<SignedOut>Sign in first, then we'll check your subscription</SignedOut>
+							<SignedOut>Sign in first, then we&apos;ll check your subscription</SignedOut>
 						</p>
 					</div>
 				</div>

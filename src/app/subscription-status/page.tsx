@@ -192,7 +192,7 @@ export default function SubscriptionStatusPage() {
           <CardHeader>
             <CardTitle>🔧 Debug: Test Clerk Authentication</CardTitle>
             <CardDescription>
-              First, let's check if Clerk can access your user data at all
+              First, let&apos;s check if Clerk can access your user data at all
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -209,7 +209,7 @@ export default function SubscriptionStatusPage() {
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200">
                 <p className="text-sm text-blue-700">
                   <strong>Click the button above first!</strong> This will open a new tab showing your raw Clerk user data. 
-                  If you see an error or "Not authenticated", that's the root problem.
+                  If you see an error or &quot;Not authenticated&quot;, that&apos;s the root problem.
                 </p>
               </div>
             </div>
@@ -290,7 +290,7 @@ export default function SubscriptionStatusPage() {
                   <div className="bg-red-100 dark:bg-red-800/20 p-3 rounded">
                     <h6 className="font-semibold text-red-800">Quick Fix:</h6>
                     <p className="text-sm text-red-700">
-                      If you see a Stripe customer above with a different email, that's the issue! 
+                      If you see a Stripe customer above with a different email, that&apos;s the issue! 
                       You need to either:
                     </p>
                     <ul className="text-sm text-red-700 list-disc list-inside mt-1">
@@ -307,7 +307,7 @@ export default function SubscriptionStatusPage() {
         {/* Stripe Debug Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Debug: What's in Your Stripe Account</CardTitle>
+            <CardTitle>Debug: What&apos;s in Your Stripe Account</CardTitle>
             <CardDescription>
               See exactly what data exists in Stripe for your email address
             </CardDescription>
