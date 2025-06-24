@@ -8,11 +8,28 @@ export function useAuthCleanup() {
   useEffect(() => {
     // If user was signed in but now isn't, they've signed out
     if (wasSignedIn.current && !isSignedIn) {
-      // Clear 2FA verification cookie
+      console.log('🧹 [Auth] User signed out, cleaning up auth state...');
+      
+      // Clear 2FA verification cookie with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      
       fetch('/api/auth/signout', {
         method: 'POST',
-      }).catch(error => {
-        console.error('Failed to clear auth state:', error);
+        signal: controller.signal,
+      })
+      .then(() => {
+        console.log('✅ [Auth] Auth state cleared successfully');
+      })
+      .catch(error => {
+        if (error.name === 'AbortError') {
+          console.warn('⏰ [Auth] Auth cleanup timed out');
+        } else {
+          console.error('❌ [Auth] Failed to clear auth state:', error);
+        }
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
       });
     }
     

@@ -45,8 +45,11 @@ export async function POST(request: NextRequest) {
 
 	} catch (error) {
 		console.error('❌ Error setting up login sync test:', error);
+		
+		// ✅ SECURITY: Generic error response - no internal details exposed
 		return NextResponse.json({ 
-			error: error instanceof Error ? error.message : String(error)
+			success: false,
+			message: 'Setup operation failed. Please try again later.'
 		}, { status: 500 });
 	}
 }

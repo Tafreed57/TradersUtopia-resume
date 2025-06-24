@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { UploadDropzone } from "@/lib/uploadthing";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import { secureAxiosPost } from "@/lib/csrf-client";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -48,7 +48,7 @@ export function CreateServerModal() {
 	const onSubmit = async (values: z.infer<typeof schema>) => {
 		console.log(values);
 		try {
-			await axios.post("/api/servers", values);
+			await secureAxiosPost("/api/servers", values);
 			form.reset();
 			router.refresh();
             onClose();

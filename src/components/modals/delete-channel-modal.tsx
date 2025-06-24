@@ -10,7 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { useStore } from "@/store/store";
-import axios from "axios";
+import { secureAxiosDelete } from "@/lib/csrf-client";
 import {  useRouter } from "next/navigation";
 import { useState } from "react";
 import qs from "query-string";
@@ -32,12 +32,12 @@ export function DeleteChannelModal() {
 				url: `/api/channels/${data?.channel?.id}`,
 				query: { serverId: data?.server?.id},
 			});
-			await axios.delete(url);
+			await secureAxiosDelete(url);
 			onClose();
 			router.refresh();
 			router.push(`/servers/${data?.server?.id}`);
 		} catch (error: any) {
-			console.log(error, "LEAVE SERVER ERROR");
+			console.log(error, "DELETE CHANNEL ERROR");
 		} finally {
 			setIsLoading(false);
 		}

@@ -6,32 +6,30 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Smile } from "lucide-react";
 import { useForm } from "react-hook-form";
 import z from "zod";
-import axios from "axios";
+import { secureAxiosPost } from "@/lib/csrf-client";
 import qs from "query-string";
 import { useStore } from "@/store/store";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { Member, MemberRole } from "@prisma/client";
 
 interface ChatInputProps {
 	apiUrl: string;
 	query: Record<string, any>;
 	name: string;
 	type: "conversation" | "channel";
+	member: Member;
 }
 
 const formSchema = z.object({
 	content: z.string().min(1),
 });
 
-export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
+export function ChatInput({ apiUrl, query, name, type, member }: ChatInputProps) {
 	const router = useRouter();
-	const { user } = useUser();
 	const onOpen = useStore.use.onOpen();
-	const [isAdmin, setIsAdmin] = useState(false);
-	const [checkingPermissions, setCheckingPermissions] = useState(true);
 	
+	// ✅ FIX: Move useForm hook call BEFORE any conditional returns
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
@@ -40,62 +38,26 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
 	});
 	const isLoading = form.formState.isSubmitting;
 
-	// Check if user has admin permissions
-	useEffect(() => {
-		const checkAdminStatus = async () => {
-			if (!user) return;
-			
-			try {
-				const response = await fetch('/api/admin/check-status', {
-					method: 'GET',
-				});
-				
-				if (response.ok) {
-					const data = await response.json();
-					setIsAdmin(data.isAdmin);
-				}
-			} catch (error) {
-				console.error('Error checking admin status:', error);
-				setIsAdmin(false);
-			} finally {
-				setCheckingPermissions(false);
-			}
-		};
-
-		checkAdminStatus();
-	}, [user]);
-
-	const onSubmit = async (values: z.infer<typeof formSchema>) => {
-		try {
-            const url = qs.stringifyUrl({
-                url: apiUrl,
-                query
-            });
-            await axios.post(url, values);
-			form.reset();
-			router.refresh();
-        } catch (error) {
-            console.error(error);
-        }
-	};
-
-	// Show loading state briefly
-	if (checkingPermissions) {
-		return (
-			<div className="p-4 pb-6">
-				<div className="px-14 py-6 bg-zinc-200/90 dark:bg-zinc-700/75 rounded-md text-center text-zinc-500">
-					Loading...
-				</div>
-			</div>
-		);
-	}
-
-	// Hide chat input completely for non-admin users
-	if (!isAdmin) {
+	// ✅ PERMISSION CHECK: Only MODERATOR and ADMIN can send messages
+	// GUEST users get no chat input at all (completely hidden)
+	if (member.role === MemberRole.GUEST) {
 		return null;
 	}
 
-	// Show full chat input interface for admin users only
+	const onSubmit = async (values: z.infer<typeof formSchema>) => {
+		try {
+			const url = qs.stringifyUrl({
+				url: apiUrl,
+				query,
+			});
+			await secureAxiosPost(url, values);
+			form.reset();
+			router.refresh();
+		} catch (error) {
+			console.log(error);
+		}
+	};
+
 	return (
 		<Form {...form}>
 			<form onSubmit={form.handleSubmit(onSubmit)}>

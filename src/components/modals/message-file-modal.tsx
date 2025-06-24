@@ -12,7 +12,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { UploadDropzone } from "@/lib/uploadthing";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import { secureAxiosPost } from "@/lib/csrf-client";
 import Image from "next/image";
 import qs from "query-string";
 import { useForm } from "react-hook-form";
@@ -50,9 +50,10 @@ export function MessageFileModal() {
 				url: data?.apiUrl || "",
 				query: data?.query,
 			});
-			await axios.post(url, { ...values, content: values.fileUrl });
-			router.refresh();
+
+			await secureAxiosPost(url, { ...values, content: values.fileUrl });
 			form.reset();
+			router.refresh();
 			handleClose();
 		} catch (error) {
 			console.log(error);

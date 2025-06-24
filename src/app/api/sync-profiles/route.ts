@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { currentUser } from '@clerk/nextjs/server';
+import { rateLimitAdmin, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SECURITY: Rate limiting for profile sync operations (admin level)
+    const rateLimitResult = await rateLimitAdmin()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'PROFILE_SYNC_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
     console.log('🔗 Starting comprehensive profile sync...\n');
     
     // Find all profiles
@@ -102,60 +111,68 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ Error in profile sync:', error);
+    
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      message: 'Profile sync operation failed. Please try again later.'
     }, { status: 500 });
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    // Just analyze without making changes
-    const allProfiles = await db.profile.findMany({
-      orderBy: { email: 'asc' }
-    });
+    // ✅ SECURITY: Rate limiting for profile analysis operations
+    const rateLimitResult = await rateLimitAdmin()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'PROFILE_ANALYSIS_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
+    const user = await currentUser();
     
-    const profilesByEmail = allProfiles.reduce((acc, profile) => {
-      if (!acc[profile.email]) {
-        acc[profile.email] = [];
-      }
-      acc[profile.email].push(profile);
-      return acc;
-    }, {} as Record<string, typeof allProfiles>);
-    
-    const duplicateEmails = Object.entries(profilesByEmail).filter(([email, profiles]) => profiles.length > 1);
-    
-    const analysis = duplicateEmails.map(([email, profiles]) => ({
-      email,
-      totalProfiles: profiles.length,
-      activeProfiles: profiles.filter(p => p.subscriptionStatus === 'ACTIVE').length,
-      freeProfiles: profiles.filter(p => p.subscriptionStatus === 'FREE').length,
-      needsSync: profiles.filter(p => p.subscriptionStatus === 'ACTIVE').length > 0 && 
-                 profiles.filter(p => p.subscriptionStatus === 'FREE').length > 0,
-      profiles: profiles.map(p => ({
-        id: p.id,
-        userId: p.userId,
-        status: p.subscriptionStatus,
-        subscriptionEnd: p.subscriptionEnd
-      }))
-    }));
-    
-    return NextResponse.json({
-      analysis: true,
-      stats: {
-        totalProfiles: allProfiles.length,
-        uniqueEmails: Object.keys(profilesByEmail).length,
-        duplicateEmailGroups: duplicateEmails.length,
-        groupsNeedingSync: analysis.filter(a => a.needsSync).length
+    if (!user) {
+      trackSuspiciousActivity(request, 'UNAUTHENTICATED_PROFILE_ANALYSIS');
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    if (!userEmail) {
+      return NextResponse.json({ error: 'No email found' }, { status: 400 });
+    }
+
+    // Get all profiles with "FREE" status for analysis
+    const freeProfiles = await db.profile.findMany({
+      where: {
+        subscriptionStatus: 'FREE'
       },
-      duplicateGroups: analysis
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        subscriptionStatus: true,
+        stripeCustomerId: true,
+        createdAt: true,
+        updatedAt: true,
+      }
     });
-    
+
+    console.log(`📊 Found ${freeProfiles.length} profiles with FREE status`);
+
+    return NextResponse.json({
+      message: 'Profile analysis completed',
+      totalFreeProfiles: freeProfiles.length,
+      profiles: freeProfiles.slice(0, 10), // Return first 10 for review
+      note: 'This is a read-only analysis. Use POST to perform actual sync.'
+    });
+
   } catch (error) {
     console.error('❌ Error in profile analysis:', error);
+    
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
-      error: error instanceof Error ? error.message : String(error)
+      error: 'Profile analysis failed',
+      message: 'Unable to analyze profiles. Please try again later.'
     }, { status: 500 });
   }
 } 

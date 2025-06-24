@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { db } from '@/lib/db';
+import { rateLimitWebhook, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
@@ -9,7 +10,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
-  const body = await request.text();
+  try {
+    // ✅ SECURITY: Rate limiting for webhook operations (generous limit for external systems)
+    const rateLimitResult = await rateLimitWebhook()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'STRIPE_WEBHOOK_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
+    const body = await request.text();
   const signature = request.headers.get('stripe-signature')!;
 
   let event: Stripe.Event;
@@ -161,18 +170,46 @@ export async function POST(request: NextRequest) {
       }
       
       break;
-    
+
+    case 'customer.subscription.created':
+      // Handle new subscription creation
+      const newSubscription = event.data.object as Stripe.Subscription;
+      console.log(`🆕 New subscription created: ${newSubscription.id}`);
+      
+      try {
+        await updateSubscriptionInDatabase(newSubscription);
+      } catch (error) {
+        console.error('Error handling subscription creation:', error);
+        return NextResponse.json({ error: 'Subscription creation failed' }, { status: 500 });
+      }
+      break;
+
+    case 'customer.subscription.updated':
+      // Handle subscription updates (auto-renewal changes, plan changes, etc.)
+      const updatedSubscription = event.data.object as Stripe.Subscription;
+      console.log(`🔄 Subscription updated: ${updatedSubscription.id}`);
+      
+      try {
+        await updateSubscriptionInDatabase(updatedSubscription);
+      } catch (error) {
+        console.error('Error handling subscription update:', error);
+        return NextResponse.json({ error: 'Subscription update failed' }, { status: 500 });
+      }
+      break;
+
     case 'customer.subscription.deleted':
       // Handle subscription cancellation
-      const subscription = event.data.object as Stripe.Subscription;
-      const cancelledCustomerId = subscription.customer as string;
+      const cancelledSubscription = event.data.object as Stripe.Subscription;
+      const cancelledCustomerId = cancelledSubscription.customer as string;
+      
+      console.log(`❌ Subscription cancelled: ${cancelledSubscription.id}`);
       
       try {
         await db.profile.updateMany({
           where: { stripeCustomerId: cancelledCustomerId },
           data: {
             subscriptionStatus: 'CANCELLED',
-            subscriptionEnd: new Date(),
+            subscriptionEnd: new Date(cancelledSubscription.current_period_end * 1000),
           }
         });
         
@@ -181,7 +218,44 @@ export async function POST(request: NextRequest) {
         console.error('Error cancelling subscription:', error);
         return NextResponse.json({ error: 'Cancellation failed' }, { status: 500 });
       }
+      break;
+
+    case 'invoice.payment_succeeded':
+      // Handle successful payment - extend subscription
+      const successfulInvoice = event.data.object as Stripe.Invoice;
+      console.log(`💳 Payment succeeded for invoice: ${successfulInvoice.id}`);
       
+      if (successfulInvoice.subscription) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(successfulInvoice.subscription as string);
+          await updateSubscriptionInDatabase(subscription);
+          console.log(`✅ Updated subscription after successful payment`);
+        } catch (error) {
+          console.error('Error updating subscription after payment:', error);
+        }
+      }
+      break;
+
+    case 'invoice.payment_failed':
+      // Handle failed payment
+      const failedInvoice = event.data.object as Stripe.Invoice;
+      console.log(`⚠️ Payment failed for invoice: ${failedInvoice.id}`);
+      
+      if (failedInvoice.customer) {
+        try {
+          await db.profile.updateMany({
+            where: { stripeCustomerId: failedInvoice.customer as string },
+            data: {
+              subscriptionStatus: 'ACTIVE', // Keep active during retry period
+              // Note: Don't immediately cancel - Stripe has retry logic
+            }
+          });
+          
+          console.log(`⚠️ Marked payment issue for customer: ${failedInvoice.customer}`);
+        } catch (error) {
+          console.error('Error handling payment failure:', error);
+        }
+      }
       break;
     
     default:
@@ -189,4 +263,63 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
+  
+  } catch (outerError) {
+    console.error('❌ [WEBHOOK] Outer webhook error:', outerError);
+    trackSuspiciousActivity(request, 'WEBHOOK_PROCESSING_ERROR');
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+  }
+}
+
+// ✅ HELPER FUNCTION: Update subscription data in database
+async function updateSubscriptionInDatabase(subscription: Stripe.Subscription) {
+  const customerId = subscription.customer as string;
+  
+  // Calculate subscription dates
+  const subscriptionStart = new Date(subscription.current_period_start * 1000);
+  const subscriptionEnd = new Date(subscription.current_period_end * 1000);
+  
+  // Determine status based on Stripe subscription status
+  let dbStatus: 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'FREE' = 'ACTIVE';
+  if (subscription.status === 'canceled') {
+    dbStatus = 'CANCELLED';
+  } else if (subscription.status === 'unpaid' || subscription.status === 'past_due') {
+    dbStatus = 'EXPIRED';
+  } else if (['active', 'trialing'].includes(subscription.status)) {
+    dbStatus = 'ACTIVE';
+  }
+  
+  // Get product ID from subscription
+  let productId = null;
+  if (subscription.items.data.length > 0) {
+    const price = subscription.items.data[0].price;
+    productId = price.product as string;
+  }
+  
+  console.log(`📊 Updating subscription in database:`, {
+    customerId,
+    subscriptionId: subscription.id,
+    status: dbStatus,
+    start: subscriptionStart,
+    end: subscriptionEnd,
+    productId,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end
+  });
+  
+  // Update all profiles with this customer ID
+  const updateResult = await db.profile.updateMany({
+    where: { stripeCustomerId: customerId },
+    data: {
+      subscriptionStatus: dbStatus,
+      subscriptionStart: subscriptionStart,
+      subscriptionEnd: subscriptionEnd,
+      stripeProductId: productId,
+      // Store additional subscription metadata that can be used in UI
+      updatedAt: new Date(),
+    }
+  });
+  
+  console.log(`✅ Updated ${updateResult.count} profile(s) for customer ${customerId}`);
+  
+  return updateResult;
 }

@@ -10,7 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { useStore } from "@/store/store";
-import axios from "axios";
+import { secureAxiosDelete } from "@/lib/csrf-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import qs from "query-string";
@@ -31,7 +31,7 @@ export function DeleteMessageModal() {
 				url: data?.apiUrl || "",
 				query: data?.query,
 			});
-			await axios.delete(url);
+			await secureAxiosDelete(url);
 			onClose();
 			router.refresh();
 		} catch (error: any) {

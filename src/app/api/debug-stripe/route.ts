@@ -104,9 +104,11 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error debugging Stripe data:', error);
+    
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
-      error: 'Failed to retrieve Stripe data',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Debug operation failed',
+      message: 'Unable to retrieve debug information. Please try again later.'
     }, { status: 500 });
   }
 } 

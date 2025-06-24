@@ -118,6 +118,23 @@ export async function POST(request: NextRequest) {
       });
 
       console.log(`👥 Auto-joined user ${profile.email} to ${DEFAULT_SERVER_NAME} as ${profile.isAdmin ? 'ADMIN' : 'GUEST'}`);
+    } else {
+      // ✅ UPDATE: Check if existing member needs role upgrade based on global admin status
+      const currentRole = existingMembership.role;
+      const expectedRole = profile.isAdmin ? "ADMIN" : "GUEST";
+      
+      if (currentRole !== expectedRole) {
+        await db.member.update({
+          where: {
+            id: existingMembership.id
+          },
+          data: {
+            role: expectedRole
+          }
+        });
+        
+        console.log(`🔄 Updated user ${profile.email} role in ${DEFAULT_SERVER_NAME} from ${currentRole} to ${expectedRole}`);
+      }
     }
 
     // Get updated server with all members
@@ -145,9 +162,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error ensuring default server:', error);
+    
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
       error: 'Failed to ensure default server',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Unable to set up default server. Please try again later.'
     }, { status: 500 });
   }
 } 

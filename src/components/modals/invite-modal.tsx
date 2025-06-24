@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOrigin } from "@/hooks/use-origin";
 import { useStore } from "@/store/store";
-import axios from "axios";
+import { secureAxiosPatch } from "@/lib/csrf-client";
 import { Check, Copy, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
@@ -33,7 +33,7 @@ export function InviteModal() {
 	const onGenerate = async () => {
 		try {
 			setIsLoading(true);
-			const res = await axios.patch(`/api/servers/${data?.server?.id}/invite-code`);
+			const res = await secureAxiosPatch(`/api/servers/${data?.server?.id}/invite-code`);
 			onOpen("invite", { server: res.data });
 		} catch (error) {
 			console.log(error);

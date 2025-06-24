@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOrigin } from "@/hooks/use-origin";
 import { useStore } from "@/store/store";
-import axios from "axios";
+import { secureAxiosPatch } from "@/lib/csrf-client";
 import { Check, Copy, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
 export function LeaveServerModal() {
   const router = useRouter();
 	const type = useStore.use.type();
@@ -23,7 +24,7 @@ export function LeaveServerModal() {
   const handleLeaveServer = async () => {
     try {
       setIsLoading(true);
-      await axios.patch(`/api/servers/${data?.server?.id}/leave`);
+      await secureAxiosPatch(`/api/servers/${data?.server?.id}/leave`);
       onClose();
       router.refresh();
       router.push("/");

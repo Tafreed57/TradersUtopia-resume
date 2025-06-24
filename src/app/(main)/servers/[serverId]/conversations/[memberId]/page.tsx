@@ -77,6 +77,7 @@ export default async function MemberIdPage({ params, searchParams }: MemberIdPag
 						query={{
 							conversationId: conversation.id,
 						}}
+						member={currentMember}
 					/>
 				</>
 			)}

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import Stripe from 'stripe';
+import { rateLimitSubscription, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { validateInput, productSubscriptionSchema } from '@/lib/validation';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
@@ -9,27 +11,40 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SECURITY: Rate limiting for subscription checks
+    const rateLimitResult = await rateLimitSubscription()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'SUBSCRIPTION_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
+    // ✅ SECURITY: Authentication check
     const user = await currentUser();
-    
     if (!user) {
+      trackSuspiciousActivity(request, 'UNAUTHENTICATED_SUBSCRIPTION_CHECK');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { allowedProductIds } = await request.json();
-    
-    if (!allowedProductIds || !Array.isArray(allowedProductIds)) {
-      return NextResponse.json({ 
-        error: 'allowedProductIds array is required' 
-      }, { status: 400 });
+    // ✅ SECURITY: Input validation
+    const validationResult = await validateInput(productSubscriptionSchema)(request);
+    if (!validationResult.success) {
+      trackSuspiciousActivity(request, 'INVALID_SUBSCRIPTION_INPUT');
+      return validationResult.error;
     }
+
+    const { allowedProductIds } = validationResult.data;
 
     const userEmail = user.emailAddresses[0]?.emailAddress;
     if (!userEmail) {
-      return NextResponse.json({ error: 'No email found' }, { status: 400 });
+      trackSuspiciousActivity(request, 'NO_EMAIL_SUBSCRIPTION_CHECK');
+      return NextResponse.json({ 
+        error: 'No email found',
+        message: 'User email is required for subscription verification'
+      }, { status: 400 });
     }
 
-    console.log(`🔍 Checking product-specific subscription for user: ${userEmail}`);
-    console.log(`🎯 Allowed product IDs: ${allowedProductIds.join(', ')}`);
+    console.log(`🔍 [SUBSCRIPTION] Checking product-specific subscription for user: ${userEmail}`);
+    console.log(`🎯 [SUBSCRIPTION] Allowed product IDs: ${allowedProductIds.join(', ')}`);
 
     // Check if user already has valid access to any of the allowed products
     const existingProfile = await db.profile.findFirst({
@@ -46,7 +61,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingProfile) {
-      console.log(`✅ User already has valid access with product: ${existingProfile.stripeProductId}`);
+      console.log(`✅ [SUBSCRIPTION] User already has valid access with product: ${existingProfile.stripeProductId}`);
       return NextResponse.json({
         hasAccess: true,
         productId: existingProfile.stripeProductId,
@@ -55,149 +70,160 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Step 1: Search for customer in Stripe by email
-    const customers = await stripe.customers.list({
-      email: userEmail,
-      limit: 1,
-    });
+    // ✅ SECURITY: Enhanced Stripe API interaction with error handling
+    let customer;
+    try {
+      // Step 1: Search for customer in Stripe by email
+      const customers = await stripe.customers.list({
+        email: userEmail,
+        limit: 1,
+      });
 
-    if (customers.data.length === 0) {
+      if (customers.data.length === 0) {
+        console.log(`❌ [SUBSCRIPTION] No customer found in Stripe for: ${userEmail}`);
+        return NextResponse.json({
+          hasAccess: false,
+          reason: 'No customer found in Stripe with this email'
+        });
+      }
+
+      customer = customers.data[0];
+      console.log(`✅ [SUBSCRIPTION] Found Stripe customer: ${customer.id}`);
+    } catch (stripeError) {
+      console.error('❌ [SUBSCRIPTION] Stripe customer lookup error:', stripeError);
+      trackSuspiciousActivity(request, 'STRIPE_API_ERROR');
       return NextResponse.json({
         hasAccess: false,
-        reason: 'No customer found in Stripe with this email'
-      });
+        reason: 'Failed to verify subscription status',
+        error: 'Service temporarily unavailable'
+      }, { status: 503 });
     }
 
-    const customer = customers.data[0];
-    console.log(`✅ Found Stripe customer: ${customer.id}`);
-
     // Step 2: Check for active subscriptions with allowed products
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customer.id,
-      status: 'active',
-      limit: 10,
-    });
-
     let validSubscription = null;
     let subscribedProductId = null;
 
-    for (const subscription of subscriptions.data) {
-      for (const item of subscription.items.data) {
-        // Get the price details to find the product ID
-        const price = await stripe.prices.retrieve(item.price.id);
-        
-        if (allowedProductIds.includes(price.product as string)) {
-          validSubscription = subscription;
-          subscribedProductId = price.product as string;
-          console.log(`✅ Found valid subscription for product: ${subscribedProductId}`);
-          break;
-        }
-      }
-      if (validSubscription) break;
-    }
-
-    if (!validSubscription && subscriptions.data.length > 0) {
-      // Log what products they DO have for debugging
-      const userProducts = [];
-      for (const subscription of subscriptions.data) {
-        for (const item of subscription.items.data) {
-          const price = await stripe.prices.retrieve(item.price.id);
-          userProducts.push(price.product);
-        }
-      }
-      console.log(`❌ User has subscriptions but not for allowed products. User products: ${userProducts.join(', ')}`);
-    }
-
-    // Step 3: Check completed checkout sessions for allowed products
-    if (!validSubscription) {
-      const checkoutSessions = await stripe.checkout.sessions.list({
+    try {
+      const subscriptions = await stripe.subscriptions.list({
         customer: customer.id,
+        status: 'active',
         limit: 10,
       });
 
-      const completedSessions = checkoutSessions.data.filter(
-        session => session.status === 'complete'
-      );
-
-      for (const session of completedSessions) {
-        if (session.line_items) {
-          const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+      for (const subscription of subscriptions.data) {
+        for (const item of subscription.items.data) {
+          // Get the price details to find the product ID
+          const price = await stripe.prices.retrieve(item.price.id);
           
-          for (const item of lineItems.data) {
-            if (item.price) {
-              const price = await stripe.prices.retrieve(item.price.id);
-              
-              if (allowedProductIds.includes(price.product as string)) {
-                subscribedProductId = price.product as string;
-                console.log(`✅ Found valid checkout session for product: ${subscribedProductId}`);
-                break;
-              }
-            }
+          if (allowedProductIds.includes(price.product as string)) {
+            validSubscription = subscription;
+            subscribedProductId = price.product as string;
+            console.log(`✅ [SUBSCRIPTION] Found valid subscription for product: ${subscribedProductId}`);
+            break;
           }
         }
-        if (subscribedProductId) break;
+        if (validSubscription) break;
       }
-    }
 
-    if (!subscribedProductId) {
+      if (!validSubscription && subscriptions.data.length > 0) {
+        // Log what products they DO have for debugging
+        const userProducts = [];
+        for (const subscription of subscriptions.data) {
+          for (const item of subscription.items.data) {
+            const price = await stripe.prices.retrieve(item.price.id);
+            userProducts.push(price.product);
+          }
+        }
+        console.log(`❌ [SUBSCRIPTION] User has subscriptions but not for allowed products. User products: ${userProducts.join(', ')}`);
+      }
+    } catch (stripeError) {
+      console.error('❌ [SUBSCRIPTION] Stripe subscription lookup error:', stripeError);
+      trackSuspiciousActivity(request, 'STRIPE_SUBSCRIPTION_ERROR');
       return NextResponse.json({
         hasAccess: false,
-        reason: `No subscription found for allowed products: ${allowedProductIds.join(', ')}`
+        reason: 'Failed to verify subscription details',
+        error: 'Service temporarily unavailable'
+      }, { status: 503 });
+    }
+
+    if (!validSubscription) {
+      console.log(`❌ [SUBSCRIPTION] No valid subscription found for user: ${userEmail}`);
+      return NextResponse.json({
+        hasAccess: false,
+        reason: 'No active subscription found for the required products'
       });
     }
 
-    // Step 4: Update or create profile with product-specific data
+    // Calculate subscription end date with validation
+    let subscriptionEnd: Date;
+    try {
+      if (validSubscription && (validSubscription as any).current_period_end) {
+        // Convert Stripe timestamp to Date
+        subscriptionEnd = new Date((validSubscription as any).current_period_end * 1000);
+        console.log(`📅 [SUBSCRIPTION] Subscription end from Stripe: ${subscriptionEnd.toISOString()}`);
+      } else {
+        // Fallback: 30 days from now for one-time payments or invalid subscription data
+        subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        console.log(`📅 [SUBSCRIPTION] Using fallback subscription end: ${subscriptionEnd.toISOString()}`);
+      }
+      
+      // Validate the date is not invalid
+      if (isNaN(subscriptionEnd.getTime())) {
+        console.log('⚠️ [SUBSCRIPTION] Invalid subscription end date, using 30-day fallback');
+        subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      }
+    } catch (dateError) {
+      console.error('❌ [SUBSCRIPTION] Date calculation error:', dateError);
+      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Find or create/update profile
     let profile = await db.profile.findFirst({
       where: { userId: user.id }
     });
 
-    // Calculate subscription end date with proper error handling
-    let subscriptionEnd: Date;
-    
-    if (validSubscription && (validSubscription as any).current_period_end) {
-      // Convert Stripe timestamp to Date
-      subscriptionEnd = new Date((validSubscription as any).current_period_end * 1000);
-      console.log(`📅 Subscription end from Stripe: ${subscriptionEnd.toISOString()}`);
-    } else {
-      // Fallback: 30 days from now for one-time payments or invalid subscription data
-      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      console.log(`📅 Using fallback subscription end: ${subscriptionEnd.toISOString()}`);
-    }
-    
-    // Validate the date is not invalid
-    if (isNaN(subscriptionEnd.getTime())) {
-      console.log('⚠️ Invalid subscription end date, using 30-day fallback');
-      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    try {
+      if (!profile) {
+        profile = await db.profile.create({
+          data: {
+            userId: user.id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: userEmail,
+            imageUrl: user.imageUrl,
+            subscriptionStatus: 'ACTIVE',
+            subscriptionStart: new Date(),
+            subscriptionEnd: subscriptionEnd,
+            stripeCustomerId: customer.id,
+            stripeProductId: subscribedProductId,
+          }
+        });
+        console.log(`➕ [SUBSCRIPTION] Created new profile with product: ${subscribedProductId}`);
+      } else {
+        profile = await db.profile.update({
+          where: { id: profile.id },
+          data: {
+            subscriptionStatus: 'ACTIVE',
+            subscriptionStart: new Date(),
+            subscriptionEnd: subscriptionEnd,
+            stripeCustomerId: customer.id,
+            stripeProductId: subscribedProductId,
+          }
+        });
+        console.log(`🔄 [SUBSCRIPTION] Updated profile with product: ${subscribedProductId}`);
+      }
+    } catch (dbError) {
+      console.error('❌ [SUBSCRIPTION] Database error:', dbError);
+      trackSuspiciousActivity(request, 'SUBSCRIPTION_DB_ERROR');
+      return NextResponse.json({
+        hasAccess: false,
+        reason: 'Failed to update subscription status',
+        error: 'Database error occurred'
+      }, { status: 500 });
     }
 
-    if (!profile) {
-      profile = await db.profile.create({
-        data: {
-          userId: user.id,
-          name: `${user.firstName} ${user.lastName}`,
-          email: userEmail,
-          imageUrl: user.imageUrl,
-          subscriptionStatus: 'ACTIVE',
-          subscriptionStart: new Date(),
-          subscriptionEnd: subscriptionEnd,
-          stripeCustomerId: customer.id,
-          stripeProductId: subscribedProductId,
-        }
-      });
-      console.log(`➕ Created new profile with product: ${subscribedProductId}`);
-    } else {
-      profile = await db.profile.update({
-        where: { id: profile.id },
-        data: {
-          subscriptionStatus: 'ACTIVE',
-          subscriptionStart: new Date(),
-          subscriptionEnd: subscriptionEnd,
-          stripeCustomerId: customer.id,
-          stripeProductId: subscribedProductId,
-        }
-      });
-      console.log(`🔄 Updated profile with product: ${subscribedProductId}`);
-    }
+    // ✅ SECURITY: Log successful subscription verification
+    console.log(`✅ [SUBSCRIPTION] Access granted to user: ${userEmail} for product: ${subscribedProductId}`);
+    console.log(`📍 [SUBSCRIPTION] IP: ${request.headers.get('x-forwarded-for') || 'unknown'}`);
 
     return NextResponse.json({
       hasAccess: true,
@@ -212,12 +238,14 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error checking product subscription:', error);
+    console.error('❌ [SUBSCRIPTION] Error checking product subscription:', error);
+    trackSuspiciousActivity(request, 'SUBSCRIPTION_CHECK_ERROR');
     
+    // ✅ SECURITY: Don't expose detailed error information
     return NextResponse.json({ 
       hasAccess: false,
-      reason: `Failed to verify product subscription: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      reason: 'Failed to verify product subscription',
+      error: 'An internal error occurred while checking subscription status'
     }, { status: 500 });
   }
 } 

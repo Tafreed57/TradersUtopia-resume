@@ -109,9 +109,11 @@ export async function POST(request: NextRequest) {
 
 	} catch (error) {
 		console.error('❌ Error in test login sync:', error);
+		
+		// ✅ SECURITY: Generic error response - no internal details exposed
 		return NextResponse.json({ 
 			success: false,
-			error: error instanceof Error ? error.message : String(error)
+			message: 'Login sync test failed. Please try again later.'
 		}, { status: 500 });
 	}
 }

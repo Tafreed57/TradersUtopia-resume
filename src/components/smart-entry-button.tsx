@@ -5,6 +5,7 @@ import { useUser, useSignIn } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Shield, LogIn, Loader2 } from 'lucide-react';
+import { makeSecureRequest } from '@/lib/csrf-client';
 
 export function SmartEntryButton() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -52,7 +53,7 @@ export function SmartEntryButton() {
         console.log('✅ User has valid subscription, getting default server...');
         
         // Get or create the default server and redirect to it
-        const serverResponse = await fetch('/api/servers/ensure-default', {
+        const serverResponse = await makeSecureRequest('/api/servers/ensure-default', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

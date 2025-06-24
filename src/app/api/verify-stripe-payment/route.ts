@@ -188,19 +188,19 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error verifying Stripe payment:', error);
     
-    // Log more detailed error information
+    // ✅ SECURITY: Detailed logging for server-side debugging (not exposed to user)
     if (error instanceof Error) {
       console.error('Error name:', error.name);
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
     }
     
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
       success: false,
-      message: `Failed to verify payment: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      error: 'Failed to verify payment',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      errorType: error instanceof Error ? error.name : 'Unknown'
+      message: 'Unable to verify payment at this time. Please try again later.',
+      error: 'Payment verification failed',
+      hasAccess: false
     }, { status: 500 });
   }
 } 

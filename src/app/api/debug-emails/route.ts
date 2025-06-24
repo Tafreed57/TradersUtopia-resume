@@ -41,10 +41,11 @@ export async function GET(request: NextRequest) {
           }))
         });
       } catch (error) {
+        console.error('Stripe customer search error for email:', email, error);
         stripeSearchResults.push({
           searchEmail: email,
           found: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: 'Search failed'
         });
       }
     }
@@ -89,9 +90,11 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Error debugging emails:', error);
+    
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
-      error: 'Failed to debug emails',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Debug operation failed',
+      message: 'Unable to retrieve email debug information. Please try again later.'
     }, { status: 500 });
   }
 } 

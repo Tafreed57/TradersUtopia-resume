@@ -15,12 +15,12 @@ import { Select ,SelectContent,SelectLabel,SelectItem,SelectTrigger, SelectValue
 import { useStore } from "@/store/store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChannelType } from "@prisma/client";
-import axios from "axios";
+import { secureAxiosPost } from "@/lib/csrf-client";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import qs from "query-string";
 import { useEffect } from "react";
+import qs from "query-string";
 
 
 export function CreateChannelModal() {
@@ -66,13 +66,13 @@ export function CreateChannelModal() {
 	const onSubmit = async (values: z.infer<typeof schema>) => {
 		console.log(values);
 		try {
-            const url = qs.stringifyUrl({
-                url: `/api/channels`,
-                query: {
-                    serverId: params?.serverId,
-                },
-            });
-			await axios.post(url, values);
+			const url = qs.stringifyUrl({
+				url: "/api/channels",
+				query: {
+					serverId: params?.serverId,
+				},
+			});
+			await secureAxiosPost(url, values);
 			form.reset();
 			router.refresh();
 			onClose();

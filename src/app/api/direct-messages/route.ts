@@ -1,14 +1,23 @@
 import { prisma } from "@/lib/prismadb";
 import { getCurrentProfile } from "@/lib/query";
 import { DirectMessage, Message } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { rateLimitMessaging, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 const MESSAGE_BATCH = 10;
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
 	try {
+		// ✅ SECURITY: Rate limiting for direct message retrieval
+		const rateLimitResult = await rateLimitMessaging()(req);
+		if (!rateLimitResult.success) {
+			trackSuspiciousActivity(req, 'DIRECT_MESSAGE_RETRIEVAL_RATE_LIMIT_EXCEEDED');
+			return rateLimitResult.error;
+		}
+
 		const profile = await getCurrentProfile();
 		if (!profile) {
+			trackSuspiciousActivity(req, 'UNAUTHENTICATED_DIRECT_MESSAGE_ACCESS');
 			return new NextResponse("Unauthorized", { status: 401 });
 		}
 		const { searchParams } = new URL(req.url);

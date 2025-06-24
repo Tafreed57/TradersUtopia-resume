@@ -129,7 +129,38 @@ export async function getCurrentProfile() {
 			userId: user.id,
 		},
 	});
+	
+	// ✅ FIX: If profile doesn't exist, create one
 	if (profile) return profile;
+	
+	// Create profile if it doesn't exist
+	const userEmail = user.primaryEmailAddress?.emailAddress;
+	const name =
+		user?.fullName ||
+		user?.firstName ||
+		user?.lastName ||
+		user.primaryEmailAddress?.emailAddress.split("@")[0] ||
+		"unknown";
+
+	const newProfile = await prisma.profile.create({
+		data: {
+			userId: user.id,
+			email: user.primaryEmailAddress?.emailAddress as string,
+			name: name,
+			imageUrl: user?.imageUrl,
+		},
+	});
+
+	// Trigger sync in case there are other profiles with same email
+	if (userEmail) {
+		Promise.resolve().then(() => {
+			performLoginSync(userEmail);
+		}).catch((error) => {
+			console.error(`❌ [Login Sync] Background sync failed for ${userEmail}:`, error);
+		});
+	}
+
+	return newProfile;
 }
 
 export async function getCurrentProfilePage(req: NextApiRequest) {

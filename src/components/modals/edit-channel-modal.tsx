@@ -15,12 +15,12 @@ import { Select, SelectContent, SelectLabel, SelectItem, SelectTrigger, SelectVa
 import { useStore } from "@/store/store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChannelType } from "@prisma/client";
-import axios from "axios";
+import { secureAxiosPatch } from "@/lib/csrf-client";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import qs from "query-string";
 import { useEffect } from "react";
+import qs from "query-string";
 
 export function EditChannelModal() {
 	const router = useRouter();
@@ -48,14 +48,12 @@ export function EditChannelModal() {
 		},
 	});
 
-    useEffect(() => {
+	useEffect(() => {
 		if (data?.channel) {
 			form.setValue("name", data?.channel?.name as string);
 			form.setValue("type", data?.channel?.type);
 		}
 	}, [isModelOpen, data?.channel, form]);
-
-
 
 	const { register, handleSubmit, formState, watch } = form;
 
@@ -67,10 +65,10 @@ export function EditChannelModal() {
 			const url = qs.stringifyUrl({
 				url: `/api/channels/${data?.channel?.id}`,
 				query: {
-					serverId: data?.server?.id ,
+					serverId: data?.server?.id,
 				},
 			});
-			await axios.patch(url, values);
+			await secureAxiosPatch(url, values);
 			form.reset();
 			router.refresh();
 			onClose();

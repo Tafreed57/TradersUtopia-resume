@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/store/store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Member, MemberRole, Profile } from "@prisma/client";
-import axios from "axios";
+import { secureAxiosPatch } from "@/lib/csrf-client";
 import { Edit, FileText, ShieldAlert, ShieldCheck, Trash } from "lucide-react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -95,15 +95,16 @@ export function ChatItem({
 	const onSubmit = async (values: z.infer<typeof formSchema>) => {
 		try {
 			const url = qs.stringifyUrl({
-				url: `${socketUrl}/${id}`,
+				url: `/api/messages/${id}`,
 				query: socketQuery,
 			});
-			await axios.patch(url, values);
+
+			await secureAxiosPatch(url, values);
 			form.reset();
 			setIsEditing(false);
-			// router.refresh();
+			router.refresh();
 		} catch (error) {
-			console.error(error);
+			console.log(error);
 		}
 	};
 

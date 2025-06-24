@@ -24,60 +24,82 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    // Get basic subscription info from database
+    console.log(`🔍 [SUBSCRIPTION DETAILS] Fetching for user: ${profile.email}`);
+
+    // ✅ ENHANCED: Get comprehensive subscription info from webhook-updated database
     const subscriptionInfo = {
       status: profile.subscriptionStatus,
       productId: profile.stripeProductId,
       customerId: profile.stripeCustomerId,
       subscriptionStart: profile.subscriptionStart,
       subscriptionEnd: profile.subscriptionEnd,
+      lastUpdated: profile.updatedAt,
+      isWebhookUpdated: true, // Flag to indicate this comes from webhook data
     };
 
-    // If user has Stripe customer ID, fetch detailed info from Stripe
+    let responseData = {
+      success: true,
+      subscription: {
+        ...subscriptionInfo,
+        product: null,
+        stripe: null,
+        customer: null,
+        dataSource: 'database' // Track data source for debugging
+      }
+    };
+
+    // ✅ ENHANCED: Enrich with Stripe data if customer ID exists
     if (profile.stripeCustomerId) {
       try {
+        console.log(`🔗 [STRIPE API] Fetching data for customer: ${profile.stripeCustomerId}`);
+        
         // Get customer details
         const customer = await stripe.customers.retrieve(profile.stripeCustomerId) as any;
         
-        // Get all subscriptions (not just active) to see what's available
-        const subscriptions = await stripe.subscriptions.list({
-          customer: profile.stripeCustomerId,
-          limit: 10,
-        });
-
-        console.log(`🔍 Found ${subscriptions.data.length} total subscriptions for customer ${profile.stripeCustomerId}`);
-        subscriptions.data.forEach((sub, index) => {
-          console.log(`   ${index + 1}. ID: ${sub.id}, Status: ${sub.status}, Cancel at period end: ${sub.cancel_at_period_end}`);
-        });
+        if (!customer.deleted) {
+          responseData.subscription.customer = {
+            id: customer.id,
+            email: customer.email,
+            created: new Date(customer.created * 1000),
+          };
+        }
 
         // Get product details if we have a product ID
-        let productDetails = null;
         if (profile.stripeProductId) {
           try {
             const product = await stripe.products.retrieve(profile.stripeProductId);
-            productDetails = {
+            responseData.subscription.product = {
               id: product.id,
               name: product.name,
               description: product.description,
               images: product.images,
             };
+            console.log(`📦 [PRODUCT] Retrieved: ${product.name}`);
           } catch (error) {
-            console.error('Error fetching product details:', error);
+            console.error('❌ Error fetching product details:', error);
           }
         }
 
-        // Get subscription details - find the most relevant subscription
-        let subscriptionDetails = null;
+        // ✅ ENHANCED: Get current subscription details from Stripe for real-time status
+        const subscriptions = await stripe.subscriptions.list({
+          customer: profile.stripeCustomerId,
+          limit: 10,
+        });
+
+        console.log(`📊 [SUBSCRIPTIONS] Found ${subscriptions.data.length} subscription(s)`);
+
         if (subscriptions.data.length > 0) {
-          // Prioritize active subscriptions, then cancelled ones that are still in current period
+          // Find the most relevant subscription
           const relevantSubscription = subscriptions.data.find(sub => 
             sub.status === 'active' || 
             (sub.status === 'canceled' && new Date(sub.current_period_end * 1000) > new Date())
-          ) || subscriptions.data[0]; // fallback to first subscription if no relevant one found
+          ) || subscriptions.data[0];
           
           const subscription = relevantSubscription as any;
-          console.log(`✅ Using subscription: ${subscription.id} with status: ${subscription.status}`);
-          subscriptionDetails = {
+          console.log(`✅ [ACTIVE SUB] Using: ${subscription.id} (${subscription.status})`);
+          
+          // ✅ ENHANCED: Comprehensive subscription details for UI
+          responseData.subscription.stripe = {
             id: subscription.id,
             status: subscription.status,
             currentPeriodStart: new Date(subscription.current_period_start * 1000),
@@ -89,48 +111,78 @@ export async function GET(request: NextRequest) {
             amount: subscription.items.data[0]?.price.unit_amount,
             currency: subscription.items.data[0]?.price.currency,
             interval: subscription.items.data[0]?.price.recurring?.interval,
+            // ✅ ENHANCED: Additional metadata for better UI display
+            trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+            trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+            created: new Date(subscription.created * 1000),
+            pauseStartDate: null, // Placeholder for pause functionality
+            discountPercent: subscription.discount?.coupon?.percent_off || null,
+            discountAmount: subscription.discount?.coupon?.amount_off || null,
           };
+          
+          responseData.dataSource = 'stripe-enhanced';
+          
+          // ✅ WEBHOOK SYNC CHECK: Compare webhook data vs Stripe data
+          const webhookEndDate = profile.subscriptionEnd ? new Date(profile.subscriptionEnd) : null;
+          const stripeEndDate = new Date(subscription.current_period_end * 1000);
+          
+          if (webhookEndDate && Math.abs(webhookEndDate.getTime() - stripeEndDate.getTime()) > 24 * 60 * 60 * 1000) {
+            console.log(`⚠️ [SYNC WARNING] Webhook data may be outdated:`);
+            console.log(`   Webhook end: ${webhookEndDate.toISOString()}`);
+            console.log(`   Stripe end: ${stripeEndDate.toISOString()}`);
+            responseData.subscription.syncWarning = {
+              message: 'Subscription data may be out of sync',
+              webhookDate: webhookEndDate,
+              stripeDate: stripeEndDate
+            };
+          }
+        } else {
+          console.log(`⚠️ [NO SUBSCRIPTIONS] No active subscriptions found for customer`);
+          responseData.subscription.noActiveSubscription = true;
         }
 
-        const responseData = {
-          success: true,
-          subscription: {
-            ...subscriptionInfo,
-            product: productDetails,
-            stripe: subscriptionDetails,
-            customer: {
-              id: customer.id,
-              email: customer.email,
-              created: new Date(customer.created * 1000),
-            }
-          }
-        };
-
-        console.log('📊 Full subscription response:', JSON.stringify(responseData, null, 2));
-
-        return NextResponse.json(responseData);
-
+        responseData.dataSource = 'database-with-stripe';
+        
       } catch (stripeError) {
-        console.error('Stripe API error:', stripeError);
-        // Return database info even if Stripe fails
-        return NextResponse.json({
-          success: true,
-          subscription: subscriptionInfo,
-          stripeError: 'Failed to fetch Stripe details'
-        });
+        console.error('❌ [STRIPE ERROR] Failed to fetch Stripe data:', stripeError);
+        responseData.subscription.stripeError = {
+          message: 'Unable to fetch real-time Stripe data',
+          error: stripeError instanceof Error ? stripeError.message : 'Unknown error'
+        };
+        responseData.dataSource = 'database-only';
       }
+    } else {
+      console.log(`ℹ️ [NO CUSTOMER ID] Using database-only information`);
+      responseData.dataSource = 'database-only';
     }
 
-    // Return database info only
-    return NextResponse.json({
-      success: true,
-      subscription: subscriptionInfo
+    // ✅ ENHANCED: Add helpful metadata for the UI
+    responseData.subscription.metadata = {
+      lastDatabaseUpdate: profile.updatedAt,
+      hasStripeConnection: !!profile.stripeCustomerId,
+      isActive: profile.subscriptionStatus === 'ACTIVE',
+      daysUntilExpiry: profile.subscriptionEnd 
+        ? Math.ceil((new Date(profile.subscriptionEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+        : null,
+      dataFreshness: responseData.dataSource,
+    };
+
+    console.log(`✅ [SUCCESS] Subscription details prepared for UI:`, {
+      status: responseData.subscription.status,
+      dataSource: responseData.dataSource,
+      hasStripeData: !!responseData.subscription.stripe,
+      hasProductData: !!responseData.subscription.product,
     });
 
+    return NextResponse.json(responseData);
+
   } catch (error) {
-    console.error('Subscription details error:', error);
+    console.error('❌ [API ERROR] Subscription details fetch failed:', error);
+    
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
-      error: 'Failed to fetch subscription details' 
+      error: 'Failed to fetch subscription details',
+      message: 'Unable to retrieve subscription information. Please try again later.'
     }, { status: 500 });
   }
 } 

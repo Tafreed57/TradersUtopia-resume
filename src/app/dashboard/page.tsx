@@ -59,7 +59,8 @@ export default async function Dashboard() {
 				</header>
 
 				{/* Auto-join to default server */}
-				<AutoJoinDefault />
+				{/* DISABLED: This was causing automatic redirects and misdirection issues */}
+				{/* <AutoJoinDefault /> */}
 
 				{/* Admin Controls - Testing Only */}
 				<Card className="mb-6 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-200 dark:border-red-800">
@@ -76,12 +77,12 @@ export default async function Dashboard() {
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-sm text-red-700 dark:text-red-200">
-									Current Role: <span className="font-semibold">{profile.isAdmin ? 'Admin' : 'Regular User'}</span>
+									Current Role: <span className="font-semibold">{profile.isAdmin ? "Admin" : "Regular User"}</span>
 								</p>
 								<p className="text-xs text-red-600 dark:text-red-300 mt-1">
 									{profile.isAdmin 
-										? 'You have admin access - you can send messages, create servers, and manage channels'
-										: 'You have read-only access - click below to gain admin privileges'
+										? "You have admin access - you can send messages, create servers, and manage channels"
+										: "You have read-only access - click below to gain admin privileges"
 									}
 								</p>
 							</div>
@@ -99,8 +100,8 @@ export default async function Dashboard() {
 						</CardTitle>
 						<CardDescription>
 							{profile.isAdmin 
-								? 'You have admin access - manage the community server'
-								: 'You have read-only access - view the community discussions'
+								? "You have admin access - manage the community server"
+								: "You have read-only access - view the community discussions"
 							}
 						</CardDescription>
 					</CardHeader>
@@ -123,7 +124,7 @@ export default async function Dashboard() {
 										<div className="flex flex-col items-start">
 											<span className="truncate font-semibold">{server.name}</span>
 											<span className="text-xs text-gray-500">
-												{profile.isAdmin ? 'Admin Access' : 'Read Only'}
+												{profile.isAdmin ? "Admin Access" : "Read Only"}
 											</span>
 										</div>
 									</Button>

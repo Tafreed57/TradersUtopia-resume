@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
+import { strictCSRFValidation } from '@/lib/csrf';
+import { trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // ✅ SECURITY: CSRF protection for admin operations
+  const csrfValid = await strictCSRFValidation(request);
+  if (!csrfValid) {
+    trackSuspiciousActivity(request, 'ADMIN_CSRF_VALIDATION_FAILED');
+    return NextResponse.json({ 
+      error: 'CSRF validation failed',
+      message: 'Invalid security token. Please refresh and try again.'
+    }, { status: 403 });
+  }
   try {
     const user = await currentUser();
     
@@ -45,9 +56,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error revoking admin access:', error);
+    
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
       error: 'Failed to revoke admin access',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      message: 'An internal error occurred. Please try again later.'
     }, { status: 500 });
   }
 } 

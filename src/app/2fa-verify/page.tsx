@@ -50,7 +50,7 @@ export default function TwoFactorVerifyPage() {
         showToast.success('Verified', '2FA verification successful');
         
         // Get the redirect URL or default to dashboard
-        const redirectTo = searchParams.get('redirect') || '/dashboard';
+        const redirectTo = searchParams?.get('redirect') || '/dashboard';
         console.log('🔄 Redirecting to:', redirectTo);
         
         // Small delay to ensure cookie is set, then trigger re-check

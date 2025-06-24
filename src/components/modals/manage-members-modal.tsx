@@ -17,7 +17,7 @@ import { UserAvatar } from "@/components/user/user-avatar";
 import { useStore } from "@/store/store";
 import { ServerWithMembersWithProfiles } from "@/types/server";
 import { MemberRole } from "@prisma/client";
-import axios from "axios";
+import { secureAxiosPatch, secureAxiosDelete } from "@/lib/csrf-client";
 import { Check, Gavel, Loader2, MoreVertical, Shield, ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
 import { useRouter } from "next/navigation";
 import qs from "query-string";
@@ -47,7 +47,7 @@ export function ManageMembersModal() {
 					serverId: data.server.id,
 				},
 			});
-			const res = await axios.patch(url, { role });
+			const res = await secureAxiosPatch(url, { role });
 			router.refresh();
 			onOpen("manageMembers", { server: res.data });
 		} catch (error) {
@@ -66,7 +66,7 @@ export function ManageMembersModal() {
 					serverId: data.server.id,
 				},
 			});
-			const res = await axios.delete(url);
+			const res = await secureAxiosDelete(url);
 			router.refresh();
 			onOpen("manageMembers", { server: res.data });
 		} catch (error) {

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Crown, ShieldOff, Loader2 } from 'lucide-react';
 import { showToast } from '@/lib/notifications';
 import { useRouter } from 'next/navigation';
+import { makeSecureRequest } from '@/lib/csrf-client';
 
 interface AdminButtonProps {
   isAdmin: boolean;
@@ -17,7 +18,7 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
   const handleGrantAdmin = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/admin/grant-access', {
+      const response = await makeSecureRequest('/api/admin/grant-access', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,6 +29,24 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
 
       if (response.ok) {
         showToast.success('🔑 Admin Access Granted!', data.message);
+        
+        // ✅ ENHANCEMENT: Update server roles after granting admin privileges
+        try {
+          const serverResponse = await makeSecureRequest('/api/servers/ensure-default', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (serverResponse.ok) {
+            showToast.success('🔄 Server Roles Updated!', 'Your server permissions have been upgraded');
+          }
+        } catch (serverError) {
+          console.error('Error updating server roles:', serverError);
+          // Don't show error to user - the main admin grant succeeded
+        }
+        
         // Refresh the page to update the UI
         setTimeout(() => {
           router.refresh();
@@ -46,7 +65,7 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
   const handleRevokeAdmin = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/admin/revoke-access', {
+      const response = await makeSecureRequest('/api/admin/revoke-access', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,6 +76,24 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
 
       if (response.ok) {
         showToast.success('🔒 Admin Access Revoked!', data.message);
+        
+        // ✅ FIX: Update server roles after revoking admin privileges
+        try {
+          const serverResponse = await makeSecureRequest('/api/servers/ensure-default', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (serverResponse.ok) {
+            showToast.success('🔄 Server Roles Updated!', 'Your server permissions have been downgraded');
+          }
+        } catch (serverError) {
+          console.error('Error updating server roles:', serverError);
+          // Don't show error to user - the main admin revoke succeeded
+        }
+        
         // Refresh the page to update the UI
         setTimeout(() => {
           router.refresh();

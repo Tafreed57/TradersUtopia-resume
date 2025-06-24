@@ -1,55 +1,42 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { showToast } from '@/lib/notifications';
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { makeSecureRequest } from '@/lib/csrf-client';
 
 export function AutoJoinDefault() {
-  const [hasJoined, setHasJoined] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
-    // Check if user has already joined from localStorage
-    const hasJoinedBefore = localStorage.getItem('hasJoinedDefaultServer');
-    if (hasJoinedBefore === 'true') {
-      setHasJoined(true);
-      setIsLoading(false);
-      return;
-    }
+    const ensureDefaultServer = async () => {
+      if (!isLoaded || !user) return;
 
-    const joinDefaultServer = async () => {
       try {
-        const response = await fetch('/api/servers/ensure-default', {
+        const response = await makeSecureRequest('/api/servers/ensure-default', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
         });
 
-        const data = await response.json();
-
         if (response.ok) {
-          console.log('✅ Auto-joined to default server:', data.message);
-          setHasJoined(true);
+          const data = await response.json();
+          console.log('✅ Default server ensured:', data.server.name);
           
-          // Store in localStorage to prevent future calls
-          localStorage.setItem('hasJoinedDefaultServer', 'true');
-          
-          // No router.refresh() - let the server list update naturally
+          // Navigate to the default server
+          router.push(`/servers/${data.server.id}`);
         } else {
-          console.error('❌ Failed to join default server:', data.error);
+          console.error('❌ Failed to ensure default server');
         }
       } catch (error) {
-        console.error('Error joining default server:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('❌ Error ensuring default server:', error);
       }
     };
 
-    if (!hasJoined) {
-      joinDefaultServer();
-    }
-  }, []); // Remove hasJoined and router from dependencies to prevent re-runs
+    ensureDefaultServer();
+  }, [user, isLoaded, router]);
 
-  // This component doesn't render anything visible
   return null;
 } 

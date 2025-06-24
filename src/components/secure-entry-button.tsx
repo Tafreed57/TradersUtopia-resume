@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, Shield, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { makeSecureRequest } from '@/lib/csrf-client';
 
 export function SecureEntryButton() {
   const { isLoaded, user } = useUser();
@@ -77,7 +78,7 @@ export function SecureEntryButton() {
         // Get default server and redirect to it after short delay
         setTimeout(async () => {
           try {
-            const serverResponse = await fetch('/api/servers/ensure-default', {
+            const serverResponse = await makeSecureRequest('/api/servers/ensure-default', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -130,7 +131,7 @@ export function SecureEntryButton() {
         // Step 5: Revoke access and update subscription status
         console.log('🚫 Revoking access and updating subscription status...');
         try {
-          await fetch('/api/revoke-access', {
+          await makeSecureRequest('/api/revoke-access', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

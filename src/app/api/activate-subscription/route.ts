@@ -62,9 +62,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error activating subscription:', error);
+    
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
       error: 'Failed to activate subscription',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Unable to process subscription activation. Please try again later.'
     }, { status: 500 });
   }
 } 

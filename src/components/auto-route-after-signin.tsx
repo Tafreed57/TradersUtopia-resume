@@ -25,6 +25,7 @@ export function AutoRouteAfterSignIn() {
       const shouldAutoRoute = autoRoute === 'true' || hasRedirectParam || hasClerkParam;
 
       if (!shouldAutoRoute) {
+        setHasChecked(true);
         return;
       }
 
@@ -33,8 +34,13 @@ export function AutoRouteAfterSignIn() {
       setIsAutoRouting(true);
 
       try {
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Auto-route timeout')), 5000)
+        );
+
         // Check subscription status
-        const productResponse = await fetch('/api/check-product-subscription', {
+        const productPromise = fetch('/api/check-product-subscription', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -44,19 +50,18 @@ export function AutoRouteAfterSignIn() {
           })
         });
 
+        const productResponse = await Promise.race([productPromise, timeoutPromise]) as Response;
         const productResult = await productResponse.json();
         console.log('📊 Auto-check subscription result:', productResult);
 
         // Route based on subscription status
         if (productResult.hasAccess) {
           console.log('✅ User has subscription, auto-routing to dashboard...');
-          // Small delay to show the routing message
           setTimeout(() => {
             router.push('/dashboard');
           }, 1000);
         } else {
           console.log('❌ User needs subscription, auto-routing to pricing...');
-          // Small delay to show the routing message
           setTimeout(() => {
             router.push('/pricing');
           }, 1000);

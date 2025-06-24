@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOrigin } from "@/hooks/use-origin";
 import { useStore } from "@/store/store";
-import axios from "axios";
+import { secureAxiosDelete } from "@/lib/csrf-client";
 import { Check, Copy, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -31,12 +31,12 @@ export function DeleteServerModal() {
 	const handleDeleteServer = async () => {
 		try {
 			setIsLoading(true);
-			await axios.delete(`/api/servers/${data?.server?.id}`);
+			await secureAxiosDelete(`/api/servers/${data?.server?.id}`);
 			onClose();
 			router.refresh();
 			router.push("/");
 		} catch (error: any) {
-			console.log(error, "LEAVE SERVER ERROR");
+			console.log(error, "DELETE SERVER ERROR");
 		} finally {
 			setIsLoading(false);
 		}

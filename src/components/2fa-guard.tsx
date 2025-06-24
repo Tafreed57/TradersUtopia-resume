@@ -16,15 +16,11 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
   const [requires2FA, setRequires2FA] = useState(false);
 
   useEffect(() => {
-    console.log('🔒 TwoFactorGuard running for pathname:', pathname, 'user loaded:', isLoaded, 'user exists:', !!user);
-    
     if (!isLoaded || !user) {
-      console.log('⏳ Waiting for user to load...');
       return;
     }
 
     const handleForceRecheck = () => {
-      console.log('🔄 Forcing 2FA re-check...');
       setIs2FAChecked(false);
       setRequires2FA(false);
     };
@@ -36,59 +32,65 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
       window.removeEventListener('force-2fa-recheck', handleForceRecheck);
     };
 
-    // Skip 2FA check for certain routes
-    const skipRoutes = ['/2fa-verify', '/sign-in', '/sign-up', '/pricing'];
-    const shouldSkip = skipRoutes.some(route => pathname.startsWith(route));
-    
-    console.log('🛤️ Current pathname:', pathname);
-    console.log('🚫 Should skip 2FA check:', shouldSkip);
+    // Skip 2FA check for public routes and home page
+    const skipRoutes = [
+      '/', // Home page - public landing page
+      '/2fa-verify', 
+      '/sign-in', 
+      '/sign-up', 
+      '/pricing'
+    ];
+    const shouldSkip = skipRoutes.some(route => pathname === route || pathname.startsWith(route));
     
     if (shouldSkip) {
-      console.log('✅ Skipping 2FA check for route:', pathname);
       setIs2FAChecked(true);
-      setRequires2FA(false); // Make sure we don't require 2FA
+      setRequires2FA(false);
       return;
     }
 
     const check2FAStatus = async () => {
       try {
-        console.log('🔍 Checking 2FA status for authenticated user...');
-        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 5000)
+        );
+
         // Check if user has 2FA enabled
-        const profileResponse = await fetch('/api/user/profile');
+        const profilePromise = fetch('/api/user/profile');
+        const profileResponse = await Promise.race([profilePromise, timeoutPromise]) as Response;
+        
         if (!profileResponse.ok) {
-          console.error('Failed to fetch profile');
           setIs2FAChecked(true);
           return;
         }
 
         const profile = await profileResponse.json();
-        console.log('📋 Profile 2FA status:', profile.twoFactorEnabled);
 
         if (profile.twoFactorEnabled) {
-          // Check if already verified in this session
-          const cookieStore = document.cookie;
-          const isVerified = cookieStore.includes('2fa-verified=true');
-          console.log('🍪 2FA verification cookie present:', isVerified);
-          console.log('🍪 All cookies:', document.cookie);
+          // Check verification status using secure server-side API
+          const statusPromise = fetch('/api/2fa/status');
+          const statusResponse = await Promise.race([statusPromise, timeoutPromise]) as Response;
+          
+          if (!statusResponse.ok) {
+            setIs2FAChecked(true);
+            return;
+          }
 
-          if (!isVerified) {
-            console.log('🚨 2FA required - redirecting to verification');
+          const statusData = await statusResponse.json();
+
+          if (!statusData.verified) {
             setRequires2FA(true);
             const redirectUrl = `/2fa-verify?redirect=${encodeURIComponent(pathname)}`;
             router.push(redirectUrl);
             return;
-          } else {
-            console.log('✅ 2FA already verified for this session');
           }
-        } else {
-          console.log('ℹ️ User does not have 2FA enabled');
         }
 
         setIs2FAChecked(true);
       } catch (error) {
-        console.error('❌ 2FA check error:', error);
+        // On error, skip 2FA check to prevent blocking the user
         setIs2FAChecked(true);
+        setRequires2FA(false);
       }
     };
 
@@ -97,9 +99,15 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
     return cleanup;
   }, [isLoaded, user, pathname, router]);
 
-  // Don't show loading/redirect messages on certain pages
-  const skipRoutes = ['/2fa-verify', '/sign-in', '/sign-up', '/pricing'];
-  const shouldSkipMessages = skipRoutes.some(route => pathname.startsWith(route));
+  // Don't show loading/redirect messages on public routes
+  const skipRoutes = [
+    '/', // Home page
+    '/2fa-verify', 
+    '/sign-in', 
+    '/sign-up', 
+    '/pricing'
+  ];
+  const shouldSkipMessages = skipRoutes.some(route => pathname === route || pathname.startsWith(route));
 
   // Show loading state while checking (but not on skip routes)
   if (!isLoaded || (!is2FAChecked && !shouldSkipMessages)) {

@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
 
     // Step 2: Test database connection
     console.log('📝 Step 2: Connecting to database...');
-    console.log('Database URL exists:', !!process.env.DATABASE_URL);
+    // ✅ SECURITY: Don't log environment variable information
+    console.log('📊 Database connection: Attempting to connect...');
     
     // Step 3: Search for profile
     console.log('📝 Step 3: Searching for profile with userId:', user.id);
@@ -123,11 +124,11 @@ export async function GET(request: NextRequest) {
     console.error('Error message:', error instanceof Error ? error.message : String(error));
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
+    // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json({ 
       hasAccess: false, 
-      reason: 'Internal server error',
-      error: error instanceof Error ? error.message : String(error),
-      errorType: error instanceof Error ? error.constructor.name : typeof error
+      reason: 'Unable to check payment status at this time',
+      message: 'Service temporarily unavailable. Please try again later.'
     }, { status: 500 });
   }
 }

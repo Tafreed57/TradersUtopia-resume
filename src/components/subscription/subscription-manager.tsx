@@ -28,10 +28,13 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications';
 import { formatDistanceToNow } from 'date-fns';
+import { makeSecureRequest } from '@/lib/csrf-client';
 
 interface SubscriptionDetails {
   status: string;
@@ -102,6 +105,46 @@ export function SubscriptionManager() {
     }
   };
 
+  const refreshAndSync = async () => {
+    setIsLoading(true);
+    try {
+      console.log('🔄 Refreshing and syncing subscription with Stripe...');
+      
+      // First, sync with Stripe to get the latest data
+      const syncResponse = await makeSecureRequest('/api/subscription/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (syncResponse.ok) {
+        showToast.success('🔄 Refreshed!', 'Subscription data synchronized and updated');
+        console.log('✅ Sync successful, fetching updated details...');
+      } else {
+        const syncData = await syncResponse.json();
+        console.log('⚠️ Sync failed, still refreshing local data...');
+        showToast.warning('⚠️ Sync Warning', `Couldn't sync with Stripe, but refreshed local data. ${syncData.error || ''}`);
+      }
+
+      // Always fetch subscription details (even if sync failed)
+      const response = await fetch('/api/subscription/details');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📊 Updated subscription data received:', data);
+        setSubscription(data.subscription);
+      } else {
+        console.error('❌ Failed to fetch subscription details:', response.status);
+        showToast.error('Error', 'Failed to refresh subscription details');
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing subscription:', error);
+      showToast.error('❌ Refresh Error', 'Failed to refresh subscription data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAutoRenewToggle = async (autoRenew: boolean) => {
     // If user is trying to turn OFF auto-renewal, show cancellation confirmation
     if (!autoRenew) {
@@ -116,7 +159,7 @@ export function SubscriptionManager() {
   const toggleAutoRenew = async (autoRenew: boolean) => {
     setIsUpdatingAutoRenew(true);
     try {
-      const response = await fetch('/api/subscription/toggle-autorenew', {
+      const response = await makeSecureRequest('/api/subscription/toggle-autorenew', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -143,12 +186,34 @@ export function SubscriptionManager() {
           });
         }
       } else {
-        showToast.error('Error', data.error);
-        // Refresh to get current state
+        showToast.error('Error', data.error || 'Failed to update auto-renewal setting');
+        // Reset local state to prevent UI inconsistency and refresh current state
+        if (subscription?.stripe) {
+          setSubscription({
+            ...subscription,
+            stripe: {
+              ...subscription.stripe,
+              autoRenew: !autoRenew, // Reset to opposite of what user tried to set
+              cancelAtPeriodEnd: autoRenew, // Reset cancel flag too
+            }
+          });
+        }
         await fetchSubscriptionDetails();
       }
     } catch (error) {
+      console.error('❌ Frontend: Auto-renewal toggle error:', error);
       showToast.error('Error', 'Failed to toggle auto-renewal');
+      // Reset local state on error
+      if (subscription?.stripe) {
+        setSubscription({
+          ...subscription,
+          stripe: {
+            ...subscription.stripe,
+            autoRenew: !autoRenew, // Reset to opposite of what user tried to set
+            cancelAtPeriodEnd: autoRenew, // Reset cancel flag too
+          }
+        });
+      }
       await fetchSubscriptionDetails();
     } finally {
       setIsUpdatingAutoRenew(false);
@@ -163,7 +228,7 @@ export function SubscriptionManager() {
 
     setIsCancelling(true);
     try {
-      const response = await fetch('/api/subscription/cancel', {
+      const response = await makeSecureRequest('/api/subscription/cancel', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,6 +254,60 @@ export function SubscriptionManager() {
       showToast.error('Error', 'Failed to disable auto-renewal');
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const verifyAutoRenewalStatus = async () => {
+    setIsLoading(true);
+    try {
+      console.log('🔍 Verifying auto-renewal status with Stripe...');
+      const response = await makeSecureRequest('/api/subscription/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Raw Stripe verification data:', data);
+        
+        // Extract subscription data from the sync response
+        const sub = data.subscription;
+        const autoRenew = !sub.cancelAtPeriodEnd; // Auto-renewal is ON when cancel_at_period_end is false
+        
+        // Show detailed verification popup
+        const verificationMessage = `
+🔍 STRIPE VERIFICATION RESULTS:
+
+📋 Subscription ID: ${sub.id || 'N/A'}
+📊 Status: ${sub.status || 'N/A'}
+🔄 Auto-Renewal: ${autoRenew ? '✅ ENABLED' : '❌ DISABLED'}
+🚫 Cancel at Period End: ${sub.cancelAtPeriodEnd ? '✅ YES (will expire)' : '❌ NO (will renew)'}
+📅 Current Period End: ${sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleString() : 'N/A'}
+
+${autoRenew ? 
+  '✅ AUTO-RENEWAL IS ON: Your subscription WILL automatically renew at the end of the period.' :
+  '❌ AUTO-RENEWAL IS OFF: Your subscription WILL EXPIRE at the end of the period unless you re-enable it.'
+}
+
+This data comes directly from Stripe and shows the REAL status of your subscription.
+        `;
+
+        alert(verificationMessage);
+        showToast.success('✅ Verified!', 'Auto-renewal status confirmed with Stripe');
+        
+        // Refresh the UI with latest data
+        await fetchSubscriptionDetails();
+      } else {
+        const errorData = await response.json();
+        showToast.error('❌ Verification Failed', errorData.error || 'Failed to verify with Stripe');
+      }
+    } catch (error) {
+      console.error('❌ Error verifying auto-renewal:', error);
+      showToast.error('❌ Verification Error', 'Failed to verify auto-renewal status');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -273,10 +392,17 @@ export function SubscriptionManager() {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchSubscriptionDetails}
+              onClick={refreshAndSync}
               disabled={isLoading}
+              title="Refresh & sync with Stripe"
+              className="flex items-center gap-1.5"
             >
-              <RefreshCw className="h-3 w-3" />
+              {isLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+              Refresh
             </Button>
           </div>
         </div>
@@ -390,10 +516,27 @@ export function SubscriptionManager() {
         {/* Auto-Renewal Toggle with Integrated Cancellation */}
         {subscription.stripe && subscription.status === 'ACTIVE' && (
           <div className="space-y-3">
-            <h4 className="font-medium flex items-center gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Auto-Renewal & Subscription Management
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Auto-Renewal & Subscription Management
+              </h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={verifyAutoRenewalStatus}
+                disabled={isLoading}
+                title="Verify auto-renewal status directly with Stripe"
+                className="flex items-center gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Eye className="h-3 w-3" />
+                )}
+                Verify Status
+              </Button>
+            </div>
             <div className={`p-4 rounded-lg border ${
               subscription.stripe.autoRenew 
                 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
@@ -546,30 +689,81 @@ export function SubscriptionManager() {
             {/* Step 2: Confirmation Screen */}
             {cancelStep === 'confirmation' && (
               <>
-                <AlertDialogHeader className="text-center">
-                  <AlertDialogTitle className="text-xl mb-2">
-                    We understand your concern
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="text-center">
-                    Thank you for your feedback. We'll take this into consideration for future improvements.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                
-                <div className="py-8">
-                  {/* Blank space as requested */}
-                </div>
+                {selectedReason === 'money' ? (
+                  // Custom message for "I already make money"
+                  <>
+                    <AlertDialogHeader className="text-center">
+                      <AlertDialogTitle className="text-xl mb-2 text-red-600">
+                        Hold Up...
+                      </AlertDialogTitle>
+                    </AlertDialogHeader>
+                    
+                    <div className="py-4 px-2">
+                      <div className="text-center space-y-4 text-sm">
+                        <p className="font-semibold">
+                          If you already make money, then why the hell did you sign up in the first place?
+                        </p>
+                        <p>
+                          Let's be real — people who are actually winning don't cancel a service designed to help them win more.
+                        </p>
+                        <p>
+                          You didn't join because you needed charity — you joined because you knew something was missing.
+                          Now you're quitting and hiding behind the 'I'm good now' excuse? Nah. That's not it.
+                        </p>
+                        <p className="font-semibold text-red-600">
+                          This isn't about money. It's about mindset. And right now, yours is slipping.
+                        </p>
+                        <p className="text-blue-600 font-medium">
+                          Hit 'Go Back' if you're not ready to settle for average.
+                        </p>
+                      </div>
+                    </div>
 
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setCancelStep('reason')}>
-                    Back
-                  </AlertDialogCancel>
-                  <Button 
-                    onClick={() => setCancelStep('auth')}
-                    className="bg-red-500 hover:bg-red-600 text-white"
-                  >
-                    Continue
-                  </Button>
-                </AlertDialogFooter>
+                    <AlertDialogFooter>
+                      <Button 
+                        onClick={() => setCancelStep('reason')}
+                        variant="outline"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        Go Back
+                      </Button>
+                      <Button 
+                        onClick={() => setCancelStep('auth')}
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Continue Anyway
+                      </Button>
+                    </AlertDialogFooter>
+                  </>
+                ) : (
+                  // Default message for other reasons
+                  <>
+                    <AlertDialogHeader className="text-center">
+                      <AlertDialogTitle className="text-xl mb-2">
+                        We understand your concern
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-center">
+                        Thank you for your feedback. We'll take this into consideration for future improvements.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    
+                    <div className="py-8">
+                      {/* Blank space as requested */}
+                    </div>
+
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setCancelStep('reason')}>
+                        Back
+                      </AlertDialogCancel>
+                      <Button 
+                        onClick={() => setCancelStep('auth')}
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Continue
+                      </Button>
+                    </AlertDialogFooter>
+                  </>
+                )}
               </>
             )}
 

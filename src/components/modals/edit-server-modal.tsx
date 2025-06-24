@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { UploadDropzone } from "@/lib/uploadthing";
 import { useStore } from "@/store/store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
+import { secureAxiosPatch } from "@/lib/csrf-client";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -62,7 +62,7 @@ export function EditServerModal() {
 	const onSubmit = async (values: z.infer<typeof schema>) => {
 		console.log(values);
 		try {
-			await axios.patch(`/api/servers/${data?.server?.id}`, values);
+			await secureAxiosPatch(`/api/servers/${data?.server?.id}`, values);
 			form.reset();
 			router.refresh();
 			onClose();

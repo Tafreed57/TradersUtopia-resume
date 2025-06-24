@@ -61,6 +61,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
 							channelId: channel.id,
 							serverId: channel.serverId,
 						}}
+						member={member}
 					/>
 				</>
 			)}
