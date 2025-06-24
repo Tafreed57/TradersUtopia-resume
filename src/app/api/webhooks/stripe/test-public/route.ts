@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
         environment: process.env.NODE_ENV,
         hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY,
         hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
-        stripeKeyPrefix: process.env.STRIPE_SECRET_KEY?.substring(0, 12) + '...',
-        webhookSecretPrefix: process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 12) + '...',
+        stripeKeyPrefix: process.env.STRIPE_SECRET_KEY ? 'sk_***' : 'NOT_SET',
+        webhookSecretPrefix: process.env.STRIPE_WEBHOOK_SECRET ? 'whsec_***' : 'NOT_SET',
         timestamp: new Date().toISOString(),
         webhookUrl: process.env.NODE_ENV === 'production' 
           ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/stripe`

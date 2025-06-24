@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
-import { validateInput, channelSchema, uuidSchema } from '@/lib/validation';
+import { validateInput, channelSchema, cuidSchema } from '@/lib/validation';
 
 export async function PATCH(req: NextRequest, { params }: { params: { channelId: string } }) {
 	try {
@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { channelId:
 
 		// ✅ SECURITY: Validate channel ID parameter
 		try {
-			uuidSchema.parse(params.channelId);
+			cuidSchema.parse(params.channelId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_CHANNEL_ID_FORMAT');
 			return NextResponse.json({ error: 'Invalid channel ID format' }, { status: 400 });
@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { channelId:
 		}
 
 		try {
-			uuidSchema.parse(serverId);
+			cuidSchema.parse(serverId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_SERVER_ID_FORMAT_CHANNEL');
 			return NextResponse.json({ error: 'Invalid server ID format' }, { status: 400 });
@@ -120,7 +120,7 @@ export async function DELETE(req: NextRequest,{params}: {params: {channelId: str
 
 		// ✅ SECURITY: Validate channel ID parameter
 		try {
-			uuidSchema.parse(params.channelId);
+			cuidSchema.parse(params.channelId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_CHANNEL_ID_FORMAT_DELETE');
 			return NextResponse.json({ error: 'Invalid channel ID format' }, { status: 400 });
@@ -137,7 +137,7 @@ export async function DELETE(req: NextRequest,{params}: {params: {channelId: str
 		}
 
 		try {
-			uuidSchema.parse(serverId);
+			cuidSchema.parse(serverId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_SERVER_ID_FORMAT_CHANNEL_DELETE');
 			return NextResponse.json({ error: 'Invalid server ID format' }, { status: 400 });

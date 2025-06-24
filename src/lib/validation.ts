@@ -228,24 +228,24 @@ export const memberRoleSchema = z.object({
   })
 });
 
-// ✅ SECURITY: UUID validation for params
-export const uuidSchema = z.string().uuid('Invalid ID format');
+// ✅ SECURITY: CUID validation for params (database uses CUID, not UUID)
+export const cuidSchema = z.string().regex(/^c[a-z0-9]{24}$/, 'Invalid ID format');
 
 // ✅ SECURITY: Server ID validation for query params
 export const serverIdSchema = z.object({
-  serverId: z.string().uuid('Invalid server ID format')
+  serverId: z.string().regex(/^c[a-z0-9]{24}$/, 'Invalid server ID format')
 });
 
 // ✅ SECURITY: Member ID validation for query params
 export const memberIdSchema = z.object({
-  memberId: z.string().uuid('Invalid member ID format'),
-  serverId: z.string().uuid('Invalid server ID format')
+  memberId: z.string().regex(/^c[a-z0-9]{24}$/, 'Invalid member ID format'),
+  serverId: z.string().regex(/^c[a-z0-9]{24}$/, 'Invalid server ID format')
 });
 
 // ✅ SECURITY: Channel ID validation for query params
 export const channelIdSchema = z.object({
-  channelId: z.string().uuid('Invalid channel ID format'),
-  serverId: z.string().uuid('Invalid server ID format')
+  channelId: z.string().regex(/^c[a-z0-9]{24}$/, 'Invalid channel ID format'),
+  serverId: z.string().regex(/^c[a-z0-9]{24}$/, 'Invalid server ID format')
 });
 
 // ==============================================
@@ -693,6 +693,10 @@ export default {
   fileUploadSchema,
   subscriptionActionSchema,
   emailSchema,
+  cuidSchema,
+  serverIdSchema,
+  memberIdSchema,
+  channelIdSchema,
   validateInput,
   sanitizeTextInput,
   secureTextInput,

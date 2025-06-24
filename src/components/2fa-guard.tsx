@@ -187,7 +187,7 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
     }
 
     return cleanup;
-  }, [isLoaded, user, pathname, router, is2FAChecked, lastUserId]);
+  }, [isLoaded, user?.id, pathname, router, is2FAChecked]); // ✅ FIX: Removed lastUserId from deps to prevent infinite loops
 
   // ✅ DEBUG: Add global functions for testing (development only)
   useEffect(() => {

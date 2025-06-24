@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
-import { validateInput, serverUpdateSchema, uuidSchema } from '@/lib/validation';
+import { validateInput, serverUpdateSchema, cuidSchema } from '@/lib/validation';
 
 export async function PATCH(req: NextRequest, { params }: { params: { serverId: string } }) {
 	try {
@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { serverId: 
 
 		// ✅ SECURITY: Validate server ID parameter
 		try {
-			uuidSchema.parse(params.serverId);
+			cuidSchema.parse(params.serverId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_SERVER_ID_FORMAT');
 			return NextResponse.json({ error: 'Invalid server ID format' }, { status: 400 });
@@ -82,7 +82,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { serverId:
 
 		// ✅ SECURITY: Validate server ID parameter
 		try {
-			uuidSchema.parse(params.serverId);
+			cuidSchema.parse(params.serverId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_SERVER_ID_FORMAT_DELETE');
 			return NextResponse.json({ error: 'Invalid server ID format' }, { status: 400 });

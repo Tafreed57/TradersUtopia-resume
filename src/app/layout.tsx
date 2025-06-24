@@ -6,6 +6,7 @@ import { SocketProvider } from "@/contexts/socket-provider";
 import { ThemeProvider } from "@/contexts/theme-provider";
 import { AuthWrapper } from "@/components/auth-wrapper";
 import { TwoFactorGuard } from "@/components/2fa-guard";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
@@ -65,22 +66,24 @@ export default function RootLayout({
 							 */
 							routerConfig={extractRouterConfig(ourFileRouter)}
 						/>
-						<SocketProvider>
-							<QueryProvider>
-								<AuthWrapper>
-									<TwoFactorGuard>
-										<ModalProvider />
-										<Toaster 
-											position="top-right"
-											expand={true}
-											richColors
-											closeButton
-										/>
-										{children}
-									</TwoFactorGuard>
-								</AuthWrapper>
-							</QueryProvider>
-						</SocketProvider>
+						<ErrorBoundary>
+							<SocketProvider>
+								<QueryProvider>
+									<AuthWrapper>
+										<TwoFactorGuard>
+											<ModalProvider />
+											<Toaster 
+												position="top-right"
+												expand={true}
+												richColors
+												closeButton
+											/>
+											{children}
+										</TwoFactorGuard>
+									</AuthWrapper>
+								</QueryProvider>
+							</SocketProvider>
+						</ErrorBoundary>
 					</ThemeProvider>
 				</ClerkProvider>
 			</body>

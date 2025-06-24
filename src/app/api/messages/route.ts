@@ -23,11 +23,40 @@ export async function GET(req: NextRequest) {
 	}
     const {searchParams} = new URL(req.url);
 
-	const channelId = searchParams.get("channelId"); ;
+	const channelId = searchParams.get("channelId");
     const cursor = searchParams.get("cursor");
 	if(!channelId){
         return new NextResponse("Channel ID is required", { status: 400 });
     }
+
+    // ✅ SECURITY: Validate channelId format (CUID)
+    try {
+        const { z } = await import('zod');
+        z.string().regex(/^c[a-z0-9]{24}$/).parse(channelId);
+    } catch (error) {
+        trackSuspiciousActivity(req, 'INVALID_CHANNEL_ID_FORMAT');
+        return new NextResponse("Invalid channel ID format", { status: 400 });
+    }
+
+    // ✅ SECURITY: Verify user has access to the channel
+    const channel = await prisma.channel.findFirst({
+        where: {
+            id: channelId,
+            server: {
+                members: {
+                    some: {
+                        profileId: profile.id,
+                    },
+                },
+            },
+        },
+    });
+
+    if (!channel) {
+        trackSuspiciousActivity(req, 'UNAUTHORIZED_CHANNEL_MESSAGE_ACCESS');
+        return new NextResponse("Channel not found or access denied", { status: 404 });
+    }
+
     let messages: Message[] = [];
 
     if(cursor){

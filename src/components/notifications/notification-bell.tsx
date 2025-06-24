@@ -58,7 +58,7 @@ export function NotificationBell() {
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     }
-  }, [user, lastFetched]);
+  }, [user?.id]); // ✅ FIX: Remove lastFetched from deps to prevent infinite recreations
 
   const markAsRead = async (notificationId: string) => {
     try {
@@ -148,11 +148,22 @@ export function NotificationBell() {
     if (user) {
       fetchNotifications(true); // Force initial fetch
       
+      // ✅ FIX: Create a stable polling function to prevent memory leaks
+      const pollNotifications = () => {
+        if (user) { // Double-check user is still available
+          fetchNotifications(false);
+        }
+      };
+      
       // Poll for new notifications every 2 minutes (reduced frequency)
-      const interval = setInterval(() => fetchNotifications(false), 120000);
-      return () => clearInterval(interval);
+      const interval = setInterval(pollNotifications, 120000);
+      
+      return () => {
+        clearInterval(interval);
+        console.log('🧹 [NOTIFICATIONS] Cleaned up polling interval');
+      };
     }
-  }, [user]);
+  }, [user?.id]); // ✅ FIX: Only depend on user.id to prevent frequent re-creation
 
   // WebSocket event listeners for real-time notifications
   useEffect(() => {
@@ -181,23 +192,25 @@ export function NotificationBell() {
         fetchNotifications(true);
       };
 
+      console.log('🔌 [NOTIFICATIONS] Setting up WebSocket listeners');
       socket.on('notification:new', handleNewNotification);
       socket.on('notification:read', handleNotificationRead);
       socket.on('notification:update', handleNotificationUpdate);
 
       return () => {
+        console.log('🧹 [NOTIFICATIONS] Cleaning up WebSocket listeners');
         socket.off('notification:new', handleNewNotification);
         socket.off('notification:read', handleNotificationRead);
         socket.off('notification:update', handleNotificationUpdate);
       };
     }
-  }, [socket, user, fetchNotifications]);
+  }, [socket?.id, user?.id]); // ✅ FIX: Use stable identifiers instead of object references
 
   useEffect(() => {
     if (isOpen) {
       fetchNotifications(true); // Force fetch when dropdown opens
     }
-  }, [isOpen]);
+  }, [isOpen, fetchNotifications]); // ✅ FIX: Add fetchNotifications to dependencies for correctness
 
   if (!user) return null;
 

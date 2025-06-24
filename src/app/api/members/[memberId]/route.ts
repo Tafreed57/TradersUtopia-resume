@@ -4,7 +4,7 @@ import { MemberRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
-import { validateInput, memberRoleSchema, uuidSchema } from '@/lib/validation';
+import { validateInput, memberRoleSchema, cuidSchema } from '@/lib/validation';
 
 
 export async function PATCH(req: NextRequest, { params }: { params: { memberId: string } }) {
@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { memberId: 
 
 		// ✅ SECURITY: Validate member ID parameter
 		try {
-			uuidSchema.parse(params.memberId);
+			cuidSchema.parse(params.memberId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_MEMBER_ID_FORMAT');
 			return NextResponse.json({ error: 'Invalid member ID format' }, { status: 400 });
@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { memberId: 
 		}
 
 		try {
-			uuidSchema.parse(serverId);
+			cuidSchema.parse(serverId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_SERVER_ID_FORMAT_MEMBER');
 			return NextResponse.json({ error: 'Invalid server ID format' }, { status: 400 });
@@ -118,7 +118,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { memberId:
 
 		// ✅ SECURITY: Validate member ID parameter
 		try {
-			uuidSchema.parse(params.memberId);
+			cuidSchema.parse(params.memberId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_MEMBER_ID_FORMAT_DELETE');
 			return NextResponse.json({ error: 'Invalid member ID format' }, { status: 400 });
@@ -135,7 +135,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { memberId:
 		}
 
 		try {
-			uuidSchema.parse(serverId);
+			cuidSchema.parse(serverId);
 		} catch (error) {
 			trackSuspiciousActivity(req, 'INVALID_SERVER_ID_FORMAT_MEMBER_DELETE');
 			return NextResponse.json({ error: 'Invalid server ID format' }, { status: 400 });

@@ -27,6 +27,40 @@ export async function GET(req: NextRequest) {
 		if (!conversationId) {
 			return new NextResponse("conversation ID is required", { status: 400 });
 		}
+
+		// ✅ SECURITY: Validate conversationId format (CUID)
+		try {
+			const { z } = await import('zod');
+			z.string().regex(/^c[a-z0-9]{24}$/).parse(conversationId);
+		} catch (error) {
+			trackSuspiciousActivity(req, 'INVALID_CONVERSATION_ID_FORMAT');
+			return new NextResponse("Invalid conversation ID format", { status: 400 });
+		}
+
+		// ✅ SECURITY: Verify user has access to the conversation
+		const conversation = await prisma.conversation.findFirst({
+			where: {
+				id: conversationId,
+				OR: [
+					{
+						memberOne: {
+							profileId: profile.id,
+						},
+					},
+					{
+						memberTwo: {
+							profileId: profile.id,
+						},
+					},
+				],
+			},
+		});
+
+		if (!conversation) {
+			trackSuspiciousActivity(req, 'UNAUTHORIZED_DIRECT_MESSAGE_ACCESS');
+			return new NextResponse("Conversation not found or access denied", { status: 404 });
+		}
+
 		let messages: DirectMessage[] = [];
 
 		if (cursor) {
