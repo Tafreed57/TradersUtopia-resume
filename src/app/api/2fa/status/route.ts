@@ -6,8 +6,10 @@ import { db } from "@/lib/db";
 export async function GET(request: NextRequest) {
   try {
     const user = await currentUser();
+    console.log('🔍 [2FA-STATUS] Checking 2FA status for user:', user?.id || 'none');
 
     if (!user) {
+      console.log('❌ [2FA-STATUS] No authenticated user');
       return NextResponse.json({ 
         authenticated: false,
         requires2FA: false,
@@ -22,10 +24,12 @@ export async function GET(request: NextRequest) {
       },
       select: {
         twoFactorEnabled: true,
+        email: true,
       },
     });
 
     if (!profile) {
+      console.log('❌ [2FA-STATUS] Profile not found for user:', user.id);
       return NextResponse.json({ 
         authenticated: true,
         requires2FA: false,
@@ -34,7 +38,10 @@ export async function GET(request: NextRequest) {
       });
     }
     
+    console.log('👤 [2FA-STATUS] Profile found - 2FA enabled:', profile.twoFactorEnabled, 'for user:', profile.email);
+    
     if (!profile.twoFactorEnabled) {
+      console.log('ℹ️ [2FA-STATUS] 2FA not enabled, allowing access');
       return NextResponse.json({ 
         authenticated: true,
         requires2FA: false,
@@ -46,15 +53,22 @@ export async function GET(request: NextRequest) {
     const cookieStore = cookies();
     const verificationCookie = cookieStore.get('2fa-verified');
     const isVerified = verificationCookie?.value === 'true';
+    
+    console.log('🍪 [2FA-STATUS] Cookie check - exists:', !!verificationCookie, 'value:', verificationCookie?.value, 'verified:', isVerified);
+    console.log('📍 [2FA-STATUS] IP:', request.headers.get('x-forwarded-for') || 'unknown');
 
-    return NextResponse.json({ 
+    const result = { 
       authenticated: true,
       requires2FA: true,
       verified: isVerified 
-    });
+    };
+    
+    console.log('📊 [2FA-STATUS] Final result:', result);
+
+    return NextResponse.json(result);
 
   } catch (error) {
-    console.error("2FA status check error:", error);
+    console.error("❌ [2FA-STATUS] 2FA status check error:", error);
     return NextResponse.json({ 
       authenticated: false,
       requires2FA: false,

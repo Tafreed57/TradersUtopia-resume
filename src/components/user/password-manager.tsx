@@ -22,7 +22,7 @@ import {
   Smartphone,
   HelpCircle
 } from "lucide-react";
-import { showToast } from "@/lib/notifications";
+import { showToast } from "@/lib/notifications-client";
 import { makeSecureRequest } from '@/lib/csrf-client';
 
 interface PasswordRequirements {

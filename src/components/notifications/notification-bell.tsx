@@ -15,8 +15,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell, BellRing, Check, CheckCheck } from 'lucide-react';
-import { showToast } from '@/lib/notifications';
+import { showToast } from '@/lib/notifications-client';
 import { formatDistanceToNow } from 'date-fns';
+import { useSocket } from '@/contexts/socket-provider';
 
 interface Notification {
   id: string;
@@ -30,13 +31,21 @@ interface Notification {
 
 export function NotificationBell() {
   const { user } = useUser();
+  const { socket } = useSocket();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [lastFetched, setLastFetched] = useState<number>(0);
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (force = false) => {
     if (!user) return;
+    
+    // Implement basic caching - don't fetch if we fetched less than 30 seconds ago (unless forced)
+    const now = Date.now();
+    if (!force && now - lastFetched < 30000) {
+      return;
+    }
     
     try {
       const response = await fetch('/api/notifications');
@@ -44,11 +53,12 @@ export function NotificationBell() {
         const data = await response.json();
         setNotifications(data.notifications);
         setUnreadCount(data.count);
+        setLastFetched(now);
       }
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     }
-  }, [user]);
+  }, [user, lastFetched]);
 
   const markAsRead = async (notificationId: string) => {
     try {
@@ -136,19 +146,58 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (user) {
-      fetchNotifications();
+      fetchNotifications(true); // Force initial fetch
       
-      // Poll for new notifications every 30 seconds
-      const interval = setInterval(fetchNotifications, 30000);
+      // Poll for new notifications every 2 minutes (reduced frequency)
+      const interval = setInterval(() => fetchNotifications(false), 120000);
       return () => clearInterval(interval);
     }
-  }, [user, fetchNotifications]);
+  }, [user]);
+
+  // WebSocket event listeners for real-time notifications
+  useEffect(() => {
+    if (socket && user) {
+      const handleNewNotification = (notification: Notification) => {
+        setNotifications(prev => [notification, ...prev]);
+        setUnreadCount(prev => prev + 1);
+        
+        // Show toast for new notification
+        showToast.info(notification.title, notification.message);
+      };
+
+      const handleNotificationRead = (notificationId: string) => {
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === notificationId 
+              ? { ...notif, read: true }
+              : notif
+          )
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      };
+
+      const handleNotificationUpdate = () => {
+        // Refresh notifications when server indicates updates
+        fetchNotifications(true);
+      };
+
+      socket.on('notification:new', handleNewNotification);
+      socket.on('notification:read', handleNotificationRead);
+      socket.on('notification:update', handleNotificationUpdate);
+
+      return () => {
+        socket.off('notification:new', handleNewNotification);
+        socket.off('notification:read', handleNotificationRead);
+        socket.off('notification:update', handleNotificationUpdate);
+      };
+    }
+  }, [socket, user, fetchNotifications]);
 
   useEffect(() => {
     if (isOpen) {
-      fetchNotifications();
+      fetchNotifications(true); // Force fetch when dropdown opens
     }
-  }, [isOpen, fetchNotifications]);
+  }, [isOpen]);
 
   if (!user) return null;
 

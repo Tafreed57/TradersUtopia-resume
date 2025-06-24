@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Crown, ShieldOff, Loader2 } from 'lucide-react';
-import { showToast } from '@/lib/notifications';
+import { showToast } from '@/lib/notifications-client';
 import { useRouter } from 'next/navigation';
 import { makeSecureRequest } from '@/lib/csrf-client';
 

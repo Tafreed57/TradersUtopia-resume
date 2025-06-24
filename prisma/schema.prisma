@@ -39,6 +39,13 @@ model Profile {
   // Admin Role
   isAdmin           Boolean   @default(false)
 
+  // Notification Preferences
+  emailNotifications Json? @default("{\"system\":true,\"security\":true,\"payment\":true,\"messages\":true,\"mentions\":true,\"serverUpdates\":false}")
+  pushNotifications  Json? @default("{\"system\":true,\"security\":true,\"payment\":true,\"messages\":true,\"mentions\":true,\"serverUpdates\":false}")
+  
+  // Push Subscription Data
+  pushSubscriptions Json[] @default([])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

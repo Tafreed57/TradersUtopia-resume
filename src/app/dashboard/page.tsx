@@ -3,6 +3,7 @@ import { DiscordProfile } from "@/components/user/discord-profile";
 import { ModeToggle } from "@/components/mode-toggler";
 import { TwoFactorAuth } from "@/components/security/two-factor-auth";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { NotificationSettings } from "@/components/notifications/notification-settings";
 import { SubscriptionManager } from "@/components/subscription/subscription-manager";
 import { initProfile, getAllServers } from "@/lib/query";
 import { redirect } from "next/navigation";
@@ -203,14 +204,16 @@ export default async function Dashboard() {
 											</div>
 											<ModeToggle />
 										</div>
-										<div className="flex items-center justify-between">
-											<div>
-												<h4 className="font-medium">Notifications</h4>
-												<p className="text-sm text-gray-600 dark:text-gray-300">
-													Manage your notification preferences
-												</p>
+										<div className="space-y-3">
+											<div className="flex items-center justify-between">
+												<div>
+													<h4 className="font-medium">Notifications</h4>
+													<p className="text-sm text-gray-600 dark:text-gray-300">
+														Configure your notification preferences
+													</p>
+												</div>
+												<NotificationSettings />
 											</div>
-											<NotificationBell />
 										</div>
 									</div>
 								</CardContent>

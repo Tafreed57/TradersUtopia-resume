@@ -10,6 +10,9 @@ export function useAuthCleanup() {
     if (wasSignedIn.current && !isSignedIn) {
       console.log('🧹 [Auth] User signed out, cleaning up auth state...');
       
+      // ✅ SECURITY: Immediately trigger client-side 2FA cleanup
+      window.dispatchEvent(new CustomEvent('user-signout'));
+      
       // Clear 2FA verification cookie with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
@@ -20,6 +23,8 @@ export function useAuthCleanup() {
       })
       .then(() => {
         console.log('✅ [Auth] Auth state cleared successfully');
+        // Trigger another cleanup event after server cleanup
+        window.dispatchEvent(new CustomEvent('force-2fa-recheck'));
       })
       .catch(error => {
         if (error.name === 'AbortError') {
@@ -27,6 +32,8 @@ export function useAuthCleanup() {
         } else {
           console.error('❌ [Auth] Failed to clear auth state:', error);
         }
+        // Still trigger cleanup even if server call failed
+        window.dispatchEvent(new CustomEvent('force-2fa-recheck'));
       })
       .finally(() => {
         clearTimeout(timeoutId);

@@ -67,6 +67,32 @@ const nextConfig = {
 		];
 	},
 
+	// ✅ WEBPACK: Handle server-only modules
+	webpack: (config, { isServer }) => {
+		// Exclude server-only modules from client bundle
+		if (!isServer) {
+			config.resolve.fallback = {
+				...config.resolve.fallback,
+				net: false,
+				dns: false,
+				tls: false,
+				assert: false,
+				path: false,
+				fs: false,
+				'web-push': false,
+			};
+		}
+		return config;
+	},
+
+	// ✅ EXPERIMENTAL: Server components external packages
+	experimental: {
+		serverComponentsExternalPackages: [
+			"web-push",
+			"resend",
+		],
+	},
+
 	images: {
 		remotePatterns: [
 			{

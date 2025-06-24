@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, AlertCircle } from 'lucide-react';
-import { showToast } from '@/lib/notifications';
+import { showToast } from '@/lib/notifications-client';
 
 export default function TwoFactorVerifyPage() {
   const { user, isLoaded } = useUser();

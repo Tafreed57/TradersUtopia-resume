@@ -32,7 +32,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { showToast } from '@/lib/notifications';
+import { showToast } from '@/lib/notifications-client';
 import { formatDistanceToNow } from 'date-fns';
 import { makeSecureRequest } from '@/lib/csrf-client';
 

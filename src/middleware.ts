@@ -10,6 +10,7 @@ const developmentOnlyRoutes = [
 	"/api/setup-login-sync-test", // Database test setup
 	"/api/check-payment-status",  // Payment status debugging
 	"/api/upload-security",    // File upload security monitoring
+	"/api/test-2fa-status",    // 2FA status debugging
 ];
 
 // Always public routes (regardless of environment)

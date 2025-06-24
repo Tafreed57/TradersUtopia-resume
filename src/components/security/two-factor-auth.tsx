@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Shield, ShieldCheck, ShieldX, Smartphone, Copy, Eye, EyeOff } from 'lucide-react';
-import { showToast } from '@/lib/notifications';
+import { showToast } from '@/lib/notifications-client';
 import Image from 'next/image';
 
 interface TwoFactorAuthProps {
