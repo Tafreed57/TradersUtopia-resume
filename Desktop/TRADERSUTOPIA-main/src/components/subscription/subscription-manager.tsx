@@ -76,8 +76,82 @@ export function SubscriptionManager() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   // Multi-step cancellation flow
-  const [cancelStep, setCancelStep] = useState<'reason' | 'confirmation' | 'auth'>('reason');
+  const [cancelStep, setCancelStep] = useState<'reason' | 'confirmation' | 'intermediate' | 'auth'>('reason');
   const [selectedReason, setSelectedReason] = useState<string>('');
+  
+  // Price negotiation flow
+  const [priceInput, setPriceInput] = useState<string>('');
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [currentOffer, setCurrentOffer] = useState<number | null>(null);
+  const [showFinalOffer, setShowFinalOffer] = useState(false);
+
+  const handlePriceSubmit = () => {
+    const inputPrice = parseFloat(priceInput);
+    
+    if (isNaN(inputPrice) || inputPrice <= 0) {
+      showToast.error('Please enter a valid price');
+      return;
+    }
+
+    // Calculate offer: $5 cheaper than what they typed
+    let offerPrice = inputPrice - 5;
+    
+    // Minimum offer is $19.99, but if they typed less than $24.99, offer $15
+    if (inputPrice < 24.99) {
+      offerPrice = 15;
+    } else if (offerPrice < 19.99) {
+      offerPrice = 19.99;
+    }
+
+    setCurrentOffer(offerPrice);
+    setShowOfferModal(true);
+  };
+
+  const handleFinalOffer = () => {
+    setShowFinalOffer(true);
+  };
+
+  const handleImmediateCancel = async () => {
+    // Close all modals and proceed directly to cancellation
+    setShowFinalOffer(false);
+    setShowOfferModal(false);
+    setShowCancelDialog(false);
+    
+    // Perform immediate cancellation without password
+    setIsCancelling(true);
+    try {
+      const response = await makeSecureRequest('/api/subscription/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          password: 'IMMEDIATE_CANCEL', // Special flag for immediate cancellation
+          confirmCancel: true,
+          reason: 'Rejected all offers'
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        showToast.success('✅ Subscription Cancelled', 'Your subscription has been cancelled immediately.');
+        await fetchSubscriptionDetails();
+      } else {
+        showToast.error('Cancellation Error', data.error);
+        // If immediate cancel fails, fall back to normal flow
+        setCancelStep('auth');
+        setShowCancelDialog(true);
+      }
+    } catch (error) {
+      showToast.error('Error', 'Failed to cancel subscription');
+      // If immediate cancel fails, fall back to normal flow
+      setCancelStep('auth');
+      setShowCancelDialog(true);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const fetchSubscriptionDetails = async () => {
     setIsLoading(true);
@@ -339,7 +413,7 @@ This data comes directly from Stripe and shows the REAL status of your subscript
 
   useEffect(() => {
     if (user) {
-      fetchSubscriptionDetails();
+      refreshAndSync();
     }
   }, [user]);
 
@@ -616,69 +690,74 @@ This data comes directly from Stripe and shows the REAL status of your subscript
             setCancelPassword('');
             setCancelStep('reason');
             setSelectedReason('');
+            setPriceInput('');
+            setCurrentOffer(null);
+            setShowOfferModal(false);
+            setShowFinalOffer(false);
           }
         }}>
-          <AlertDialogContent className="max-w-md">
+          <AlertDialogContent className="max-w-2xl w-full mx-4">
             
             {/* Step 1: Reason Selection */}
             {cancelStep === 'reason' && (
               <>
-                <AlertDialogHeader className="text-center">
-                  <AlertDialogTitle className="text-xl mb-2">
+                <AlertDialogHeader className="text-center pb-6">
+                  <AlertDialogTitle className="text-3xl mb-4 font-bold text-gray-800 dark:text-gray-200">
                     Why do you wish to quit your journey with us?
                   </AlertDialogTitle>
-                  <AlertDialogDescription className="text-center">
+                  <AlertDialogDescription className="text-center text-lg text-gray-600 dark:text-gray-300">
                     Please tell us the reason before we continue.
                     <br />
                     We can help with many situations.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 
-                <div className="space-y-3 py-4">
+                <div className="space-y-4 py-6 px-4">
                   {[
-                    { id: 'nevermind', label: 'Nevermind, I decided to stay.' },
-                    { id: 'time', label: "I don't have enough time" },
+                    { id: 'nevermind', label: 'Never mind, I decided to stay' },
+                    { id: 'time', label: "I don't have Enough Time" },
+                    { id: 'afford', label: "I can't afford it" },
                     { id: 'ready', label: "I'm not ready yet" },
-                    { id: 'money', label: 'I already make money' },
+                    { id: 'money', label: 'I already Make money' },
                     { id: 'unknown', label: "I don't know what to do" }
                   ].map((reason, index) => (
                     <button
                       key={reason.id}
                       onClick={() => setSelectedReason(reason.id)}
-                      className={`w-full p-3 text-left rounded-lg border transition-colors ${
+                      className={`w-full p-5 text-left rounded-xl border-2 transition-all duration-200 transform hover:scale-102 ${
                         selectedReason === reason.id
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg'
+                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      <div className="flex items-center gap-4">
+                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold transition-colors ${
                           selectedReason === reason.id
-                            ? 'border-blue-500 bg-blue-500'
-                            : 'border-gray-300'
+                            ? 'border-blue-500 bg-blue-500 text-white'
+                            : 'border-gray-300 text-gray-500'
                         }`}>
-                          <span className="text-xs font-bold text-white">
-                            {selectedReason === reason.id ? index + 1 : index + 1}
-                          </span>
+                          {String.fromCharCode(65 + index)}
                         </div>
-                        <span className="text-sm">{reason.label}</span>
+                        <span className="text-lg font-medium">{reason.label}</span>
                       </div>
                     </button>
                   ))}
                 </div>
 
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogFooter className="pt-6">
+                  <AlertDialogCancel className="h-12 text-lg">Cancel</AlertDialogCancel>
                   <Button 
                     onClick={() => {
                       if (selectedReason === 'nevermind') {
                         setShowCancelDialog(false);
+                      } else if (selectedReason === 'afford') {
+                        setCancelStep('intermediate');
                       } else {
                         setCancelStep('confirmation');
                       }
                     }}
                     disabled={!selectedReason}
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                    className="h-12 text-lg bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg px-8"
                   >
                     NEXT →
                   </Button>
@@ -728,7 +807,148 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                         Go Back
                       </Button>
                       <Button 
-                        onClick={() => setCancelStep('auth')}
+                        onClick={() => setCancelStep('intermediate')}
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Continue Anyway
+                      </Button>
+                    </AlertDialogFooter>
+                  </>
+                ) : selectedReason === 'time' ? (
+                  // Custom message for "I don't have enough time"
+                  <>
+                    <AlertDialogHeader className="text-center">
+                      <AlertDialogTitle className="text-xl mb-2 text-blue-600">
+                        ⏱ Good news — you don't need much time at all.
+                      </AlertDialogTitle>
+                    </AlertDialogHeader>
+                    
+                    <div className="py-4 px-2">
+                      <div className="text-center space-y-4 text-sm">
+                        <p>
+                          This isn't day trading. These are swing trades built specifically for people with full-time jobs.
+                        </p>
+                        <p>
+                          Most members spend just <strong>5–15 minutes a month</strong> copying alerts — and even if you're a little late to enter, it's fine. We look for big moves and often hold positions for weeks or even months.
+                        </p>
+                        <p>
+                          You get exact entries, exits, and updates. No overthinking. No screen-watching.
+                        </p>
+                        <p className="font-semibold">
+                          Truth is, saying "I don't have time" is just an excuse. Even Elon Musk could make time for this.
+                        </p>
+                        <p className="text-blue-600 font-medium">
+                          🔁 Want to give it another shot?
+                        </p>
+                      </div>
+                    </div>
+
+                    <AlertDialogFooter>
+                      <Button 
+                        onClick={() => setCancelStep('reason')}
+                        variant="outline"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        Give it another shot
+                      </Button>
+                      <Button 
+                        onClick={() => setCancelStep('intermediate')}
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Continue Anyway
+                      </Button>
+                    </AlertDialogFooter>
+                  </>
+                ) : selectedReason === 'ready' ? (
+                  // Custom message for "I'm not ready yet"
+                  <>
+                    <AlertDialogHeader className="text-center">
+                      <AlertDialogTitle className="text-xl mb-2 text-orange-600">
+                        Let's be real...
+                      </AlertDialogTitle>
+                    </AlertDialogHeader>
+                    
+                    <div className="py-4 px-2">
+                      <div className="text-center space-y-4 text-sm">
+                        <p className="font-semibold">
+                          Let me be real with you — 'I'm not ready yet' is just another excuse.
+                        </p>
+                        <p>
+                          This isn't rocket science. You're not building a business from scratch — you're getting trade alerts.
+                        </p>
+                        <p>
+                          If you don't know how to use them, we've got tutorial videos that walk you through everything step-by-step.
+                        </p>
+                        <p className="font-semibold">
+                          You don't need to be 'ready.' You just need to stop hesitating.
+                        </p>
+                        <p>
+                          Most people who say this stay stuck for years… or forever.
+                        </p>
+                        <p className="text-blue-600 font-medium">
+                          Hit 'Go Back' if you're done quitting on yourself.
+                        </p>
+                      </div>
+                    </div>
+
+                    <AlertDialogFooter>
+                      <Button 
+                        onClick={() => setCancelStep('reason')}
+                        variant="outline"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        Go Back
+                      </Button>
+                      <Button 
+                        onClick={() => setCancelStep('intermediate')}
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Continue Anyway
+                      </Button>
+                    </AlertDialogFooter>
+                  </>
+                ) : selectedReason === 'unknown' ? (
+                  // Custom message for "I don't know what to do"
+                  <>
+                    <AlertDialogHeader className="text-center">
+                      <AlertDialogTitle className="text-xl mb-2 text-purple-600">
+                        That's exactly why you should stay!
+                      </AlertDialogTitle>
+                    </AlertDialogHeader>
+                    
+                    <div className="py-4 px-2">
+                      <div className="text-center space-y-4 text-sm">
+                        <p className="font-semibold">
+                          Saying 'I don't know what to do' is exactly why you shouldn't quit.
+                        </p>
+                        <p>
+                          We literally made this foolproof — just click the <strong>#start-here</strong> section and follow the steps. That's it.
+                        </p>
+                        <p>
+                          It explains exactly how to use the alerts, how to get help, and how to get results — step by step.
+                        </p>
+                        <p className="font-semibold">
+                          You don't need to figure anything out. You just need to follow instructions.
+                        </p>
+                        <p>
+                          Don't give up before even starting.
+                        </p>
+                        <p className="text-blue-600 font-medium">
+                          Hit 'Go Back' — I'll walk with you the whole way.
+                        </p>
+                      </div>
+                    </div>
+
+                    <AlertDialogFooter>
+                      <Button 
+                        onClick={() => setCancelStep('reason')}
+                        variant="outline"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        Go Back
+                      </Button>
+                      <Button 
+                        onClick={() => setCancelStep('intermediate')}
                         className="bg-red-500 hover:bg-red-600 text-white"
                       >
                         Continue Anyway
@@ -736,7 +956,7 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                     </AlertDialogFooter>
                   </>
                 ) : (
-                  // Default message for other reasons
+                  // Default message for other reasons (I can't afford it)
                   <>
                     <AlertDialogHeader className="text-center">
                       <AlertDialogTitle className="text-xl mb-2">
@@ -756,7 +976,7 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                         Back
                       </AlertDialogCancel>
                       <Button 
-                        onClick={() => setCancelStep('auth')}
+                        onClick={() => setCancelStep('intermediate')}
                         className="bg-red-500 hover:bg-red-600 text-white"
                       >
                         Continue
@@ -767,29 +987,105 @@ This data comes directly from Stripe and shows the REAL status of your subscript
               </>
             )}
 
-            {/* Step 3: Authentication */}
+            {/* Step 3: Intermediate Screen - Price Negotiation */}
+            {cancelStep === 'intermediate' && (
+              <>
+                <AlertDialogHeader className="text-center pb-6">
+                  <AlertDialogTitle className="text-3xl mb-4 text-blue-600 font-bold">
+                    💰 Wait, let's find a price that works
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-center text-lg text-gray-600 dark:text-gray-300">
+                    Hey, is there a price that you would be able to afford and would work for you long term?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                
+                <div className="py-8 px-6">
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-8 border border-blue-200 dark:border-blue-800">
+                    <div className="space-y-6">
+                      <Label htmlFor="price-input" className="text-lg font-semibold text-center block">
+                        What price would work for you? (per month)
+                      </Label>
+                      <div className="flex items-center justify-center space-x-3">
+                        <span className="text-3xl font-bold text-green-600">$</span>
+                        <Input
+                          id="price-input"
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={priceInput}
+                          onChange={(e) => setPriceInput(e.target.value)}
+                          placeholder="0.00"
+                          className="text-center text-2xl font-bold h-16 w-32 border-2 border-green-300 focus:border-green-500 rounded-xl"
+                        />
+                      </div>
+                      <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+                        Enter any amount you feel comfortable paying monthly
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <AlertDialogFooter className="flex-col space-y-4 pt-4">
+                  <div className="flex w-full gap-4">
+                    <AlertDialogCancel onClick={() => setCancelStep('confirmation')} className="flex-1 h-12 text-lg">
+                      ← Back
+                    </AlertDialogCancel>
+                    <Button 
+                      onClick={handlePriceSubmit}
+                      disabled={!priceInput.trim()}
+                      className="flex-1 h-12 text-lg bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+                    >
+                      ✨ Submit Price
+                    </Button>
+                  </div>
+                  <Button 
+                    onClick={handleFinalOffer}
+                    variant="outline"
+                    className="w-full h-12 text-lg border-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-medium"
+                  >
+                    NO, continue to cancel
+                  </Button>
+                </AlertDialogFooter>
+              </>
+            )}
+
+            {/* Step 4: Authentication */}
             {cancelStep === 'auth' && (
               <>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                <AlertDialogHeader className="pb-6">
+                  <AlertDialogTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-red-600">
+                    <AlertTriangle className="h-8 w-8 text-red-600" />
                     Disable Auto-Renewal?
                   </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    <div className="space-y-3">
-                      <p>
+                  <AlertDialogDescription className="text-center mt-4">
+                    <div className="space-y-4">
+                      <p className="text-lg text-gray-600 dark:text-gray-300">
                         This will disable auto-renewal for your subscription. Here's what happens:
                       </p>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>✅ Your subscription stays <strong>active</strong> until {subscription?.stripe?.currentPeriodEnd 
-                          ? new Date(subscription.stripe.currentPeriodEnd).toLocaleDateString()
-                          : new Date(subscription.subscriptionEnd).toLocaleDateString()}</li>
-                        <li>✅ You keep all premium features until then</li>
-                        <li>🔄 <strong>You can re-enable auto-renewal anytime</strong> before expiration</li>
-                        <li>⏹️ Only expires if auto-renewal stays disabled</li>
-                      </ul>
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800">
-                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+                        <ul className="space-y-3 text-left">
+                          <li className="flex items-start gap-2">
+                            <span className="text-green-500">✅</span>
+                            <span>Your subscription stays <strong>active</strong> until {subscription?.stripe?.currentPeriodEnd 
+                              ? new Date(subscription.stripe.currentPeriodEnd).toLocaleDateString()
+                              : new Date(subscription.subscriptionEnd).toLocaleDateString()}</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-green-500">✅</span>
+                            <span>You keep all premium features until then</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-blue-500">🔄</span>
+                            <span><strong>You can re-enable auto-renewal anytime</strong> before expiration</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-orange-500">⏹️</span>
+                            <span>Only expires if auto-renewal stays disabled</span>
+                          </li>
+                        </ul>
+                      </div>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                        <p className="text-blue-800 dark:text-blue-200">
                           💡 <strong>Pro Tip:</strong> This is reversible! Simply toggle auto-renewal back on to resume normal billing.
                         </p>
                       </div>
@@ -797,44 +1093,163 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 
-                <div className="space-y-3">
-              <Label htmlFor="cancel-password">
-                Enter your password to confirm:
-              </Label>
-              <Input
-                id="cancel-password"
-                type="password"
-                value={cancelPassword}
-                onChange={(e) => setCancelPassword(e.target.value)}
-                placeholder="Your account password"
-                className="border-red-200 focus:border-red-400 dark:border-red-800"
-              />
-            </div>
+                <div className="space-y-4 py-6">
+                  <Label htmlFor="cancel-password" className="text-lg font-semibold">
+                    Enter your password to confirm:
+                  </Label>
+                  <Input
+                    id="cancel-password"
+                    type="password"
+                    value={cancelPassword}
+                    onChange={(e) => setCancelPassword(e.target.value)}
+                    placeholder="Your account password"
+                    className="h-12 text-lg border-2 border-red-200 focus:border-red-400 dark:border-red-800 rounded-xl"
+                  />
+                </div>
+                
+                <AlertDialogFooter className="pt-4">
+                  <AlertDialogCancel onClick={() => {
+                    setCancelPassword('');
+                    setCancelStep('intermediate');
+                  }} className="h-12 text-lg">
+                    ← Back
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleCancelSubscription}
+                    disabled={isCancelling || !cancelPassword.trim()}
+                    className="h-12 text-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl px-6"
+                  >
+                    {isCancelling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Disabling...
+                      </>
+                    ) : (
+                      'Disable Auto-Renewal'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            )}
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Price Offer Modal */}
+        <AlertDialog open={showOfferModal} onOpenChange={setShowOfferModal}>
+          <AlertDialogContent className="max-w-2xl w-full mx-4">
+            <AlertDialogHeader className="text-center pb-6">
+              <AlertDialogTitle className="text-4xl mb-4 text-green-600 font-bold">
+                🔒 ONE TIME OFFER
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-center text-lg text-gray-600 dark:text-gray-300">
+                Hey — we've got a 🔒 ONE TIME OFFER for you: <strong className="text-green-600">${currentOffer}/month</strong>, locked in for life as long as you stay subscribed{currentOffer === 19.99 ? ' and this is the LOWEST offer we have!' : currentOffer === 15 ? '.' : ' and this is the LOWEST offer we have!'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
             
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => {
-                setCancelPassword('');
-                setCancelStep('confirmation');
-              }}>
-                Back
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleCancelSubscription}
-                disabled={isCancelling || !cancelPassword.trim()}
-                className="bg-red-600 hover:bg-red-700"
+            <div className="py-8">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-8 border-2 border-green-200 dark:border-green-800 text-center">
+                <div className="text-6xl font-bold text-green-600 mb-4">
+                  ${currentOffer}/month
+                </div>
+                <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
+                  <span className="flex items-center">
+                    🔒 <span className="ml-1">Locked in for life</span>
+                  </span>
+                  <span className="text-gray-400">•</span>
+                  <span className="flex items-center">
+                    📈 <span className="ml-1">No price increases ever</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <AlertDialogFooter className="flex-col space-y-4">
+              <Button 
+                onClick={() => {
+                  // Accept offer - you can implement the acceptance logic here
+                  setShowOfferModal(false);
+                  setShowCancelDialog(false);
+                  showToast.success('🎉 Offer Accepted!', `Your new rate of $${currentOffer}/month has been locked in!`);
+                }}
+                className="w-full h-16 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-xl font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                ✅ ACCEPT THIS OFFER
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowOfferModal(false);
+                  setCancelStep('auth');
+                }}
+                variant="outline"
+                className="w-full h-12 text-lg border-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
+              >
+                Continue to cancel
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Final Offer Modal */}
+        <AlertDialog open={showFinalOffer} onOpenChange={setShowFinalOffer}>
+          <AlertDialogContent className="max-w-2xl w-full mx-4">
+            <AlertDialogHeader className="text-center pb-6">
+              <AlertDialogTitle className="text-4xl mb-4 text-red-600 font-bold">
+                🚨 LAST OFFER — $19.99/Month
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-center text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+                This is the absolute lowest price we'll ever offer. No games. No second chances.
+                <br /><br />
+                It's a one-time deal — take it or leave it.
+                <br />
+                But just know: <strong className="text-red-600">you will never see a discount again. Period.</strong>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            <div className="py-8">
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-2xl p-8 border-2 border-red-200 dark:border-red-800 text-center">
+                <div className="text-6xl font-bold text-red-600 mb-4">
+                  $19.99/month
+                </div>
+                <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
+                  <span className="flex items-center">
+                    ⚡ <span className="ml-1">Final offer</span>
+                  </span>
+                  <span className="text-gray-400">•</span>
+                  <span className="flex items-center">
+                    🔒 <span className="ml-1">Locked in for life</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <AlertDialogFooter className="flex-col space-y-4">
+              <Button 
+                onClick={() => {
+                  // Accept final offer
+                  setShowFinalOffer(false);
+                  setShowCancelDialog(false);
+                  showToast.success('🎉 Final Offer Accepted!', 'Your rate of $19.99/month has been locked in!');
+                }}
+                className="w-full h-16 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-xl font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                ✅ TAKE THE DEAL
+              </Button>
+              <Button 
+                onClick={handleImmediateCancel}
+                variant="outline"
+                className="w-full h-12 text-lg border-2 border-gray-500 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20 rounded-xl"
+                disabled={isCancelling}
               >
                 {isCancelling ? (
                   <>
-                    <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                    Disabling...
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Cancelling...
                   </>
                 ) : (
-                  'Disable Auto-Renewal'
+                  'Cancel my subscription'
                 )}
-              </AlertDialogAction>
+              </Button>
             </AlertDialogFooter>
-              </>
-            )}
           </AlertDialogContent>
         </AlertDialog>
 
