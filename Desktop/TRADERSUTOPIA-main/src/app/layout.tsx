@@ -18,10 +18,17 @@ import { Toaster } from "sonner";
 const open_sans = Open_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-	title: "Discord Clone",
-	description: "A Full-Featured Real Time (Video , Audio , Chat) Application",
+	title: "Traders Utopia",
+	description: "Professional Trading Signals & Expert Education Platform",
 	openGraph: {
 		type: "website",
+		title: "Traders Utopia",
+		description: "Professional Trading Signals & Expert Education Platform",
+	},
+	icons: {
+		icon: "/logo.png",
+		shortcut: "/logo.png",
+		apple: "/logo.png",
 	},
 };
 
@@ -54,7 +61,7 @@ export default function RootLayout({
 						attribute="class"
 						defaultTheme="dark"
 						enableSystem={false}
-						storageKey="discord-clone-theme"
+						storageKey="traders-utopia-theme"
 						disableTransitionOnChange
 					>
 						<NextSSRPlugin

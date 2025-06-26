@@ -5,21 +5,43 @@ import Image from "next/image";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { SmartEntryButton } from "@/components/smart-entry-button";
 import { AutoRouteAfterSignIn } from "@/components/auto-route-after-signin";
+import { CountdownTimer } from "@/components/countdown-timer";
+import { SubscriptionProtectedLink } from "@/components/subscription-protected-link";
 import { Suspense } from "react";
+import { Check, Shield, Star, TrendingUp, Users, Award, Lock, ChevronRight, Play, BarChart3, Target, Zap } from "lucide-react";
 
 export default function HomePage() {
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+		<div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden">
+			{/* Animated Background Effects */}
+			<div className="absolute inset-0 overflow-hidden">
+				<div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl animate-pulse"></div>
+				<div className="absolute top-40 -left-40 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+				<div className="absolute bottom-40 right-20 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-2000"></div>
+			</div>
+			<div className="relative z-10">
 			{/* Auto-route component for handling post-sign-in routing */}
 			<Suspense fallback={null}>
 				<AutoRouteAfterSignIn />
 			</Suspense>
-			{/* Promotional Banner */}
-			<div className="bg-gradient-to-r from-purple-800 to-indigo-900 text-white text-center py-7 px-4">
-				<div className="flex items-center justify-center gap-2 text-sm md:text-base font-semibold">
-					<span className="text-2xl">⏳</span>
-					<span>PRICE INCREASING AGAIN</span>
-					<span className="text-yellow-300">Time&apos;s up!</span>
+
+			{/* Trust Bar */}
+			<div className="bg-gradient-to-r from-yellow-600/20 via-yellow-500/25 to-yellow-400/20 border-b border-yellow-400/30 backdrop-blur-sm">
+				<div className="max-w-7xl mx-auto px-6 py-2">
+					<div className="flex items-center justify-center gap-6 text-sm text-yellow-100">
+						<div className="flex items-center gap-2">
+							<Shield className="w-4 h-4" />
+							<span>SEC Compliant</span>
+						</div>
+						<div className="flex items-center gap-2">
+							<Lock className="w-4 h-4" />
+							<span>Bank-Level Security</span>
+						</div>
+						<div className="flex items-center gap-2">
+							<Award className="w-4 h-4" />
+							<span>14-Day Money-Back Guarantee</span>
+						</div>
+					</div>
 				</div>
 			</div>
 
@@ -28,32 +50,47 @@ export default function HomePage() {
 				<div className="flex items-center gap-6">
 					{/* Logo and Title */}
 					<div className="flex items-center gap-3">
-						<Image src="/logo.svg" alt="TradersUtopia" width={32} height={32} />
-						<span className="text-white text-xl font-bold">TradersUtopia</span>
+						<div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
+							<Image src="/logo.png" alt="TradersUtopia" width={24} height={24} />
+						</div>
+						<span className="text-white text-xl font-bold tracking-tight">TradersUtopia</span>
 					</div>
+					
+					{/* Navigation */}
+					<nav className="hidden md:flex items-center gap-6 text-sm">
+						<Link href="#features" className="text-gray-300 hover:text-white transition-colors">Features</Link>
+						<Link href="#testimonials" className="text-gray-300 hover:text-white transition-colors">Reviews</Link>
+						<Link href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</Link>
+					</nav>
 					
 					{/* Authentication Section */}
 					<div className="flex items-center gap-3">
 						<SignedOut>
 							<Link href="/sign-in">
 								<Button 
-									variant="outline" 
-									className="bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white/30"
+									variant="ghost" 
+									className="text-white hover:bg-white/10"
 								>
 									Sign In
 								</Button>
 							</Link>
 							<Link href="/sign-up">
 								<Button 
-									className="bg-indigo-600 hover:bg-indigo-700 text-white"
+									className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
 								>
-									Register
+									Start Free Trial
 								</Button>
 							</Link>
 						</SignedOut>
 						<SignedIn>
-							<div className="flex items-center gap-2">
-								<span className="text-white/80 text-sm">Welcome back!</span>
+							<div className="flex items-center gap-3">
+								<SubscriptionProtectedLink 
+									href="/dashboard"
+									variant="outline"
+									className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black"
+								>
+									Dashboard
+								</SubscriptionProtectedLink>
 								<UserButton 
 									appearance={{
 										elements: {
@@ -68,33 +105,528 @@ export default function HomePage() {
 				<ModeToggle />
 			</header>
 
-			{/* Main Content */}
-			<main className="flex flex-col items-center justify-center min-h-[calc(100vh-180px)] px-6">
-				<div className="text-center max-w-4xl mx-auto">
-					<h1 className="text-3xl md:text-7xl font-bold text-white mb-6 leading-tight">
-						Welcome to Traders Utopia
+			{/* Hero Section */}
+			<section className="max-w-7xl mx-auto px-6 pt-8 pb-16">
+				<div className="text-center mb-16">
+					{/* Social Proof Badge */}
+					<div className="inline-flex items-center gap-2 bg-green-600/20 border border-green-400/30 rounded-full px-4 py-2 mb-6">
+						<div className="flex -space-x-2">
+							<div className="w-6 h-6 bg-blue-500 rounded-full border-2 border-white"></div>
+							<div className="w-6 h-6 bg-red-500 rounded-full border-2 border-white"></div>
+							<div className="w-6 h-6 bg-purple-500 rounded-full border-2 border-white"></div>
+						</div>
+						<span className="text-green-400 text-sm font-medium">Trusted by 2,847+ professional traders</span>
+					</div>
+
+					{/* Main Headline */}
+					<h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-[0.9] tracking-tight">
+						<span className="bg-gradient-to-r from-white via-yellow-100 to-yellow-300 bg-clip-text text-transparent animate-gradient">
+							Turn Market Knowledge
+						</span>
 						<br />
-						<span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-							Community Hub
+						<span className="text-white drop-shadow-2xl">Into Consistent</span>
+						<br />
+						<span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-gradient">
+							Profits
 						</span>
 					</h1>
 					
-					<p className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed">
-					👋 Welcome to Traders Utopia! 🌟 Join a vibrant trading community where passion meets expertise. At Traders Utopia, we bring together traders of all levels to share insights, strategies, and real opportunities.
-						<br />
-						
+					{/* Subheadline */}
+					<p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+						Join elite traders who receive <span className="text-yellow-400 font-semibold">high-probability setups</span>, 
+						expert analysis, and live coaching sessions. Start your 14-day free trial today.
 					</p>
 
-					<div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+					{/* Stats Row */}
+					<div className="flex flex-wrap justify-center gap-8 mb-12 text-center">
+						<div className="flex flex-col items-center bg-gradient-to-b from-yellow-500/10 to-yellow-600/5 backdrop-blur-sm rounded-xl p-6 border border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 hover:transform hover:-translate-y-1">
+							<div className="text-3xl font-bold text-yellow-400">78%</div>
+							<div className="text-sm text-gray-300">Win Rate</div>
+						</div>
+						<div className="flex flex-col items-center bg-gradient-to-b from-green-500/10 to-green-600/5 backdrop-blur-sm rounded-xl p-6 border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:transform hover:-translate-y-1">
+							<div className="text-3xl font-bold text-green-400">$2.4M+</div>
+							<div className="text-sm text-gray-300">Member Profits</div>
+						</div>
+						<div className="flex flex-col items-center bg-gradient-to-b from-blue-500/10 to-blue-600/5 backdrop-blur-sm rounded-xl p-6 border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:transform hover:-translate-y-1">
+							<div className="text-3xl font-bold text-blue-400">2,847</div>
+							<div className="text-sm text-gray-300">Active Members</div>
+						</div>
+						<div className="flex flex-col items-center bg-gradient-to-b from-purple-500/10 to-purple-600/5 backdrop-blur-sm rounded-xl p-6 border border-purple-400/20 hover:border-purple-400/40 transition-all duration-300 hover:transform hover:-translate-y-1">
+							<div className="text-3xl font-bold text-purple-400">5 Years</div>
+							<div className="text-sm text-gray-300">Track Record</div>
+						</div>
+					</div>
+					
+					{/* CTA Section */}
+					<div className="flex flex-col items-center gap-4 mb-8">
 						<SmartEntryButton />
+						<div className="flex items-center gap-2 text-green-400 text-sm">
+							<Check className="w-4 h-4" />
+							<span>14-day free trial • No credit card required</span>
+						</div>
+					</div>
+
+					{/* Limited Time Offer */}
+					<div className="bg-gradient-to-br from-red-600/20 via-orange-500/15 to-red-700/20 border border-red-400/30 rounded-2xl p-8 max-w-md mx-auto backdrop-blur-md shadow-2xl hover:shadow-red-500/20 transition-all duration-300">
+						<div className="flex items-center justify-center gap-2 mb-4">
+							<div className="w-3 h-3 bg-red-400 rounded-full animate-pulse shadow-lg shadow-red-400/50"></div>
+							<span className="text-red-300 font-bold text-sm uppercase tracking-wider">Limited Time Offer</span>
+						</div>
+						<p className="text-white font-bold mb-4 text-lg">Lock in current pricing before increase</p>
+						<CountdownTimer initialMinutes={47} initialSeconds={33} />
+						<p className="text-gray-300 text-sm mt-3 font-medium">Next price increase: $199/month</p>
+					</div>
+				</div>
+
+				{/* Video Demo Section */}
+				<div className="bg-gradient-to-br from-gray-800/60 via-slate-800/40 to-gray-900/60 rounded-3xl p-10 mb-20 border border-gray-600/30 backdrop-blur-md shadow-2xl">
+					<div className="text-center mb-10">
+						<h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">See TradersUtopia in Action</h2>
+						<p className="text-gray-300 text-xl">Watch how our members receive and execute profitable trades</p>
+					</div>
+					<div className="relative max-w-5xl mx-auto">
+						<div className="aspect-video bg-gradient-to-br from-gray-900 to-black rounded-2xl flex items-center justify-center border border-gray-600/50 shadow-2xl relative overflow-hidden group hover:border-yellow-400/50 transition-all duration-500">
+							{/* Video thumbnail effect */}
+							<div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+							<div className="flex items-center gap-4 bg-black/90 rounded-full px-8 py-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105 cursor-pointer group-hover:shadow-lg group-hover:shadow-yellow-400/20">
+								<Play className="w-10 h-10 text-yellow-400" />
+								<span className="text-white font-semibold text-lg">Watch 2-min Demo</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Features Section */}
+			<section id="features" className="bg-gradient-to-b from-gray-900/50 to-black py-20">
+				<div className="max-w-7xl mx-auto px-6">
+					<div className="text-center mb-16">
+						<h2 className="text-4xl md:text-5xl font-bold mb-4">
+							Everything You Need to <span className="text-yellow-400">Trade Profitably</span>
+						</h2>
+						<p className="text-xl text-gray-300 max-w-3xl mx-auto">
+							Our comprehensive platform provides real-time alerts, expert education, 
+							and a supportive community of successful traders.
+						</p>
+					</div>
+
+					<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+						{/* Feature 1 */}
+						<div className="group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 hover:border-yellow-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-yellow-400/10 backdrop-blur-sm">
+							<div className="w-16 h-16 bg-gradient-to-br from-yellow-500/20 to-yellow-600/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+								<TrendingUp className="w-8 h-8 text-yellow-400" />
+							</div>
+							<h3 className="text-2xl font-bold mb-4 group-hover:text-yellow-300 transition-colors">Real-Time Trade Alerts</h3>
+							<p className="text-gray-300 mb-6 leading-relaxed">Receive instant notifications for high-probability setups with entry, stop-loss, and target levels.</p>
+							<div className="space-y-2">
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>SMS & Email alerts</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Risk management included</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Mobile app access</span>
+								</div>
+							</div>
+						</div>
+
+						{/* Feature 2 */}
+						<div className="group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 hover:border-blue-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-400/10 backdrop-blur-sm">
+							<div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+								<BarChart3 className="w-8 h-8 text-blue-400" />
+							</div>
+							<h3 className="text-2xl font-bold mb-4 group-hover:text-blue-300 transition-colors">Expert Market Analysis</h3>
+							<p className="text-gray-300 mb-6 leading-relaxed">Daily market breakdowns, key level analysis, and economic calendar insights from professional traders.</p>
+							<div className="space-y-2">
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Daily market reports</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Video breakdowns</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Economic calendar</span>
+								</div>
+							</div>
+						</div>
+
+						{/* Feature 3 */}
+						<div className="group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 hover:border-purple-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-400/10 backdrop-blur-sm">
+							<div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-purple-600/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+								<Users className="w-8 h-8 text-purple-400" />
+							</div>
+							<h3 className="text-2xl font-bold mb-4 group-hover:text-purple-300 transition-colors">Live Trading Sessions</h3>
+							<p className="text-gray-300 mb-6 leading-relaxed">Join live sessions where experts explain their thought process and trade in real-time.</p>
+							<div className="space-y-2">
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>3x weekly sessions</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Q&A opportunities</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Session recordings</span>
+								</div>
+							</div>
+						</div>
+
+						{/* Feature 4 */}
+						<div className="group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 hover:border-green-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-green-400/10 backdrop-blur-sm">
+							<div className="w-16 h-16 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+								<Target className="w-8 h-8 text-green-400" />
+							</div>
+							<h3 className="text-2xl font-bold mb-4 group-hover:text-green-300 transition-colors">Risk Management Tools</h3>
+							<p className="text-gray-300 mb-6 leading-relaxed">Advanced position sizing calculators and risk management strategies to protect your capital.</p>
+							<div className="space-y-2">
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Position size calculator</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Stop-loss strategies</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Portfolio tracking</span>
+								</div>
+							</div>
+						</div>
+
+						{/* Feature 5 */}
+						<div className="group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 hover:border-red-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-red-400/10 backdrop-blur-sm">
+							<div className="w-16 h-16 bg-gradient-to-br from-red-500/20 to-red-600/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+								<Zap className="w-8 h-8 text-red-400" />
+							</div>
+							<h3 className="text-2xl font-bold mb-4 group-hover:text-red-300 transition-colors">Premium Community</h3>
+							<p className="text-gray-300 mb-6 leading-relaxed">Connect with successful traders, share strategies, and get feedback on your trades.</p>
+							<div className="space-y-2">
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Private Discord server</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Trade review sessions</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Mentorship program</span>
+								</div>
+							</div>
+						</div>
+
+						{/* Feature 6 */}
+						<div className="group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 hover:border-orange-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-orange-400/10 backdrop-blur-sm">
+							<div className="w-16 h-16 bg-gradient-to-br from-orange-500/20 to-orange-600/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+								<Award className="w-8 h-8 text-orange-400" />
+							</div>
+							<h3 className="text-2xl font-bold mb-4 group-hover:text-orange-300 transition-colors">Educational Resources</h3>
+							<p className="text-gray-300 mb-6 leading-relaxed">Comprehensive trading courses, webinars, and resources for all skill levels.</p>
+							<div className="space-y-2">
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>50+ hours of content</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Interactive quizzes</span>
+								</div>
+								<div className="flex items-center gap-2 text-sm">
+									<Check className="w-4 h-4 text-green-400" />
+									<span>Certification program</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Results Section */}
+			<section className="py-20">
+				<div className="max-w-7xl mx-auto px-6">
+					<div className="text-center mb-16">
+						<h2 className="text-4xl md:text-5xl font-bold mb-4">
+							Real Results From <span className="text-yellow-400">Real Members</span>
+						</h2>
+						<p className="text-xl text-gray-300 max-w-3xl mx-auto">
+							Our members consistently achieve profitable results using our proven strategies and alerts.
+						</p>
+					</div>
+
+					<div className="grid md:grid-cols-2 gap-8 mb-12">
+						<div className="bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-400/30 rounded-xl p-6">
+							<Image 
+								src="/phone.png" 
+								alt="Mobile Trading Results" 
+								width={200} 
+								height={300} 
+								className="mx-auto mb-6"
+							/>
+							<div className="text-center">
+								<h3 className="text-2xl font-bold mb-2">Mobile-First Experience</h3>
+								<p className="text-gray-300 mb-4">Get alerts instantly on your phone and execute trades on the go.</p>
+								<div className="bg-green-600/30 rounded-lg p-3 inline-block">
+									<span className="text-green-300 font-semibold">+$12,847 This Month</span>
+								</div>
+							</div>
+						</div>
+
+						<div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 border border-blue-400/30 rounded-xl p-6">
+							<Image 
+								src="/laptop.png" 
+								alt="Desktop Trading Platform" 
+								width={300} 
+								height={200} 
+								className="mx-auto mb-6"
+							/>
+							<div className="text-center">
+								<h3 className="text-2xl font-bold mb-2">Professional Analysis</h3>
+								<p className="text-gray-300 mb-4">Access detailed charts, analysis, and educational content on our web platform.</p>
+								<div className="bg-blue-600/30 rounded-lg p-3 inline-block">
+									<span className="text-blue-300 font-semibold">78% Win Rate</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Testimonials Section */}
+			<section id="testimonials" className="bg-gradient-to-b from-gray-900/50 to-black py-20">
+				<div className="max-w-7xl mx-auto px-6">
+					<div className="text-center mb-16">
+						<h2 className="text-4xl md:text-5xl font-bold mb-4">
+							What Our <span className="text-yellow-400">Members Say</span>
+						</h2>
+					</div>
+
+					<div className="grid md:grid-cols-3 gap-8">
+						{/* Testimonial 1 */}
+						<div className="bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 hover:border-blue-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-400/10 backdrop-blur-sm">
+							<div className="flex items-center gap-1 mb-4">
+								{[...Array(5)].map((_, i) => (
+									<Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+								))}
+							</div>
+							<p className="text-gray-300 mb-4 italic">
+								"I've been trading for 3 years and TradersUtopia completely changed my approach. 
+								The alerts are incredibly accurate and the education is top-notch."
+							</p>
+							<div className="flex items-center gap-3">
+								<div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+									M
+								</div>
+								<div>
+									<div className="font-semibold">Marcus Chen</div>
+									<div className="text-sm text-gray-400">Software Engineer, +$47K profit</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Testimonial 2 */}
+						<div className="bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 hover:border-purple-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-400/10 backdrop-blur-sm">
+							<div className="flex items-center gap-1 mb-4">
+								{[...Array(5)].map((_, i) => (
+									<Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+								))}
+							</div>
+							<p className="text-gray-300 mb-4 italic">
+								"The live sessions are incredible. Being able to watch professionals trade 
+								in real-time and explain their thinking is invaluable."
+							</p>
+							<div className="flex items-center gap-3">
+								<div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+									S
+								</div>
+								<div>
+									<div className="font-semibold">Sarah Johnson</div>
+									<div className="text-sm text-gray-400">Marketing Director, +$23K profit</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Testimonial 3 */}
+						<div className="bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-8 border border-gray-700/50 hover:border-green-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-green-400/10 backdrop-blur-sm">
+							<div className="flex items-center gap-1 mb-4">
+								{[...Array(5)].map((_, i) => (
+									<Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+								))}
+							</div>
+							<p className="text-gray-300 mb-4 italic">
+								"Best investment I've made. The risk management strategies alone 
+								have saved me thousands. Highly recommend to any serious trader."
+							</p>
+							<div className="flex items-center gap-3">
+								<div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">
+									D
+								</div>
+								<div>
+									<div className="font-semibold">David Rodriguez</div>
+									<div className="text-sm text-gray-400">Financial Advisor, +$89K profit</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Guarantee Section */}
+			<section className="py-20">
+				<div className="max-w-4xl mx-auto px-6 text-center">
+					<div className="bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-400/30 rounded-2xl p-8">
+						<div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+							<Shield className="w-8 h-8 text-green-400" />
+						</div>
+						<h2 className="text-3xl font-bold mb-4">100% Risk-Free Guarantee</h2>
+						<p className="text-xl text-gray-300 mb-6">
+							Try TradersUtopia for 14 days completely free. If you're not satisfied, 
+							get a full refund - no questions asked.
+						</p>
+						<div className="flex flex-wrap justify-center gap-6 text-sm">
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400" />
+								<span>14-day free trial</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400" />
+								<span>No credit card required</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400" />
+								<span>Cancel anytime</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400" />
+								<span>Money-back guarantee</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Final CTA Section */}
+			<section id="pricing" className="bg-gradient-to-b from-gray-900/50 to-black py-20">
+				<div className="max-w-4xl mx-auto px-6 text-center">
+					<h2 className="text-4xl md:text-5xl font-bold mb-6">
+						Start Your <span className="text-yellow-400">Trading Journey</span> Today
+					</h2>
+					<p className="text-xl text-gray-300 mb-8">
+						Join 2,847+ successful traders and start receiving profitable trade alerts within minutes.
+					</p>
+					
+					{/* Pricing */}
+					<div className="bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-3xl p-10 border border-gray-700/50 mb-8 backdrop-blur-md shadow-2xl hover:border-yellow-400/50 transition-all duration-500">
+						<div className="flex items-center justify-center gap-2 mb-4">
+							<span className="text-gray-400 text-lg line-through">$199/month</span>
+							<span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">SAVE $50</span>
+						</div>
+						<div className="text-5xl font-bold text-yellow-400 mb-2">$149</div>
+						<div className="text-gray-300 mb-6">per month • 14-day free trial</div>
 						
+						<div className="space-y-4 mb-8">
+							<SmartEntryButton />
+							<p className="text-green-400 text-sm">✅ Start free trial instantly - no credit card required</p>
+						</div>
+
+						<div className="grid md:grid-cols-2 gap-4 text-left">
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+								<span className="text-sm">Real-time trade alerts</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+								<span className="text-sm">Live trading sessions</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+								<span className="text-sm">Expert market analysis</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+								<span className="text-sm">Premium community access</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+								<span className="text-sm">Risk management tools</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+								<span className="text-sm">Educational resources</span>
+							</div>
+						</div>
+					</div>
+
+					<p className="text-gray-400 text-sm">
+						Over 2,847 members • 4.9/5 rating • Join risk-free today
+					</p>
+				</div>
+			</section>
+
+			{/* Footer */}
+			<footer className="border-t border-gray-800 py-12">
+				<div className="max-w-7xl mx-auto px-6">
+					<div className="grid md:grid-cols-4 gap-8">
+						<div>
+							<div className="flex items-center gap-3 mb-4">
+								<div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
+									<Image src="/logo.png" alt="TradersUtopia" width={20} height={20} />
+								</div>
+								<span className="text-white font-bold">TradersUtopia</span>
+							</div>
+							<p className="text-gray-400 text-sm">
+								Professional trading signals and education platform trusted by thousands of traders worldwide.
+							</p>
+						</div>
+						
+						<div>
+							<h4 className="text-white font-semibold mb-3">Product</h4>
+							<div className="space-y-2 text-sm">
+								<Link href="#features" className="text-gray-400 hover:text-white block">Features</Link>
+								<Link href="#pricing" className="text-gray-400 hover:text-white block">Pricing</Link>
+								<SubscriptionProtectedLink href="/dashboard" className="text-gray-400 hover:text-white block">
+									Dashboard
+								</SubscriptionProtectedLink>
+							</div>
+						</div>
+						
+						<div>
+							<h4 className="text-white font-semibold mb-3">Support</h4>
+							<div className="space-y-2 text-sm">
+								<Link href="#" className="text-gray-400 hover:text-white block">Help Center</Link>
+								<Link href="#" className="text-gray-400 hover:text-white block">Contact Us</Link>
+								<Link href="#" className="text-gray-400 hover:text-white block">Terms of Service</Link>
+							</div>
+						</div>
+						
+						<div>
+							<h4 className="text-white font-semibold mb-3">Legal</h4>
+							<div className="space-y-2 text-sm">
+								<Link href="#" className="text-gray-400 hover:text-white block">Privacy Policy</Link>
+								<Link href="#" className="text-gray-400 hover:text-white block">Risk Disclosure</Link>
+								<Link href="#" className="text-gray-400 hover:text-white block">SEC Compliance</Link>
+							</div>
+						</div>
+					</div>
+					
+					<div className="border-t border-gray-800 pt-8 mt-8 text-center">
 						<p className="text-gray-400 text-sm">
-							<SignedIn>Access verification will run automatically</SignedIn>
-							<SignedOut>Sign in first, then we&apos;ll check your subscription</SignedOut>
+							© 2024 TradersUtopia. All rights reserved. Trading involves risk and may not be suitable for all investors.
 						</p>
 					</div>
 				</div>
-			</main>
+			</footer>
+			</div>
 		</div>
 	);
 } 

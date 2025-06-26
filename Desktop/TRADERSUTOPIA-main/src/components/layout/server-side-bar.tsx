@@ -6,6 +6,7 @@ import { ServerSection } from "@/components/server-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { SubscriptionProtectedLink } from "@/components/subscription-protected-link";
 import { getCurrentProfile, getServer } from "@/lib/query";
 import { ChannelType, MemberRole } from "@prisma/client";
 import { Hash, Mic, ShieldAlert, ShieldCheck, Video, Home, Settings } from "lucide-react";
@@ -132,15 +133,14 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
 			{/* Settings and Homepage Buttons */}
 			<div className="pb-3 px-3 w-full space-y-2">
 				{/* Settings Button */}
-				<Link href="/dashboard">
-					<Button 
-						variant="ghost" 
-						className="w-full justify-start text-zinc-500 dark:text-zinc-400 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 hover:text-zinc-600 dark:hover:text-zinc-300 transition"
-					>
-						<Settings className="h-4 w-4 mr-2" />
-						Dashboard Settings
-					</Button>
-				</Link>
+				<SubscriptionProtectedLink 
+					href="/dashboard"
+					variant="ghost"
+					className="w-full justify-start text-zinc-500 dark:text-zinc-400 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 hover:text-zinc-600 dark:hover:text-zinc-300 transition"
+				>
+					<Settings className="h-4 w-4 mr-2" />
+					Dashboard Settings
+				</SubscriptionProtectedLink>
 				
 				{/* Homepage Button */}
 				<Link href="/">

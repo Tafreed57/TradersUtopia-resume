@@ -14,7 +14,7 @@ export default function CheckoutPage() {
         <div className="flex items-center gap-6">
           {/* Logo and Title */}
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/logo.svg" alt="TradersUtopia" width={32} height={32} />
+            <Image src="/logo.png" alt="TradersUtopia" width={32} height={32} />
             <span className="text-white text-xl font-bold">TradersUtopia</span>
           </Link>
           

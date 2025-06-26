@@ -96,7 +96,7 @@ export function SmartEntryButton() {
       <Button 
         size="lg" 
         disabled
-        className="bg-indigo-600 text-white px-8 py-4 text-lg font-semibold rounded-full opacity-50"
+        className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-12 py-6 text-xl font-bold rounded-lg opacity-50 border border-yellow-400/50"
       >
         <Loader2 className="h-5 w-5 animate-spin mr-2" />
         Loading...
@@ -109,10 +109,10 @@ export function SmartEntryButton() {
       <Button 
         size="lg" 
         onClick={handleEntryClick}
-        className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
+        className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black px-12 py-6 text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl border border-yellow-400/50"
       >
         <LogIn className="h-5 w-5 mr-2" />
-        Enter Traders Utopia
+        Start 14-Day Free Trial
       </Button>
     );
   }
@@ -123,17 +123,17 @@ export function SmartEntryButton() {
       size="lg" 
       onClick={handleEntryClick}
       disabled={isProcessing}
-      className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-12 py-6 text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none border border-green-500/50"
     >
       {isProcessing ? (
         <div className="flex items-center gap-2">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Checking Access...</span>
+          <span>Accessing Platform...</span>
         </div>
       ) : (
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5" />
-          <span>Enter Traders Utopia</span>
+          <span>Access Trading Platform</span>
         </div>
       )}
     </Button>

@@ -9,8 +9,8 @@ import { MediaRoom } from "@/components/media-room";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-	title: "Discord Clone | Conversation",
-	description: "Conversation between members",
+	title: "Traders Utopia | Conversation",
+	description: "Private conversation between trading community members",
 	openGraph: {
 		type: "website",
 	},
