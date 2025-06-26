@@ -56,8 +56,20 @@ interface SubscriptionDetails {
     cancelAtPeriodEnd: boolean;
     autoRenew: boolean;
     amount: number;
+    originalAmount?: number;
     currency: string;
     interval: string;
+    hasDiscount?: boolean;
+    discountPercent?: number;
+    discountAmount?: number;
+    discountDetails?: {
+      id: string;
+      name: string;
+      percentOff: number;
+      amountOff: number;
+      duration: string;
+      valid: boolean;
+    };
   };
   customer?: {
     id: string;
@@ -84,6 +96,7 @@ export function SubscriptionManager() {
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [currentOffer, setCurrentOffer] = useState<number | null>(null);
   const [showFinalOffer, setShowFinalOffer] = useState(false);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const handlePriceSubmit = () => {
     const inputPrice = parseFloat(priceInput);
@@ -109,6 +122,64 @@ export function SubscriptionManager() {
 
   const handleFinalOffer = () => {
     setShowFinalOffer(true);
+  };
+
+  const createAndApplyCoupon = async (newPrice: number) => {
+    setIsApplyingCoupon(true);
+    try {
+      // Get the actual current discounted price the user is paying
+      const currentDiscountedPrice = subscription?.stripe?.amount ? subscription.stripe.amount / 100 : 0;
+      
+      // Get the original price (before any discounts)
+      const originalPrice = subscription?.stripe?.originalAmount 
+        ? subscription.stripe.originalAmount / 100 
+        : currentDiscountedPrice;
+      
+      console.log(`🔍 Price Analysis: Original: $${originalPrice}, Current: $${currentDiscountedPrice}, Target: $${newPrice}`);
+      
+      if (newPrice >= currentDiscountedPrice) {
+        showToast.error('Error', 'New price must be lower than current price');
+        return false;
+      }
+
+      // Calculate the percentage discount needed to go from ORIGINAL price to TARGET price
+      const totalDiscountAmount = originalPrice - newPrice;
+      const percentOff = Math.round((totalDiscountAmount / originalPrice) * 100);
+
+      console.log(`🎯 Creating coupon: Original: $${originalPrice}, Target: $${newPrice}, Total Discount: ${percentOff}%`);
+
+      const response = await makeSecureRequest('/api/subscription/create-coupon', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          percentOff,
+          newMonthlyPrice: newPrice,
+          currentPrice: currentDiscountedPrice,
+          originalPrice: originalPrice,
+          customerId: subscription?.customer?.id,
+          subscriptionId: subscription?.stripe?.id,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        showToast.success('🎉 Discount Applied!', `Your new rate of $${newPrice}/month has been locked in permanently!`);
+        await refreshAndSync(); // Refresh to show new pricing
+        return true;
+      } else {
+        showToast.error('Failed to Apply Discount', data.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error creating coupon:', error);
+      showToast.error('Error', 'Failed to apply discount');
+      return false;
+    } finally {
+      setIsApplyingCoupon(false);
+    }
   };
 
   const handleImmediateCancel = async () => {
@@ -505,14 +576,62 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                 </div>
                 {subscription.stripe?.amount && (
                   <div className="text-right">
-                    <div className="text-lg font-bold">
-                      {formatCurrency(subscription.stripe.amount, subscription.stripe.currency)}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      per {subscription.stripe.interval}
-                    </div>
+                    {subscription.stripe.hasDiscount && subscription.stripe.originalAmount ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500 line-through">
+                            {formatCurrency(subscription.stripe.originalAmount, subscription.stripe.currency)}
+                          </span>
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                            {subscription.stripe.discountPercent}% OFF
+                          </span>
+                        </div>
+                        <div className="text-lg font-bold text-green-600">
+                          {formatCurrency(subscription.stripe.amount, subscription.stripe.currency)}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          per {subscription.stripe.interval}
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-lg font-bold">
+                          {formatCurrency(subscription.stripe.amount, subscription.stripe.currency)}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          per {subscription.stripe.interval}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Active Discount Banner */}
+        {subscription.stripe?.hasDiscount && subscription.stripe?.discountDetails && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <span className="inline-flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-800 rounded-full">
+                  🎉
+                </span>
+              </div>
+              <div className="flex-1">
+                <h5 className="font-semibold text-green-900 dark:text-green-100">
+                  Permanent Discount Active!
+                </h5>
+                <p className="text-sm text-green-700 dark:text-green-200 mt-1">
+                  You're saving <strong>{subscription.stripe.discountPercent}% forever</strong> on your subscription. 
+                  This discount will continue for the lifetime of your subscription.
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200">
+                  {subscription.stripe.discountDetails.duration === 'forever' ? 'PERMANENT' : 'LIMITED TIME'}
+                </span>
               </div>
             </div>
           </div>
@@ -694,6 +813,7 @@ This data comes directly from Stripe and shows the REAL status of your subscript
             setCurrentOffer(null);
             setShowOfferModal(false);
             setShowFinalOffer(false);
+            setIsApplyingCoupon(false);
           }
         }}>
           <AlertDialogContent className="max-w-2xl w-full mx-4">
@@ -1165,15 +1285,26 @@ This data comes directly from Stripe and shows the REAL status of your subscript
 
             <AlertDialogFooter className="flex-col space-y-4">
               <Button 
-                onClick={() => {
-                  // Accept offer - you can implement the acceptance logic here
-                  setShowOfferModal(false);
-                  setShowCancelDialog(false);
-                  showToast.success('🎉 Offer Accepted!', `Your new rate of $${currentOffer}/month has been locked in!`);
+                onClick={async () => {
+                  if (currentOffer) {
+                    const success = await createAndApplyCoupon(currentOffer);
+                    if (success) {
+                      setShowOfferModal(false);
+                      setShowCancelDialog(false);
+                    }
+                  }
                 }}
-                className="w-full h-16 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-xl font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+                disabled={isApplyingCoupon}
+                className="w-full h-16 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-xl font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50"
               >
-                ✅ ACCEPT THIS OFFER
+                {isApplyingCoupon ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Applying Discount...
+                  </>
+                ) : (
+                  '✅ ACCEPT THIS OFFER'
+                )}
               </Button>
               <Button 
                 onClick={() => {
@@ -1224,15 +1355,24 @@ This data comes directly from Stripe and shows the REAL status of your subscript
 
             <AlertDialogFooter className="flex-col space-y-4">
               <Button 
-                onClick={() => {
-                  // Accept final offer
-                  setShowFinalOffer(false);
-                  setShowCancelDialog(false);
-                  showToast.success('🎉 Final Offer Accepted!', 'Your rate of $19.99/month has been locked in!');
+                onClick={async () => {
+                  const success = await createAndApplyCoupon(19.99);
+                  if (success) {
+                    setShowFinalOffer(false);
+                    setShowCancelDialog(false);
+                  }
                 }}
-                className="w-full h-16 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-xl font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
+                disabled={isApplyingCoupon}
+                className="w-full h-16 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-xl font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50"
               >
-                ✅ TAKE THE DEAL
+                {isApplyingCoupon ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Applying Discount...
+                  </>
+                ) : (
+                  '✅ TAKE THE DEAL'
+                )}
               </Button>
               <Button 
                 onClick={handleImmediateCancel}

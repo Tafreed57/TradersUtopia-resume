@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
         const subscriptions = await stripe.subscriptions.list({
           customer: profile.stripeCustomerId,
           limit: 10,
+          expand: ['data.discounts', 'data.discount.coupon'], // Expand discount information
         });
 
         console.log(`📊 [SUBSCRIPTIONS] Found ${subscriptions.data.length} subscription(s)`);
@@ -95,9 +96,64 @@ export async function GET(request: NextRequest) {
             (sub.status === 'canceled' && new Date(sub.current_period_end * 1000) > new Date())
           ) || subscriptions.data[0];
           
-          const subscription = relevantSubscription as any;
+          let subscription = relevantSubscription as any;
           console.log(`✅ [ACTIVE SUB] Using: ${subscription.id} (${subscription.status})`);
           
+          // 🔍 ENHANCED: Get full subscription details with all discount information
+          try {
+            const fullSubscription = await stripe.subscriptions.retrieve(subscription.id, {
+              expand: ['discounts', 'discount.coupon']
+            });
+            subscription = fullSubscription;
+            console.log(`🔄 [ENHANCED] Retrieved full subscription details with discounts`);
+          } catch (error) {
+            console.log(`⚠️ [WARNING] Could not retrieve full subscription details, using list data`);
+          }
+          
+          // 🐛 DEBUG: Log raw discount data from Stripe
+          console.log(`🔍 [DEBUG] Raw subscription discount data:`, {
+            hasOldDiscount: !!subscription.discount,
+            oldDiscount: subscription.discount,
+            hasNewDiscounts: !!(subscription.discounts && subscription.discounts.length > 0),
+            newDiscounts: subscription.discounts,
+            discountsLength: subscription.discounts?.length || 0
+          });
+          
+          // Get discount information from the new discounts array format
+          const activeDiscount = subscription.discounts && subscription.discounts.length > 0 
+            ? subscription.discounts[0]  // Get the first active discount
+            : subscription.discount;     // Fallback to old single discount format
+          
+          const originalAmount = subscription.items.data[0]?.price.unit_amount || 0;
+          let discountedAmount = originalAmount;
+          let discountPercent = null;
+          let discountAmount = null;
+          
+          if (activeDiscount?.coupon) {
+            discountPercent = activeDiscount.coupon.percent_off;
+            discountAmount = activeDiscount.coupon.amount_off;
+            
+            // Calculate the actual discounted amount
+            if (discountPercent) {
+              discountedAmount = Math.round(originalAmount * (1 - discountPercent / 100));
+            } else if (discountAmount) {
+              discountedAmount = Math.max(0, originalAmount - discountAmount);
+            }
+          }
+
+          console.log(`💰 [PRICING] Original: ${originalAmount}, Discounted: ${discountedAmount}, Discount: ${discountPercent}%`);
+          console.log(`🔍 [DEBUG] Active discount object:`, activeDiscount);
+          console.log(`🔍 [DEBUG] Final pricing calculation:`, {
+            originalAmount,
+            discountedAmount,
+            discountPercent,
+            discountAmount,
+            hasActiveDiscount: !!activeDiscount?.coupon,
+            couponId: activeDiscount?.coupon?.id,
+            couponPercentOff: activeDiscount?.coupon?.percent_off,
+            couponAmountOff: activeDiscount?.coupon?.amount_off
+          });
+
           // ✅ ENHANCED: Comprehensive subscription details for UI
           responseData.subscription.stripe = {
             id: subscription.id,
@@ -108,7 +164,8 @@ export async function GET(request: NextRequest) {
             canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
             autoRenew: !subscription.cancel_at_period_end,
             priceId: subscription.items.data[0]?.price.id,
-            amount: subscription.items.data[0]?.price.unit_amount,
+            amount: discountedAmount, // Use discounted amount instead of original
+            originalAmount: originalAmount, // Keep original for reference
             currency: subscription.items.data[0]?.price.currency,
             interval: subscription.items.data[0]?.price.recurring?.interval,
             // ✅ ENHANCED: Additional metadata for better UI display
@@ -116,8 +173,17 @@ export async function GET(request: NextRequest) {
             trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
             created: new Date(subscription.created * 1000),
             pauseStartDate: null, // Placeholder for pause functionality
-            discountPercent: subscription.discount?.coupon?.percent_off || null,
-            discountAmount: subscription.discount?.coupon?.amount_off || null,
+            discountPercent: discountPercent,
+            discountAmount: discountAmount,
+            hasDiscount: !!activeDiscount?.coupon,
+            discountDetails: activeDiscount?.coupon ? {
+              id: activeDiscount.coupon.id,
+              name: activeDiscount.coupon.name,
+              percentOff: activeDiscount.coupon.percent_off,
+              amountOff: activeDiscount.coupon.amount_off,
+              duration: activeDiscount.coupon.duration,
+              valid: activeDiscount.coupon.valid,
+            } : null,
           };
           
           responseData.dataSource = 'stripe-enhanced';
