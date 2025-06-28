@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useLoading } from '@/contexts/loading-provider';
 
 interface SubscriptionProtectedLinkProps {
   href: string;
@@ -29,7 +30,16 @@ export function SubscriptionProtectedLink({
 }: SubscriptionProtectedLinkProps) {
   const { user, isLoaded } = useUser();
   const router = useRouter();
+  const { startLoading, stopLoading } = useLoading();
   const [isChecking, setIsChecking] = useState(false);
+
+  const getLoadingMessage = (path: string) => {
+    if (path.includes('/dashboard')) return 'Loading your dashboard...';
+    if (path.includes('/servers')) return 'Accessing trading community...';
+    if (path.includes('/pricing')) return 'Loading pricing information...';
+    if (path.includes('/user-profile')) return 'Loading your profile...';
+    return 'Loading...';
+  };
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -42,6 +52,7 @@ export function SubscriptionProtectedLink({
     // If user is not authenticated, redirect to sign-in
     if (!isLoaded || !user) {
       console.log('🔐 User not authenticated, redirecting to sign-in');
+      startLoading('Redirecting to sign in...');
       router.push('/sign-in');
       return;
     }
@@ -68,15 +79,18 @@ export function SubscriptionProtectedLink({
 
       if (result.hasAccess) {
         console.log('✅ Access granted, navigating to:', href);
+        startLoading(getLoadingMessage(href));
         router.push(href);
       } else {
         console.log('❌ Access denied, redirecting to pricing page');
+        startLoading('Loading pricing information...');
         router.push('/pricing');
       }
 
     } catch (error) {
       console.error('❌ Error checking subscription:', error);
       // On error, redirect to pricing to be safe
+      startLoading('Loading pricing information...');
       router.push('/pricing');
     } finally {
       setIsChecking(false);

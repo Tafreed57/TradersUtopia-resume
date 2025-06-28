@@ -1,5 +1,15 @@
 "use client";
 
+/* Add to your global CSS for scrollbar hiding:
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+*/
+
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
@@ -30,7 +40,11 @@ import {
   RefreshCw,
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  Crown,
+  Sparkles,
+  Clock,
+  Lock
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 import { formatDistanceToNow } from 'date-fns';
@@ -465,20 +479,40 @@ This data comes directly from Stripe and shows the REAL status of your subscript
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ACTIVE: { color: 'default', icon: CheckCircle, text: 'Active' },
-      CANCELLED: { color: 'destructive', icon: XCircle, text: 'Cancelled' },
-      EXPIRED: { color: 'secondary', icon: XCircle, text: 'Expired' },
-      FREE: { color: 'secondary', icon: Shield, text: 'Free' },
+      ACTIVE: { 
+        color: 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-400/50', 
+        icon: CheckCircle, 
+        text: 'Active',
+        shadowColor: 'shadow-green-400/20'
+      },
+      CANCELLED: { 
+        color: 'bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400/50', 
+        icon: XCircle, 
+        text: 'Cancelled',
+        shadowColor: 'shadow-red-400/20'
+      },
+      EXPIRED: { 
+        color: 'bg-gradient-to-r from-gray-500 to-gray-600 text-white border-gray-400/50', 
+        icon: XCircle, 
+        text: 'Expired',
+        shadowColor: 'shadow-gray-400/20'
+      },
+      FREE: { 
+        color: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-400/50', 
+        icon: Shield, 
+        text: 'Free',
+        shadowColor: 'shadow-blue-400/20'
+      },
     } as const;
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.FREE;
     const Icon = config.icon;
 
     return (
-      <Badge variant={config.color} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
+      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border backdrop-blur-sm font-bold text-sm shadow-lg ${config.color} ${config.shadowColor}`}>
+        <Icon className="h-4 w-4" />
         {config.text}
-      </Badge>
+      </div>
     );
   };
 
@@ -496,146 +530,171 @@ This data comes directly from Stripe and shows the REAL status of your subscript
   if (isLoading) {
     console.log('⏳ SubscriptionManager: Loading subscription details...');
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-6">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Loading subscription details...</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="w-full">
+        <Card className="bg-gradient-to-br from-gray-800/60 via-gray-800/40 to-gray-900/60 border border-gray-600/30 backdrop-blur-md">
+          <CardContent className="flex items-center justify-center py-8 sm:py-12">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-black" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg sm:text-xl font-semibold text-white">Loading subscription details...</h3>
+                <p className="text-sm text-gray-400">Please wait while we fetch your billing information</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   if (!subscription) {
     console.log('❌ SubscriptionManager: No subscription data found');
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Subscription
-          </CardTitle>
-          <CardDescription>No subscription found</CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="w-full">
+        <Card className="bg-gradient-to-br from-gray-800/60 via-gray-800/40 to-gray-900/60 border border-gray-600/30 backdrop-blur-md">
+          <CardHeader className="text-center pb-4 sm:pb-6">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-red-500/20 to-red-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-400/20">
+              <XCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-400" />
+            </div>
+            <CardTitle className="text-xl sm:text-2xl font-bold text-white">
+              No Subscription Found
+            </CardTitle>
+            <CardDescription className="text-gray-400 text-sm sm:text-base">
+              We couldn't find any subscription information for your account
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
     );
   }
 
   console.log('✅ SubscriptionManager: Rendering subscription UI for', subscription.status, 'subscription');
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            <CardTitle>Subscription</CardTitle>
+    <div className="w-full space-y-6 sm:space-y-8">
+      <Card className="bg-gradient-to-br from-gray-800/60 via-gray-800/40 to-gray-900/60 border border-gray-600/30 backdrop-blur-md hover:border-blue-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-400/10">
+        <CardHeader className="pb-4 sm:pb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <CreditCard className="h-5 h-5 sm:h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                  Subscription Management
+                </CardTitle>
+                <CardDescription className="text-gray-400 text-sm sm:text-base mt-1">
+                  Manage your subscription and billing preferences
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+              {getStatusBadge(subscription.status)}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshAndSync}
+                disabled={isLoading}
+                title="Refresh & sync with Stripe"
+                className="flex items-center gap-2 bg-gray-700/30 hover:bg-gray-600/50 border-gray-600/30 text-white w-full sm:w-auto"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">Refresh</span>
+                <span className="sm:hidden">Sync</span>
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(subscription.status)}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshAndSync}
-              disabled={isLoading}
-              title="Refresh & sync with Stripe"
-              className="flex items-center gap-1.5"
-            >
-              {isLoading ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <RefreshCw className="h-3 w-3" />
-              )}
-              Refresh
-            </Button>
-          </div>
-        </div>
-        <CardDescription>
-          Manage your subscription and billing preferences
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Product Information */}
-        {subscription.product && (
-          <div className="space-y-3">
-            <h4 className="font-medium flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Current Plan
-            </h4>
-            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h5 className="font-semibold">{subscription.product.name}</h5>
-                  {subscription.product.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                      {subscription.product.description}
-                    </p>
-                  )}
+        </CardHeader>
+        
+        <CardContent className="px-4 sm:px-6 lg:px-10 pb-4 sm:pb-6 lg:pb-10 space-y-6 sm:space-y-8">
+          {/* Product Information */}
+          {subscription.product && (
+            <div className="space-y-4 sm:space-y-6">
+              <h4 className="font-semibold text-lg sm:text-xl flex items-center gap-3 text-white">
+                <div className="w-8 h-8 bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 rounded-xl flex items-center justify-center border border-yellow-400/20">
+                  <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
                 </div>
-                {subscription.stripe?.amount && (
-                  <div className="text-right">
-                    {subscription.stripe.hasDiscount && subscription.stripe.originalAmount ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-500 line-through">
-                            {formatCurrency(subscription.stripe.originalAmount, subscription.stripe.currency)}
-                          </span>
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
-                            {subscription.stripe.discountPercent}% OFF
-                          </span>
-                        </div>
-                        <div className="text-lg font-bold text-green-600">
-                          {formatCurrency(subscription.stripe.amount, subscription.stripe.currency)}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          per {subscription.stripe.interval}
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="text-lg font-bold">
-                          {formatCurrency(subscription.stripe.amount, subscription.stripe.currency)}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          per {subscription.stripe.interval}
-                        </div>
-                      </div>
+                Current Plan
+              </h4>
+              <div className="bg-gradient-to-br from-gray-700/40 to-gray-800/40 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-gray-600/30 hover:border-yellow-400/50 transition-all duration-300">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 lg:gap-6">
+                  <div className="flex-1">
+                    <h5 className="font-bold text-lg sm:text-xl text-white mb-2">{subscription.product.name}</h5>
+                    {subscription.product.description && (
+                      <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                        {subscription.product.description}
+                      </p>
                     )}
                   </div>
-                )}
+                  {subscription.stripe?.amount && (
+                    <div className="text-center lg:text-right">
+                      {subscription.stripe.hasDiscount && subscription.stripe.originalAmount ? (
+                        <div className="space-y-2">
+                          <div className="flex flex-col sm:flex-row items-center lg:items-end gap-2 lg:gap-3">
+                            <span className="text-sm sm:text-base text-gray-400 line-through">
+                              {formatCurrency(subscription.stripe.originalAmount, subscription.stripe.currency)}
+                            </span>
+                            <span className="text-xs sm:text-sm bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1 rounded-full font-bold shadow-lg">
+                              {subscription.stripe.discountPercent}% OFF
+                            </span>
+                          </div>
+                          <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-green-400 to-green-500 bg-clip-text text-transparent">
+                            {formatCurrency(subscription.stripe.amount, subscription.stripe.currency)}
+                          </div>
+                          <div className="text-sm sm:text-base text-gray-400">
+                            per {subscription.stripe.interval}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-2xl sm:text-3xl font-bold text-white">
+                            {formatCurrency(subscription.stripe.amount, subscription.stripe.currency)}
+                          </div>
+                          <div className="text-sm sm:text-base text-gray-400">
+                            per {subscription.stripe.interval}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Active Discount Banner */}
-        {subscription.stripe?.hasDiscount && subscription.stripe?.discountDetails && (
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <span className="inline-flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-800 rounded-full">
-                  🎉
-                </span>
-              </div>
-              <div className="flex-1">
-                <h5 className="font-semibold text-green-900 dark:text-green-100">
-                  Permanent Discount Active!
-                </h5>
-                <p className="text-sm text-green-700 dark:text-green-200 mt-1">
-                  You're saving <strong>{subscription.stripe.discountPercent}% forever</strong> on your subscription. 
-                  This discount will continue for the lifetime of your subscription.
-                </p>
-              </div>
-              <div className="flex-shrink-0">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200">
-                  {subscription.stripe.discountDetails.duration === 'forever' ? 'PERMANENT' : 'LIMITED TIME'}
-                </span>
+          {/* Active Discount Banner */}
+          {subscription.stripe?.hasDiscount && subscription.stripe?.discountDetails && (
+            <div className="bg-gradient-to-r from-green-500/10 via-green-500/5 to-emerald-500/10 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-green-400/30 hover:border-green-400/50 transition-all duration-300 shadow-lg shadow-green-400/10">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+                  </div>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <h5 className="font-bold text-lg sm:text-xl text-green-300">
+                    Permanent Discount Active!
+                  </h5>
+                  <p className="text-sm sm:text-base text-green-200 leading-relaxed">
+                    You're saving <strong className="text-green-100">{subscription.stripe.discountPercent}% forever</strong> on your subscription. 
+                    This discount will continue for the lifetime of your subscription.
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl shadow-lg">
+                    <span className="text-xs sm:text-sm font-bold text-white">
+                      {subscription.stripe.discountDetails.duration === 'forever' ? '🔒 PERMANENT' : '⏰ LIMITED TIME'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Billing Information */}
         {(subscription.stripe || subscription.subscriptionStart) && (
@@ -802,88 +861,105 @@ This data comes directly from Stripe and shows the REAL status of your subscript
           </div>
         )}
 
-        {/* Cancellation Confirmation Dialog */}
-        <AlertDialog open={showCancelDialog} onOpenChange={(open) => {
-          setShowCancelDialog(open);
-          if (!open) {
-            setCancelPassword('');
-            setCancelStep('reason');
-            setSelectedReason('');
-            setPriceInput('');
-            setCurrentOffer(null);
-            setShowOfferModal(false);
-            setShowFinalOffer(false);
-            setIsApplyingCoupon(false);
-          }
-        }}>
-          <AlertDialogContent className="max-w-2xl w-full mx-4">
+          {/* Cancellation Confirmation Dialog */}
+          <AlertDialog open={showCancelDialog} onOpenChange={(open) => {
+            setShowCancelDialog(open);
+            if (!open) {
+              setCancelPassword('');
+              setCancelStep('reason');
+              setSelectedReason('');
+              setPriceInput('');
+              setCurrentOffer(null);
+              setShowOfferModal(false);
+              setShowFinalOffer(false);
+              setIsApplyingCoupon(false);
+            }
+          }}>
+            <AlertDialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 w-[95vw] sm:w-[85vw] md:w-[75vw] lg:w-[65vw] xl:w-[55vw] max-w-2xl max-h-[85vh] sm:max-h-[80vh] bg-gradient-to-br from-gray-800/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl">
+              
+              {/* Animated Background Effects */}
+              <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                <div className="absolute -top-10 -right-10 w-20 h-20 bg-blue-500/10 rounded-full blur-xl animate-pulse"></div>
+                <div className="absolute bottom-0 -left-10 w-16 h-16 bg-purple-500/10 rounded-full blur-xl animate-pulse delay-1000"></div>
+              </div>
+              
+              <div className="relative z-10 flex flex-col h-full max-h-[85vh] sm:max-h-[80vh]">
+                <div className="flex-1 overflow-y-auto scrollbar-hide p-3 sm:p-4 md:p-6">
             
-            {/* Step 1: Reason Selection */}
-            {cancelStep === 'reason' && (
-              <>
-                <AlertDialogHeader className="text-center pb-6">
-                  <AlertDialogTitle className="text-3xl mb-4 font-bold text-gray-800 dark:text-gray-200">
-                    Why do you wish to quit your journey with us?
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="text-center text-lg text-gray-600 dark:text-gray-300">
-                    Please tell us the reason before we continue.
-                    <br />
-                    We can help with many situations.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                
-                <div className="space-y-4 py-6 px-4">
-                  {[
-                    { id: 'nevermind', label: 'Never mind, I decided to stay' },
-                    { id: 'time', label: "I don't have Enough Time" },
-                    { id: 'afford', label: "I can't afford it" },
-                    { id: 'ready', label: "I'm not ready yet" },
-                    { id: 'money', label: 'I already Make money' },
-                    { id: 'unknown', label: "I don't know what to do" }
-                  ].map((reason, index) => (
-                    <button
-                      key={reason.id}
-                      onClick={() => setSelectedReason(reason.id)}
-                      className={`w-full p-5 text-left rounded-xl border-2 transition-all duration-200 transform hover:scale-102 ${
-                        selectedReason === reason.id
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg'
-                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold transition-colors ${
-                          selectedReason === reason.id
-                            ? 'border-blue-500 bg-blue-500 text-white'
-                            : 'border-gray-300 text-gray-500'
-                        }`}>
-                          {String.fromCharCode(65 + index)}
-                        </div>
-                        <span className="text-lg font-medium">{reason.label}</span>
+                            {/* Step 1: Reason Selection */}
+                {cancelStep === 'reason' && (
+                  <>
+                    <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                       </div>
-                    </button>
-                  ))}
-                </div>
+                      <AlertDialogTitle className="text-xl sm:text-2xl lg:text-3xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                        Why do you wish to quit your journey with us?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-center text-sm sm:text-base lg:text-lg text-gray-300 leading-relaxed">
+                        Please tell us the reason before we continue.
+                        <br className="hidden sm:block" />
+                        <span className="sm:hidden"> </span>
+                        We can help with many situations.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    
+                    <div className="space-y-2 sm:space-y-3 py-4 sm:py-6 px-1 sm:px-2">
+                      {[
+                        { id: 'nevermind', label: 'Never mind, I decided to stay' },
+                        { id: 'time', label: "I don't have Enough Time" },
+                        { id: 'afford', label: "I can't afford it" },
+                        { id: 'ready', label: "I'm not ready yet" },
+                        { id: 'money', label: 'I already Make money' },
+                        { id: 'unknown', label: "I don't know what to do" }
+                      ].map((reason, index) => (
+                        <button
+                          key={reason.id}
+                          onClick={() => setSelectedReason(reason.id)}
+                          className={`w-full p-3 sm:p-4 text-left rounded-xl border-2 transition-all duration-200 transform hover:scale-[1.02] ${
+                            selectedReason === reason.id
+                              ? 'border-blue-400 bg-gradient-to-r from-blue-500/20 to-blue-600/20 shadow-lg shadow-blue-400/20'
+                              : 'border-gray-600/50 bg-gray-700/30 hover:bg-gray-600/40 hover:border-gray-500/70'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center font-bold text-xs sm:text-sm transition-colors ${
+                              selectedReason === reason.id
+                                ? 'border-blue-400 bg-blue-500 text-white shadow-lg'
+                                : 'border-gray-400 text-gray-400 bg-gray-700/50'
+                            }`}>
+                              {String.fromCharCode(65 + index)}
+                            </div>
+                            <span className="text-sm sm:text-base font-medium text-white leading-tight">{reason.label}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
 
-                <AlertDialogFooter className="pt-6">
-                  <AlertDialogCancel className="h-12 text-lg">Cancel</AlertDialogCancel>
-                  <Button 
-                    onClick={() => {
-                      if (selectedReason === 'nevermind') {
-                        setShowCancelDialog(false);
-                      } else if (selectedReason === 'afford') {
-                        setCancelStep('intermediate');
-                      } else {
-                        setCancelStep('confirmation');
-                      }
-                    }}
-                    disabled={!selectedReason}
-                    className="h-12 text-lg bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-lg px-8"
-                  >
-                    NEXT →
-                  </Button>
-                </AlertDialogFooter>
-              </>
-            )}
+                    <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <AlertDialogCancel className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gray-700/50 hover:bg-gray-600/70 border-gray-600/50 text-white font-medium rounded-xl transition-all duration-200">
+                          Cancel
+                        </AlertDialogCancel>
+                        <Button 
+                          onClick={() => {
+                            if (selectedReason === 'nevermind') {
+                              setShowCancelDialog(false);
+                            } else if (selectedReason === 'afford') {
+                              setCancelStep('intermediate');
+                            } else {
+                              setCancelStep('confirmation');
+                            }
+                          }}
+                          disabled={!selectedReason}
+                          className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg transition-all duration-200"
+                        >
+                          NEXT →
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
 
             {/* Step 2: Confirmation Screen */}
             {cancelStep === 'confirmation' && (
@@ -891,321 +967,369 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                 {selectedReason === 'money' ? (
                   // Custom message for "I already make money"
                   <>
-                    <AlertDialogHeader className="text-center">
-                      <AlertDialogTitle className="text-xl mb-2 text-red-600">
+                    <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                      </div>
+                      <AlertDialogTitle className="text-lg sm:text-xl lg:text-2xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-red-400 to-red-300 bg-clip-text text-transparent">
                         Hold Up...
                       </AlertDialogTitle>
                     </AlertDialogHeader>
                     
-                    <div className="py-4 px-2">
-                      <div className="text-center space-y-4 text-sm">
-                        <p className="font-semibold">
+                    <div className="py-4 px-2 sm:px-4">
+                      <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-red-400/20 space-y-3 sm:space-y-4">
+                        <p className="text-center text-xs sm:text-sm lg:text-base font-semibold text-white">
                           If you already make money, then why the hell did you sign up in the first place?
                         </p>
-                        <p>
-                          Let's be real — people who are actually winning don't cancel a service designed to help them win more.
+                        <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
+                          Let&apos;s be real — people who are actually winning don&apos;t cancel a service designed to help them win more.
                         </p>
-                        <p>
-                          You didn't join because you needed charity — you joined because you knew something was missing.
-                          Now you're quitting and hiding behind the 'I'm good now' excuse? Nah. That's not it.
+                        <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
+                          You didn&apos;t join because you needed charity — you joined because you knew something was missing.
+                          Now you&apos;re quitting and hiding behind the &apos;I&apos;m good now&apos; excuse? Nah. That&apos;s not it.
                         </p>
-                        <p className="font-semibold text-red-600">
-                          This isn't about money. It's about mindset. And right now, yours is slipping.
+                        <p className="text-center text-xs sm:text-sm lg:text-base font-semibold text-red-400">
+                          This isn&apos;t about money. It&apos;s about mindset. And right now, yours is slipping.
                         </p>
-                        <p className="text-blue-600 font-medium">
-                          Hit 'Go Back' if you're not ready to settle for average.
-                        </p>
+                        <div className="text-center bg-blue-500/10 p-3 rounded-xl border border-blue-400/20">
+                          <p className="text-blue-400 font-medium text-sm sm:text-base">
+                            Hit 'Go Back' if you're not ready to settle for average.
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <AlertDialogFooter>
-                      <Button 
-                        onClick={() => setCancelStep('reason')}
-                        variant="outline"
-                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                      >
-                        Go Back
-                      </Button>
-                      <Button 
-                        onClick={() => setCancelStep('intermediate')}
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Continue Anyway
-                      </Button>
-                    </AlertDialogFooter>
-                  </>
-                ) : selectedReason === 'time' ? (
-                  // Custom message for "I don't have enough time"
-                  <>
-                    <AlertDialogHeader className="text-center">
-                      <AlertDialogTitle className="text-xl mb-2 text-blue-600">
-                        ⏱ Good news — you don't need much time at all.
-                      </AlertDialogTitle>
-                    </AlertDialogHeader>
-                    
-                    <div className="py-4 px-2">
-                      <div className="text-center space-y-4 text-sm">
-                        <p>
-                          This isn't day trading. These are swing trades built specifically for people with full-time jobs.
-                        </p>
-                        <p>
-                          Most members spend just <strong>5–15 minutes a month</strong> copying alerts — and even if you're a little late to enter, it's fine. We look for big moves and often hold positions for weeks or even months.
-                        </p>
-                        <p>
-                          You get exact entries, exits, and updates. No overthinking. No screen-watching.
-                        </p>
-                        <p className="font-semibold">
-                          Truth is, saying "I don't have time" is just an excuse. Even Elon Musk could make time for this.
-                        </p>
-                        <p className="text-blue-600 font-medium">
-                          🔁 Want to give it another shot?
-                        </p>
+                    <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <Button 
+                          onClick={() => setCancelStep('reason')}
+                          variant="outline"
+                          className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-blue-500/10 border-blue-400/50 text-blue-400 hover:bg-blue-500/20 font-medium rounded-xl transition-all duration-200"
+                        >
+                          ← Go Back
+                        </Button>
+                        <Button 
+                          onClick={() => setCancelStep('intermediate')}
+                          className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-200"
+                        >
+                          Continue Anyway
+                        </Button>
                       </div>
                     </div>
-
-                    <AlertDialogFooter>
-                      <Button 
-                        onClick={() => setCancelStep('reason')}
-                        variant="outline"
-                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                      >
-                        Give it another shot
-                      </Button>
-                      <Button 
-                        onClick={() => setCancelStep('intermediate')}
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Continue Anyway
-                      </Button>
-                    </AlertDialogFooter>
                   </>
-                ) : selectedReason === 'ready' ? (
+                  ) : selectedReason === 'time' ? (
+                    // Custom message for "I don't have enough time"
+                    <>
+                      <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                          <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                        </div>
+                        <AlertDialogTitle className="text-lg sm:text-xl lg:text-2xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">
+                          ⏱ Good news — you don't need much time at all.
+                        </AlertDialogTitle>
+                      </AlertDialogHeader>
+                      
+                      <div className="py-4 px-2 sm:px-4">
+                        <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-blue-400/20 space-y-3 sm:space-y-4">
+                          <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
+                            This isn't day trading. These are swing trades built specifically for people with full-time jobs.
+                          </p>
+                          <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
+                            Most members spend just <strong className="text-blue-400">5–15 minutes a month</strong> copying alerts — and even if you're a little late to enter, it's fine. We look for big moves and often hold positions for weeks or even months.
+                          </p>
+                          <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
+                            You get exact entries, exits, and updates. No overthinking. No screen-watching.
+                          </p>
+                          <p className="text-center text-xs sm:text-sm lg:text-base font-semibold text-white">
+                            Truth is, saying "I don't have time" is just an excuse. Even Elon Musk could make time for this.
+                          </p>
+                          <div className="text-center bg-blue-500/10 p-3 rounded-xl border border-blue-400/20">
+                            <p className="text-blue-400 font-medium text-sm sm:text-base">
+                              🔁 Want to give it another shot?
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                          <Button 
+                            onClick={() => setCancelStep('reason')}
+                            variant="outline"
+                            className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-blue-500/10 border-blue-400/50 text-blue-400 hover:bg-blue-500/20 font-medium rounded-xl transition-all duration-200"
+                          >
+                            Give it another shot
+                          </Button>
+                          <Button 
+                            onClick={() => setCancelStep('intermediate')}
+                            className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-200"
+                          >
+                            Continue Anyway
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  ) : selectedReason === 'ready' ? (
                   // Custom message for "I'm not ready yet"
                   <>
-                    <AlertDialogHeader className="text-center">
-                      <AlertDialogTitle className="text-xl mb-2 text-orange-600">
+                    <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                      </div>
+                      <AlertDialogTitle className="text-lg sm:text-xl lg:text-2xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-orange-400 to-orange-300 bg-clip-text text-transparent">
                         Let's be real...
                       </AlertDialogTitle>
                     </AlertDialogHeader>
                     
-                    <div className="py-4 px-2">
-                      <div className="text-center space-y-4 text-sm">
-                        <p className="font-semibold">
+                    <div className="py-4 px-2 sm:px-4">
+                      <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-orange-400/20 space-y-3 sm:space-y-4">
+                        <p className="text-center text-xs sm:text-sm lg:text-base font-semibold text-white">
                           Let me be real with you — 'I'm not ready yet' is just another excuse.
                         </p>
-                        <p>
+                        <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
                           This isn't rocket science. You're not building a business from scratch — you're getting trade alerts.
                         </p>
-                        <p>
+                        <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
                           If you don't know how to use them, we've got tutorial videos that walk you through everything step-by-step.
                         </p>
-                        <p className="font-semibold">
+                        <p className="text-center text-xs sm:text-sm lg:text-base font-semibold text-white">
                           You don't need to be 'ready.' You just need to stop hesitating.
                         </p>
-                        <p>
+                        <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
                           Most people who say this stay stuck for years… or forever.
                         </p>
-                        <p className="text-blue-600 font-medium">
-                          Hit 'Go Back' if you're done quitting on yourself.
-                        </p>
+                        <div className="text-center bg-blue-500/10 p-3 rounded-xl border border-blue-400/20">
+                          <p className="text-blue-400 font-medium text-sm sm:text-base">
+                            Hit 'Go Back' if you're done quitting on yourself.
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <AlertDialogFooter>
-                      <Button 
-                        onClick={() => setCancelStep('reason')}
-                        variant="outline"
-                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                      >
-                        Go Back
-                      </Button>
-                      <Button 
-                        onClick={() => setCancelStep('intermediate')}
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Continue Anyway
-                      </Button>
-                    </AlertDialogFooter>
+                    <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <Button 
+                          onClick={() => setCancelStep('reason')}
+                          variant="outline"
+                          className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-blue-500/10 border-blue-400/50 text-blue-400 hover:bg-blue-500/20 font-medium rounded-xl transition-all duration-200"
+                        >
+                          ← Go Back
+                        </Button>
+                        <Button 
+                          onClick={() => setCancelStep('intermediate')}
+                          className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-200"
+                        >
+                          Continue Anyway
+                        </Button>
+                      </div>
+                    </div>
                   </>
                 ) : selectedReason === 'unknown' ? (
                   // Custom message for "I don't know what to do"
                   <>
-                    <AlertDialogHeader className="text-center">
-                      <AlertDialogTitle className="text-xl mb-2 text-purple-600">
+                    <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                      </div>
+                      <AlertDialogTitle className="text-lg sm:text-xl lg:text-2xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-purple-400 to-purple-300 bg-clip-text text-transparent">
                         That's exactly why you should stay!
                       </AlertDialogTitle>
                     </AlertDialogHeader>
                     
-                    <div className="py-4 px-2">
-                      <div className="text-center space-y-4 text-sm">
-                        <p className="font-semibold">
+                    <div className="py-4 px-2 sm:px-4">
+                      <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-purple-400/20 space-y-3 sm:space-y-4">
+                        <p className="text-center text-xs sm:text-sm lg:text-base font-semibold text-white">
                           Saying 'I don't know what to do' is exactly why you shouldn't quit.
                         </p>
-                        <p>
-                          We literally made this foolproof — just click the <strong>#start-here</strong> section and follow the steps. That's it.
+                        <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
+                          We literally made this foolproof — just click the <strong className="text-purple-400">#start-here</strong> section and follow the steps. That's it.
                         </p>
-                        <p>
+                        <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
                           It explains exactly how to use the alerts, how to get help, and how to get results — step by step.
                         </p>
-                        <p className="font-semibold">
+                        <p className="text-center text-xs sm:text-sm lg:text-base font-semibold text-white">
                           You don't need to figure anything out. You just need to follow instructions.
                         </p>
-                        <p>
+                        <p className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
                           Don't give up before even starting.
                         </p>
-                        <p className="text-blue-600 font-medium">
-                          Hit 'Go Back' — I'll walk with you the whole way.
-                        </p>
+                        <div className="text-center bg-blue-500/10 p-3 rounded-xl border border-blue-400/20">
+                          <p className="text-blue-400 font-medium text-sm sm:text-base">
+                            Hit 'Go Back' — I'll walk with you the whole way.
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <AlertDialogFooter>
-                      <Button 
-                        onClick={() => setCancelStep('reason')}
-                        variant="outline"
-                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                      >
-                        Go Back
-                      </Button>
-                      <Button 
-                        onClick={() => setCancelStep('intermediate')}
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Continue Anyway
-                      </Button>
-                    </AlertDialogFooter>
+                    <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <Button 
+                          onClick={() => setCancelStep('reason')}
+                          variant="outline"
+                          className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-blue-500/10 border-blue-400/50 text-blue-400 hover:bg-blue-500/20 font-medium rounded-xl transition-all duration-200"
+                        >
+                          ← Go Back
+                        </Button>
+                        <Button 
+                          onClick={() => setCancelStep('intermediate')}
+                          className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-200"
+                        >
+                          Continue Anyway
+                        </Button>
+                      </div>
+                    </div>
                   </>
                 ) : (
                   // Default message for other reasons (I can't afford it)
                   <>
-                    <AlertDialogHeader className="text-center">
-                      <AlertDialogTitle className="text-xl mb-2">
+                    <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-gray-500 to-gray-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                      </div>
+                      <AlertDialogTitle className="text-lg sm:text-xl lg:text-2xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
                         We understand your concern
                       </AlertDialogTitle>
-                      <AlertDialogDescription className="text-center">
+                      <AlertDialogDescription className="text-center text-sm sm:text-base text-gray-300">
                         Thank you for your feedback. We'll take this into consideration for future improvements.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     
-                    <div className="py-8">
+                    <div className="py-6 sm:py-8">
                       {/* Blank space as requested */}
                     </div>
 
-                    <AlertDialogFooter>
-                      <AlertDialogCancel onClick={() => setCancelStep('reason')}>
-                        Back
-                      </AlertDialogCancel>
-                      <Button 
-                        onClick={() => setCancelStep('intermediate')}
-                        className="bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        Continue
-                      </Button>
-                    </AlertDialogFooter>
+                    <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <Button 
+                          onClick={() => setCancelStep('reason')}
+                          variant="outline"
+                          className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gray-700/50 hover:bg-gray-600/70 border-gray-600/50 text-white font-medium rounded-xl transition-all duration-200"
+                        >
+                          ← Back
+                        </Button>
+                        <Button 
+                          onClick={() => setCancelStep('intermediate')}
+                          className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-200"
+                        >
+                          Continue
+                        </Button>
+                      </div>
+                    </div>
                   </>
                 )}
               </>
             )}
 
-            {/* Step 3: Intermediate Screen - Price Negotiation */}
-            {cancelStep === 'intermediate' && (
-              <>
-                <AlertDialogHeader className="text-center pb-6">
-                  <AlertDialogTitle className="text-3xl mb-4 text-blue-600 font-bold">
-                    💰 Wait, let's find a price that works
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="text-center text-lg text-gray-600 dark:text-gray-300">
-                    Hey, is there a price that you would be able to afford and would work for you long term?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                
-                <div className="py-8 px-6">
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-8 border border-blue-200 dark:border-blue-800">
-                    <div className="space-y-6">
-                      <Label htmlFor="price-input" className="text-lg font-semibold text-center block">
-                        What price would work for you? (per month)
-                      </Label>
-                      <div className="flex items-center justify-center space-x-3">
-                        <span className="text-3xl font-bold text-green-600">$</span>
-                        <Input
-                          id="price-input"
-                          type="number"
-                          min="1"
-                          step="0.01"
-                          value={priceInput}
-                          onChange={(e) => setPriceInput(e.target.value)}
-                          placeholder="0.00"
-                          className="text-center text-2xl font-bold h-16 w-32 border-2 border-green-300 focus:border-green-500 rounded-xl"
-                        />
+                {/* Step 3: Intermediate Screen - Price Negotiation */}
+                {cancelStep === 'intermediate' && (
+                  <>
+                    <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                        <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                       </div>
-                      <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                        Enter any amount you feel comfortable paying monthly
-                      </p>
+                      <AlertDialogTitle className="text-lg sm:text-xl lg:text-2xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+                        💰 Wait, let's find a price that works
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-center text-sm sm:text-base lg:text-lg text-gray-300 leading-relaxed">
+                        Hey, is there a price that you would be able to afford and would work for you long term?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    
+                    <div className="py-4 sm:py-6 px-2 sm:px-4">
+                      <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300">
+                        <div className="space-y-4 sm:space-y-6">
+                          <Label htmlFor="price-input" className="text-sm sm:text-base lg:text-lg font-semibold text-center block text-white">
+                            What price would work for you? (per month)
+                          </Label>
+                          <div className="flex items-center justify-center space-x-2 sm:space-x-3">
+                            <span className="text-2xl sm:text-3xl font-bold text-green-400">$</span>
+                            <Input
+                              id="price-input"
+                              type="number"
+                              min="1"
+                              step="0.01"
+                              value={priceInput}
+                              onChange={(e) => setPriceInput(e.target.value)}
+                              placeholder="0.00"
+                              className="text-center text-lg sm:text-2xl font-bold h-12 sm:h-16 w-24 sm:w-32 border-2 border-green-400/50 focus:border-green-400 rounded-xl bg-gray-800/50 text-white"
+                            />
+                          </div>
+                          <p className="text-center text-xs sm:text-sm text-gray-400 leading-relaxed">
+                            Enter any amount you feel comfortable paying monthly
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <AlertDialogFooter className="flex-col space-y-4 pt-4">
-                  <div className="flex w-full gap-4">
-                    <AlertDialogCancel onClick={() => setCancelStep('confirmation')} className="flex-1 h-12 text-lg">
-                      ← Back
-                    </AlertDialogCancel>
-                    <Button 
-                      onClick={handlePriceSubmit}
-                      disabled={!priceInput.trim()}
-                      className="flex-1 h-12 text-lg bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200"
-                    >
-                      ✨ Submit Price
-                    </Button>
-                  </div>
-                  <Button 
-                    onClick={handleFinalOffer}
-                    variant="outline"
-                    className="w-full h-12 text-lg border-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-medium"
-                  >
-                    NO, continue to cancel
-                  </Button>
-                </AlertDialogFooter>
-              </>
-            )}
+                    <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                          <Button 
+                            onClick={() => setCancelStep('confirmation')} 
+                            variant="outline"
+                            className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gray-700/50 hover:bg-gray-600/70 border-gray-600/50 text-white font-medium rounded-xl transition-all duration-200"
+                          >
+                            ← Back
+                          </Button>
+                          <Button 
+                            onClick={handlePriceSubmit}
+                            disabled={!priceInput.trim()}
+                            className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow-lg transition-all duration-200"
+                          >
+                            ✨ Submit Price
+                          </Button>
+                        </div>
+                        <Button 
+                          onClick={handleFinalOffer}
+                          variant="outline"
+                          className="w-full h-11 sm:h-12 text-sm sm:text-base border-2 border-red-500/50 text-red-400 hover:bg-red-500/10 rounded-xl font-medium bg-gray-800/50 transition-all duration-200"
+                        >
+                          NO, continue to cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
 
             {/* Step 4: Authentication */}
             {cancelStep === 'auth' && (
               <>
-                <AlertDialogHeader className="pb-6">
-                  <AlertDialogTitle className="flex items-center justify-center gap-3 text-2xl font-bold text-red-600">
-                    <AlertTriangle className="h-8 w-8 text-red-600" />
+                <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                  </div>
+                  <AlertDialogTitle className="text-lg sm:text-xl lg:text-2xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-red-400 to-red-300 bg-clip-text text-transparent">
                     Disable Auto-Renewal?
                   </AlertDialogTitle>
                   <AlertDialogDescription className="text-center mt-4">
-                    <div className="space-y-4">
-                      <p className="text-lg text-gray-600 dark:text-gray-300">
+                    <div className="space-y-3 sm:space-y-4">
+                      <p className="text-sm sm:text-base lg:text-lg text-gray-300">
                         This will disable auto-renewal for your subscription. Here's what happens:
                       </p>
-                      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
-                        <ul className="space-y-3 text-left">
+                      <div className="bg-gray-700/30 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-600/30">
+                        <ul className="space-y-2 sm:space-y-3 text-left">
                           <li className="flex items-start gap-2">
-                            <span className="text-green-500">✅</span>
-                            <span>Your subscription stays <strong>active</strong> until {subscription?.stripe?.currentPeriodEnd 
+                            <span className="text-green-400">✅</span>
+                            <span className="text-xs sm:text-sm text-gray-300">Your subscription stays <strong className="text-white">active</strong> until {subscription?.stripe?.currentPeriodEnd 
                               ? new Date(subscription.stripe.currentPeriodEnd).toLocaleDateString()
                               : new Date(subscription.subscriptionEnd).toLocaleDateString()}</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-green-500">✅</span>
-                            <span>You keep all premium features until then</span>
+                            <span className="text-green-400">✅</span>
+                            <span className="text-xs sm:text-sm text-gray-300">You keep all premium features until then</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-blue-500">🔄</span>
-                            <span><strong>You can re-enable auto-renewal anytime</strong> before expiration</span>
+                            <span className="text-blue-400">🔄</span>
+                            <span className="text-xs sm:text-sm text-gray-300"><strong className="text-white">You can re-enable auto-renewal anytime</strong> before expiration</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-orange-500">⏹️</span>
-                            <span>Only expires if auto-renewal stays disabled</span>
+                            <span className="text-orange-400">⏹️</span>
+                            <span className="text-xs sm:text-sm text-gray-300">Only expires if auto-renewal stays disabled</span>
                           </li>
                         </ul>
                       </div>
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-                        <p className="text-blue-800 dark:text-blue-200">
+                      <div className="bg-blue-500/10 p-3 sm:p-4 rounded-xl border border-blue-400/20">
+                        <p className="text-blue-300 text-xs sm:text-sm">
                           💡 <strong>Pro Tip:</strong> This is reversible! Simply toggle auto-renewal back on to resume normal billing.
                         </p>
                       </div>
@@ -1213,8 +1337,8 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 
-                <div className="space-y-4 py-6">
-                  <Label htmlFor="cancel-password" className="text-lg font-semibold">
+                <div className="space-y-3 sm:space-y-4 py-4 sm:py-6 px-2 sm:px-4">
+                  <Label htmlFor="cancel-password" className="text-sm sm:text-base lg:text-lg font-semibold text-white">
                     Enter your password to confirm:
                   </Label>
                   <Input
@@ -1223,175 +1347,241 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                     value={cancelPassword}
                     onChange={(e) => setCancelPassword(e.target.value)}
                     placeholder="Your account password"
-                    className="h-12 text-lg border-2 border-red-200 focus:border-red-400 dark:border-red-800 rounded-xl"
+                    className="h-10 sm:h-12 text-sm sm:text-base border-2 border-red-400/50 focus:border-red-400 rounded-xl bg-gray-800/50 text-white"
                   />
                 </div>
                 
-                <AlertDialogFooter className="pt-4">
-                  <AlertDialogCancel onClick={() => {
-                    setCancelPassword('');
-                    setCancelStep('intermediate');
-                  }} className="h-12 text-lg">
-                    ← Back
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleCancelSubscription}
-                    disabled={isCancelling || !cancelPassword.trim()}
-                    className="h-12 text-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl px-6"
-                  >
-                    {isCancelling ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Disabling...
-                      </>
-                    ) : (
-                      'Disable Auto-Renewal'
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </>
-            )}
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Price Offer Modal */}
-        <AlertDialog open={showOfferModal} onOpenChange={setShowOfferModal}>
-          <AlertDialogContent className="max-w-2xl w-full mx-4">
-            <AlertDialogHeader className="text-center pb-6">
-              <AlertDialogTitle className="text-4xl mb-4 text-green-600 font-bold">
-                🔒 ONE TIME OFFER
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-center text-lg text-gray-600 dark:text-gray-300">
-                Hey — we've got a 🔒 ONE TIME OFFER for you: <strong className="text-green-600">${currentOffer}/month</strong>, locked in for life as long as you stay subscribed{currentOffer === 19.99 ? ' and this is the LOWEST offer we have!' : currentOffer === 15 ? '.' : ' and this is the LOWEST offer we have!'}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            
-            <div className="py-8">
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-8 border-2 border-green-200 dark:border-green-800 text-center">
-                <div className="text-6xl font-bold text-green-600 mb-4">
-                  ${currentOffer}/month
+                <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <Button 
+                      onClick={() => {
+                        setCancelPassword('');
+                        setCancelStep('intermediate');
+                      }}
+                      variant="outline"
+                      className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gray-700/50 hover:bg-gray-600/70 border-gray-600/50 text-white font-medium rounded-xl transition-all duration-200"
+                    >
+                      ← Back
+                    </Button>
+                    <Button
+                      onClick={handleCancelSubscription}
+                      disabled={isCancelling || !cancelPassword.trim()}
+                      className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition-all duration-200"
+                    >
+                      {isCancelling ? (
+                        <>
+                          <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-2" />
+                          Disabling...
+                        </>
+                      ) : (
+                        'Disable Auto-Renewal'
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
-                  <span className="flex items-center">
-                    🔒 <span className="ml-1">Locked in for life</span>
-                  </span>
-                  <span className="text-gray-400">•</span>
-                  <span className="flex items-center">
-                    📈 <span className="ml-1">No price increases ever</span>
-                  </span>
+                </>
+              )}
                 </div>
               </div>
-            </div>
+            </AlertDialogContent>
+          </AlertDialog>
 
-            <AlertDialogFooter className="flex-col space-y-4">
-              <Button 
-                onClick={async () => {
-                  if (currentOffer) {
-                    const success = await createAndApplyCoupon(currentOffer);
-                    if (success) {
-                      setShowOfferModal(false);
-                      setShowCancelDialog(false);
-                    }
-                  }
-                }}
-                disabled={isApplyingCoupon}
-                className="w-full h-16 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-xl font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50"
-              >
-                {isApplyingCoupon ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Applying Discount...
-                  </>
-                ) : (
-                  '✅ ACCEPT THIS OFFER'
-                )}
-              </Button>
-              <Button 
-                onClick={() => {
-                  setShowOfferModal(false);
-                  setCancelStep('auth');
-                }}
-                variant="outline"
-                className="w-full h-12 text-lg border-2 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
-              >
-                Continue to cancel
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Final Offer Modal */}
-        <AlertDialog open={showFinalOffer} onOpenChange={setShowFinalOffer}>
-          <AlertDialogContent className="max-w-2xl w-full mx-4">
-            <AlertDialogHeader className="text-center pb-6">
-              <AlertDialogTitle className="text-4xl mb-4 text-red-600 font-bold">
-                🚨 LAST OFFER — $19.99/Month
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-center text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-                This is the absolute lowest price we'll ever offer. No games. No second chances.
-                <br /><br />
-                It's a one-time deal — take it or leave it.
-                <br />
-                But just know: <strong className="text-red-600">you will never see a discount again. Period.</strong>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            
-            <div className="py-8">
-              <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-2xl p-8 border-2 border-red-200 dark:border-red-800 text-center">
-                <div className="text-6xl font-bold text-red-600 mb-4">
-                  $19.99/month
+          {/* Price Offer Modal */}
+          <AlertDialog open={showOfferModal} onOpenChange={setShowOfferModal}>
+            <AlertDialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 w-[95vw] sm:w-[85vw] md:w-[75vw] lg:w-[65vw] xl:w-[55vw] max-w-2xl max-h-[85vh] sm:max-h-[80vh] bg-gradient-to-br from-gray-800/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl">
+              
+              {/* Animated Background Effects */}
+              <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                <div className="absolute -top-10 -right-10 w-20 h-20 bg-green-500/10 rounded-full blur-xl animate-pulse"></div>
+                <div className="absolute bottom-0 -left-10 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl animate-pulse delay-1000"></div>
+              </div>
+              
+              <div className="relative z-10 flex flex-col h-full max-h-[85vh] sm:max-h-[80vh]">
+                <div className="flex-1 overflow-y-auto scrollbar-hide p-3 sm:p-4 md:p-6">
+                <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <Lock className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                  </div>
+                  <AlertDialogTitle className="text-lg sm:text-xl lg:text-2xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                    🔒 ONE TIME OFFER
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
+                    Hey — we've got a 🔒 ONE TIME OFFER for you: <strong className="text-green-400">${currentOffer}/month</strong>, locked in for life as long as you stay subscribed{currentOffer === 19.99 ? ' and this is the LOWEST offer we have!' : currentOffer === 15 ? '.' : ' and this is the LOWEST offer we have!'}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                
+                <div className="py-4 sm:py-6">
+                  <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border-2 border-green-400/30 text-center hover:border-green-400/50 transition-all duration-300">
+                    <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-green-400 mb-3 sm:mb-4">
+                      ${currentOffer}/month
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-300">
+                      <span className="flex items-center bg-green-500/10 px-3 py-1 rounded-full border border-green-400/20">
+                        🔒 <span className="ml-1">Locked in for life</span>
+                      </span>
+                      <span className="hidden sm:block text-gray-500">•</span>
+                      <span className="flex items-center bg-green-500/10 px-3 py-1 rounded-full border border-green-400/20">
+                        📈 <span className="ml-1">No price increases ever</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
-                  <span className="flex items-center">
-                    ⚡ <span className="ml-1">Final offer</span>
-                  </span>
-                  <span className="text-gray-400">•</span>
-                  <span className="flex items-center">
-                    🔒 <span className="ml-1">Locked in for life</span>
-                  </span>
+
+                </div>
+                <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                  <div className="flex flex-col gap-3">
+                    <Button 
+                      onClick={async () => {
+                        if (currentOffer) {
+                          const success = await createAndApplyCoupon(currentOffer);
+                          if (success) {
+                            setShowOfferModal(false);
+                            setShowCancelDialog(false);
+                          }
+                        }
+                      }}
+                      disabled={isApplyingCoupon}
+                      className="w-full h-12 sm:h-14 lg:h-16 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm sm:text-lg lg:text-xl font-bold rounded-xl shadow-lg transition-all duration-200"
+                    >
+                      {isApplyingCoupon ? (
+                        <>
+                          <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin mr-2" />
+                          Applying Discount...
+                        </>
+                      ) : (
+                        '✅ ACCEPT THIS OFFER'
+                      )}
+                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                      <Button 
+                        onClick={() => {
+                          setShowOfferModal(false);
+                          setCancelStep('intermediate');
+                        }}
+                        variant="outline"
+                        className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gray-700/50 hover:bg-gray-600/70 border-gray-600/50 text-white font-medium rounded-xl transition-all duration-200"
+                      >
+                        ← Back
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          setShowOfferModal(false);
+                          setCancelStep('auth');
+                        }}
+                        variant="outline"
+                        className="flex-1 h-11 sm:h-12 text-sm sm:text-base border-2 border-red-500/50 text-red-400 hover:bg-red-500/10 rounded-xl bg-gray-800/50 font-medium transition-all duration-200"
+                      >
+                        Continue to cancel
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            </AlertDialogContent>
+          </AlertDialog>
 
-            <AlertDialogFooter className="flex-col space-y-4">
-              <Button 
-                onClick={async () => {
-                  const success = await createAndApplyCoupon(19.99);
-                  if (success) {
-                    setShowFinalOffer(false);
-                    setShowCancelDialog(false);
-                  }
-                }}
-                disabled={isApplyingCoupon}
-                className="w-full h-16 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-xl font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50"
-              >
-                {isApplyingCoupon ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Applying Discount...
-                  </>
-                ) : (
-                  '✅ TAKE THE DEAL'
-                )}
-              </Button>
-              <Button 
-                onClick={handleImmediateCancel}
-                variant="outline"
-                className="w-full h-12 text-lg border-2 border-gray-500 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-900/20 rounded-xl"
-                disabled={isCancelling}
-              >
-                {isCancelling ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Cancelling...
-                  </>
-                ) : (
-                  'Cancel my subscription'
-                )}
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          {/* Final Offer Modal */}
+          <AlertDialog open={showFinalOffer} onOpenChange={setShowFinalOffer}>
+            <AlertDialogContent className="!fixed !left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 w-[95vw] sm:w-[85vw] md:w-[75vw] lg:w-[65vw] xl:w-[55vw] max-w-2xl max-h-[85vh] sm:max-h-[80vh] bg-gradient-to-br from-gray-800/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border border-gray-600/30 rounded-2xl shadow-2xl">
+              
+              {/* Animated Background Effects */}
+              <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                <div className="absolute -top-10 -right-10 w-20 h-20 bg-red-500/10 rounded-full blur-xl animate-pulse"></div>
+                <div className="absolute bottom-0 -left-10 w-16 h-16 bg-orange-500/10 rounded-full blur-xl animate-pulse delay-1000"></div>
+              </div>
+              
+              <div className="relative z-10 flex flex-col h-full max-h-[85vh] sm:max-h-[80vh]">
+                <div className="flex-1 overflow-y-auto scrollbar-hide p-3 sm:p-4 md:p-6">
+                <AlertDialogHeader className="text-center pb-4 sm:pb-6">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                  </div>
+                  <AlertDialogTitle className="text-lg sm:text-xl lg:text-2xl mb-3 sm:mb-4 font-bold bg-gradient-to-r from-red-400 to-red-300 bg-clip-text text-transparent">
+                    🚨 LAST OFFER — $19.99/Month
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="text-center text-xs sm:text-sm lg:text-base text-gray-300 leading-relaxed">
+                    This is the absolute lowest price we'll ever offer. No games. No second chances.
+                    <br className="hidden sm:block" /><br className="hidden sm:block" />
+                    <span className="sm:hidden"> </span>
+                    It's a one-time deal — take it or leave it.
+                    <br className="hidden sm:block" />
+                    <span className="sm:hidden"> </span>
+                    But just know: <strong className="text-red-400">you will never see a discount again. Period.</strong>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                
+                <div className="py-4 sm:py-6">
+                  <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border-2 border-red-400/30 text-center hover:border-red-400/50 transition-all duration-300">
+                    <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-red-400 mb-3 sm:mb-4">
+                      $19.99/month
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-300">
+                      <span className="flex items-center bg-red-500/10 px-3 py-1 rounded-full border border-red-400/20">
+                        ⚡ <span className="ml-1">Final offer</span>
+                      </span>
+                      <span className="hidden sm:block text-gray-500">•</span>
+                      <span className="flex items-center bg-red-500/10 px-3 py-1 rounded-full border border-red-400/20">
+                        🔒 <span className="ml-1">Locked in for life</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                </div>
+                <div className="flex-shrink-0 border-t border-gray-600/30 bg-gray-800/50 px-4 sm:px-6 py-4 sm:py-5">
+                  <div className="flex flex-col gap-3">
+                    <Button 
+                      onClick={async () => {
+                        const success = await createAndApplyCoupon(19.99);
+                        if (success) {
+                          setShowFinalOffer(false);
+                          setShowCancelDialog(false);
+                        }
+                      }}
+                      disabled={isApplyingCoupon}
+                      className="w-full h-12 sm:h-14 lg:h-16 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm sm:text-lg lg:text-xl font-bold rounded-xl shadow-lg transition-all duration-200"
+                    >
+                      {isApplyingCoupon ? (
+                        <>
+                          <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin mr-2" />
+                          Applying Discount...
+                        </>
+                      ) : (
+                        '✅ TAKE THE DEAL'
+                      )}
+                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                      <Button 
+                        onClick={() => {
+                          setShowFinalOffer(false);
+                          setCancelStep('intermediate');
+                        }}
+                        variant="outline"
+                        className="flex-1 h-11 sm:h-12 text-sm sm:text-base bg-gray-700/50 hover:bg-gray-600/70 border-gray-600/50 text-white font-medium rounded-xl transition-all duration-200"
+                      >
+                        ← Back
+                      </Button>
+                      <Button 
+                        onClick={handleImmediateCancel}
+                        variant="outline"
+                        className="flex-1 h-11 sm:h-12 text-sm sm:text-base border-2 border-gray-500/50 text-gray-400 hover:bg-gray-500/10 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl bg-gray-800/50 font-medium transition-all duration-200"
+                        disabled={isCancelling}
+                      >
+                        {isCancelling ? (
+                          <>
+                            <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin mr-2" />
+                            Cancelling...
+                          </>
+                        ) : (
+                          'Cancel my subscription'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </AlertDialogContent>
+          </AlertDialog>
 
         {/* Customer Information */}
         {subscription.customer && (
@@ -1411,8 +1601,9 @@ This data comes directly from Stripe and shows the REAL status of your subscript
               </div>
             </div>
           </div>
-        )}
+                  )}
       </CardContent>
     </Card>
+  </div>
   );
 } 

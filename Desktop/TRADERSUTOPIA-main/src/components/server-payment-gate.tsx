@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { Button } from '@/components/ui/button';
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Button } from "./ui/button";
+import { useLoading } from "@/contexts/loading-provider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, Star, CheckCircle } from 'lucide-react';
 
@@ -15,17 +17,48 @@ interface PaymentStatus {
 
 interface ServerPaymentGateProps {
   children: React.ReactNode;
+  serverId: string;
 }
 
-export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
-  const { user, isLoaded } = useUser();
+export function ServerPaymentGate({ children, serverId }: ServerPaymentGateProps) {
+  const { isLoaded, user } = useUser();
+  const router = useRouter();
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+  const { startLoading, stopLoading } = useLoading();
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkAccess() {
+      if (!isLoaded || !user) {
+        return;
+      }
+
+      startLoading("Checking server access...");
+
+      try {
+        const response = await fetch("/api/subscription/check");
+        const data = await response.json();
+        
+        if (data.hasAccess) {
+          setHasAccess(true);
+        } else {
+          setHasAccess(false);
+        }
+      } catch (error) {
+        console.error("Error checking subscription:", error);
+        setHasAccess(false);
+      } finally {
+        stopLoading();
+      }
+    }
+
+    checkAccess();
+  }, [isLoaded, user, startLoading, stopLoading]);
 
   useEffect(() => {
     const checkPaymentStatus = async () => {
       if (!isLoaded || !user) {
-        setLoading(false);
+        setPaymentStatus(null);
         return;
       }
 
@@ -41,49 +74,46 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
           subscriptionEnd: null,
           reason: 'Error checking status'
         });
-      } finally {
-        setLoading(false);
       }
     };
 
     checkPaymentStatus();
-  }, [user, isLoaded]);
+  }, [isLoaded, user]);
 
-  if (!isLoaded || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
+  if (hasAccess === null) {
+    return null; // Loading is handled by LoadingProvider
   }
 
-  if (!user) {
+  if (!isLoaded || !user) {
+    router.push("/sign-in");
+    return null;
+  }
+
+  if (hasAccess === false) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <CardTitle>Authentication Required</CardTitle>
-            <CardDescription>
-              Please sign in to access the trading server.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              className="w-full" 
-              onClick={() => window.location.href = '/'}
-            >
-              Go to Homepage
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black flex items-center justify-center p-6">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full border border-white/20 text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="text-2xl font-bold text-white mb-4">
+            Server Access Restricted
+          </h2>
+          <p className="text-gray-300 mb-6">
+            This server requires an active subscription. Upgrade to access premium trading discussions and alerts.
+          </p>
+          <Button 
+            onClick={() => router.push("/pricing")}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 text-lg font-semibold"
+          >
+            View Pricing
+          </Button>
+        </div>
       </div>
     );
   }
 
   if (!paymentStatus?.hasAccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-full w-fit">
@@ -142,9 +172,9 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
               <Button 
                 size="lg" 
                 className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                onClick={() => window.open('https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01', '_blank')}
+                onClick={() => router.push("/pricing")}
               >
-                Upgrade to Premium
+                View Pricing
               </Button>
               <Button 
                 variant="outline" 
@@ -165,6 +195,5 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
     );
   }
 
-  // User has access, render the protected content
   return <>{children}</>;
-};
+}

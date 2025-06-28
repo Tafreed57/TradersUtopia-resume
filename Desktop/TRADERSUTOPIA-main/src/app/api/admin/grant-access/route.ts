@@ -26,6 +26,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    // ⚠️ CRITICAL SECURITY FIX: Check if user is already admin or if this is initial setup
+    const existingProfile = await db.profile.findFirst({
+      where: { userId: user.id }
+    });
+
+    // Only allow admin grant if user is already admin OR this is the first user in the system
+    const totalProfiles = await db.profile.count();
+    const isFirstUser = totalProfiles === 0;
+    const isExistingAdmin = existingProfile?.isAdmin === true;
+
+    if (!isFirstUser && !isExistingAdmin) {
+      trackSuspiciousActivity(request, 'UNAUTHORIZED_ADMIN_GRANT_ATTEMPT');
+      console.error(`🚨 [SECURITY ALERT] Non-admin user ${user.emailAddresses[0]?.emailAddress} attempted to grant admin access`);
+      return NextResponse.json({ 
+        error: 'Access denied',
+        message: 'Only existing administrators can grant admin access to other users'
+      }, { status: 403 });
+    }
+
     // ✅ SECURITY: Input validation
     let reason = '';
     try {
@@ -49,9 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find or create the user's profile
-    let profile = await db.profile.findFirst({
-      where: { userId: user.id }
-    });
+    let profile = existingProfile;
 
     if (!profile) {
       const userEmail = user.emailAddresses[0]?.emailAddress;
@@ -65,11 +82,15 @@ export async function POST(request: NextRequest) {
           name: `${user.firstName} ${user.lastName}`,
           email: userEmail,
           imageUrl: user.imageUrl,
-          isAdmin: true, // Grant admin access immediately
+          isAdmin: isFirstUser, // Only grant admin to first user automatically
         }
       });
+
+      if (isFirstUser) {
+        console.log(`🎉 [SETUP] First user registered as admin: ${userEmail}`);
+      }
     } else {
-      // Update existing profile to grant admin access
+      // Update existing profile to grant admin access (only if authorized)
       profile = await db.profile.update({
         where: { id: profile.id },
         data: {
@@ -83,10 +104,13 @@ export async function POST(request: NextRequest) {
     console.log(`📝 [ADMIN] Reason: ${sanitizedReason?.clean || 'No reason provided'}`);
     console.log(`📍 [ADMIN] IP: ${request.headers.get('x-forwarded-for') || 'unknown'}`);
     console.log(`🖥️ [ADMIN] User Agent: ${request.headers.get('user-agent')?.slice(0, 100) || 'unknown'}`);
+    console.log(`👑 [ADMIN] ${isFirstUser ? 'Initial setup' : 'Granted by existing admin'}: ${existingProfile?.email || 'system'}`);
 
     return NextResponse.json({
       success: true,
-      message: 'Admin access granted successfully!',
+      message: isFirstUser 
+        ? 'Welcome! You are the first user and have been granted admin access.' 
+        : 'Admin access granted successfully!',
       profile: {
         id: profile.id,
         isAdmin: profile.isAdmin,

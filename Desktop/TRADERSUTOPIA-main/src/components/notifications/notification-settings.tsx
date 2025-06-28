@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { showToast } from '@/lib/notifications-client';
+import { useLoading } from '@/contexts/loading-provider';
 import { 
   Bell, 
   BellRing, 
@@ -42,10 +43,10 @@ interface NotificationSettings {
 export function NotificationSettings() {
   const { user } = useUser();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  const { startLoading, stopLoading } = useLoading();
   
   const [settings, setSettings] = useState<NotificationSettings>({
     email: {
@@ -83,7 +84,7 @@ export function NotificationSettings() {
 
   const loadPreferences = async () => {
     try {
-      setIsLoading(true);
+      startLoading('Loading notification settings...');
       const response = await fetch('/api/user/notification-preferences');
       if (response.ok) {
         const data = await response.json();
@@ -94,7 +95,7 @@ export function NotificationSettings() {
     } catch (error) {
       console.error('Failed to load notification preferences:', error);
     } finally {
-      setIsLoading(false);
+      stopLoading();
     }
   };
 
@@ -273,36 +274,37 @@ export function NotificationSettings() {
         variant="outline" 
         size="sm"
         onClick={() => setIsExpanded(true)}
-        className="flex items-center gap-2 border-yellow-400/30 text-yellow-300 hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all duration-300"
+        className="flex items-center gap-2 border-yellow-400/30 text-yellow-300 hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all duration-300 w-full sm:w-auto"
       >
         <Settings className="h-4 w-4" />
-        View Settings
+        <span className="hidden sm:inline">View Settings</span>
+        <span className="sm:hidden">Settings</span>
         <ChevronDown className="h-4 w-4" />
       </Button>
     );
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full relative z-10">
       <Card className="border-gray-600/30 bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-md">
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-4 p-4 sm:p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-                <Bell className="h-5 w-5 text-yellow-400" />
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
               </div>
-              <CardTitle className="text-xl text-white">Notification Preferences</CardTitle>
+              <CardTitle className="text-lg sm:text-xl text-white">Notification Preferences</CardTitle>
             </div>
             <Button 
               variant="ghost" 
               size="sm"
               onClick={() => setIsExpanded(false)}
-              className="h-8 w-8 p-0 text-gray-400 hover:text-white"
+              className="h-6 w-6 sm:h-8 sm:w-8 p-0 text-gray-400 hover:text-white"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
-          <CardDescription className="text-gray-300 ml-11">
+          <CardDescription className="text-gray-300 sm:ml-11 text-sm">
             Customize how and when you receive notifications across different channels.
             <br />
             <span className="text-xs text-gray-400 mt-1 block">
@@ -310,22 +312,17 @@ export function NotificationSettings() {
             </span>
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8 px-6 pb-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400"></div>
-            </div>
-          ) : (
-            <>
-              {/* Email Notifications Section */}
+        <CardContent className="space-y-6 sm:space-y-8 px-4 sm:px-6 pb-4 sm:pb-6">
+          <>
+              {/* Mobile-Optimized Email Notifications Section */}
               <div>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                      <Mail className="h-5 w-5 text-blue-400" />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                      <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg text-white">Email Notifications</h3>
+                      <h3 className="font-semibold text-base sm:text-lg text-white">Email Notifications</h3>
                       <Badge variant="outline" className="text-xs mt-1 border-blue-400/30 text-blue-300">
                         {Object.values(settings.email).filter(Boolean).length} enabled
                       </Badge>
@@ -336,23 +333,23 @@ export function NotificationSettings() {
                     size="sm"
                     onClick={testEmailNotification}
                     disabled={isSaving}
-                    className="text-xs px-3 py-2 h-8 border-blue-400/30 text-blue-300 hover:bg-blue-500/20"
+                    className="text-xs px-3 py-2 h-8 border-blue-400/30 text-blue-300 hover:bg-blue-500/20 w-full sm:w-auto"
                   >
                     Test Email
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4">
                   {notificationTypes.map((type) => {
                     const IconComponent = type.icon;
                     return (
-                      <div key={`email-${type.key}`} className="flex items-center justify-between p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${type.color} bg-opacity-10`}>
-                            <IconComponent className="h-4 w-4" />
+                      <div key={`email-${type.key}`} className="flex items-center justify-between p-3 sm:p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={`p-2 rounded-lg ${type.color} bg-opacity-10 flex-shrink-0`}>
+                            <IconComponent className="h-3 w-3 sm:h-4 sm:w-4" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm text-white">{type.title}</h4>
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
                               {type.description}
                             </p>
                           </div>
@@ -360,7 +357,7 @@ export function NotificationSettings() {
                         <Switch
                           checked={settings.email[type.key]}
                           onCheckedChange={() => togglePreference('email', type.key)}
-                          size="sm"
+                          className="flex-shrink-0 ml-3 data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-600 scale-75"
                         />
                       </div>
                     );
@@ -370,14 +367,14 @@ export function NotificationSettings() {
 
               <Separator className="bg-gray-600/30" />
 
-              {/* Push Notifications Section */}
+              {/* Mobile-Optimized Push Notifications Section */}
               <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
-                    {pushSupported ? <Smartphone className="h-5 w-5 text-green-400" /> : <Monitor className="h-5 w-5 text-green-400" />}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 sm:mb-6">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    {pushSupported ? <Smartphone className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" /> : <Monitor className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />}
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-lg text-white">Push Notifications</h3>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-base sm:text-lg text-white">Push Notifications</h3>
                     <Badge variant="outline" className={`text-xs mt-1 ${pushPermission === 'granted' ? 'border-green-400/30 text-green-300' : 'border-gray-400/30 text-gray-400'}`}>
                       {pushPermission === 'granted' ? 'Enabled' : 'Disabled'}
                     </Badge>
@@ -385,9 +382,9 @@ export function NotificationSettings() {
                 </div>
                 
                 {pushPermission !== 'granted' && (
-                  <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-400/30 rounded-xl backdrop-blur-sm">
-                    <div className="flex items-center justify-between">
-                      <div>
+                  <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-yellow-500/10 border border-yellow-400/30 rounded-xl backdrop-blur-sm">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex-1">
                         <p className="text-sm font-medium text-yellow-300">
                           Push notifications disabled
                         </p>
@@ -398,7 +395,7 @@ export function NotificationSettings() {
                       <Button
                         size="sm"
                         onClick={enablePushNotifications}
-                        className="bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg"
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg w-full sm:w-auto"
                       >
                         Enable
                       </Button>
@@ -406,19 +403,19 @@ export function NotificationSettings() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:gap-4">
                   {notificationTypes.map((type) => {
                     const IconComponent = type.icon;
                     const isDisabled = pushPermission !== 'granted';
                     return (
-                      <div key={`push-${type.key}`} className={`flex items-center justify-between p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300 ${isDisabled ? 'opacity-50' : ''}`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${type.color} bg-opacity-10`}>
-                            <IconComponent className="h-4 w-4" />
+                      <div key={`push-${type.key}`} className={`flex items-center justify-between p-3 sm:p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300 ${isDisabled ? 'opacity-50' : ''}`}>
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={`p-2 rounded-lg ${type.color} bg-opacity-10 flex-shrink-0`}>
+                            <IconComponent className="h-3 w-3 sm:h-4 sm:w-4" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm text-white">{type.title}</h4>
-                            <p className="text-xs text-gray-400 mt-0.5">
+                            <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
                               {type.description}
                             </p>
                           </div>
@@ -427,7 +424,7 @@ export function NotificationSettings() {
                           checked={settings.push[type.key]}
                           onCheckedChange={() => togglePreference('push', type.key)}
                           disabled={isDisabled}
-                          size="sm"
+                          className="flex-shrink-0 ml-3 data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-600 scale-75"
                         />
                       </div>
                     );
@@ -437,24 +434,24 @@ export function NotificationSettings() {
 
               <Separator className="bg-gray-600/30" />
 
-              {/* Save Button */}
-              <div className="flex items-center justify-between bg-gray-800/30 rounded-xl p-6 border border-gray-600/30">
-                <div className="text-sm text-gray-300">
+              {/* Mobile-Optimized Save Button */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-800/30 rounded-xl p-4 sm:p-6 border border-gray-600/30 gap-4 sm:gap-0">
+                <div className="text-sm text-gray-300 space-y-1">
                   <p className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
                     Email: {Object.values(settings.email).filter(Boolean).length} of {notificationTypes.length} enabled
                   </p>
-                  <p className="flex items-center gap-2 mt-1">
+                  <p className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-green-400 rounded-full"></span>
                     Push: {Object.values(settings.push).filter(Boolean).length} of {notificationTypes.length} enabled
                   </p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                   <Button 
                     variant="outline"
                     size="sm" 
                     onClick={() => setIsExpanded(false)}
-                    className="border-gray-600/50 text-gray-300 hover:bg-gray-700/50"
+                    className="border-gray-600/50 text-gray-300 hover:bg-gray-700/50 order-2 sm:order-1"
                   >
                     <ChevronUp className="h-4 w-4 mr-2" />
                     Collapse
@@ -463,14 +460,13 @@ export function NotificationSettings() {
                     size="sm"
                     onClick={savePreferences}
                     disabled={isSaving}
-                    className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg"
+                    className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg order-1 sm:order-2"
                   >
                     {isSaving ? 'Saving...' : 'Save Settings'}
                   </Button>
                 </div>
               </div>
             </>
-          )}
         </CardContent>
       </Card>
     </div>

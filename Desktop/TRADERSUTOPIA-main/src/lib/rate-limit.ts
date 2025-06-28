@@ -125,7 +125,7 @@ export const RATE_LIMITS = {
 // Clean up expired entries periodically
 const cleanupExpiredEntries = () => {
   const now = Date.now();
-  for (const [key, store] of rateLimitStore.entries()) {
+  for (const [key, store] of Array.from(rateLimitStore.entries())) {
     if (now > store.resetTime) {
       rateLimitStore.delete(key);
     }
@@ -310,7 +310,7 @@ export const getRateLimitStats = () => {
   };
 };
 
-export default {
+export const rateLimitHelpers = {
   rateLimit,
   rateLimitAdmin,
   rateLimitPassword,

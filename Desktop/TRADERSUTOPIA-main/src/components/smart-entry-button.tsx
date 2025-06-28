@@ -1,141 +1,112 @@
 "use client";
 
-import { useState } from 'react';
-import { useUser, useSignIn } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Shield, LogIn, Loader2 } from 'lucide-react';
-import { makeSecureRequest } from '@/lib/csrf-client';
+import { Loader2, Star, Zap, ArrowRight, Shield, CheckCircle } from 'lucide-react';
+import { useSmartRouting } from '@/lib/smart-routing';
 
-export function SmartEntryButton() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const { signIn, setActive } = useSignIn();
-  const router = useRouter();
+interface SmartEntryButtonProps {
+  customContent?: string;
+  skipStripeCheckout?: boolean;
+}
+
+export function SmartEntryButton({ customContent, skipStripeCheckout = false }: SmartEntryButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleEntryClick = async () => {
-    console.log('🎯 Smart entry button clicked');
-    
-    if (!isLoaded) {
-      console.log('⏳ User data not loaded yet...');
-      return;
+  
+  const { handleSmartNavigation, isLoaded, isSignedIn } = useSmartRouting({
+    loadingCallback: setIsProcessing,
+    onError: (error) => {
+      console.error('Smart routing error:', error);
     }
+  });
 
-    if (!isSignedIn) {
-      console.log('🔐 User not signed in, redirecting to sign-in...');
-      // Redirect to sign-in page with auto-route parameter
-      router.push('/sign-in?redirect_url=' + encodeURIComponent('/?auto_route=true'));
-      return;
-    }
-
-    // User is signed in, now check their subscription status
-    console.log('✅ User is signed in, checking subscription status...');
-    setIsProcessing(true);
-
-    try {
-      // Check if user has valid product subscription
-      console.log('🔍 Checking product subscription for:', user?.emailAddresses[0]?.emailAddress);
-      
-      const productResponse = await fetch('/api/check-product-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          allowedProductIds: ['prod_SWIyAf2tfVrJao']
-        })
-      });
-
-      const productResult = await productResponse.json();
-      console.log('📊 Subscription check result:', productResult);
-
-      if (productResult.hasAccess) {
-        console.log('✅ User has valid subscription, getting default server...');
-        
-        // Get or create the default server and redirect to it
-        const serverResponse = await makeSecureRequest('/api/servers/ensure-default', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const serverResult = await serverResponse.json();
-        
-        if (serverResult.success && serverResult.server) {
-          const server = serverResult.server;
-          const firstChannel = server.channels?.[0];
-          
-          if (firstChannel) {
-            console.log('🎯 Redirecting to server channel:', `${server.name}/${firstChannel.name}`);
-            router.push(`/servers/${server.id}/channels/${firstChannel.id}`);
-          } else {
-            console.log('🎯 Redirecting to server:', server.name);
-            router.push(`/servers/${server.id}`);
-          }
-        } else {
-          console.log('⚠️ Could not get server, falling back to dashboard...');
-          router.push('/dashboard');
-        }
-      } else {
-        console.log('❌ User needs subscription, redirecting to pricing...');
-        router.push('/pricing');
-      }
-
-    } catch (error) {
-      console.error('❌ Error checking subscription:', error);
-      // On error, default to pricing page
-      router.push('/pricing');
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleClick = async () => {
+    if (isProcessing) return; // Prevent double clicks
+    await handleSmartNavigation();
   };
 
-  if (!isLoaded) {
-    return (
-      <Button 
-        size="lg" 
-        disabled
-        className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-12 py-6 text-xl font-bold rounded-lg opacity-50 border border-yellow-400/50"
-      >
-        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-        Loading...
-      </Button>
-    );
-  }
+  // Dynamic button text based on user state
+  const getButtonText = () => {
+    if (customContent) return customContent;
+    
+    if (!isSignedIn) {
+      return "View Pricing & Join 1,000+ Traders";
+    }
+    
+    return "Access Your Trading Platform";
+  };
 
-  if (!isSignedIn) {
-    return (
-      <Button 
-        size="lg" 
-        onClick={handleEntryClick}
-        className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black px-12 py-6 text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl border border-yellow-400/50"
-      >
-        <LogIn className="h-5 w-5 mr-2" />
-        Start 14-Day Free Trial
-      </Button>
-    );
-  }
+  const getButtonIcon = () => {
+    if (!isSignedIn) {
+      return <Star className="h-5 h-5 sm:h-6 sm:w-6" />;
+    }
+    return <Zap className="h-5 h-5 sm:h-6 sm:w-6" />;
+  };
 
-  // User is signed in, show processing state if checking subscription
+  const getButtonColors = () => {
+    if (!isSignedIn) {
+      return "from-blue-600 via-purple-600 to-blue-700 hover:from-blue-700 hover:via-purple-700 hover:to-blue-800";
+    }
+    return "from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700";
+  };
+
   return (
-    <Button 
-      size="lg" 
-      onClick={handleEntryClick}
-      disabled={isProcessing}
-      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-12 py-6 text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none border border-green-500/50"
-    >
-      {isProcessing ? (
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span>Accessing Platform...</span>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          <span>Access Trading Platform</span>
+    <div className="flex flex-col items-center gap-4">
+      <Button 
+        size="lg" 
+        onClick={handleClick}
+        disabled={!isLoaded || isProcessing}
+        className={`bg-gradient-to-r ${getButtonColors()} text-white font-black px-8 sm:px-12 md:px-16 py-6 sm:py-8 text-xl sm:text-2xl rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-3xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none w-full sm:w-auto border-2 border-white/20 relative overflow-hidden group`}
+      >
+        {/* Shimmer effect */}
+        <div className="absolute inset-0 -top-2 -bottom-2 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 opacity-0 group-hover:opacity-100 group-hover:animate-shimmer transition-opacity duration-500"></div>
+        
+        {!isLoaded || isProcessing ? (
+          <div className="flex items-center gap-3 relative z-10">
+            <Loader2 className="h-5 h-5 sm:h-6 sm:w-6 animate-spin" />
+            <span className="hidden sm:inline">
+              {!isLoaded ? 'Loading...' : (!isSignedIn ? 'Loading Pricing...' : 'Accessing Platform...')}
+            </span>
+            <span className="sm:hidden">Loading...</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 relative z-10">
+            {getButtonIcon()}
+            <span className="hidden sm:inline">{getButtonText()}</span>
+            <span className="sm:hidden">
+              {!isSignedIn ? "View Pricing" : "Access Platform"}
+            </span>
+            <ArrowRight className="h-5 h-5 sm:h-6 sm:w-6 group-hover:translate-x-1 transition-transform duration-200" />
+          </div>
+        )}
+      </Button>
+
+      {/* Trust indicators */}
+      {!isSignedIn && (
+        <div className="text-center space-y-3">
+          <div className="flex items-center justify-center gap-6 text-sm">
+            <div className="flex items-center gap-2 text-green-400">
+              <Shield className="w-4 h-4" />
+              <span className="hidden xs:inline">256-bit SSL Secure</span>
+              <span className="xs:hidden">Secure</span>
+            </div>
+            <div className="flex items-center gap-2 text-blue-400">
+              <CheckCircle className="w-4 h-4" />
+              <span className="hidden xs:inline">Instant Access</span>
+              <span className="xs:hidden">Instant</span>
+            </div>
+            <div className="flex items-center gap-2 text-yellow-400">
+              <Star className="w-4 h-4" />
+              <span className="hidden xs:inline">Premium Support</span>
+              <span className="xs:hidden">Support</span>
+            </div>
+          </div>
+          
+          <p className="text-gray-400 text-xs sm:text-sm">
+            ✅ 14-day free trial • No credit card required • Cancel anytime
+          </p>
         </div>
       )}
-    </Button>
+    </div>
   );
 } 

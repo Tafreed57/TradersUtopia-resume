@@ -80,7 +80,7 @@ export const getCSRFTokenForUser = async (): Promise<string | null> => {
     }
 
     // Check if user already has a valid token
-    for (const [token, data] of csrfTokenStore) {
+    for (const [token, data] of Array.from(csrfTokenStore.entries())) {
       if (data.userId === user.id && data.expires > Date.now()) {
         return token;
       }
@@ -98,7 +98,7 @@ export const getCSRFTokenForUser = async (): Promise<string | null> => {
 // Clean up expired tokens
 const cleanupExpiredTokens = () => {
   const now = Date.now();
-  for (const [token, data] of csrfTokenStore) {
+  for (const [token, data] of Array.from(csrfTokenStore.entries())) {
     if (data.expires < now) {
       csrfTokenStore.delete(token);
     }
@@ -197,7 +197,7 @@ export const strictCSRFValidation = async (request: NextRequest): Promise<boolea
   return true; // Less critical endpoints can use regular validation
 };
 
-export default {
+export const csrfHelpers = {
   generateCSRFToken,
   validateCSRFToken,
   getCSRFTokenForUser,

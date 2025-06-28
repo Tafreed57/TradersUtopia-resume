@@ -54,7 +54,7 @@ export const SocketProvider = ({ children }: {children : React.ReactNode}) => {
         });
 
         // ✅ DETAILED: Better disconnection tracking
-        client.on("disconnect", (reason) => {
+        client.on("disconnect", (reason: string) => {
             console.log('❌ [Socket] Disconnected:', reason);
             setIsConnected(false);
             
@@ -65,7 +65,7 @@ export const SocketProvider = ({ children }: {children : React.ReactNode}) => {
         });
 
         // ✅ GRACEFUL: Better error handling
-        client.on("connect_error", (error) => {
+        client.on("connect_error", (error: any) => {
             console.warn('⚠️ [Socket] Connection error:', error.message);
             setConnectionError(error.message);
             setIsConnected(false);
@@ -77,7 +77,7 @@ export const SocketProvider = ({ children }: {children : React.ReactNode}) => {
         });
 
         // ✅ DEBUG: Track upgrade errors
-        client.io.engine.on('upgradeError', (error) => {
+        client.io.engine.on('upgradeError', (error: any) => {
             console.log('⚠️ [Socket] Upgrade error (will continue with polling):', error.message);
         });
 

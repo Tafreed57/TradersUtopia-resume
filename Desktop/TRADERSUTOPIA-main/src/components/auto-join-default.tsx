@@ -1,19 +1,20 @@
 "use client";
 
 import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { makeSecureRequest } from '@/lib/csrf-client';
 
 export function AutoJoinDefault() {
   const { user, isLoaded } = useUser();
-  const router = useRouter();
+  const [hasAttempted, setHasAttempted] = useState(false);
 
   useEffect(() => {
     const ensureDefaultServer = async () => {
-      if (!isLoaded || !user) return;
+      if (!isLoaded || !user || hasAttempted) return;
 
       try {
+        setHasAttempted(true);
+        
         const response = await makeSecureRequest('/api/servers/ensure-default', {
           method: 'POST',
           headers: {
@@ -24,9 +25,10 @@ export function AutoJoinDefault() {
         if (response.ok) {
           const data = await response.json();
           console.log('✅ Default server ensured:', data.server.name);
+          console.log('🎯 User automatically joined to Traders Utopia server');
           
-          // Navigate to the default server
-          router.push(`/servers/${data.server.id}`);
+          // DO NOT redirect - just silently join the user
+          // The user can navigate to the server manually when they want to
         } else {
           console.error('❌ Failed to ensure default server');
         }
@@ -36,7 +38,7 @@ export function AutoJoinDefault() {
     };
 
     ensureDefaultServer();
-  }, [user, isLoaded, router]);
+  }, [user, isLoaded, hasAttempted]);
 
   return null;
 } 

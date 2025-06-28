@@ -9,8 +9,45 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
 });
 
+// TEMPORARY CIRCUIT BREAKER TO STOP INFINITE CALLS
+const callCounts = new Map<string, number>();
+const lastCallTime = new Map<string, number>();
+
 export async function POST(request: NextRequest) {
   try {
+    // CIRCUIT BREAKER: Track calls per IP/User-Agent combination
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    const referer = request.headers.get('referer') || 'unknown';
+    const key = `${ip}:${userAgent}`;
+    
+    const now = Date.now();
+    const lastCall = lastCallTime.get(key) || 0;
+    const callCount = callCounts.get(key) || 0;
+    
+    // Reset count if it's been more than 1 minute since last call
+    if (now - lastCall > 60000) {
+      callCounts.set(key, 1);
+    } else {
+      callCounts.set(key, callCount + 1);
+    }
+    
+    lastCallTime.set(key, now);
+    const currentCount = callCounts.get(key) || 0;
+    
+    // Log every call with details
+    console.log(`🔍 [API-CALL] #${currentCount} - IP: ${ip.substring(0, 20)} - Referer: ${referer} - UA: ${userAgent.substring(0, 50)}`);
+    
+    // CIRCUIT BREAKER: Block after 5 calls per minute
+    if (currentCount > 5) {
+      console.log(`🚨 [CIRCUIT-BREAKER] Blocking excessive calls from ${key} - Count: ${currentCount}`);
+      return NextResponse.json({ 
+        error: 'Circuit breaker activated - too many requests',
+        message: 'API temporarily blocked due to excessive calls. Please refresh your page and try again.',
+        hasAccess: false 
+      }, { status: 429 });
+    }
+
     // ✅ SECURITY: Rate limiting for subscription checks
     const rateLimitResult = await rateLimitSubscription()(request);
     if (!rateLimitResult.success) {

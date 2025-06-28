@@ -4,7 +4,7 @@ export default function UserProfileLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black">
       {children}
     </div>
   );

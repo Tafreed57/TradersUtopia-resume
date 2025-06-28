@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`📊 [SYNC] Found ${subscriptions.data.length} subscription(s) for customer`);
 
-    const activeSubscription = subscriptions.data.find(sub => 
-      sub.status === 'active' || 
-      (sub.status === 'canceled' && sub.current_period_end && new Date(sub.current_period_end * 1000) > new Date())
+        const activeSubscription = subscriptions.data.find(sub =>
+      sub.status === 'active' ||
+      (sub.status === 'canceled' && (sub as any).current_period_end && new Date((sub as any).current_period_end * 1000) > new Date())
     ) || subscriptions.data[0];
 
     if (!activeSubscription) {
@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`🎯 [SYNC] Using subscription: ${activeSubscription.id} (${activeSubscription.status})`);
-    console.log(`🔍 [SYNC] Period start: ${activeSubscription.current_period_start} (type: ${typeof activeSubscription.current_period_start})`);
-    console.log(`🔍 [SYNC] Period end: ${activeSubscription.current_period_end} (type: ${typeof activeSubscription.current_period_end})`);
+    console.log(`🔍 [SYNC] Period start: ${(activeSubscription as any).current_period_start} (type: ${typeof (activeSubscription as any).current_period_start})`);
+    console.log(`🔍 [SYNC] Period end: ${(activeSubscription as any).current_period_end} (type: ${typeof (activeSubscription as any).current_period_end})`);
     console.log(`🔍 [SYNC] Items count: ${activeSubscription.items.data.length}`);
     console.log(`🔍 [SYNC] First item product: ${activeSubscription.items.data[0]?.price.product}`);
 
@@ -57,11 +57,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Get period data from subscription item (this is where Stripe stores it for subscription lists)
-    const periodStart = activeSubscription.current_period_start || subscriptionItem.current_period_start;
-    const periodEnd = activeSubscription.current_period_end || subscriptionItem.current_period_end;
+    const periodStart = (activeSubscription as any).current_period_start || (subscriptionItem as any).current_period_start;
+    const periodEnd = (activeSubscription as any).current_period_end || (subscriptionItem as any).current_period_end;
     
-    console.log(`🔍 [SYNC] Subscription level periods: start=${activeSubscription.current_period_start}, end=${activeSubscription.current_period_end}`);
-    console.log(`🔍 [SYNC] Item level periods: start=${subscriptionItem.current_period_start}, end=${subscriptionItem.current_period_end}`);
+    console.log(`🔍 [SYNC] Subscription level periods: start=${(activeSubscription as any).current_period_start}, end=${(activeSubscription as any).current_period_end}`);
+    console.log(`🔍 [SYNC] Item level periods: start=${(subscriptionItem as any).current_period_start}, end=${(subscriptionItem as any).current_period_end}`);
     console.log(`🔍 [SYNC] Using periods: start=${periodStart}, end=${periodEnd}`);
 
     if (!periodStart || !periodEnd) {

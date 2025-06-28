@@ -2,7 +2,7 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 interface TwoFactorGuardProps {
   children: React.ReactNode;
@@ -14,241 +14,220 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
   const pathname = usePathname();
   const [is2FAChecked, setIs2FAChecked] = useState(false);
   const [requires2FA, setRequires2FA] = useState(false);
-  const [lastUserId, setLastUserId] = useState<string | null>(null);
+  const [lastCheckedUserId, setLastCheckedUserId] = useState<string | null>(null);
+  
+  // Use ref to prevent multiple simultaneous checks
+  const isCheckingRef = useRef(false);
+  const hasCheckedRef = useRef(false);
 
-  // ✅ DEBUG: Log component rendering
-  console.log('🛡️ [2FA-GUARD] Component rendered', { 
-    pathname, 
-    isLoaded, 
-    userId: user?.id, 
-    is2FAChecked, 
-    requires2FA,
-    lastUserId 
-  });
+  // Skip 2FA check for auth pages and API routes
+  const skipRoutes = [
+    '/api', '/2fa-verify', '/sign-in', '/sign-up',
+    '/.well-known', '/favicon.ico', '/robots.txt', '/_next'
+  ];
+  
+  const shouldSkip = skipRoutes.some(route => 
+    pathname === route || pathname?.startsWith(route + '/')
+  );
 
+  // Memoized check function to prevent recreating on every render
+  const check2FA = useCallback(async () => {
+    // Prevent multiple simultaneous checks
+    if (isCheckingRef.current) {
+      console.log('🔄 [2FA-GUARD] Already checking, skipping...');
+      return;
+    }
+
+    // If already checked for this user and route, don't check again
+    if (hasCheckedRef.current && lastCheckedUserId === user?.id) {
+      console.log('✅ [2FA-GUARD] Already checked for this user, skipping...');
+      return;
+    }
+
+    isCheckingRef.current = true;
+    console.log('🔍 [2FA-GUARD] Starting 2FA check for user:', user?.id);
+
+    try {
+      const response = await fetch('/api/user/profile', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      
+      if (response.ok) {
+        const profile = await response.json();
+        
+        if (profile.twoFactorEnabled) {
+          console.log('🔐 [2FA-GUARD] 2FA enabled, checking verification status...');
+          
+          const statusResponse = await fetch('/api/2fa/status', {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' }
+          });
+          
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            console.log('📊 [2FA-GUARD] 2FA status:', statusData);
+            
+            if (!statusData.verified) {
+              console.log('❌ [2FA-GUARD] 2FA not verified, blocking access and redirecting...');
+              setRequires2FA(true);
+              setIs2FAChecked(false); // Keep as false to prevent access
+              setLastCheckedUserId(user?.id || null);
+              hasCheckedRef.current = false; // Allow future rechecks
+              isCheckingRef.current = false;
+              router.push(`/2fa-verify?redirect=${encodeURIComponent(pathname || '/dashboard')}`);
+              return;
+            } else {
+              console.log('✅ [2FA-GUARD] 2FA verified successfully');
+              setRequires2FA(false);
+            }
+          }
+        } else {
+          console.log('ℹ️ [2FA-GUARD] 2FA not enabled for user');
+          setRequires2FA(false);
+        }
+      }
+      
+      // Only mark as checked if we successfully completed the verification process
+      setIs2FAChecked(true);
+      setLastCheckedUserId(user?.id || null);
+      hasCheckedRef.current = true;
+      
+    } catch (error) {
+      console.error('❌ [2FA-GUARD] Error checking 2FA status:', error);
+      // On error, allow access to prevent blocking the user
+      setIs2FAChecked(true);
+      setRequires2FA(false);
+      setLastCheckedUserId(user?.id || null);
+      hasCheckedRef.current = true;
+    } finally {
+      isCheckingRef.current = false;
+    }
+  }, [user?.id, pathname, router]);
+
+  // Reset check state when user changes
   useEffect(() => {
-    console.log('🔄 [2FA-GUARD] useEffect triggered', { isLoaded, userId: user?.id, lastUserId, pathname });
-    
-    // Skip 2FA check ONLY for auth pages and 2FA verify page - never skip for signed-in users
-    const alwaysSkipRoutes = [
-      '/2fa-verify', 
-      '/sign-in', 
-      '/sign-up'
-    ];
-    const shouldSkipAuthCheck = alwaysSkipRoutes.some(route => {
-      return pathname === route || pathname.startsWith(route + '/');
+    if (lastCheckedUserId !== user?.id) {
+      console.log('👤 [2FA-GUARD] User changed, resetting check state');
+      setIs2FAChecked(false);
+      setRequires2FA(false);
+      hasCheckedRef.current = false;
+      isCheckingRef.current = false;
+    }
+  }, [user?.id, lastCheckedUserId]);
+
+  // Main effect for 2FA checking
+  useEffect(() => {
+    console.log('🛡️ [2FA-GUARD] Effect triggered:', { 
+      isLoaded, 
+      userId: user?.id, 
+      pathname, 
+      shouldSkip, 
+      is2FAChecked,
+      isChecking: isCheckingRef.current 
     });
-    
-    // Always skip 2FA checks on auth pages to prevent redirect loops
-    if (shouldSkipAuthCheck) {
-      console.log('⏭️ [2FA-GUARD] Auth/verification page - skipping checks');
+
+    // Skip checks for auth pages
+    if (shouldSkip) {
       setIs2FAChecked(true);
       setRequires2FA(false);
       return;
     }
-    
-    // If user is not loaded yet, wait
+
+    // If not loaded yet, wait
     if (!isLoaded) {
-      console.log('⏳ [2FA-GUARD] Waiting for Clerk to load...');
       return;
     }
-    
-    // If no user is signed in, allow access to public pages
+
+    // If no user, allow access
     if (!user) {
-      console.log('👤 [2FA-GUARD] No user signed in - allowing public access');
       setIs2FAChecked(true);
       setRequires2FA(false);
-      setLastUserId(null);
+      setLastCheckedUserId(null);
+      hasCheckedRef.current = false;
       return;
     }
-    
-    // ✅ USER IS SIGNED IN - Check 2FA immediately regardless of route
-    console.log('🔐 [2FA-GUARD] User is signed in - checking 2FA status on route:', pathname);
 
-    // ✅ SECURITY: Force re-check if user has changed (new login session)
-    if (lastUserId && lastUserId !== user.id) {
-      console.log('🔄 [2FA-GUARD] User session changed, forcing 2FA re-check');
-      setIs2FAChecked(false);
-      setRequires2FA(false);
+    // Only check if we haven't checked yet for this user
+    if (!is2FAChecked && !isCheckingRef.current) {
+      check2FA();
     }
-    
-    // ✅ SECURITY: Force re-check if user ID has changed from null (new login)
-    if (!lastUserId && user.id) {
-      console.log('🆕 [2FA-GUARD] New user session detected, forcing 2FA re-check');
-      setIs2FAChecked(false);
-      setRequires2FA(false);
-    }
-    
-    setLastUserId(user.id);
+  }, [isLoaded, user?.id, pathname, shouldSkip, is2FAChecked, check2FA]);
 
+  // Listen for force recheck events
+  useEffect(() => {
     const handleForceRecheck = () => {
       console.log('🔄 [2FA-GUARD] Force recheck triggered');
       setIs2FAChecked(false);
       setRequires2FA(false);
+      hasCheckedRef.current = false;
+      isCheckingRef.current = false;
     };
 
-    // Listen for custom event to force re-check
     window.addEventListener('force-2fa-recheck', handleForceRecheck);
-    
-    // ✅ SECURITY: Listen for signout events to immediately clear 2FA state
-    const handleSignout = () => {
-      console.log('👋 [2FA-GUARD] User signout detected, clearing 2FA state');
-      setIs2FAChecked(false);
-      setRequires2FA(false);
-      setLastUserId(null);
-    };
-    
-    window.addEventListener('user-signout', handleSignout);
-    
-    const cleanup = () => {
-      window.removeEventListener('force-2fa-recheck', handleForceRecheck);
-      window.removeEventListener('user-signout', handleSignout);
-    };
+    return () => window.removeEventListener('force-2fa-recheck', handleForceRecheck);
+  }, []);
 
-    console.log('🔐 [2FA-GUARD] Processing 2FA check for signed-in user on route:', pathname);
+  // Always skip if on auth/verification pages
+  if (shouldSkip) {
+    return <>{children}</>;
+  }
 
-    const check2FAStatus = async () => {
-      try {
-        console.log('🔍 [2FA-GUARD] Starting 2FA status check for user:', user.id);
-        
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout')), 5000)
-        );
-
-        // Check if user has 2FA enabled
-        const profilePromise = fetch('/api/user/profile', {
-          // Disable cache to ensure fresh data
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          }
-        });
-        const profileResponse = await Promise.race([profilePromise, timeoutPromise]) as Response;
-        
-        if (!profileResponse.ok) {
-          console.warn('⚠️ [2FA-GUARD] Failed to fetch user profile');
-          setIs2FAChecked(true);
-          return;
-        }
-
-        const profile = await profileResponse.json();
-        console.log('👤 [2FA-GUARD] Profile 2FA status:', profile.twoFactorEnabled);
-
-        if (profile.twoFactorEnabled) {
-          // Check verification status using secure server-side API
-          const statusPromise = fetch('/api/2fa/status', {
-            // Disable cache to ensure fresh verification status
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache',
-            }
-          });
-          const statusResponse = await Promise.race([statusPromise, timeoutPromise]) as Response;
-          
-          if (!statusResponse.ok) {
-            console.warn('⚠️ [2FA-GUARD] Failed to fetch 2FA status');
-            setIs2FAChecked(true);
-            return;
-          }
-
-          const statusData = await statusResponse.json();
-          console.log('🔒 [2FA-GUARD] 2FA verification status:', statusData);
-
-          if (!statusData.verified) {
-            console.log('❌ [2FA-GUARD] 2FA not verified, redirecting to verification');
-            setRequires2FA(true);
-            const redirectUrl = `/2fa-verify?redirect=${encodeURIComponent(pathname)}`;
-            router.push(redirectUrl);
-            return;
-          } else {
-            console.log('✅ [2FA-GUARD] 2FA verified successfully');
-          }
-        } else {
-          console.log('ℹ️ [2FA-GUARD] 2FA not enabled for user');
-        }
-
-        setIs2FAChecked(true);
-      } catch (error) {
-        console.error('❌ [2FA-GUARD] Error checking 2FA status:', error);
-        // On error, skip 2FA check to prevent blocking the user
-        setIs2FAChecked(true);
-        setRequires2FA(false);
-      }
-    };
-
-    // ✅ SECURITY: Always check 2FA status on user change or route change for protected routes
-    if (!is2FAChecked || lastUserId !== user.id) {
-      console.log('🔒 [2FA-GUARD] Running 2FA status check - reason:', {
-        notChecked: !is2FAChecked,
-        userChanged: lastUserId !== user.id
-      });
-      check2FAStatus();
-    }
-
-    return cleanup;
-  }, [isLoaded, user?.id, pathname, router, is2FAChecked]); // ✅ FIX: Removed lastUserId from deps to prevent infinite loops
-
-  // ✅ DEBUG: Add global functions for testing (development only)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-      (window as any).test2FA = {
-        clearVerification: () => {
-          console.log('🧪 [TEST] Clearing 2FA verification state');
-          window.dispatchEvent(new CustomEvent('force-2fa-recheck'));
-        },
-        checkStatus: () => {
-          console.log('🧪 [TEST] Current 2FA status:', {
-            is2FAChecked,
-            requires2FA,
-            lastUserId,
-            currentUserId: user?.id
-          });
-        },
-        forceRedirect: () => {
-          console.log('🧪 [TEST] Force redirecting to 2FA verification');
-          router.push(`/2fa-verify?redirect=${encodeURIComponent(pathname)}`);
-        }
-      };
-    }
-  }, [is2FAChecked, requires2FA, lastUserId, user?.id, router, pathname]);
-
-  // Don't show loading/redirect messages ONLY on auth pages
-  const authRoutes = [
-    '/2fa-verify', 
-    '/sign-in', 
-    '/sign-up'
-  ];
-  const isAuthPage = authRoutes.some(route => {
-    return pathname === route || pathname.startsWith(route + '/');
-  });
-
-  // Show loading state while checking 2FA for signed-in users (but not on auth pages)
-  if (!isAuthPage && isLoaded && user && !is2FAChecked) {
+  // Show loading while Clerk is loading
+  if (!isLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Checking authentication...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+          <div className="text-gray-300">Loading...</div>
+        </div>
       </div>
     );
   }
 
-  // Show loading while Clerk is loading (but not on auth pages)
-  if (!isAuthPage && !isLoaded) {
+  // Allow access if no user (public pages)
+  if (!user) {
+    return <>{children}</>;
+  }
+
+  // Show checking state when actively checking 2FA
+  if (isCheckingRef.current) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+          <div className="text-gray-300">Verifying 2FA status...</div>
+        </div>
       </div>
     );
   }
 
-  // Don't render children if 2FA verification is required (but not on auth pages)
-  if (requires2FA && !isAuthPage) {
+  // BLOCK ACCESS: 2FA is required but not verified
+  if (requires2FA) {
+    console.log('🚫 [2FA-GUARD] Blocking access - 2FA required but not verified');
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Redirecting to 2FA verification...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+          <div className="text-gray-300">Redirecting to 2FA verification...</div>
+        </div>
       </div>
     );
   }
 
+  // Show loading if we haven't checked 2FA yet for this user
+  if (!is2FAChecked) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+          <div className="text-gray-300">Checking authentication...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Allow access - all checks passed
+  console.log('✅ [2FA-GUARD] Allowing access - all checks passed');
   return <>{children}</>;
 } 

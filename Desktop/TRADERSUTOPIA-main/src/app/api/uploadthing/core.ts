@@ -4,9 +4,9 @@ import { auth } from "@clerk/nextjs/server";
 import { 
 	validateFileUploadAdvanced, 
 	simulateVirusScan, 
-	validateUploadRate,
-	trackSuspiciousActivity 
+	validateUploadRate
 } from "@/lib/validation";
+import { trackSuspiciousActivity } from "@/lib/rate-limit";
 import { rateLimitUpload } from "@/lib/rate-limit";
 
 const f = createUploadthing();
@@ -88,11 +88,11 @@ const secureFileValidation = async (file: { name: string; size: number; type: st
 
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
-	serverImage: f({ 
-		image: { 
-			maxFileSize: "5MB",     // ✅ SECURITY: Reduced from 4MB, different per type
-			maxFileCount: 1 
-		} 
+		serverImage: f({
+		image: {
+			maxFileSize: "4MB",     // ✅ SECURITY: Standard file size limit		
+			maxFileCount: 1
+		}
 	})
 		.middleware(async ({ files }) => {
 			const auth = await handleAuth();
@@ -107,7 +107,7 @@ export const ourFileRouter = {
 
 			// ✅ SECURITY: Validate each file
 			for (const file of files) {
-				await secureFileValidation(file, auth.userId);
+				await secureFileValidation(file, auth.userId || 'unknown');
 			}
 
 			return auth;
@@ -144,9 +144,9 @@ export const ourFileRouter = {
 				throw new UploadThingError("Upload rate limit exceeded. Please wait before uploading more files.");
 			}
 
-			// ✅ SECURITY: Validate each file with enhanced checking for message files
+						// ✅ SECURITY: Validate each file with enhanced checking for message files 
 			for (const file of files) {
-				await secureFileValidation(file, auth.userId);
+				await secureFileValidation(file, auth.userId || 'unknown');
 				
 				// ✅ SECURITY: Additional checks for message files
 				if (file.type === 'application/pdf' && file.size > 10 * 1024 * 1024) { // 10MB limit for PDFs

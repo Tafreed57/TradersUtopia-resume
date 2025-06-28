@@ -4,28 +4,31 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { AuthHeader } from "@/components/auth-header";
+import { NavigationButton } from "@/components/navigation-button";
+import { GlobalMobileMenu } from "@/components/global-mobile-menu";
 
 export default function CheckoutPage() {
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black">
       {/* Header */}
       <header className="flex items-center justify-between p-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-6">
           {/* Logo and Title */}
-          <Link href="/" className="flex items-center gap-3">
+          <NavigationButton href="/" className="flex items-center gap-3" loadingMessage="Loading homepage...">
             <Image src="/logo.png" alt="TradersUtopia" width={32} height={32} />
             <span className="text-white text-xl font-bold">TradersUtopia</span>
-          </Link>
+          </NavigationButton>
           
           {/* Authentication Section */}
           <AuthHeader />
         </div>
-        <Link href="/pricing">
-          <Button variant="ghost" className="text-white hover:bg-white/10">
+        <div className="flex items-center gap-3">
+          <NavigationButton href="/pricing" asButton={true} variant="ghost" className="text-white hover:bg-white/10" loadingMessage="Loading pricing information...">
             Back to Pricing
-          </Button>
-        </Link>
+          </NavigationButton>
+          <GlobalMobileMenu />
+        </div>
       </header>
 
       {/* Redirect Message */}
