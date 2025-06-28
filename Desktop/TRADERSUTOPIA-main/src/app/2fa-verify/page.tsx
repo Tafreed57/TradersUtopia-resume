@@ -1,82 +1,39 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Shield, AlertTriangle, CheckCircle, Key } from "lucide-react";
-import { useLoading } from "@/contexts/loading-provider";
+import { useState, useEffect } from 'react';
+import { useUser, useAuth } from '@clerk/nextjs';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Shield, AlertCircle } from 'lucide-react';
+import { showToast } from '@/lib/notifications-client';
 
 export default function TwoFactorVerifyPage() {
   const { user, isLoaded } = useUser();
+  const { signOut } = useAuth();
   const router = useRouter();
-  const [verificationCode, setVerificationCode] = useState("");
+  const searchParams = useSearchParams();
+  const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [requires2FA, setRequires2FA] = useState<boolean | null>(null);
-  const { startLoading, stopLoading } = useLoading();
-  
-  // Use ref to prevent multiple simultaneous checks
-  const hasCheckedRef = useRef(false);
+  const [error, setError] = useState('');
 
+  // Redirect if user is not signed in
   useEffect(() => {
-    const check2FAStatus = async () => {
-      // Prevent multiple simultaneous checks
-      if (hasCheckedRef.current) {
-        console.log('🔄 [2FA-VERIFY] Already checked, skipping...');
-        return;
-      }
-
-      hasCheckedRef.current = true;
-      
-      try {
-        startLoading('Checking 2FA requirements...');
-        const response = await fetch('/api/2fa/status', {
-          cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('🔍 [2FA-VERIFY] 2FA Status Check:', data);
-          setRequires2FA(data.requires2FA);
-          
-          if (!data.requires2FA || data.verified) {
-            // User doesn't need 2FA or is already verified, redirect to dashboard
-            console.log('✅ [2FA-VERIFY] Redirecting to dashboard - no 2FA needed or already verified');
-            router.push('/dashboard');
-          }
-        } else {
-          console.error('❌ [2FA-VERIFY] Failed to check 2FA status');
-          router.push('/dashboard');
-        }
-      } catch (error) {
-        console.error('❌ [2FA-VERIFY] Error checking 2FA status:', error);
-        router.push('/dashboard');
-      } finally {
-        stopLoading();
-      }
-    };
-
-    if (isLoaded && user && !hasCheckedRef.current) {
-      check2FAStatus();
+    if (isLoaded && !user) {
+      router.push('/sign-in');
     }
-  }, [isLoaded, user]); // Removed unstable dependencies
+  }, [isLoaded, user, router]);
 
-  const handleVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!verificationCode.trim()) {
-      setError("Please enter the 6-digit code");
+  const handleVerify = async () => {
+    if (!code || code.length !== 6) {
+      setError('Please enter a 6-digit code');
       return;
     }
 
     setIsLoading(true);
-    setError("");
+    setError('');
 
     try {
       const response = await fetch('/api/2fa/verify-login', {
@@ -84,93 +41,137 @@ export default function TwoFactorVerifyPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          code: verificationCode
-        }),
+        body: JSON.stringify({ code }),
       });
 
-      const result = await response.json();
+      const data = await response.json();
 
-      if (response.ok && result.success) {
-        console.log('✅ [2FA-VERIFY] Verification successful, redirecting to dashboard');
-        // 2FA verification successful, redirect to dashboard
-        router.push('/dashboard');
+      if (response.ok) {
+        console.log('✅ 2FA verification successful!', data);
+        showToast.success('Verified', '2FA verification successful');
+        
+        // Get the redirect URL or default to dashboard
+        const redirectTo = searchParams?.get('redirect') || '/dashboard';
+        console.log('🔄 Redirecting to:', redirectTo);
+        
+        // Small delay to ensure cookie is set, then trigger re-check
+        setTimeout(() => {
+          // Trigger the TwoFactorGuard to re-check
+          window.dispatchEvent(new CustomEvent('force-2fa-recheck'));
+          router.push(redirectTo);
+        }, 100);
       } else {
-        console.error('❌ [2FA-VERIFY] Verification failed:', result);
-        setError(result.error || 'Invalid verification code');
+        console.error('❌ 2FA verification failed:', data);
+        setError(data.error || 'Verification failed');
       }
     } catch (error) {
-      console.error('❌ [2FA-VERIFY] Verification error:', error);
-      setError('An error occurred during verification');
+      setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!isLoaded || requires2FA === null) {
-    return null; // Loading is handled by LoadingProvider
-  }
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleVerify();
+    }
+  };
 
-  if (!user) {
-    router.push('/sign-in');
-    return null;
+  const handleBackToSignIn = async () => {
+    try {
+      // Clear 2FA verification cookie
+      await fetch('/api/auth/signout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Sign out from Clerk
+      await signOut();
+      
+      // Redirect to sign in page
+      router.push('/sign-in');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Force redirect even if there's an error
+      router.push('/sign-in');
+    }
+  };
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-800/90 border-gray-700 backdrop-blur-sm">
-        <CardHeader className="text-center space-y-4">
-          <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto">
-            <Shield className="w-8 h-8 text-yellow-400" />
-          </div>
-          <div>
-            <CardTitle className="text-2xl text-white">Two-Factor Authentication</CardTitle>
-            <CardDescription className="text-gray-400 mt-2">
-              Enter the 6-digit code from your authenticator app to continue
-            </CardDescription>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <form onSubmit={handleVerification} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="code" className="text-white">Verification Code</Label>
-              <Input
-                id="code"
-                type="text"
-                placeholder="000000"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="text-center text-2xl tracking-wider bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-500"
-                maxLength={6}
-              />
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+              <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             </div>
+          </div>
+          <CardTitle className="text-2xl">Two-Factor Authentication</CardTitle>
+          <p className="text-gray-600 dark:text-gray-300 mt-2">
+            Enter the 6-digit code from your authenticator app to complete sign-in
+          </p>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="code">Authentication Code</Label>
+            <Input
+              id="code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onKeyPress={handleKeyPress}
+              placeholder="123456"
+              className="text-center text-lg font-mono"
+              maxLength={6}
+              autoFocus
+            />
+          </div>
 
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-400" />
-                <span className="text-red-400 text-sm">{error}</span>
-              </div>
-            )}
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
 
+          <Button 
+            onClick={handleVerify}
+            disabled={isLoading || code.length !== 6}
+            className="w-full"
+          >
+            {isLoading ? 'Verifying...' : 'Verify & Continue'}
+          </Button>
+
+          <div className="text-center space-y-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Can't access your authenticator app?
+            </p>
             <Button 
-              type="submit" 
-              className="w-full bg-yellow-600 hover:bg-yellow-700 text-white"
-              disabled={isLoading || verificationCode.length !== 6}
+              variant="link" 
+              className="text-sm p-0"
+              onClick={() => showToast.info('Contact Support', 'Please contact support for assistance with 2FA recovery')}
             >
-              {isLoading ? 'Verifying...' : 'Verify & Continue'}
+              Use backup code or contact support
             </Button>
-          </form>
-
-          <div className="text-center space-y-3">
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-              <div className="flex items-center gap-2 justify-center mb-2">
-                <Key className="w-4 h-4 text-blue-400" />
-                <span className="text-blue-400 text-sm font-medium">Security Notice</span>
-              </div>
-              <p className="text-xs text-gray-400">
-                This additional security step helps protect your trading account and sensitive data.
-              </p>
+            
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <Button 
+                variant="outline" 
+                className="text-sm"
+                onClick={handleBackToSignIn}
+              >
+                ← Back to Sign In
+              </Button>
             </div>
           </div>
         </CardContent>

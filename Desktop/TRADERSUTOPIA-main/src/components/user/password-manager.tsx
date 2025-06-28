@@ -521,9 +521,9 @@ export function PasswordManager() {
             <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
               <h4 className="font-medium text-gray-900 dark:text-white">Enhanced Security Notice</h4>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                Ensure that you remember it or you&apos;ll be locked out of your account. If you forget your password, 
-                you can change it using two-factor authentication instead.
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Your password is encrypted and stored securely using industry-standard practices. 
+                We never store passwords in plain text, and they cannot be recovered by our support team.
               </p>
               {passwordStatus?.canUse2FAForPasswordChange && (
                 <p className="text-sm text-green-600 dark:text-green-400 mt-2">

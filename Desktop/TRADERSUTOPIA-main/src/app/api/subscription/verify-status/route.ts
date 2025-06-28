@@ -1,23 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
+import { auth } from '@clerk/nextjs';
+import { prismadb } from '@/lib/prismadb';
+import { stripe } from '@/lib/subscription';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const { userId } = auth();
 
-    if (!user) {
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user profile
-    const profile = await db.profile.findUnique({
-      where: { userId: user.id },
+    const profile = await prismadb.profile.findUnique({
+      where: { userId },
     });
 
     if (!profile?.stripeCustomerId) {
@@ -32,9 +28,9 @@ export async function GET(request: NextRequest) {
       limit: 10,
     });
 
-        const activeSubscription = subscriptions.data.find(sub =>
-      sub.status === 'active' ||
-      (sub.status === 'canceled' && (sub as any).current_period_end && new Date((sub as any).current_period_end * 1000) > new Date())
+    const activeSubscription = subscriptions.data.find(sub => 
+      sub.status === 'active' || 
+      (sub.status === 'canceled' && sub.current_period_end && new Date(sub.current_period_end * 1000) > new Date())
     ) || subscriptions.data[0];
 
     if (!activeSubscription) {
@@ -47,7 +43,7 @@ export async function GET(request: NextRequest) {
       status: activeSubscription.status,
       cancelAtPeriodEnd: activeSubscription.cancel_at_period_end,
       autoRenewalEnabled: !activeSubscription.cancel_at_period_end,
-      currentPeriodEnd: new Date((activeSubscription as any).current_period_end! * 1000).toISOString(),
+      currentPeriodEnd: new Date(activeSubscription.current_period_end! * 1000).toISOString(),
       canceledAt: activeSubscription.canceled_at ? new Date(activeSubscription.canceled_at * 1000).toISOString() : null,
       createdAt: new Date(activeSubscription.created * 1000).toISOString(),
     };
@@ -70,8 +66,8 @@ export async function GET(request: NextRequest) {
         id: activeSubscription.id,
         status: activeSubscription.status,
         cancel_at_period_end: activeSubscription.cancel_at_period_end,
-              current_period_start: (activeSubscription as any).current_period_start,
-      current_period_end: (activeSubscription as any).current_period_end,
+        current_period_start: activeSubscription.current_period_start,
+        current_period_end: activeSubscription.current_period_end,
         canceled_at: activeSubscription.canceled_at,
         created: activeSubscription.created,
       }

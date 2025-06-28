@@ -3,12 +3,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from "next/link";
-import Image from "next/image";
-import { ModeToggle } from "@/components/mode-toggler";
-import { GlobalMobileMenu } from "@/components/global-mobile-menu";
-import { NavigationButton } from "@/components/navigation-button";
-import { Home } from "lucide-react";
 
 export default function SubscriptionStatusPage() {
   const [envStatus, setEnvStatus] = useState<any>(null);
@@ -97,346 +91,298 @@ export default function SubscriptionStatusPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black text-white">
-        {/* Header */}
-        <header className="flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 sm:gap-6">
-            {/* Logo and Title */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
-                <Image src="/logo.png" alt="TradersUtopia" width={20} height={20} className="sm:w-6 sm:h-6" />
-              </div>
-              <span className="text-white text-lg sm:text-xl font-bold tracking-tight">TradersUtopia</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <NavigationButton href="/" asButton={true} variant="ghost" className="text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30" loadingMessage="Loading homepage...">
-              <Home className="w-4 h-4 mr-2" />
-              Homepage
-            </NavigationButton>
-            <GlobalMobileMenu />
-            <ModeToggle />
-          </div>
-        </header>
-        
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center">
-            {/* Loading handled by LoadingProvider */}
-          </div>
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black text-white">
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-3 sm:gap-6">
-          {/* Logo and Title */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
-              <Image src="/logo.png" alt="TradersUtopia" width={20} height={20} className="sm:w-6 sm:h-6" />
-            </div>
-            <span className="text-white text-lg sm:text-xl font-bold tracking-tight">TradersUtopia</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <NavigationButton href="/" asButton={true} variant="ghost" className="text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30" loadingMessage="Loading homepage...">
-            <Home className="w-4 h-4 mr-2" />
-            Homepage
-          </NavigationButton>
-          <GlobalMobileMenu />
-          <ModeToggle />
-        </div>
-      </header>
-
-      <div className="container mx-auto p-6 max-w-4xl">
-        <h1 className="text-3xl font-bold mb-6">Subscription Status</h1>
-        
-        <div className="grid gap-6">
-          {/* Environment Check */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Environment Configuration</CardTitle>
-              <CardDescription>Checking if all required environment variables are set</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {envStatus && (
-                <div className="space-y-2">
-                  <p><strong>Stripe Secret Key:</strong> {envStatus.environment_check.STRIPE_SECRET_KEY}</p>
-                  <p><strong>Webhook Secret:</strong> {envStatus.environment_check.STRIPE_WEBHOOK_SECRET}</p>
-                  <p><strong>Database URL:</strong> {envStatus.environment_check.DATABASE_URL}</p>
-                  
-                  {envStatus.stripe_key_preview && (
-                    <p className="text-sm text-gray-600">Stripe Key Preview: {envStatus.stripe_key_preview}</p>
-                  )}
-                  {envStatus.webhook_secret_preview && (
-                    <p className="text-sm text-gray-600">Webhook Secret Preview: {envStatus.webhook_secret_preview}</p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Payment Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Subscription Status</CardTitle>
-              <CardDescription>Your current access status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {paymentStatus && (
-                <div className="space-y-2">
-                  <p><strong>Has Access:</strong> 
-                    <span className={`ml-2 px-2 py-1 rounded text-sm ${
-                      paymentStatus.hasAccess 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {paymentStatus.hasAccess ? '✅ YES' : '❌ NO'}
-                    </span>
-                  </p>
-                  <p><strong>Subscription Status:</strong> {paymentStatus.subscriptionStatus}</p>
-                  <p><strong>Subscription End:</strong> {paymentStatus.subscriptionEnd || 'N/A'}</p>
-                  <p><strong>Reason:</strong> {paymentStatus.reason}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Stripe Verification */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Verify Stripe Payment</CardTitle>
-              <CardDescription>
-                This will check Stripe to verify if you have actually paid, then grant access automatically.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={verifyStripePayment}
-                disabled={activating}
-                className="bg-blue-600 hover:bg-blue-700"
-                size="lg"
-              >
-                {activating ? 'Verifying...' : '🔍 Verify My Payment with Stripe'}
-              </Button>
-              
-              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <h4 className="font-semibold mb-2">How This Works:</h4>
-                <ol className="list-decimal list-inside text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                  <li>Checks if you exist as a customer in Stripe using your email</li>
-                  <li>Verifies you have active subscriptions or successful payments</li>
-                  <li>Creates/updates your profile in our database</li>
-                  <li>Grants access only if payment is confirmed in Stripe</li>
-                </ol>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 font-medium">
-                  ✅ This ensures only people who actually paid get access!
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Clerk Test Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>🔧 Debug: Test Clerk Authentication</CardTitle>
-              <CardDescription>
-                First, let&apos;s check if Clerk can access your user data at all
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Button 
-                  onClick={() => window.open('/api/test-clerk', '_blank')}
-                  variant="outline"
-                  size="lg"
-                  className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                >
-                  🔍 Test Clerk Connection (Opens in New Tab)
-                </Button>
+    <div className="container mx-auto p-6 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-6">Subscription Status</h1>
+      
+      <div className="grid gap-6">
+        {/* Environment Check */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Environment Configuration</CardTitle>
+            <CardDescription>Checking if all required environment variables are set</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {envStatus && (
+              <div className="space-y-2">
+                <p><strong>Stripe Secret Key:</strong> {envStatus.environment_check.STRIPE_SECRET_KEY}</p>
+                <p><strong>Webhook Secret:</strong> {envStatus.environment_check.STRIPE_WEBHOOK_SECRET}</p>
+                <p><strong>Database URL:</strong> {envStatus.environment_check.DATABASE_URL}</p>
                 
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200">
-                  <p className="text-sm text-blue-700">
-                    <strong>Click the button above first!</strong> This will open a new tab showing your raw Clerk user data. 
-                    If you see an error or &quot;Not authenticated&quot;, that&apos;s the root problem.
-                  </p>
-                </div>
+                {envStatus.stripe_key_preview && (
+                  <p className="text-sm text-gray-600">Stripe Key Preview: {envStatus.stripe_key_preview}</p>
+                )}
+                {envStatus.webhook_secret_preview && (
+                  <p className="text-sm text-gray-600">Webhook Secret Preview: {envStatus.webhook_secret_preview}</p>
+                )}
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Email Debug Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>🚨 Debug: Email Mismatch Check</CardTitle>
-              <CardDescription>
-                Check if your Clerk email matches any customers in Stripe
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+        {/* Payment Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Current Subscription Status</CardTitle>
+            <CardDescription>Your current access status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {paymentStatus && (
+              <div className="space-y-2">
+                <p><strong>Has Access:</strong> 
+                  <span className={`ml-2 px-2 py-1 rounded text-sm ${
+                    paymentStatus.hasAccess 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {paymentStatus.hasAccess ? '✅ YES' : '❌ NO'}
+                  </span>
+                </p>
+                <p><strong>Subscription Status:</strong> {paymentStatus.subscriptionStatus}</p>
+                <p><strong>Subscription End:</strong> {paymentStatus.subscriptionEnd || 'N/A'}</p>
+                <p><strong>Reason:</strong> {paymentStatus.reason}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Stripe Verification */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Verify Stripe Payment</CardTitle>
+            <CardDescription>
+              This will check Stripe to verify if you have actually paid, then grant access automatically.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={verifyStripePayment}
+              disabled={activating}
+              className="bg-blue-600 hover:bg-blue-700"
+              size="lg"
+            >
+              {activating ? 'Verifying...' : '🔍 Verify My Payment with Stripe'}
+            </Button>
+            
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <h4 className="font-semibold mb-2">How This Works:</h4>
+              <ol className="list-decimal list-inside text-sm text-gray-600 dark:text-gray-300 space-y-1">
+                <li>Checks if you exist as a customer in Stripe using your email</li>
+                <li>Verifies you have active subscriptions or successful payments</li>
+                <li>Creates/updates your profile in our database</li>
+                <li>Grants access only if payment is confirmed in Stripe</li>
+              </ol>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 font-medium">
+                ✅ This ensures only people who actually paid get access!
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Clerk Test Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>🔧 Debug: Test Clerk Authentication</CardTitle>
+            <CardDescription>
+              First, let&apos;s check if Clerk can access your user data at all
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
               <Button 
-                onClick={debugEmails}
-                disabled={emailDebugLoading}
+                onClick={() => window.open('/api/test-clerk', '_blank')}
                 variant="outline"
                 size="lg"
-                className="mb-4 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
               >
-                {emailDebugLoading ? 'Checking...' : '🔍 Check Email Match'}
+                🔍 Test Clerk Connection (Opens in New Tab)
               </Button>
+              
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200">
+                <p className="text-sm text-blue-700">
+                  <strong>Click the button above first!</strong> This will open a new tab showing your raw Clerk user data. 
+                  If you see an error or &quot;Not authenticated&quot;, that&apos;s the root problem.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              {emailDebug && (
-                <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200">
-                  <h4 className="font-semibold mb-3 text-red-800">Email Comparison Results:</h4>
-                  
-                  <div className="space-y-4">
+        {/* Email Debug Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>🚨 Debug: Email Mismatch Check</CardTitle>
+            <CardDescription>
+              Check if your Clerk email matches any customers in Stripe
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={debugEmails}
+              disabled={emailDebugLoading}
+              variant="outline"
+              size="lg"
+              className="mb-4 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+            >
+              {emailDebugLoading ? 'Checking...' : '🔍 Check Email Match'}
+            </Button>
+
+            {emailDebug && (
+              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200">
+                <h4 className="font-semibold mb-3 text-red-800">Email Comparison Results:</h4>
+                
+                <div className="space-y-4">
                                      <div>
-                       <h5 className="font-medium text-red-700">Your Clerk Account:</h5>
-                       <p className="text-sm">Primary Email: <strong>{emailDebug.clerkUser?.primaryEmail || 'Not found'}</strong></p>
-                       <p className="text-sm">All Emails: {emailDebug.clerkUser?.allEmails?.length > 0 ? emailDebug.clerkUser.allEmails.join(', ') : 'None found'}</p>
-                       <p className="text-sm">User ID: {emailDebug.clerkUser?.id || 'Not found'}</p>
-                       <p className="text-sm">Name: {emailDebug.clerkUser?.firstName} {emailDebug.clerkUser?.lastName}</p>
-                       
-                       <details className="mt-2">
-                         <summary className="text-xs text-gray-600 cursor-pointer">Show Raw Debug Data</summary>
-                         <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-x-auto">
-                           {JSON.stringify(emailDebug, null, 2)}
-                         </pre>
-                       </details>
-                     </div>
+                     <h5 className="font-medium text-red-700">Your Clerk Account:</h5>
+                     <p className="text-sm">Primary Email: <strong>{emailDebug.clerkUser?.primaryEmail || 'Not found'}</strong></p>
+                     <p className="text-sm">All Emails: {emailDebug.clerkUser?.allEmails?.length > 0 ? emailDebug.clerkUser.allEmails.join(', ') : 'None found'}</p>
+                     <p className="text-sm">User ID: {emailDebug.clerkUser?.id || 'Not found'}</p>
+                     <p className="text-sm">Name: {emailDebug.clerkUser?.firstName} {emailDebug.clerkUser?.lastName}</p>
+                     
+                     <details className="mt-2">
+                       <summary className="text-xs text-gray-600 cursor-pointer">Show Raw Debug Data</summary>
+                       <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-x-auto">
+                         {JSON.stringify(emailDebug, null, 2)}
+                       </pre>
+                     </details>
+                   </div>
+
+                  <div>
+                    <h5 className="font-medium text-red-700">Stripe Search Results:</h5>
+                    {emailDebug.stripeSearchByEmail?.map((result: any, i: number) => (
+                      <div key={i} className="text-sm ml-2">
+                        <p>
+                          <strong>{result.searchEmail}:</strong> 
+                          {result.found ? (
+                            <span className="text-green-600 ml-2">✅ Found {result.customers.length} customer(s)</span>
+                          ) : (
+                            <span className="text-red-600 ml-2">❌ No customer found</span>
+                          )}
+                        </p>
+                        {result.customers?.map((customer: any, j: number) => (
+                          <p key={j} className="text-xs text-gray-600 ml-4">
+                            Customer: {customer.email} - {customer.name} (ID: {customer.id})
+                          </p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  {emailDebug.stripeSearchByName?.length > 0 && (
+                    <div>
+                      <h5 className="font-medium text-red-700">Found by Name Search:</h5>
+                      {emailDebug.stripeSearchByName.map((customer: any, i: number) => (
+                        <p key={i} className="text-sm ml-2">
+                          <strong>{customer.name}</strong> - Email: {customer.email} (ID: {customer.id})
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="bg-red-100 dark:bg-red-800/20 p-3 rounded">
+                    <h6 className="font-semibold text-red-800">Quick Fix:</h6>
+                    <p className="text-sm text-red-700">
+                      If you see a Stripe customer above with a different email, that&apos;s the issue! 
+                      You need to either:
+                    </p>
+                    <ul className="text-sm text-red-700 list-disc list-inside mt-1">
+                      <li>Add that email to your Clerk account, OR</li>
+                      <li>Update your Stripe customer email to match your Clerk email</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Stripe Debug Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Debug: What&apos;s in Your Stripe Account</CardTitle>
+            <CardDescription>
+              See exactly what data exists in Stripe for your email address
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={debugStripeData}
+              disabled={debugLoading}
+              variant="outline"
+              size="lg"
+              className="mb-4"
+            >
+              {debugLoading ? 'Loading...' : '🔍 Show My Stripe Data'}
+            </Button>
+
+            {stripeDebug && (
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                <h4 className="font-semibold mb-3">Stripe Account Summary:</h4>
+                
+                {stripeDebug.customerExists ? (
+                  <div className="space-y-4">
+                    <div>
+                      <h5 className="font-medium">Customer Info:</h5>
+                      <p className="text-sm">ID: {stripeDebug.customer.id}</p>
+                      <p className="text-sm">Email: {stripeDebug.customer.email}</p>
+                      <p className="text-sm">Created: {new Date(stripeDebug.customer.created).toLocaleDateString()}</p>
+                    </div>
 
                     <div>
-                      <h5 className="font-medium text-red-700">Stripe Search Results:</h5>
-                      {emailDebug.stripeSearchByEmail?.map((result: any, i: number) => (
-                        <div key={i} className="text-sm ml-2">
-                          <p>
-                            <strong>{result.searchEmail}:</strong> 
-                            {result.found ? (
-                              <span className="text-green-600 ml-2">✅ Found {result.customers.length} customer(s)</span>
-                            ) : (
-                              <span className="text-red-600 ml-2">❌ No customer found</span>
-                            )}
-                          </p>
-                          {result.customers?.map((customer: any, j: number) => (
-                            <p key={j} className="text-xs text-gray-600 ml-4">
-                              Customer: {customer.email} - {customer.name} (ID: {customer.id})
-                            </p>
-                          ))}
-                        </div>
+                      <h5 className="font-medium">Subscriptions: {stripeDebug.subscriptions.total}</h5>
+                      <p className="text-sm">Active: {stripeDebug.subscriptions.active}</p>
+                      {stripeDebug.subscriptions.data.map((sub: any, i: number) => (
+                        <p key={i} className="text-xs text-gray-600">
+                          {sub.id} - Status: {sub.status}
+                        </p>
                       ))}
                     </div>
 
-                    {emailDebug.stripeSearchByName?.length > 0 && (
-                      <div>
-                        <h5 className="font-medium text-red-700">Found by Name Search:</h5>
-                        {emailDebug.stripeSearchByName.map((customer: any, i: number) => (
-                          <p key={i} className="text-sm ml-2">
-                            <strong>{customer.name}</strong> - Email: {customer.email} (ID: {customer.id})
-                          </p>
-                        ))}
-                      </div>
-                    )}
+                    <div>
+                      <h5 className="font-medium">Payment Intents: {stripeDebug.paymentIntents.total}</h5>
+                      <p className="text-sm">Succeeded: {stripeDebug.paymentIntents.succeeded}</p>
+                      {stripeDebug.paymentIntents.data.map((payment: any, i: number) => (
+                        <p key={i} className="text-xs text-gray-600">
+                          ${(payment.amount / 100).toFixed(2)} - Status: {payment.status}
+                        </p>
+                      ))}
+                    </div>
 
-                    <div className="bg-red-100 dark:bg-red-800/20 p-3 rounded">
-                      <h6 className="font-semibold text-red-800">Quick Fix:</h6>
-                      <p className="text-sm text-red-700">
-                        If you see a Stripe customer above with a different email, that&apos;s the issue! 
-                        You need to either:
-                      </p>
-                      <ul className="text-sm text-red-700 list-disc list-inside mt-1">
-                        <li>Add that email to your Clerk account, OR</li>
-                        <li>Update your Stripe customer email to match your Clerk email</li>
-                      </ul>
+                    <div>
+                      <h5 className="font-medium">Checkout Sessions: {stripeDebug.checkoutSessions.total}</h5>
+                      <p className="text-sm">Completed: {stripeDebug.checkoutSessions.completed}</p>
+                      {stripeDebug.checkoutSessions.data.map((session: any, i: number) => (
+                        <p key={i} className="text-xs text-gray-600">
+                          ${((session.amount_total || 0) / 100).toFixed(2)} - Status: {session.status} - Payment: {session.payment_status}
+                        </p>
+                      ))}
+                    </div>
+
+                    <div>
+                      <h5 className="font-medium">Invoices: {stripeDebug.invoices.total}</h5>
+                      <p className="text-sm">Paid: {stripeDebug.invoices.paid}</p>
+                      {stripeDebug.invoices.data.map((invoice: any, i: number) => (
+                        <p key={i} className="text-xs text-gray-600">
+                          ${(invoice.amount_paid / 100).toFixed(2)} paid of ${(invoice.amount_due / 100).toFixed(2)} - Status: {invoice.status}
+                        </p>
+                      ))}
                     </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Stripe Debug Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Debug: What&apos;s in Your Stripe Account</CardTitle>
-              <CardDescription>
-                See exactly what data exists in Stripe for your email address
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={debugStripeData}
-                disabled={debugLoading}
-                variant="outline"
-                size="lg"
-                className="mb-4"
-              >
-                {debugLoading ? 'Loading...' : '🔍 Show My Stripe Data'}
-              </Button>
-
-              {stripeDebug && (
-                <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
-                  <h4 className="font-semibold mb-3">Stripe Account Summary:</h4>
-                  
-                  {stripeDebug.customerExists ? (
-                    <div className="space-y-4">
-                      <div>
-                        <h5 className="font-medium">Customer Info:</h5>
-                        <p className="text-sm">ID: {stripeDebug.customer.id}</p>
-                        <p className="text-sm">Email: {stripeDebug.customer.email}</p>
-                        <p className="text-sm">Created: {new Date(stripeDebug.customer.created).toLocaleDateString()}</p>
-                      </div>
-
-                      <div>
-                        <h5 className="font-medium">Subscriptions: {stripeDebug.subscriptions.total}</h5>
-                        <p className="text-sm">Active: {stripeDebug.subscriptions.active}</p>
-                        {stripeDebug.subscriptions.data.map((sub: any, i: number) => (
-                          <p key={i} className="text-xs text-gray-600">
-                            {sub.id} - Status: {sub.status}
-                          </p>
-                        ))}
-                      </div>
-
-                      <div>
-                        <h5 className="font-medium">Payment Intents: {stripeDebug.paymentIntents.total}</h5>
-                        <p className="text-sm">Succeeded: {stripeDebug.paymentIntents.succeeded}</p>
-                        {stripeDebug.paymentIntents.data.map((payment: any, i: number) => (
-                          <p key={i} className="text-xs text-gray-600">
-                            ${(payment.amount / 100).toFixed(2)} - Status: {payment.status}
-                          </p>
-                        ))}
-                      </div>
-
-                      <div>
-                        <h5 className="font-medium">Checkout Sessions: {stripeDebug.checkoutSessions.total}</h5>
-                        <p className="text-sm">Completed: {stripeDebug.checkoutSessions.completed}</p>
-                        {stripeDebug.checkoutSessions.data.map((session: any, i: number) => (
-                          <p key={i} className="text-xs text-gray-600">
-                            ${((session.amount_total || 0) / 100).toFixed(2)} - Status: {session.status} - Payment: {session.payment_status}
-                          </p>
-                        ))}
-                      </div>
-
-                      <div>
-                        <h5 className="font-medium">Invoices: {stripeDebug.invoices.total}</h5>
-                        <p className="text-sm">Paid: {stripeDebug.invoices.paid}</p>
-                        {stripeDebug.invoices.data.map((invoice: any, i: number) => (
-                          <p key={i} className="text-xs text-gray-600">
-                            ${(invoice.amount_paid / 100).toFixed(2)} paid of ${(invoice.amount_due / 100).toFixed(2)} - Status: {invoice.status}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-red-600">❌ No customer found in Stripe with your email</p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                ) : (
+                  <p className="text-red-600">❌ No customer found in Stripe with your email</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

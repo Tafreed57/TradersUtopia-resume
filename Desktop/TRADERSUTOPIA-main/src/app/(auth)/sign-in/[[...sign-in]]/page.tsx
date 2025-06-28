@@ -18,35 +18,16 @@ export default function Page({
     // 1. Intercept fetch requests (most common for modern OAuth)
     const originalFetch = window.fetch;
     window.fetch = function(input, init) {
-      let url: string;
-      
-      if (typeof input === 'string') {
-        url = input;
-      } else if (input instanceof Request) {
-        url = input.url;
-      } else if (input instanceof URL) {
-        url = input.toString();
-      } else {
-        url = String(input);
-      }
-      
+      const url = typeof input === 'string' ? input : input.url;
       console.log('🌐 [OAUTH-DEBUG] Fetch intercepted:', url);
       
-      if (url.includes('accounts.google.com')) {
+      if (typeof input === 'string' && input.includes('accounts.google.com')) {
         try {
-          const urlObj = new URL(url);
+          const urlObj = new URL(input);
           urlObj.searchParams.set('prompt', 'select_account');
           urlObj.searchParams.set('access_type', 'offline');
-          const modifiedUrl = urlObj.toString();
-          console.log('✅ Modified Google OAuth fetch URL to force account selection:', modifiedUrl);
-          
-          if (typeof input === 'string') {
-            input = modifiedUrl;
-          } else if (input instanceof Request) {
-            input = new Request(modifiedUrl, input);
-          } else if (input instanceof URL) {
-            input = new URL(modifiedUrl);
-          }
+          input = urlObj.toString();
+          console.log('✅ Modified Google OAuth fetch URL to force account selection:', input);
         } catch (e) {
           console.warn('Failed to modify OAuth fetch URL:', e);
         }
@@ -72,7 +53,7 @@ export default function Page({
                           target.closest('[class*="google"]') ||
                           target.closest('[class*="Google"]');
       
-      if (googleButton && googleButton instanceof Element) {
+      if (googleButton) {
         console.log('🔍 [OAUTH-DEBUG] Google OAuth button detected! Element:', googleButton);
         console.log('🔍 [OAUTH-DEBUG] Button details:', {
           tagName: googleButton.tagName,

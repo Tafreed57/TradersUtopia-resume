@@ -11,9 +11,10 @@ import {
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Track } from "livekit-client";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useLoading } from "@/contexts/loading-provider";
+
 
 interface MediaRoomProps {
 	serverId: string;
@@ -26,7 +27,6 @@ export function MediaRoom({ serverId, chatId, video, audio }: MediaRoomProps) {
 	const { user, isLoaded } = useUser();
 	const router = useRouter();
 	const [token, setToken] = useState("");
-	const { startLoading, stopLoading } = useLoading();
 
 	useEffect(() => {
 		const name =
@@ -35,9 +35,6 @@ export function MediaRoom({ serverId, chatId, video, audio }: MediaRoomProps) {
 			user?.lastName ||
 			user?.primaryEmailAddress?.emailAddress.split("@")[0];
 		if (!name) return;
-		
-		startLoading("Connecting to voice channel...");
-		
 		(async () => {
 			console.log("resp");
 			try {
@@ -47,14 +44,17 @@ export function MediaRoom({ serverId, chatId, video, audio }: MediaRoomProps) {
 				setToken(data.token);
 			} catch (e) {
 				console.error(e);
-			} finally {
-				stopLoading();
 			}
 		})();
-	}, [chatId, user?.firstName, user?.lastName, user?.fullName, user?.primaryEmailAddress?.emailAddress, startLoading, stopLoading]);
+	}, [chatId, user?.firstName, user?.lastName, user?.fullName, user?.primaryEmailAddress?.emailAddress]);
 
 	if (token === "" || !isLoaded) {
-		return null; // Loading is handled by LoadingProvider
+		return (
+			<div className="flex flex-col flex-1 justify-center items-center">
+				<Loader2 className="h-7 w-7 text-zinc-500 animate-spin my-4" />
+				<p className="text-zinc-500 dark:text-zinc-400 text-xs">Loading...</p>
+			</div>
+		);
 	}
 
 	return (

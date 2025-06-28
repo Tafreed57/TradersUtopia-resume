@@ -41,7 +41,7 @@ export const twoFactorCodeSchema = z.object({
 // ✅ NEW: 2FA verify-login schema
 export const twoFactorLoginSchema = z.object({
   code: z.string()
-    .regex(/^(\d{6}|[A-Z0-9]{8,10})$/, 'Code must be either a 6-digit TOTP code or 8-10 character backup code')
+    .regex(/^[A-Z0-9]{6,10}$/, 'Code must be 6-10 alphanumeric characters (TOTP or backup code)')
 });
 
 // ✅ NEW: Notification action schema
@@ -678,7 +678,7 @@ export const validateUploadRate = (userId: string, fileCount: number = 1): {
   return { allowed: true };
 };
 
-export const validationHelpers = {
+export default {
   passwordSchema,
   twoFactorSetupSchema,
   twoFactorCodeSchema,

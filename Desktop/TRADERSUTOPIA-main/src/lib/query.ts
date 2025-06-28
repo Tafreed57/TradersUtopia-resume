@@ -121,51 +121,46 @@ export async function initProfile() {
 }
 
 export async function getCurrentProfile() {
-	try {
-		const user = await currentUser();
-		if (!user) return auth().redirectToSignIn();
+	const user = await currentUser();
+	if (!user) return auth().redirectToSignIn();
 
-		const profile = await prisma.profile.findUnique({
-			where: {
-				userId: user.id,
-			},
+	const profile = await prisma.profile.findUnique({
+		where: {
+			userId: user.id,
+		},
+	});
+	
+	// ✅ FIX: If profile doesn't exist, create one
+	if (profile) return profile;
+	
+	// Create profile if it doesn't exist
+	const userEmail = user.primaryEmailAddress?.emailAddress;
+	const name =
+		user?.fullName ||
+		user?.firstName ||
+		user?.lastName ||
+		user.primaryEmailAddress?.emailAddress.split("@")[0] ||
+		"unknown";
+
+	const newProfile = await prisma.profile.create({
+		data: {
+			userId: user.id,
+			email: user.primaryEmailAddress?.emailAddress as string,
+			name: name,
+			imageUrl: user?.imageUrl,
+		},
+	});
+
+	// Trigger sync in case there are other profiles with same email
+	if (userEmail) {
+		Promise.resolve().then(() => {
+			performLoginSync(userEmail);
+		}).catch((error) => {
+			console.error(`❌ [Login Sync] Background sync failed for ${userEmail}:`, error);
 		});
-		
-		// ✅ FIX: If profile doesn't exist, create one
-		if (profile) return profile;
-		
-		// Create profile if it doesn't exist
-		const userEmail = user.primaryEmailAddress?.emailAddress;
-		const name =
-			user?.fullName ||
-			user?.firstName ||
-			user?.lastName ||
-			user.primaryEmailAddress?.emailAddress.split("@")[0] ||
-			"unknown";
-
-		const newProfile = await prisma.profile.create({
-			data: {
-				userId: user.id,
-				email: user.primaryEmailAddress?.emailAddress as string,
-				name: name,
-				imageUrl: user?.imageUrl,
-			},
-		});
-
-		// Trigger sync in case there are other profiles with same email
-		if (userEmail) {
-			Promise.resolve().then(() => {
-				performLoginSync(userEmail);
-			}).catch((error) => {
-				console.error(`❌ [Login Sync] Background sync failed for ${userEmail}:`, error);
-			});
-		}
-
-		return newProfile;
-	} catch (error) {
-		console.error('❌ [QUERY] Error in getCurrentProfile:', error);
-		return auth().redirectToSignIn();
 	}
+
+	return newProfile;
 }
 
 export async function getCurrentProfilePage(req: NextApiRequest) {
@@ -181,92 +176,57 @@ export async function getCurrentProfilePage(req: NextApiRequest) {
 }
 
 export async function getServer(id: string, profileId: string) {
-	try {
-		const server = await prisma.server.findUnique({
-			where: {
-				id,
-				members: {
-					some: {
-						profileId,
-					},
+	const server = await prisma.server.findUnique({
+		where: {
+			id,
+			members: {
+				some: {
+					profileId,
 				},
 			},
-			include: {
-				channels: {
-					orderBy: {
-						createdAt: "asc",
-					},
-				},
-				members: {
-					include: {
-						profile: true,
-					},
-					orderBy: {
-						role: "asc",
-					},
+		},
+		include: {
+			channels: {
+				orderBy: {
+					createdAt: "asc",
 				},
 			},
-		});
-		
-		if (server) {
-			console.log(`✅ [QUERY] Found server ${id} with ${server.channels.length} channels`);
-			return server;
-		}
-		
-		console.log(`❌ [QUERY] Server not found or user not a member: ${id}`);
-		return null;
-	} catch (error) {
-		console.error(`❌ [QUERY] Error in getServer for ${id}:`, error);
-		return null;
-	}
+			members: {
+				include: {
+					profile: true,
+				},
+				orderBy: {
+					role: "asc",
+				},
+			},
+		},
+	});
+	if (server) return server;
 }
 
 export async function getGeneralServer(id: string, profileId: string) {
-	try {
-		const server = await prisma.server.findUnique({
-			where: {
-				id,
-				members: {
-					some: {
-						profileId,
-					},
+	const server = await prisma.server.findUnique({
+		where: {
+			id,
+			members: {
+				some: {
+					profileId,
 				},
 			},
-			include: {
-				channels: {
-					where: {
-						name: "general",
-					},
-					orderBy: {
-						createdAt: "asc",
-					},
+		},
+		include: {
+			channels: {
+				where: {
+					name: "general",
+				},
+				orderBy: {
+					createdAt: "asc",
 				},
 			},
-		});
-
-		// If no server found or user is not a member
-		if (!server) {
-			console.log(`❌ [QUERY] Server not found or user not a member: ${id}`);
-			return null;
-		}
-
-		// If server exists but no general channel found
-		if (!server.channels || server.channels.length === 0) {
-			console.log(`⚠️ [QUERY] Server ${id} exists but has no general channel`);
-			return null;
-		}
-
-		// If general channel exists, return the server
-		if (server.channels[0]?.name === "general") {
-			console.log(`✅ [QUERY] Found server ${id} with general channel`);
-			return server;
-		}
-
-		return null;
-	} catch (error) {
-		console.error(`❌ [QUERY] Error in getGeneralServer for ${id}:`, error);
-		return null;
-	}
+		},
+	});
+	if (server?.channels[0]?.name !== "general") return null;
+	if (server) return server;
 }
 
 export async function getAllServers(id: string) {
@@ -330,7 +290,7 @@ export async function getChannel(channelId: string) {
 	if (channel) return channel;
 }
 
-export async function getConversation(memberOneId: string, memberTwoId: string) {
+export 	async function getConversation(memberOneId: string, memberTwoId: string) {
 	try {
 		const conversation = await prisma.conversation.findFirst({
 			where: {

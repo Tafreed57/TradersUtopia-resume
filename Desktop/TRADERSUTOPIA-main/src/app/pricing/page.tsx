@@ -7,13 +7,11 @@ import { SimplePricingButtons } from "@/components/simple-pricing-buttons";
 import { AuthHeader } from "@/components/auth-header";
 import { EnhancedTrialButton } from "@/components/enhanced-trial-button";
 import { SubscriptionProtectedLink } from "@/components/subscription-protected-link";
-import { GlobalMobileMenu } from "@/components/global-mobile-menu";
-import { NavigationButton } from "@/components/navigation-button";
-import { Sparkles, CheckCircle, Crown, Users, TrendingUp, Shield, Home, Play } from "lucide-react";
+import { Sparkles, CheckCircle, Crown, Users, TrendingUp, Shield, Home } from "lucide-react";
 
 export default function PricingPage() {
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black text-white relative overflow-hidden">
+		<div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden">
 			{/* Animated Background Effects */}
 			<div className="absolute inset-0 overflow-hidden">
 				<div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl animate-pulse"></div>
@@ -38,114 +36,111 @@ export default function PricingPage() {
 				</div>
 
 				{/* Enhanced Header */}
-				<header className="flex items-center justify-center mx-auto mt-4 sm:mt-6 mb-6">
-					<div className="flex items-center gap-4 sm:gap-6 bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-700/30 p-4 sm:p-6 shadow-2xl">
+				<header className="flex items-center justify-between p-6 max-w-7xl mx-auto bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-700/30 mx-6 mt-6 shadow-2xl">
+					<div className="flex items-center gap-6">
 						{/* Enhanced Logo */}
-						<div className="flex items-center gap-2 sm:gap-3">
-							<div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
-								<Image src="/logo.png" alt="TradersUtopia" width={16} height={16} className="sm:w-5 sm:h-5" />
+						<div className="flex items-center gap-4">
+							<div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
+								<Image src="/logo.png" alt="TradersUtopia" width={24} height={24} />
 							</div>
-							<span className="text-white text-sm sm:text-lg font-bold">TradersUtopia</span>
-						</div>
-						
-						{/* Welcome Badge */}
-						<div className="hidden md:flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full px-3 py-1">
-							<Sparkles className="w-3 h-3 text-yellow-400" />
-							<span className="text-yellow-400 text-xs font-medium">Premium Plans</span>
+							<div>
+								<span className="text-white text-xl font-bold">TradersUtopia</span>
+								<p className="text-gray-400 text-sm">Premium Trading Signals</p>
+							</div>
 						</div>
 						
 						{/* Authentication Section */}
-						<div className="hidden lg:block">
+						<div className="hidden md:block">
 							<AuthHeader />
 						</div>
-						
-						{/* Navigation Links */}
-						<NavigationButton href="/" className="hidden sm:block" asButton={true} variant="ghost" size="sm" loadingMessage="Loading homepage...">
-							<Home className="w-4 h-4 mr-2" />
-							Homepage
-						</NavigationButton>
-						<NavigationButton href="/free-videos" className="hidden lg:block" asButton={true} variant="ghost" size="sm" loadingMessage="Loading free course videos...">
-							<Play className="w-4 h-4 mr-2" />
-							Free Videos
-						</NavigationButton>
-						
-						{/* Mobile & Theme Toggle */}
-						                <GlobalMobileMenu />
-                <ModeToggle />
+					</div>
+					<div className="flex items-center gap-4">
+						<Link href="/">
+							<Button variant="ghost" className="text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30">
+								<Home className="w-4 h-4 mr-2" />
+								Homepage
+							</Button>
+						</Link>
+						<SubscriptionProtectedLink 
+							href="/dashboard"
+							variant="ghost"
+							className="text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30"
+						>
+							<Crown className="w-4 h-4 mr-2" />
+							Access Platform
+						</SubscriptionProtectedLink>
+						<ModeToggle />
 					</div>
 				</header>
 
 				{/* Enhanced Main Content */}
 				<main className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-6 py-16">
 					{/* Hero Section */}
-					<div className="text-center max-w-6xl mx-auto mb-12 sm:mb-16 px-4">
-						<div className="flex items-center justify-center mb-4 sm:mb-6">
-							<div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
-								<TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+					<div className="text-center max-w-6xl mx-auto mb-16">
+						<div className="flex items-center justify-center mb-6">
+							<div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
+								<TrendingUp className="w-8 h-8 text-white" />
 							</div>
 						</div>
 						
-						<h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 sm:mb-8 leading-tight">
+						<h1 className="text-4xl md:text-7xl font-bold mb-8 leading-tight">
 							Join{" "}
 							<span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
 								Traders Utopia
 							</span>
 						</h1>
 						
-						<p className="text-lg xs:text-xl sm:text-xl md:text-2xl text-gray-300 mb-6 sm:mb-8 max-w-4xl mx-auto leading-relaxed px-4">
+						<p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-4xl mx-auto leading-relaxed">
 							Shehroze Trade Alerts and Education - Professional Trading Community
 						</p>
 
-						<div className="flex items-center justify-center gap-4 sm:gap-6 lg:gap-8 text-gray-400 text-xs sm:text-sm flex-wrap">
+						<div className="flex items-center justify-center gap-8 text-gray-400 text-sm">
 							<div className="flex items-center gap-2">
-								<Users className="w-3 h-3 sm:w-4 sm:h-4" />
-								<span className="hidden xs:inline">5000+ Active Traders</span>
-								<span className="xs:hidden">5K+ Traders</span>
+								<Users className="w-4 h-4" />
+								<span>5000+ Active Traders</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<Shield className="w-3 h-3 sm:w-4 sm:h-4" />
-								<span className="hidden xs:inline">Proven Track Record</span>
-								<span className="xs:hidden">Proven</span>
+								<Shield className="w-4 h-4" />
+								<span>Proven Track Record</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
-								<span className="hidden xs:inline">Real-Time Alerts</span>
-								<span className="xs:hidden">Alerts</span>
+								<TrendingUp className="w-4 h-4" />
+								<span>Real-Time Alerts</span>
 							</div>
 						</div>
 					</div>
 
 					{/* Enhanced Pricing Card */}
-					<div className="bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 backdrop-blur-md rounded-2xl sm:rounded-3xl p-6 sm:p-10 max-w-4xl w-full border border-gray-600/30 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-yellow-400/50 mx-4">
+					<div className="bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 backdrop-blur-md rounded-3xl p-10 max-w-4xl w-full border border-gray-600/30 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-yellow-400/50">
 						{/* Card Header */}
-						<div className="text-center mb-8 sm:mb-12">
-							<div className="flex items-center justify-center mb-4 sm:mb-6">
-								<div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl">
-									<Crown className="w-8 h-8 sm:w-10 sm:h-10 text-black" />
+						<div className="text-center mb-12">
+							<div className="flex items-center justify-center mb-6">
+								<div className="w-20 h-20 bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl">
+									<Crown className="w-10 h-10 text-black" />
 								</div>
 							</div>
 							
-							<h2 className="text-2xl xs:text-3xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
+							<h2 className="text-3xl md:text-4xl font-bold mb-6">
 								<span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
 									🌟 Premium Trading Alerts
 								</span>
 							</h2>
 							
-							<div className="text-4xl xs:text-5xl sm:text-5xl md:text-6xl font-bold mb-4">
+							<div className="text-5xl md:text-6xl font-bold mb-4">
 								<span className="bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
 									$149.99
 								</span>
-								<span className="text-lg sm:text-xl text-gray-400 font-normal">/month</span>
+								<span className="text-xl text-gray-400 font-normal">/month</span>
 							</div>
 							
-							<div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 px-4 sm:px-6 py-2 sm:py-3 rounded-full">
-								<CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-								<span className="font-semibold text-sm sm:text-base">14 day free trial</span>
+							<div className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-3 rounded-full">
+								<CheckCircle className="w-5 h-5" />
+								<span className="font-semibold">14 day free trial</span>
 							</div>
 						</div>
 
 						{/* Enhanced Features List */}
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-8 sm:mb-12">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
 							<div className="space-y-6">
 								<div className="flex items-start gap-4 p-6 bg-gradient-to-r from-blue-600/20 to-blue-700/20 rounded-2xl border border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/20">
 									<div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -231,6 +226,18 @@ export default function PricingPage() {
 								</div>
 							</SignedOut>
 						</div>
+					</div>
+
+					{/* Enhanced Platform Access Section */}
+					<div className="mt-16 text-center bg-gradient-to-r from-gray-800/40 to-gray-900/40 backdrop-blur-md rounded-2xl p-8 border border-gray-600/30 max-w-2xl w-full">
+						<p className="text-gray-300 mb-6 text-lg">Already a member?</p>
+						<SubscriptionProtectedLink 
+							href="/dashboard"
+							className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0 text-white px-8 py-4 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+						>
+							<Crown className="w-5 h-5 mr-2" />
+							Access Trading Platform
+						</SubscriptionProtectedLink>
 					</div>
 				</main>
 			</div>

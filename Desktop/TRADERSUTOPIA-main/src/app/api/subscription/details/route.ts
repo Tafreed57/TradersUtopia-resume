@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         const customer = await stripe.customers.retrieve(profile.stripeCustomerId) as any;
         
         if (!customer.deleted) {
-          (responseData.subscription as any).customer = {
+          responseData.subscription.customer = {
             id: customer.id,
             email: customer.email,
             created: new Date(customer.created * 1000),
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         if (profile.stripeProductId) {
           try {
             const product = await stripe.products.retrieve(profile.stripeProductId);
-            (responseData.subscription as any).product = {
+            responseData.subscription.product = {
               id: product.id,
               name: product.name,
               description: product.description,
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
           // Find the most relevant subscription
           const relevantSubscription = subscriptions.data.find(sub => 
             sub.status === 'active' || 
-            (sub.status === 'canceled' && new Date((sub as any).current_period_end * 1000) > new Date())
+            (sub.status === 'canceled' && new Date(sub.current_period_end * 1000) > new Date())
           ) || subscriptions.data[0];
           
           let subscription = relevantSubscription as any;
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
           });
 
           // ✅ ENHANCED: Comprehensive subscription details for UI
-          (responseData.subscription as any).stripe = {
+          responseData.subscription.stripe = {
             id: subscription.id,
             status: subscription.status,
             currentPeriodStart: new Date(subscription.current_period_start * 1000),
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
             } : null,
           };
           
-          (responseData as any).dataSource = 'stripe-enhanced';
+          responseData.dataSource = 'stripe-enhanced';
           
           // ✅ WEBHOOK SYNC CHECK: Compare webhook data vs Stripe data
           const webhookEndDate = profile.subscriptionEnd ? new Date(profile.subscriptionEnd) : null;
@@ -196,7 +196,7 @@ export async function GET(request: NextRequest) {
             console.log(`⚠️ [SYNC WARNING] Webhook data may be outdated:`);
             console.log(`   Webhook end: ${webhookEndDate.toISOString()}`);
             console.log(`   Stripe end: ${stripeEndDate.toISOString()}`);
-            (responseData.subscription as any).syncWarning = {
+            responseData.subscription.syncWarning = {
               message: 'Subscription data may be out of sync',
               webhookDate: webhookEndDate,
               stripeDate: stripeEndDate
@@ -204,38 +204,38 @@ export async function GET(request: NextRequest) {
           }
         } else {
           console.log(`⚠️ [NO SUBSCRIPTIONS] No active subscriptions found for customer`);
-          (responseData.subscription as any).noActiveSubscription = true;
+          responseData.subscription.noActiveSubscription = true;
         }
 
-        (responseData as any).dataSource = 'database-with-stripe';
+        responseData.dataSource = 'database-with-stripe';
         
       } catch (stripeError) {
         console.error('❌ [STRIPE ERROR] Failed to fetch Stripe data:', stripeError);
-        (responseData.subscription as any).stripeError = {
+        responseData.subscription.stripeError = {
           message: 'Unable to fetch real-time Stripe data',
           error: stripeError instanceof Error ? stripeError.message : 'Unknown error'
         };
-        (responseData as any).dataSource = 'database-only';
+        responseData.dataSource = 'database-only';
       }
     } else {
       console.log(`ℹ️ [NO CUSTOMER ID] Using database-only information`);
-      (responseData as any).dataSource = 'database-only';
+      responseData.dataSource = 'database-only';
     }
 
     // ✅ ENHANCED: Add helpful metadata for the UI
-    (responseData.subscription as any).metadata = {
+    responseData.subscription.metadata = {
       lastDatabaseUpdate: profile.updatedAt,
       hasStripeConnection: !!profile.stripeCustomerId,
       isActive: profile.subscriptionStatus === 'ACTIVE',
       daysUntilExpiry: profile.subscriptionEnd 
         ? Math.ceil((new Date(profile.subscriptionEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
         : null,
-      dataFreshness: (responseData as any).dataSource,
+      dataFreshness: responseData.dataSource,
     };
 
     console.log(`✅ [SUCCESS] Subscription details prepared for UI:`, {
       status: responseData.subscription.status,
-      dataSource: (responseData as any).dataSource,
+      dataSource: responseData.dataSource,
       hasStripeData: !!responseData.subscription.stripe,
       hasProductData: !!responseData.subscription.product,
     });

@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
           where: { stripeCustomerId: cancelledCustomerId },
           data: {
             subscriptionStatus: 'CANCELLED',
-            subscriptionEnd: new Date((cancelledSubscription as any).current_period_end * 1000),
+            subscriptionEnd: new Date(cancelledSubscription.current_period_end * 1000),
           }
         });
         
@@ -232,9 +232,9 @@ export async function POST(request: NextRequest) {
       const successfulInvoice = event.data.object as Stripe.Invoice;
       console.log(`💳 Payment succeeded for invoice: ${successfulInvoice.id}`);
       
-      if ((successfulInvoice as any).subscription) {
+      if (successfulInvoice.subscription) {
         try {
-          const subscription = await stripe.subscriptions.retrieve((successfulInvoice as any).subscription as string);
+          const subscription = await stripe.subscriptions.retrieve(successfulInvoice.subscription as string);
           await updateSubscriptionInDatabase(subscription);
           console.log(`✅ Updated subscription after successful payment`);
         } catch (error) {
@@ -283,8 +283,8 @@ async function updateSubscriptionInDatabase(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
   
   // Calculate subscription dates
-  const subscriptionStart = new Date((subscription as any).current_period_start * 1000);
-  const subscriptionEnd = new Date((subscription as any).current_period_end * 1000);
+  const subscriptionStart = new Date(subscription.current_period_start * 1000);
+  const subscriptionEnd = new Date(subscription.current_period_end * 1000);
   
   // Determine status based on Stripe subscription status
   let dbStatus: 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'FREE' = 'ACTIVE';

@@ -10,7 +10,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -235,12 +234,11 @@ export function NotificationBell() {
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuPortal>
-        <DropdownMenuContent 
-          align="end" 
-          className="w-80 max-h-96 z-[99999] !z-[99999]"
-          sideOffset={5}
-        >
+      <DropdownMenuContent 
+        align="end" 
+        className="w-80 max-h-96"
+        sideOffset={5}
+      >
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Notifications</span>
           {unreadCount > 0 && (
@@ -327,8 +325,7 @@ export function NotificationBell() {
             </DropdownMenuItem>
           </>
         )}
-        </DropdownMenuContent>
-      </DropdownMenuPortal>
+      </DropdownMenuContent>
     </DropdownMenu>
   );
 } 

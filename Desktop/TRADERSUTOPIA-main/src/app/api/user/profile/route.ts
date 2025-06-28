@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Find the user's profile in our database
-    let profile = await db.profile.findUnique({
+    const profile = await db.profile.findUnique({
       where: {
         userId: user.id,
       },
@@ -37,46 +37,8 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // If profile doesn't exist, create one for the new user
     if (!profile) {
-      try {
-        const userEmail = user.emailAddresses[0]?.emailAddress;
-        
-        if (!userEmail) {
-          console.error('❌ [PROFILE] No email found for user:', user.id);
-          return NextResponse.json({ error: "User email not found" }, { status: 400 });
-        }
-
-        console.log(`➕ [PROFILE] Creating new profile for user: ${userEmail} (${user.id})`);
-        
-        profile = await db.profile.create({
-          data: {
-            userId: user.id,
-            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User',
-            email: userEmail,
-            imageUrl: user.imageUrl || '',
-            subscriptionStatus: 'FREE',
-            twoFactorEnabled: false,
-            isAdmin: false,
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            imageUrl: true,
-            twoFactorEnabled: true,
-            isAdmin: true,
-            subscriptionStatus: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        });
-
-        console.log(`✅ [PROFILE] Created profile for user: ${userEmail}`);
-      } catch (createError) {
-        console.error('❌ [PROFILE] Error creating profile:', createError);
-        return NextResponse.json({ error: "Failed to create user profile" }, { status: 500 });
-      }
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     return NextResponse.json(profile);

@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     console.error('❌ [TEST-2FA] Error:', error);
     return NextResponse.json({
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error.message
     }, { status: 500 });
   }
 } 
