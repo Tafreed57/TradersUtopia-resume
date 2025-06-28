@@ -46,29 +46,9 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 [SUBSCRIPTION] Checking product-specific subscription for user: ${userEmail}`);
     console.log(`🎯 [SUBSCRIPTION] Allowed product IDs: ${allowedProductIds.join(', ')}`);
 
-    // Check if user already has valid access to any of the allowed products
-    const existingProfile = await db.profile.findFirst({
-      where: { 
-        userId: user.id,
-        subscriptionStatus: 'ACTIVE',
-        subscriptionEnd: {
-          gt: new Date()
-        },
-        stripeProductId: {
-          in: allowedProductIds
-        }
-      }
-    });
-
-    if (existingProfile) {
-      console.log(`✅ [SUBSCRIPTION] User already has valid access with product: ${existingProfile.stripeProductId}`);
-      return NextResponse.json({
-        hasAccess: true,
-        productId: existingProfile.stripeProductId,
-        reason: 'Valid subscription found in database',
-        subscriptionEnd: existingProfile.subscriptionEnd
-      });
-    }
+    // 🚨 SECURITY FIX: REMOVED dangerous database-first check
+    // Previously this would grant access based on database alone without Stripe verification
+    // Now we ALWAYS verify with Stripe for security
 
     // ✅ SECURITY: Enhanced Stripe API interaction with error handling
     let customer;

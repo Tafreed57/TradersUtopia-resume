@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { showToast } from '@/lib/notifications-client';
 
 export default function TwoFactorVerifyPage() {
   const { user, isLoaded } = useUser();
+  const { signOut } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [code, setCode] = useState('');
@@ -76,6 +77,28 @@ export default function TwoFactorVerifyPage() {
     }
   };
 
+  const handleBackToSignIn = async () => {
+    try {
+      // Clear 2FA verification cookie
+      await fetch('/api/auth/signout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Sign out from Clerk
+      await signOut();
+      
+      // Redirect to sign in page
+      router.push('/sign-in');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Force redirect even if there's an error
+      router.push('/sign-in');
+    }
+  };
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -129,7 +152,7 @@ export default function TwoFactorVerifyPage() {
             {isLoading ? 'Verifying...' : 'Verify & Continue'}
           </Button>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Can't access your authenticator app?
             </p>
@@ -140,6 +163,16 @@ export default function TwoFactorVerifyPage() {
             >
               Use backup code or contact support
             </Button>
+            
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <Button 
+                variant="outline" 
+                className="text-sm"
+                onClick={handleBackToSignIn}
+              >
+                ← Back to Sign In
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

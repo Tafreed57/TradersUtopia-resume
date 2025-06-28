@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 
 
 export const metadata: Metadata = {
-	title: "Discord Clone - Login",
-	description: "Log in to Discord & Discuss with your friends .",
+	title: "Traders Utopia - Login",
+	description: "Access your professional trading community and signals.",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

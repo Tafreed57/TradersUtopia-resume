@@ -133,35 +133,42 @@ export async function POST(request: NextRequest) {
             }
           }
           
-          // Update ALL profiles with the same email to ACTIVE status
-          // This ensures no matter which account the user is logged into, they'll have access
+          // 🚨 SECURITY FIX: Only update the profile associated with the specific Stripe customer
+          // Previously this granted access to ALL accounts with the same email (major security flaw)
+          
+          let targetProfile = null;
+          
+          // If we have a customer ID, find the profile with that customer ID
+          if (customerId) {
+            targetProfile = allProfiles.find(p => p.stripeCustomerId === customerId);
+          }
+          
+          // If no specific profile found, use the most recent one (but only update that one)
+          if (!targetProfile) {
+            targetProfile = allProfiles[0]; // Most recent due to orderBy
+            console.log(`⚠️ [SECURITY] No profile found with customer ID ${customerId}, updating most recent profile only`);
+          }
+          
           const subscriptionStart = new Date();
           const subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
           
-          console.log(`🔄 Updating all ${allProfiles.length} profiles to ACTIVE status...`);
+          console.log(`🔒 [SECURITY] Updating ONLY the target profile: ${targetProfile.id} (${targetProfile.userId})`);
           
-          const updateResults = await Promise.all(
-            allProfiles.map(async (profile) => {
-              const updated = await db.profile.update({
-                where: { id: profile.id },
-                data: {
-                  subscriptionStatus: 'ACTIVE',
-                  subscriptionStart: subscriptionStart,
-                  subscriptionEnd: subscriptionEnd,
-                  stripeCustomerId: customerId, // This might be null, which is fine
-                  stripeSessionId: session.id,
-                  stripeProductId: stripeProductId,
-                }
-              });
-              
-              console.log(`   ✅ Updated profile: ${updated.id} (${updated.userId}) with product: ${stripeProductId}`);
-              return updated;
-            })
-          );
+          const updated = await db.profile.update({
+            where: { id: targetProfile.id },
+            data: {
+              subscriptionStatus: 'ACTIVE',
+              subscriptionStart: subscriptionStart,
+              subscriptionEnd: subscriptionEnd,
+              stripeCustomerId: customerId,
+              stripeSessionId: session.id,
+              stripeProductId: stripeProductId,
+            }
+          });
           
-          console.log(`✅ Successfully updated all profiles for ${email}`);
+          console.log(`✅ [SECURITY] Updated single profile: ${updated.id} (${updated.userId}) with product: ${stripeProductId}`);
           console.log(`📅 Subscription valid until: ${subscriptionEnd.toISOString()}`);
-          console.log(`🎉 User ${email} should now have access from any account!`);
+          console.log(`🔒 [SECURITY] Access granted to specific account only, not all accounts with same email`);
         }
         
       } catch (error) {

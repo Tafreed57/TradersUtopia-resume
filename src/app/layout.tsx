@@ -4,24 +4,39 @@ import { ModalProvider } from "@/contexts/modal-provider";
 import { QueryProvider } from "@/contexts/query-provider";
 import { SocketProvider } from "@/contexts/socket-provider";
 import { ThemeProvider } from "@/contexts/theme-provider";
+import { LoadingProvider } from "@/contexts/loading-provider";
 import { AuthWrapper } from "@/components/auth-wrapper";
 import { TwoFactorGuard } from "@/components/2fa-guard";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { cn } from "@/lib/utils";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Open_Sans } from "next/font/google";
 import { extractRouterConfig } from "uploadthing/server";
 import { Toaster } from "sonner";
 
 const open_sans = Open_Sans({ subsets: ["latin"] });
 
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	maximumScale: 1,
+	userScalable: false,
+};
+
 export const metadata: Metadata = {
-	title: "Discord Clone",
-	description: "A Full-Featured Real Time (Video , Audio , Chat) Application",
+	title: "Traders Utopia",
+	description: "Professional Trading Signals & Expert Education Platform",
 	openGraph: {
 		type: "website",
+		title: "Traders Utopia",
+		description: "Professional Trading Signals & Expert Education Platform",
+	},
+	icons: {
+		icon: "/logo.png",
+		shortcut: "/logo.png",
+		apple: "/logo.png",
 	},
 };
 
@@ -54,35 +69,31 @@ export default function RootLayout({
 						attribute="class"
 						defaultTheme="dark"
 						enableSystem={false}
-						storageKey="discord-clone-theme"
+						storageKey="traders-utopia-theme"
 						disableTransitionOnChange
 					>
 						<NextSSRPlugin
-							/**
-							 * The `extractRouterConfig` will extract **only** the route configs
-							 * from the router to prevent additional information from being
-							 * leaked to the client. The data passed to the client is the same
-							 * as if you were to fetch `/api/uploadthing` directly.
-							 */
 							routerConfig={extractRouterConfig(ourFileRouter)}
 						/>
 						<ErrorBoundary>
-							<SocketProvider>
-								<QueryProvider>
-									<AuthWrapper>
-										<TwoFactorGuard>
-											<ModalProvider />
-											<Toaster 
-												position="top-right"
-												expand={true}
-												richColors
-												closeButton
-											/>
-											{children}
-										</TwoFactorGuard>
-									</AuthWrapper>
-								</QueryProvider>
-							</SocketProvider>
+							<LoadingProvider>
+								<SocketProvider>
+									<QueryProvider>
+										<AuthWrapper>
+											<TwoFactorGuard>
+												<ModalProvider />
+												<Toaster 
+													position="top-right"
+													expand={true}
+													richColors
+													closeButton
+												/>
+												{children}
+											</TwoFactorGuard>
+										</AuthWrapper>
+									</QueryProvider>
+								</SocketProvider>
+							</LoadingProvider>
 						</ErrorBoundary>
 					</ThemeProvider>
 				</ClerkProvider>

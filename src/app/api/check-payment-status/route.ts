@@ -46,51 +46,11 @@ export async function GET(request: NextRequest) {
     let currentProfile = profile;
     let autoSyncPerformed = false;
 
-    // If current user has FREE status, check for ACTIVE profiles with same email
-    if (currentProfile.subscriptionStatus === 'FREE') {
-      console.log('🔍 User has FREE status, checking for ACTIVE profiles with same email...');
-      
-      const userEmail = user.emailAddresses[0]?.emailAddress;
-      if (userEmail) {
-        console.log('📧 Checking email:', userEmail);
-        
-        // Find all profiles with this email
-        const allProfiles = await db.profile.findMany({
-          where: { email: userEmail }
-        });
-        
-        console.log(`📊 Found ${allProfiles.length} profile(s) with email ${userEmail}`);
-        
-        // Look for an ACTIVE profile
-        const activeProfile = allProfiles.find(p => 
-          p.subscriptionStatus === 'ACTIVE' && 
-          p.id !== currentProfile.id
-        );
-        
-        if (activeProfile) {
-          console.log('🎯 Found ACTIVE profile to sync from:', activeProfile.id);
-          console.log('🔗 Auto-syncing subscription data...');
-          
-          // Auto-sync the subscription data
-          currentProfile = await db.profile.update({
-            where: { id: currentProfile.id },
-            data: {
-              subscriptionStatus: 'ACTIVE',
-              subscriptionStart: activeProfile.subscriptionStart,
-              subscriptionEnd: activeProfile.subscriptionEnd,
-              stripeCustomerId: activeProfile.stripeCustomerId,
-              stripeSessionId: activeProfile.stripeSessionId,
-            }
-          });
-          
-          autoSyncPerformed = true;
-          console.log('✅ Auto-sync completed! Current profile now has ACTIVE status');
-          console.log('📅 Subscription valid until:', currentProfile.subscriptionEnd);
-        } else {
-          console.log('❌ No ACTIVE profile found for auto-sync');
-        }
-      }
-    }
+    // 🚨 SECURITY FIX: REMOVED auto-sync between accounts with same email
+    // This was a major security vulnerability that allowed unauthorized access
+    // Each account must have its own valid Stripe subscription
+    console.log('🔒 [SECURITY] Checking only the current user\'s specific subscription status');
+    console.log('🔒 [SECURITY] No longer auto-syncing between accounts with same email for security');
 
     // Step 5: Final subscription status check
     console.log('📝 Step 5: Final subscription status check...');
