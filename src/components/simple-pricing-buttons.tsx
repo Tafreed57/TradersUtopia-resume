@@ -13,4 +13,4 @@ export function SimplePricingButtons() {
       </p>
     </div>
   );
-} 
+}

@@ -1,7 +1,9 @@
-import { Resend } from 'resend';
+import { Resend } from "resend";
 
 // Initialize Resend only if API key is available
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 export interface EmailNotificationData {
   to: string;
@@ -14,15 +16,15 @@ export interface EmailNotificationData {
 
 const getEmailTemplate = (data: EmailNotificationData) => {
   const typeEmojis: Record<string, string> = {
-    SYSTEM: '⚙️',
-    SECURITY: '🔒',
-    PAYMENT: '💳',
-    MESSAGE: '💬',
-    MENTION: '👤',
-    SERVER_UPDATE: '📢',
+    SYSTEM: "⚙️",
+    SECURITY: "🔒",
+    PAYMENT: "💳",
+    MESSAGE: "💬",
+    MENTION: "👤",
+    SERVER_UPDATE: "📢",
   };
 
-  const emoji = typeEmojis[data.type] || '📔';
+  const emoji = typeEmojis[data.type] || "📔";
 
   return {
     subject: `${emoji} ${data.title} - TradersUtopia`,
@@ -139,18 +141,26 @@ const getEmailTemplate = (data: EmailNotificationData) => {
             <h1 class="notification-title">${data.title}</h1>
             <p class="notification-message">${data.message}</p>
             
-            ${data.actionUrl ? `
+            ${
+              data.actionUrl
+                ? `
                 <a href="${data.actionUrl}" class="action-button">
                     Take Action
                 </a>
-            ` : ''}
+            `
+                : ""
+            }
         </div>
         
-        ${data.type === 'SECURITY' ? `
+        ${
+          data.type === "SECURITY"
+            ? `
             <div class="security-notice">
                 <strong>Security Notice:</strong> If you didn't expect this notification, please contact support immediately and review your account security settings.
             </div>
-        ` : ''}
+        `
+            : ""
+        }
         
         <div class="footer">
             <p>Hi ${data.userName},</p>
@@ -177,30 +187,32 @@ Hi ${data.userName},
 
 ${data.message}
 
-${data.actionUrl ? `Take action: ${data.actionUrl}` : ''}
+${data.actionUrl ? `Take action: ${data.actionUrl}` : ""}
 
 ---
 This notification was sent based on your account preferences.
 Manage your settings: ${process.env.NEXT_PUBLIC_APP_URL}/dashboard?tab=settings
 
 © 2024 TradersUtopia. All rights reserved.
-    `.trim()
+    `.trim(),
   };
 };
 
-export async function sendNotificationEmail(data: EmailNotificationData): Promise<boolean> {
+export async function sendNotificationEmail(
+  data: EmailNotificationData,
+): Promise<boolean> {
   try {
     // Check if Resend is configured
     if (!resend) {
-      console.warn('⚠️ [EMAIL] Resend API key not configured - email not sent');
+      console.warn("⚠️ [EMAIL] Resend API key not configured - email not sent");
       console.log(`📧 [EMAIL] Would send to ${data.to}: ${data.title}`);
       return false;
     }
 
     const emailTemplate = getEmailTemplate(data);
-    
+
     const result = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
       to: data.to,
       subject: emailTemplate.subject,
       html: emailTemplate.html,
@@ -208,46 +220,63 @@ export async function sendNotificationEmail(data: EmailNotificationData): Promis
     });
 
     if (result.error) {
-      console.error('❌ [EMAIL] Failed to send notification email:', result.error);
+      console.error(
+        "❌ [EMAIL] Failed to send notification email:",
+        result.error,
+      );
       return false;
     }
 
-    console.log(`✅ [EMAIL] Notification sent to ${data.to} - ID: ${result.data?.id}`);
+    console.log(
+      `✅ [EMAIL] Notification sent to ${data.to} - ID: ${result.data?.id}`,
+    );
     return true;
   } catch (error) {
-    console.error('❌ [EMAIL] Error sending notification email:', error);
+    console.error("❌ [EMAIL] Error sending notification email:", error);
     return false;
   }
 }
 
-export async function sendWelcomeEmail(to: string, userName: string): Promise<boolean> {
+export async function sendWelcomeEmail(
+  to: string,
+  userName: string,
+): Promise<boolean> {
   if (!resend) {
-    console.warn('⚠️ [EMAIL] Resend API key not configured - welcome email not sent');
+    console.warn(
+      "⚠️ [EMAIL] Resend API key not configured - welcome email not sent",
+    );
     return false;
   }
-  
+
   return sendNotificationEmail({
     to,
     userName,
-    type: 'SYSTEM',
-    title: 'Welcome to TradersUtopia!',
-    message: 'Your account has been successfully created. Explore the dashboard to set up two-factor authentication and customize your experience.',
-    actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?tab=security`
+    type: "SYSTEM",
+    title: "Welcome to TradersUtopia!",
+    message:
+      "Your account has been successfully created. Explore the dashboard to set up two-factor authentication and customize your experience.",
+    actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?tab=security`,
   });
 }
 
-export async function sendSecurityAlert(to: string, userName: string, message: string): Promise<boolean> {
+export async function sendSecurityAlert(
+  to: string,
+  userName: string,
+  message: string,
+): Promise<boolean> {
   if (!resend) {
-    console.warn('⚠️ [EMAIL] Resend API key not configured - security alert not sent');
+    console.warn(
+      "⚠️ [EMAIL] Resend API key not configured - security alert not sent",
+    );
     return false;
   }
-  
+
   return sendNotificationEmail({
     to,
     userName,
-    type: 'SECURITY',
-    title: 'Security Alert',
+    type: "SECURITY",
+    title: "Security Alert",
     message,
-    actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?tab=security`
+    actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?tab=security`,
   });
-} 
+}

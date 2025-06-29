@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggler";
 import Link from "next/link";
 import Image from "next/image";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { GlobalMobileMenu } from "@/components/global-mobile-menu";
-import { Play, Clock, Users, Star, BookOpen, Award, ArrowRight, Home } from "lucide-react";
+import {
+  Play,
+  Clock,
+  Users,
+  Star,
+  BookOpen,
+  Award,
+  ArrowRight,
+  Home,
+} from "lucide-react";
 import { NavigationButton } from "@/components/navigation-button";
-import { useSmartRouting } from '@/lib/smart-routing';
+import { useSmartRouting } from "@/lib/smart-routing";
 
 // Complete Trading Course - 31 Professional Lessons
 const videoSections = [
@@ -23,7 +32,7 @@ const videoSections = [
         duration: "12:45",
         embedUrl: "https://www.youtube.com/embed/TdPQNrQrpXw",
         youtubeId: "TdPQNrQrpXw",
-        description: "Learn essential trading concepts and strategies."
+        description: "Learn essential trading concepts and strategies.",
       },
       {
         id: 2,
@@ -31,7 +40,7 @@ const videoSections = [
         duration: "15:20",
         embedUrl: "https://www.youtube.com/embed/HQ1rT821rdc",
         youtubeId: "HQ1rT821rdc",
-        description: "Foundation principles for successful trading."
+        description: "Foundation principles for successful trading.",
       },
       {
         id: 3,
@@ -39,7 +48,7 @@ const videoSections = [
         duration: "14:30",
         embedUrl: "https://www.youtube.com/embed/RqhcD5ZFQgw",
         youtubeId: "RqhcD5ZFQgw",
-        description: "Understanding market structure and dynamics."
+        description: "Understanding market structure and dynamics.",
       },
       {
         id: 4,
@@ -47,7 +56,7 @@ const videoSections = [
         duration: "16:45",
         embedUrl: "https://www.youtube.com/embed/Gj5QTdIqvNo",
         youtubeId: "Gj5QTdIqvNo",
-        description: "Market analysis and entry strategies."
+        description: "Market analysis and entry strategies.",
       },
       {
         id: 5,
@@ -55,7 +64,7 @@ const videoSections = [
         duration: "13:15",
         embedUrl: "https://www.youtube.com/embed/aBIOiTgHy4A",
         youtubeId: "aBIOiTgHy4A",
-        description: "Building your trading foundation."
+        description: "Building your trading foundation.",
       },
       {
         id: 6,
@@ -63,7 +72,7 @@ const videoSections = [
         duration: "18:30",
         embedUrl: "https://www.youtube.com/embed/NNA03EMgE5g",
         youtubeId: "NNA03EMgE5g",
-        description: "Advanced fundamental analysis techniques."
+        description: "Advanced fundamental analysis techniques.",
       },
       {
         id: 7,
@@ -71,7 +80,7 @@ const videoSections = [
         duration: "12:00",
         embedUrl: "https://www.youtube.com/embed/oq4unSe29Eo",
         youtubeId: "oq4unSe29Eo",
-        description: "Psychology and mindset for trading success."
+        description: "Psychology and mindset for trading success.",
       },
       {
         id: 8,
@@ -79,9 +88,9 @@ const videoSections = [
         duration: "17:15",
         embedUrl: "https://www.youtube.com/embed/JVgt_NP2br8",
         youtubeId: "JVgt_NP2br8",
-        description: "Putting fundamentals into practice."
-      }
-    ]
+        description: "Putting fundamentals into practice.",
+      },
+    ],
   },
   {
     title: "Technical Analysis",
@@ -93,7 +102,7 @@ const videoSections = [
         duration: "15:30",
         embedUrl: "https://www.youtube.com/embed/HNA42gN9FcM",
         youtubeId: "HNA42gN9FcM",
-        description: "Introduction to technical analysis principles."
+        description: "Introduction to technical analysis principles.",
       },
       {
         id: 10,
@@ -101,7 +110,7 @@ const videoSections = [
         duration: "16:45",
         embedUrl: "https://www.youtube.com/embed/XhZjSqOYp60",
         youtubeId: "XhZjSqOYp60",
-        description: "Chart patterns and trend identification."
+        description: "Chart patterns and trend identification.",
       },
       {
         id: 11,
@@ -109,7 +118,7 @@ const videoSections = [
         duration: "14:20",
         embedUrl: "https://www.youtube.com/embed/43IlkE3C0_Q",
         youtubeId: "43IlkE3C0_Q",
-        description: "Support and resistance levels."
+        description: "Support and resistance levels.",
       },
       {
         id: 12,
@@ -117,7 +126,7 @@ const videoSections = [
         duration: "18:15",
         embedUrl: "https://www.youtube.com/embed/mtX4Ri72Z1w",
         youtubeId: "mtX4Ri72Z1w",
-        description: "Moving averages and trend indicators."
+        description: "Moving averages and trend indicators.",
       },
       {
         id: 13,
@@ -125,7 +134,7 @@ const videoSections = [
         duration: "13:45",
         embedUrl: "https://www.youtube.com/embed/D-cgUnyLl8E",
         youtubeId: "D-cgUnyLl8E",
-        description: "Momentum indicators and oscillators."
+        description: "Momentum indicators and oscillators.",
       },
       {
         id: 14,
@@ -133,7 +142,7 @@ const videoSections = [
         duration: "19:30",
         embedUrl: "https://www.youtube.com/embed/Hj0daP5OQ44",
         youtubeId: "Hj0daP5OQ44",
-        description: "Volume analysis and market depth."
+        description: "Volume analysis and market depth.",
       },
       {
         id: 15,
@@ -141,7 +150,7 @@ const videoSections = [
         duration: "15:00",
         embedUrl: "https://www.youtube.com/embed/eow2C1CsJhA",
         youtubeId: "eow2C1CsJhA",
-        description: "Candlestick patterns and formations."
+        description: "Candlestick patterns and formations.",
       },
       {
         id: 16,
@@ -149,7 +158,7 @@ const videoSections = [
         duration: "17:45",
         embedUrl: "https://www.youtube.com/embed/-s0TBZMrzT8",
         youtubeId: "-s0TBZMrzT8",
-        description: "Advanced chart pattern recognition."
+        description: "Advanced chart pattern recognition.",
       },
       {
         id: 17,
@@ -157,7 +166,7 @@ const videoSections = [
         duration: "14:30",
         embedUrl: "https://www.youtube.com/embed/3tZylYKlPVg",
         youtubeId: "3tZylYKlPVg",
-        description: "Fibonacci retracements and extensions."
+        description: "Fibonacci retracements and extensions.",
       },
       {
         id: 18,
@@ -165,7 +174,7 @@ const videoSections = [
         duration: "16:20",
         embedUrl: "https://www.youtube.com/embed/Uy6nK-7Xzvc",
         youtubeId: "Uy6nK-7Xzvc",
-        description: "Elliott Wave theory and applications."
+        description: "Elliott Wave theory and applications.",
       },
       {
         id: 19,
@@ -173,7 +182,7 @@ const videoSections = [
         duration: "18:15",
         embedUrl: "https://www.youtube.com/embed/Nzv5xCABzZE",
         youtubeId: "Nzv5xCABzZE",
-        description: "Multiple timeframe analysis."
+        description: "Multiple timeframe analysis.",
       },
       {
         id: 20,
@@ -181,9 +190,9 @@ const videoSections = [
         duration: "15:45",
         embedUrl: "https://www.youtube.com/embed/nka3fnXlI9o",
         youtubeId: "nka3fnXlI9o",
-        description: "Putting technical analysis together."
-      }
-    ]
+        description: "Putting technical analysis together.",
+      },
+    ],
   },
   {
     title: "Risk Management",
@@ -195,7 +204,7 @@ const videoSections = [
         duration: "18:20",
         embedUrl: "https://www.youtube.com/embed/qhQ6zJ2VRTE",
         youtubeId: "qhQ6zJ2VRTE",
-        description: "Introduction to risk management principles."
+        description: "Introduction to risk management principles.",
       },
       {
         id: 22,
@@ -203,7 +212,7 @@ const videoSections = [
         duration: "16:30",
         embedUrl: "https://www.youtube.com/embed/vsEI1X4HzHs",
         youtubeId: "vsEI1X4HzHs",
-        description: "Position sizing and capital allocation."
+        description: "Position sizing and capital allocation.",
       },
       {
         id: 23,
@@ -211,7 +220,7 @@ const videoSections = [
         duration: "19:15",
         embedUrl: "https://www.youtube.com/embed/th1e63PPgYc",
         youtubeId: "th1e63PPgYc",
-        description: "Stop-loss strategies and implementation."
+        description: "Stop-loss strategies and implementation.",
       },
       {
         id: 24,
@@ -219,7 +228,7 @@ const videoSections = [
         duration: "17:45",
         embedUrl: "https://www.youtube.com/embed/UYhiCvN7fhk",
         youtubeId: "UYhiCvN7fhk",
-        description: "Portfolio diversification and correlation."
+        description: "Portfolio diversification and correlation.",
       },
       {
         id: 25,
@@ -227,7 +236,7 @@ const videoSections = [
         duration: "15:30",
         embedUrl: "https://www.youtube.com/embed/FOy969v_wNQ",
         youtubeId: "FOy969v_wNQ",
-        description: "Risk-reward ratios and expectancy."
+        description: "Risk-reward ratios and expectancy.",
       },
       {
         id: 26,
@@ -235,9 +244,9 @@ const videoSections = [
         duration: "20:00",
         embedUrl: "https://www.youtube.com/embed/dbgKKEMpIlw",
         youtubeId: "dbgKKEMpIlw",
-        description: "Advanced risk management techniques."
-      }
-    ]
+        description: "Advanced risk management techniques.",
+      },
+    ],
   },
   {
     title: "Advanced Strategies",
@@ -249,7 +258,7 @@ const videoSections = [
         duration: "22:15",
         embedUrl: "https://www.youtube.com/embed/fW-rSt9ai6g",
         youtubeId: "fW-rSt9ai6g",
-        description: "Advanced trading strategies introduction."
+        description: "Advanced trading strategies introduction.",
       },
       {
         id: 28,
@@ -257,7 +266,7 @@ const videoSections = [
         duration: "24:30",
         embedUrl: "https://www.youtube.com/embed/ZTrYC7taCxQ",
         youtubeId: "ZTrYC7taCxQ",
-        description: "Algorithmic and systematic trading."
+        description: "Algorithmic and systematic trading.",
       },
       {
         id: 29,
@@ -265,7 +274,7 @@ const videoSections = [
         duration: "21:45",
         embedUrl: "https://www.youtube.com/embed/ODPcZqMYK0I",
         youtubeId: "ODPcZqMYK0I",
-        description: "Market microstructure and order flow."
+        description: "Market microstructure and order flow.",
       },
       {
         id: 30,
@@ -273,7 +282,7 @@ const videoSections = [
         duration: "23:20",
         embedUrl: "https://www.youtube.com/embed/0fV51TI2MQU",
         youtubeId: "0fV51TI2MQU",
-        description: "Options strategies and derivatives."
+        description: "Options strategies and derivatives.",
       },
       {
         id: 31,
@@ -281,21 +290,25 @@ const videoSections = [
         duration: "25:00",
         embedUrl: "https://www.youtube.com/embed/imo5lsZzOSE",
         youtubeId: "imo5lsZzOSE",
-        description: "Professional trading psychology and mastery."
-      }
-    ]
-  }
+        description: "Professional trading psychology and mastery.",
+      },
+    ],
+  },
 ];
 
 export default function FreeVideosPage() {
   const [isNavProcessing, setIsNavProcessing] = useState(false);
 
   // Smart routing for nav button
-  const { handleSmartNavigation: handleNavSmartRouting, isLoaded, isSignedIn } = useSmartRouting({
+  const {
+    handleSmartNavigation: handleNavSmartRouting,
+    isLoaded,
+    isSignedIn,
+  } = useSmartRouting({
     loadingCallback: setIsNavProcessing,
     onError: (error) => {
-      console.error('Nav smart routing error:', error);
-    }
+      console.error("Nav smart routing error:", error);
+    },
   });
 
   const handleStartTrialClick = async () => {
@@ -303,7 +316,10 @@ export default function FreeVideosPage() {
     await handleNavSmartRouting();
   };
 
-  const totalVideos = videoSections.reduce((total, section) => total + section.videos.length, 0);
+  const totalVideos = videoSections.reduce(
+    (total, section) => total + section.videos.length,
+    0,
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black text-white">
@@ -321,23 +337,52 @@ export default function FreeVideosPage() {
             {/* Logo and Title */}
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
-                <Image src="/logo.png" alt="TradersUtopia" width={20} height={20} className="sm:w-6 sm:h-6" />
+                <Image
+                  src="/logo.png"
+                  alt="TradersUtopia"
+                  width={20}
+                  height={20}
+                  className="sm:w-6 sm:h-6"
+                />
               </div>
-              <span className="text-white text-lg sm:text-xl font-bold tracking-tight">TradersUtopia</span>
+              <span className="text-white text-lg sm:text-xl font-bold tracking-tight">
+                TradersUtopia
+              </span>
             </div>
-            
+
             {/* Navigation */}
             <nav className="hidden lg:flex items-center gap-6 text-sm">
-              <NavigationButton href="/" className="text-gray-300 hover:text-white transition-colors" loadingMessage="Loading homepage...">Home</NavigationButton>
-              <Link href="#videos" className="text-yellow-400 font-semibold">Free Videos</Link>
-              <NavigationButton href="/pricing" className="text-gray-300 hover:text-white transition-colors" loadingMessage="Loading pricing information...">Pricing</NavigationButton>
+              <NavigationButton
+                href="/"
+                className="text-gray-300 hover:text-white transition-colors"
+                loadingMessage="Loading homepage..."
+              >
+                Home
+              </NavigationButton>
+              <Link href="#videos" className="text-yellow-400 font-semibold">
+                Free Videos
+              </Link>
+              <NavigationButton
+                href="/pricing"
+                className="text-gray-300 hover:text-white transition-colors"
+                loadingMessage="Loading pricing information..."
+              >
+                Pricing
+              </NavigationButton>
             </nav>
           </div>
-          
+
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Authentication Section */}
             <SignedOut>
-              <NavigationButton href="/sign-in" className="hidden sm:block" asButton={true} variant="ghost" size="sm" loadingMessage="Redirecting to sign in...">
+              <NavigationButton
+                href="/sign-in"
+                className="hidden sm:block"
+                asButton={true}
+                variant="ghost"
+                size="sm"
+                loadingMessage="Redirecting to sign in..."
+              >
                 Sign In
               </NavigationButton>
               <Button
@@ -361,15 +406,22 @@ export default function FreeVideosPage() {
             </SignedOut>
             <SignedIn>
               <div className="flex items-center gap-2 sm:gap-3">
-                <NavigationButton href="/dashboard" asButton={true} variant="outline" className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black text-sm px-2 sm:px-4" size="sm" loadingMessage="Loading your dashboard...">
+                <NavigationButton
+                  href="/dashboard"
+                  asButton={true}
+                  variant="outline"
+                  className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black text-sm px-2 sm:px-4"
+                  size="sm"
+                  loadingMessage="Loading your dashboard..."
+                >
                   <span className="hidden xs:inline">Dashboard</span>
                   <span className="xs:hidden">App</span>
                 </NavigationButton>
-                <UserButton 
+                <UserButton
                   appearance={{
                     elements: {
-                      avatarBox: "w-6 h-6 sm:w-8 sm:h-8"
-                    }
+                      avatarBox: "w-6 h-6 sm:w-8 sm:h-8",
+                    },
                   }}
                 />
               </div>
@@ -385,7 +437,9 @@ export default function FreeVideosPage() {
             {/* Free Badge */}
             <div className="inline-flex items-center gap-2 bg-green-600/20 border border-green-400/30 rounded-full px-4 py-2 mb-6">
               <Award className="w-5 h-5 text-green-400" />
-              <span className="text-green-400 text-sm font-medium">100% Free Course Content</span>
+              <span className="text-green-400 text-sm font-medium">
+                100% Free Course Content
+              </span>
             </div>
 
             <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
@@ -395,27 +449,43 @@ export default function FreeVideosPage() {
               <br />
               <span className="text-white">Master the Markets</span>
             </h1>
-            
+
             <p className="text-lg xs:text-xl sm:text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed px-4">
-              Access our complete trading education library with {totalVideos} professional lessons covering everything from basics to advanced strategies.
+              Access our complete trading education library with {totalVideos}{" "}
+              professional lessons covering everything from basics to advanced
+              strategies.
             </p>
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 mb-12 text-center max-w-5xl mx-auto">
               <div className="flex flex-col items-center bg-gradient-to-b from-blue-500/10 to-blue-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-blue-400/20">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-400">{totalVideos}</div>
-                <div className="text-xs sm:text-sm text-gray-300">Free Videos</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-400">
+                  {totalVideos}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-300">
+                  Free Videos
+                </div>
               </div>
               <div className="flex flex-col items-center bg-gradient-to-b from-green-500/10 to-green-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-green-400/20">
-                <div className="text-2xl sm:text-3xl font-bold text-green-400">8+</div>
-                <div className="text-xs sm:text-sm text-gray-300">Hours Content</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-400">
+                  8+
+                </div>
+                <div className="text-xs sm:text-sm text-gray-300">
+                  Hours Content
+                </div>
               </div>
               <div className="flex flex-col items-center bg-gradient-to-b from-purple-500/10 to-purple-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-purple-400/20">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-400">4</div>
-                <div className="text-xs sm:text-sm text-gray-300">Course Modules</div>
+                <div className="text-2xl sm:text-3xl font-bold text-purple-400">
+                  4
+                </div>
+                <div className="text-xs sm:text-sm text-gray-300">
+                  Course Modules
+                </div>
               </div>
               <div className="flex flex-col items-center bg-gradient-to-b from-yellow-500/10 to-yellow-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-yellow-400/20">
-                <div className="text-2xl sm:text-3xl font-bold text-yellow-400">HD</div>
+                <div className="text-2xl sm:text-3xl font-bold text-yellow-400">
+                  HD
+                </div>
                 <div className="text-xs sm:text-sm text-gray-300">Quality</div>
               </div>
             </div>
@@ -455,10 +525,13 @@ export default function FreeVideosPage() {
               {/* Video Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {section.videos.map((video) => (
-                  <div key={video.id} className="group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl overflow-hidden border border-gray-700/50 hover:border-yellow-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-yellow-400/10 backdrop-blur-sm">
+                  <div
+                    key={video.id}
+                    className="group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl overflow-hidden border border-gray-700/50 hover:border-yellow-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-yellow-400/10 backdrop-blur-sm"
+                  >
                     {/* YouTube Video Embed */}
                     <div className="relative aspect-video bg-gradient-to-br from-gray-900 to-black overflow-hidden">
-                      <iframe 
+                      <iframe
                         src={`${video.embedUrl}?rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent&controls=1&autohide=1`}
                         title={video.title}
                         className="w-full h-full"
@@ -466,7 +539,7 @@ export default function FreeVideosPage() {
                         allowFullScreen
                         loading="lazy"
                       />
-                      
+
                       {/* Duration Badge */}
                       <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded text-white text-xs flex items-center gap-1 z-10">
                         <Clock className="w-3 h-3" />
@@ -487,8 +560,8 @@ export default function FreeVideosPage() {
                       <p className="text-gray-400 text-sm mb-3 line-clamp-2">
                         {video.description}
                       </p>
-                      
-                      <a 
+
+                      <a
                         href={`https://www.youtube.com/watch?v=${video.youtubeId}`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -509,9 +582,12 @@ export default function FreeVideosPage() {
         <section className="bg-gradient-to-r from-gray-900/50 to-black py-20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
             <div className="bg-gradient-to-br from-yellow-600/20 to-yellow-800/20 border border-yellow-400/30 rounded-2xl p-8">
-              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Ready for Advanced Training?</h2>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+                Ready for Advanced Training?
+              </h2>
               <p className="text-xl text-gray-300 mb-6">
-                Get real-time trade alerts, live sessions, and premium strategies with our paid membership.
+                Get real-time trade alerts, live sessions, and premium
+                strategies with our paid membership.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/pricing">
@@ -534,7 +610,12 @@ export default function FreeVideosPage() {
             <div className="text-center">
               <div className="flex items-center justify-center gap-3 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
-                  <Image src="/logo.png" alt="TradersUtopia" width={20} height={20} />
+                  <Image
+                    src="/logo.png"
+                    alt="TradersUtopia"
+                    width={20}
+                    height={20}
+                  />
                 </div>
                 <span className="text-white font-bold">TradersUtopia</span>
               </div>
@@ -542,9 +623,18 @@ export default function FreeVideosPage() {
                 Professional trading education and signals platform.
               </p>
               <div className="flex items-center justify-center gap-6 text-sm">
-                <Link href="/" className="text-gray-400 hover:text-white">Home</Link>
-                <Link href="/pricing" className="text-gray-400 hover:text-white">Pricing</Link>
-                <Link href="/free-videos" className="text-yellow-400">Free Videos</Link>
+                <Link href="/" className="text-gray-400 hover:text-white">
+                  Home
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="text-gray-400 hover:text-white"
+                >
+                  Pricing
+                </Link>
+                <Link href="/free-videos" className="text-yellow-400">
+                  Free Videos
+                </Link>
               </div>
             </div>
           </div>
@@ -552,4 +642,4 @@ export default function FreeVideosPage() {
       </div>
     </div>
   );
-} 
+}

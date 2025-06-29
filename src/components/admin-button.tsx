@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Crown, ShieldOff, Loader2 } from 'lucide-react';
-import { showToast } from '@/lib/notifications-client';
-import { useRouter } from 'next/navigation';
-import { makeSecureRequest } from '@/lib/csrf-client';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Crown, ShieldOff, Loader2 } from "lucide-react";
+import { showToast } from "@/lib/notifications-client";
+import { useRouter } from "next/navigation";
+import { makeSecureRequest } from "@/lib/csrf-client";
 
 interface AdminButtonProps {
   isAdmin: boolean;
@@ -18,45 +18,51 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
   const handleGrantAdmin = async () => {
     setIsLoading(true);
     try {
-      const response = await makeSecureRequest('/api/admin/grant-access', {
-        method: 'POST',
+      const response = await makeSecureRequest("/api/admin/grant-access", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        showToast.success('🔑 Admin Access Granted!', data.message);
-        
+        showToast.success("🔑 Admin Access Granted!", data.message);
+
         // ✅ ENHANCEMENT: Update server roles after granting admin privileges
         try {
-          const serverResponse = await makeSecureRequest('/api/servers/ensure-default', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+          const serverResponse = await makeSecureRequest(
+            "/api/servers/ensure-default",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
             },
-          });
+          );
 
           if (serverResponse.ok) {
-            showToast.success('🔄 Server Roles Updated!', 'Your server permissions have been upgraded');
+            showToast.success(
+              "🔄 Server Roles Updated!",
+              "Your server permissions have been upgraded",
+            );
           }
         } catch (serverError) {
-          console.error('Error updating server roles:', serverError);
+          console.error("Error updating server roles:", serverError);
           // Don't show error to user - the main admin grant succeeded
         }
-        
+
         // Refresh the page to update the UI
         setTimeout(() => {
           router.refresh();
         }, 1000);
       } else {
-        showToast.error('❌ Failed to Grant Admin Access', data.error);
+        showToast.error("❌ Failed to Grant Admin Access", data.error);
       }
     } catch (error) {
-      console.error('Error granting admin access:', error);
-      showToast.error('❌ Error', 'Failed to grant admin access');
+      console.error("Error granting admin access:", error);
+      showToast.error("❌ Error", "Failed to grant admin access");
     } finally {
       setIsLoading(false);
     }
@@ -65,45 +71,51 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
   const handleRevokeAdmin = async () => {
     setIsLoading(true);
     try {
-      const response = await makeSecureRequest('/api/admin/revoke-access', {
-        method: 'POST',
+      const response = await makeSecureRequest("/api/admin/revoke-access", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        showToast.success('🔒 Admin Access Revoked!', data.message);
-        
+        showToast.success("🔒 Admin Access Revoked!", data.message);
+
         // ✅ FIX: Update server roles after revoking admin privileges
         try {
-          const serverResponse = await makeSecureRequest('/api/servers/ensure-default', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+          const serverResponse = await makeSecureRequest(
+            "/api/servers/ensure-default",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
             },
-          });
+          );
 
           if (serverResponse.ok) {
-            showToast.success('🔄 Server Roles Updated!', 'Your server permissions have been downgraded');
+            showToast.success(
+              "🔄 Server Roles Updated!",
+              "Your server permissions have been downgraded",
+            );
           }
         } catch (serverError) {
-          console.error('Error updating server roles:', serverError);
+          console.error("Error updating server roles:", serverError);
           // Don't show error to user - the main admin revoke succeeded
         }
-        
+
         // Refresh the page to update the UI
         setTimeout(() => {
           router.refresh();
         }, 1000);
       } else {
-        showToast.error('❌ Failed to Revoke Admin Access', data.error);
+        showToast.error("❌ Failed to Revoke Admin Access", data.error);
       }
     } catch (error) {
-      console.error('Error revoking admin access:', error);
-      showToast.error('❌ Error', 'Failed to revoke admin access');
+      console.error("Error revoking admin access:", error);
+      showToast.error("❌ Error", "Failed to revoke admin access");
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +123,7 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
 
   if (isAdmin) {
     return (
-      <Button 
+      <Button
         onClick={handleRevokeAdmin}
         disabled={isLoading}
         variant="outline"
@@ -133,7 +145,7 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
   }
 
   return (
-    <Button 
+    <Button
       onClick={handleGrantAdmin}
       disabled={isLoading}
       className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white"
@@ -151,4 +163,4 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
       )}
     </Button>
   );
-} 
+}

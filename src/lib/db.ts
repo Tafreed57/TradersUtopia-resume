@@ -1,3 +1,3 @@
 import { prisma } from "./prismadb";
 
-export const db = prisma; 
+export const db = prisma;

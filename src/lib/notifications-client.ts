@@ -23,8 +23,8 @@ export const showToast = {
       loading: string;
       success: string;
       error: string;
-    }
+    },
   ) => {
     return toast.promise(promise, messages);
-  }
-}; 
+  },
+};

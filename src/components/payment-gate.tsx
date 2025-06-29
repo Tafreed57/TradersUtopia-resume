@@ -25,7 +25,7 @@ export function PaymentGate({ children }: PaymentGateProps) {
       try {
         const response = await fetch("/api/subscription/check");
         const data = await response.json();
-        
+
         if (data.hasAccess) {
           setHasAccess(true);
         } else {
@@ -67,9 +67,10 @@ export function PaymentGate({ children }: PaymentGateProps) {
             Subscription Required
           </h2>
           <p className="text-gray-300 mb-6">
-            You need an active subscription to access the dashboard. Join our premium trading community today!
+            You need an active subscription to access the dashboard. Join our
+            premium trading community today!
           </p>
-          <Button 
+          <Button
             onClick={() => router.push("/pricing")}
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 text-lg font-semibold"
           >
@@ -81,4 +82,4 @@ export function PaymentGate({ children }: PaymentGateProps) {
   }
 
   return <>{children}</>;
-} 
+}

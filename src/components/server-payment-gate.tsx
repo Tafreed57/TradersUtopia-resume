@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Star, CheckCircle } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Lock, Star, CheckCircle } from "lucide-react";
 
 interface PaymentStatus {
   hasAccess: boolean;
@@ -19,7 +25,9 @@ interface ServerPaymentGateProps {
 
 export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
   const { user, isLoaded } = useUser();
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,16 +38,16 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
       }
 
       try {
-        const response = await fetch('/api/check-payment-status');
+        const response = await fetch("/api/check-payment-status");
         const data = await response.json();
         setPaymentStatus(data);
       } catch (error) {
-        console.error('Error checking payment status:', error);
+        console.error("Error checking payment status:", error);
         setPaymentStatus({
           hasAccess: false,
-          subscriptionStatus: 'FREE',
+          subscriptionStatus: "FREE",
           subscriptionEnd: null,
-          reason: 'Error checking status'
+          reason: "Error checking status",
         });
       } finally {
         setLoading(false);
@@ -69,9 +77,9 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              className="w-full" 
-              onClick={() => window.location.href = '/'}
+            <Button
+              className="w-full"
+              onClick={() => (window.location.href = "/")}
             >
               Go to Homepage
             </Button>
@@ -96,11 +104,14 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
               Unlock exclusive trading alerts and market insights
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <div className="text-center">
               <p className="text-muted-foreground mb-4">
-                Current Status: <span className="font-semibold text-red-600">{paymentStatus?.subscriptionStatus || 'FREE'}</span>
+                Current Status:{" "}
+                <span className="font-semibold text-red-600">
+                  {paymentStatus?.subscriptionStatus || "FREE"}
+                </span>
               </p>
               <p className="text-sm text-muted-foreground">
                 {paymentStatus?.reason}
@@ -139,17 +150,22 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                onClick={() => window.open('https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01', '_blank')}
+                onClick={() =>
+                  window.open(
+                    "https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01",
+                    "_blank",
+                  )
+                }
               >
                 Upgrade to Premium
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="lg"
-                onClick={() => window.location.href = '/'}
+                onClick={() => (window.location.href = "/")}
               >
                 Back to Homepage
               </Button>

@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Loader2, TrendingUp } from 'lucide-react';
-import Image from 'next/image';
+import { useEffect, useState } from "react";
+import { Loader2, TrendingUp } from "lucide-react";
+import Image from "next/image";
 
 interface LoadingScreenProps {
   isVisible: boolean;
   message?: string;
 }
 
-export function LoadingScreen({ isVisible, message = "Loading..." }: LoadingScreenProps) {
+export function LoadingScreen({
+  isVisible,
+  message = "Loading...",
+}: LoadingScreenProps) {
   const [progress, setProgress] = useState(0);
   const [currentMessage, setCurrentMessage] = useState(message);
 
@@ -21,7 +24,7 @@ export function LoadingScreen({ isVisible, message = "Loading..." }: LoadingScre
 
     // Simulate loading progress
     const interval = setInterval(() => {
-      setProgress(prev => {
+      setProgress((prev) => {
         if (prev >= 95) return prev;
         return prev + Math.random() * 15;
       });
@@ -32,7 +35,7 @@ export function LoadingScreen({ isVisible, message = "Loading..." }: LoadingScre
       "Loading your trading platform...",
       "Preparing market data...",
       "Securing your connection...",
-      "Almost ready..."
+      "Almost ready...",
     ];
 
     let messageIndex = 0;
@@ -66,13 +69,21 @@ export function LoadingScreen({ isVisible, message = "Loading..." }: LoadingScre
         <div className="mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center shadow-2xl animate-pulse">
-              <Image src="/logo.png" alt="TradersUtopia" width={32} height={32} className="filter brightness-0" />
+              <Image
+                src="/logo.png"
+                alt="TradersUtopia"
+                width={32}
+                height={32}
+                className="filter brightness-0"
+              />
             </div>
             <div className="text-left">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
                 TradersUtopia
               </h1>
-              <p className="text-gray-400 text-sm">Professional Trading Platform</p>
+              <p className="text-gray-400 text-sm">
+                Professional Trading Platform
+              </p>
             </div>
           </div>
         </div>
@@ -83,7 +94,7 @@ export function LoadingScreen({ isVisible, message = "Loading..." }: LoadingScre
             {/* Outer spinning ring */}
             <div className="absolute inset-0 border-4 border-gray-700 rounded-full"></div>
             <div className="absolute inset-0 border-4 border-yellow-400 rounded-full border-t-transparent animate-spin"></div>
-            
+
             {/* Inner pulsing circle */}
             <div className="absolute inset-4 bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 rounded-full animate-pulse flex items-center justify-center">
               <TrendingUp className="w-8 h-8 text-yellow-400 animate-bounce" />
@@ -92,7 +103,7 @@ export function LoadingScreen({ isVisible, message = "Loading..." }: LoadingScre
 
           {/* Progress Bar */}
           <div className="w-full bg-gray-800 rounded-full h-2 mb-4 overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-full transition-all duration-300 ease-out shadow-lg shadow-yellow-400/50"
               style={{ width: `${Math.min(progress, 100)}%` }}
             ></div>
@@ -149,19 +160,19 @@ export function LoadingScreen({ isVisible, message = "Loading..." }: LoadingScre
             transform: translateY(0);
           }
         }
-        
+
         .animate-fade-in-up {
           animation: fade-in-up 0.6s ease-out forwards;
         }
-        
+
         .delay-200 {
           animation-delay: 0.2s;
         }
-        
+
         .delay-400 {
           animation-delay: 0.4s;
         }
       `}</style>
     </div>
   );
-} 
+}

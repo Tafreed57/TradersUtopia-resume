@@ -1,15 +1,21 @@
 "use client";
 
-import { useNavigation } from '@/hooks/use-navigation';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { ReactNode } from 'react';
+import { useNavigation } from "@/hooks/use-navigation";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ReactNode } from "react";
 
 interface NavigationButtonProps {
   href: string;
   children: ReactNode;
   className?: string;
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
   size?: "default" | "sm" | "lg" | "icon";
   loadingMessage?: string;
   asButton?: boolean;
@@ -17,16 +23,16 @@ interface NavigationButtonProps {
   onClick?: () => void;
 }
 
-export function NavigationButton({ 
-  href, 
-  children, 
-  className = "", 
+export function NavigationButton({
+  href,
+  children,
+  className = "",
   variant,
   size,
   loadingMessage,
   asButton = false,
   disabled = false,
-  onClick
+  onClick,
 }: NavigationButtonProps) {
   const { navigateTo } = useNavigation();
 
@@ -60,4 +66,4 @@ export function NavigationButton({
       {children}
     </Link>
   );
-} 
+}

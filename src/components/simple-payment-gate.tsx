@@ -24,9 +24,9 @@ export function SimplePaymentGate({ children }: SimplePaymentGateProps) {
       try {
         const response = await fetch("/api/check-payment-status");
         const data = await response.json();
-        
+
         console.log("Payment status check:", data);
-        
+
         if (data.hasAccess) {
           setHasAccess(true);
         } else {
@@ -63,4 +63,4 @@ export function SimplePaymentGate({ children }: SimplePaymentGateProps) {
   }
 
   return children;
-} 
+}

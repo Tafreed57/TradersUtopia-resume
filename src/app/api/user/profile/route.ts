@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { rateLimitGeneral, trackSuspiciousActivity } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
   try {
     // ✅ SECURITY: Rate limiting for profile access
     const rateLimitResult = await rateLimitGeneral()(request);
     if (!rateLimitResult.success) {
-      trackSuspiciousActivity(request, 'USER_PROFILE_RATE_LIMIT_EXCEEDED');
+      trackSuspiciousActivity(request, "USER_PROFILE_RATE_LIMIT_EXCEEDED");
       return rateLimitResult.error;
     }
 
     const user = await currentUser();
 
     if (!user) {
-      trackSuspiciousActivity(request, 'UNAUTHENTICATED_PROFILE_ACCESS');
+      trackSuspiciousActivity(request, "UNAUTHENTICATED_PROFILE_ACCESS");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching profile:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}

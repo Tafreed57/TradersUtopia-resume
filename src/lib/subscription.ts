@@ -5,7 +5,7 @@ export async function checkUserSubscription() {
   return {
     hasAccess: false,
     status: "FREE" as const,
-    canStartTrial: true
+    canStartTrial: true,
   };
 }
 
@@ -21,4 +21,4 @@ export async function activateSubscription(userId: string, paymentId: string) {
   const subscriptionEnd = new Date();
   subscriptionEnd.setMonth(subscriptionEnd.getMonth() + 1);
   return subscriptionEnd;
-} 
+}

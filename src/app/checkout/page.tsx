@@ -6,7 +6,6 @@ import Link from "next/link";
 import { AuthHeader } from "@/components/auth-header";
 
 export default function CheckoutPage() {
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
       {/* Header */}
@@ -17,7 +16,7 @@ export default function CheckoutPage() {
             <Image src="/logo.svg" alt="TradersUtopia" width={32} height={32} />
             <span className="text-white text-xl font-bold">TradersUtopia</span>
           </Link>
-          
+
           {/* Authentication Section */}
           <AuthHeader />
         </div>
@@ -36,10 +35,16 @@ export default function CheckoutPage() {
             Redirecting to Secure Checkout
           </h2>
           <p className="text-gray-300 mb-6">
-            You should have been redirected to our secure Stripe checkout page. If not, click the button below.
+            You should have been redirected to our secure Stripe checkout page.
+            If not, click the button below.
           </p>
-          <Button 
-            onClick={() => window.open("https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01", "_blank")}
+          <Button
+            onClick={() =>
+              window.open(
+                "https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01",
+                "_blank",
+              )
+            }
             className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-semibold"
           >
             Go to Secure Checkout
@@ -51,4 +56,4 @@ export default function CheckoutPage() {
       </div>
     </div>
   );
-} 
+}

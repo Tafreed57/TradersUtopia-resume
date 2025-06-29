@@ -36,9 +36,9 @@ export function PricingButtons() {
       const response = await fetch("/api/subscription/start-trial", {
         method: "POST",
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         router.push("/dashboard");
       } else {
@@ -59,8 +59,8 @@ export function PricingButtons() {
   if (checkingStatus) {
     return (
       <div className="space-y-4">
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           className="w-full bg-gray-600 text-white py-4 text-lg font-semibold rounded-full"
           disabled
         >
@@ -74,8 +74,8 @@ export function PricingButtons() {
   if (subscriptionData?.hasAccess) {
     return (
       <div className="space-y-4">
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           onClick={() => router.push("/dashboard")}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
         >
@@ -92,16 +92,16 @@ export function PricingButtons() {
   if (subscriptionData?.canStartTrial) {
     return (
       <div className="space-y-4">
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           onClick={handleStartTrial}
           disabled={loading}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
         >
           {loading ? "Starting Trial..." : "Start 14-Day Free Trial"}
         </Button>
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           onClick={handleBuyNow}
           variant="outline"
           className="w-full border-white/30 text-white hover:bg-white/10 py-4 text-lg font-semibold rounded-full"
@@ -118,8 +118,8 @@ export function PricingButtons() {
   // User cannot start trial (already used)
   return (
     <div className="space-y-4">
-      <Button 
-        size="lg" 
+      <Button
+        size="lg"
         onClick={handleBuyNow}
         className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
       >
@@ -130,4 +130,4 @@ export function PricingButtons() {
       </p>
     </div>
   );
-} 
+}

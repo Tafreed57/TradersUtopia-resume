@@ -7,20 +7,23 @@ interface CountdownTimerProps {
   initialSeconds?: number;
 }
 
-export function CountdownTimer({ initialMinutes = 4, initialSeconds = 18 }: CountdownTimerProps) {
+export function CountdownTimer({
+  initialMinutes = 4,
+  initialSeconds = 18,
+}: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState({
     minutes: initialMinutes,
-    seconds: initialSeconds
+    seconds: initialSeconds,
   });
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev) => {
         if (prev.minutes === 0 && prev.seconds === 0) {
           // Reset timer when it reaches 0
           return { minutes: initialMinutes, seconds: initialSeconds };
         }
-        
+
         if (prev.seconds > 0) {
           return { ...prev, seconds: prev.seconds - 1 };
         } else {
@@ -33,8 +36,8 @@ export function CountdownTimer({ initialMinutes = 4, initialSeconds = 18 }: Coun
   }, [initialMinutes, initialSeconds]);
 
   const formatTime = (minutes: number, seconds: number) => {
-    const mm = minutes.toString().padStart(2, '0');
-    const ss = seconds.toString().padStart(2, '0');
+    const mm = minutes.toString().padStart(2, "0");
+    const ss = seconds.toString().padStart(2, "0");
     return `${mm}:${ss}`;
   };
 
@@ -43,4 +46,4 @@ export function CountdownTimer({ initialMinutes = 4, initialSeconds = 18 }: Coun
       {formatTime(timeLeft.minutes, timeLeft.seconds)}
     </div>
   );
-} 
+}

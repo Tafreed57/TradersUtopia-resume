@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Star, CheckCircle, Shield } from 'lucide-react';
+import { useEffect, useState, useCallback } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Lock, Star, CheckCircle, Shield } from "lucide-react";
 
 interface ProductPaymentGateProps {
   children: React.ReactNode;
@@ -22,20 +28,22 @@ interface ProductAccessStatus {
   subscriptionEnd?: string;
 }
 
-export function ProductPaymentGate({ 
-  children, 
-  allowedProductIds, 
+export function ProductPaymentGate({
+  children,
+  allowedProductIds,
   productName = "Premium Product",
   upgradeUrl = "/pricing",
   features = [
     "Exclusive dashboard access",
     "Premium features",
-    "Priority support"
-  ]
+    "Priority support",
+  ],
 }: ProductPaymentGateProps) {
   const { isLoaded, user } = useUser();
   const router = useRouter();
-  const [accessStatus, setAccessStatus] = useState<ProductAccessStatus | null>(null);
+  const [accessStatus, setAccessStatus] = useState<ProductAccessStatus | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
 
@@ -48,24 +56,24 @@ export function ProductPaymentGate({
     try {
       setLoading(true);
       const response = await fetch("/api/check-product-subscription", {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          allowedProductIds
-        })
+          allowedProductIds,
+        }),
       });
 
       const data = await response.json();
       setAccessStatus(data);
-      
+
       console.log("Product access check:", data);
     } catch (error) {
       console.error("Error checking product access:", error);
       setAccessStatus({
         hasAccess: false,
-        reason: 'Error checking subscription status'
+        reason: "Error checking subscription status",
       });
     } finally {
       setLoading(false);
@@ -75,15 +83,15 @@ export function ProductPaymentGate({
   const verifyStripePayment = async () => {
     setVerifying(true);
     try {
-      const response = await fetch('/api/verify-stripe-payment', {
-        method: 'POST',
+      const response = await fetch("/api/verify-stripe-payment", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
-      
+
       const result = await response.json();
-      
+
       if (response.ok && result.success) {
         // Re-check product access after verification
         await checkProductAccess();
@@ -91,8 +99,8 @@ export function ProductPaymentGate({
         alert(`❌ ${result.message || result.error}`);
       }
     } catch (error) {
-      console.error('Error verifying payment:', error);
-      alert('❌ Error verifying payment with Stripe');
+      console.error("Error verifying payment:", error);
+      alert("❌ Error verifying payment with Stripe");
     } finally {
       setVerifying(false);
     }
@@ -117,7 +125,9 @@ export function ProductPaymentGate({
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Checking subscription access...</p>
+          <p className="text-muted-foreground">
+            Checking subscription access...
+          </p>
         </div>
       </div>
     );
@@ -138,18 +148,19 @@ export function ProductPaymentGate({
               This dashboard requires a subscription to {productName}
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <div className="text-center">
               <p className="text-muted-foreground mb-2">
-                <strong>Access Status:</strong> <span className="font-semibold text-red-600">Restricted</span>
+                <strong>Access Status:</strong>{" "}
+                <span className="font-semibold text-red-600">Restricted</span>
               </p>
               <p className="text-sm text-muted-foreground">
                 {accessStatus?.reason}
               </p>
               {allowedProductIds.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  Required products: {allowedProductIds.join(', ')}
+                  Required products: {allowedProductIds.join(", ")}
                 </p>
               )}
             </div>
@@ -171,19 +182,19 @@ export function ProductPaymentGate({
 
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      window.open(upgradeUrl, '_blank');
+                    if (typeof window !== "undefined") {
+                      window.open(upgradeUrl, "_blank");
                     }
                   }}
                 >
                   Subscribe to {productName}
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="lg"
                   onClick={() => router.push("/")}
                 >
@@ -202,14 +213,16 @@ export function ProductPaymentGate({
                 </div>
               </div>
 
-              <Button 
+              <Button
                 variant="outline"
                 size="lg"
                 className="w-full"
                 onClick={verifyStripePayment}
                 disabled={verifying}
               >
-                {verifying ? 'Verifying...' : '🔍 Verify My Payment with Stripe'}
+                {verifying
+                  ? "Verifying..."
+                  : "🔍 Verify My Payment with Stripe"}
               </Button>
             </div>
 
@@ -235,7 +248,8 @@ export function ProductPaymentGate({
               ✅ Access granted via {productName} subscription
               {accessStatus.subscriptionEnd && (
                 <span className="ml-2 text-xs">
-                  (Valid until {new Date(accessStatus.subscriptionEnd).toLocaleDateString()})
+                  (Valid until{" "}
+                  {new Date(accessStatus.subscriptionEnd).toLocaleDateString()})
                 </span>
               )}
             </p>
@@ -245,4 +259,4 @@ export function ProductPaymentGate({
       {children}
     </>
   );
-} 
+}

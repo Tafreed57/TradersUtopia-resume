@@ -12,19 +12,19 @@ import { EditChannelModal } from "@/components/modals/edit-channel-modal";
 import { MessageFileModal } from "@/components/modals/message-file-modal";
 import { DeleteMessageModal } from "@/components/modals/delete-message-modal";
 export function ModalProvider() {
-	return (
-		<>
-			<CreateServerModal />
-			<EditServerModal />
-			<InviteModal />
-			<ManageMembersModal />
-			<CreateChannelModal />
-			<LeaveServerModal />
-			<DeleteServerModal />
-			<DeleteChannelModal />
-			<EditChannelModal />
-			<MessageFileModal />
-			<DeleteMessageModal />
-		</>
-	);
+  return (
+    <>
+      <CreateServerModal />
+      <EditServerModal />
+      <InviteModal />
+      <ManageMembersModal />
+      <CreateChannelModal />
+      <LeaveServerModal />
+      <DeleteServerModal />
+      <DeleteChannelModal />
+      <EditChannelModal />
+      <MessageFileModal />
+      <DeleteMessageModal />
+    </>
+  );
 }

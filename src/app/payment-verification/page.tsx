@@ -1,51 +1,65 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import Image from "next/image";
 import Link from "next/link";
 import { AuthHeader } from "@/components/auth-header";
 import { GlobalMobileMenu } from "@/components/global-mobile-menu";
 import { NavigationButton } from "@/components/navigation-button";
 import { useLoading } from "@/contexts/loading-provider";
-import { CheckCircle, CreditCard, ArrowRight, Loader2, ExternalLink } from "lucide-react";
+import {
+  CheckCircle,
+  CreditCard,
+  ArrowRight,
+  Loader2,
+  ExternalLink,
+} from "lucide-react";
 
 export default function PaymentVerificationPage() {
   const router = useRouter();
   const { startLoading } = useLoading();
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [verificationStatus, setVerificationStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
 
   const verifyStripePayment = async () => {
     setIsVerifying(true);
-    setVerificationStatus('idle');
-    
+    setVerificationStatus("idle");
+
     try {
-      const response = await fetch('/api/verify-stripe-payment', {
-        method: 'POST',
+      const response = await fetch("/api/verify-stripe-payment", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
-      
+
       const result = await response.json();
-      
+
       if (response.ok && result.success) {
-        setVerificationStatus('success');
+        setVerificationStatus("success");
         setTimeout(() => {
-          startLoading('Loading your dashboard...');
+          startLoading("Loading your dashboard...");
           router.push("/dashboard");
         }, 2000);
       } else {
-        setVerificationStatus('error');
+        setVerificationStatus("error");
         alert(`❌ ${result.message || result.error}`);
       }
     } catch (error) {
-      console.error('Error verifying payment:', error);
-      setVerificationStatus('error');
-      alert('❌ Error verifying payment with Stripe');
+      console.error("Error verifying payment:", error);
+      setVerificationStatus("error");
+      alert("❌ Error verifying payment with Stripe");
     } finally {
       setIsVerifying(false);
     }
@@ -66,19 +80,33 @@ export default function PaymentVerificationPage() {
           {/* Logo and Title */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
-              <Image src="/logo.png" alt="TradersUtopia" width={20} height={20} className="sm:w-6 sm:h-6" />
+              <Image
+                src="/logo.png"
+                alt="TradersUtopia"
+                width={20}
+                height={20}
+                className="sm:w-6 sm:h-6"
+              />
             </div>
-            <span className="text-white text-lg sm:text-xl font-bold">TradersUtopia</span>
+            <span className="text-white text-lg sm:text-xl font-bold">
+              TradersUtopia
+            </span>
           </Link>
-          
+
           {/* Authentication Section */}
           <div className="hidden lg:block">
             <AuthHeader />
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2 sm:gap-4">
-          <NavigationButton href="/pricing" asButton={true} variant="ghost" className="text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30" loadingMessage="Loading pricing information...">
+          <NavigationButton
+            href="/pricing"
+            asButton={true}
+            variant="ghost"
+            className="text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30"
+            loadingMessage="Loading pricing information..."
+          >
             Back to Pricing
           </NavigationButton>
           <GlobalMobileMenu />
@@ -93,15 +121,16 @@ export default function PaymentVerificationPage() {
               <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
                 <CreditCard className="w-8 h-8 sm:w-10 sm:h-10 text-black" />
               </div>
-              
+
               <CardTitle className="text-2xl sm:text-3xl font-bold mb-4">
                 <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
                   Complete Your Purchase
                 </span>
               </CardTitle>
-              
+
               <CardDescription className="text-gray-300 text-base sm:text-lg text-center">
-                Complete your payment in the Stripe window, then verify your purchase below to access your premium features.
+                Complete your payment in the Stripe window, then verify your
+                purchase below to access your premium features.
               </CardDescription>
             </CardHeader>
 
@@ -113,13 +142,22 @@ export default function PaymentVerificationPage() {
                     <span className="text-blue-400 font-bold">1</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-white font-semibold">Complete Payment in Stripe</p>
-                    <p className="text-blue-200 text-sm">Secure checkout powered by Stripe</p>
+                    <p className="text-white font-semibold">
+                      Complete Payment in Stripe
+                    </p>
+                    <p className="text-blue-200 text-sm">
+                      Secure checkout powered by Stripe
+                    </p>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
-                    onClick={() => window.open("https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01", "_blank")}
+                    onClick={() =>
+                      window.open(
+                        "https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01",
+                        "_blank",
+                      )
+                    }
                     className="border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black flex-shrink-0"
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
@@ -132,27 +170,35 @@ export default function PaymentVerificationPage() {
                     <span className="text-green-400 font-bold">2</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-white font-semibold">Verify Your Purchase</p>
-                    <p className="text-green-200 text-sm">Click below after completing payment</p>
+                    <p className="text-white font-semibold">
+                      Verify Your Purchase
+                    </p>
+                    <p className="text-green-200 text-sm">
+                      Click below after completing payment
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Verification Button */}
               <div className="pt-4 border-t border-gray-600/30">
-                {verificationStatus === 'success' ? (
+                {verificationStatus === "success" ? (
                   <div className="text-center space-y-4">
                     <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
                       <CheckCircle className="w-8 h-8 text-green-400" />
                     </div>
                     <div>
-                      <p className="text-green-400 font-semibold text-lg">Payment Verified Successfully!</p>
-                      <p className="text-gray-300 text-sm">Redirecting to your dashboard...</p>
+                      <p className="text-green-400 font-semibold text-lg">
+                        Payment Verified Successfully!
+                      </p>
+                      <p className="text-gray-300 text-sm">
+                        Redirecting to your dashboard...
+                      </p>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <Button 
+                    <Button
                       onClick={verifyStripePayment}
                       disabled={isVerifying}
                       className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
@@ -169,11 +215,12 @@ export default function PaymentVerificationPage() {
                         </div>
                       )}
                     </Button>
-                    
-                    {verificationStatus === 'error' && (
+
+                    {verificationStatus === "error" && (
                       <div className="bg-red-600/20 border border-red-400/30 rounded-xl p-4 text-center">
                         <p className="text-red-300 text-sm">
-                          ❌ Verification failed. Please ensure your payment completed successfully and try again.
+                          ❌ Verification failed. Please ensure your payment
+                          completed successfully and try again.
                         </p>
                       </div>
                     )}
@@ -190,7 +237,9 @@ export default function PaymentVerificationPage() {
                   <div className="space-y-1 text-xs text-gray-400">
                     <p>• Complete your payment in the Stripe window</p>
                     <p>• Return here and click "Verify Stripe Payment"</p>
-                    <p>• You'll be automatically redirected to your dashboard</p>
+                    <p>
+                      • You'll be automatically redirected to your dashboard
+                    </p>
                   </div>
                 </div>
               </div>
@@ -200,4 +249,4 @@ export default function PaymentVerificationPage() {
       </div>
     </div>
   );
-} 
+}

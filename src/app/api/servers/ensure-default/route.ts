@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import { v4 as uuidv4 } from 'uuid';
+import { NextRequest, NextResponse } from "next/server";
+import { currentUser } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import { v4 as uuidv4 } from "uuid";
 
 const DEFAULT_SERVER_NAME = "Traders Utopia";
 const DEFAULT_INVITE_CODE = "TRADERS-UTOPIA";
@@ -9,20 +9,20 @@ const DEFAULT_INVITE_CODE = "TRADERS-UTOPIA";
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();
-    
+
     if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     // Find or create the user's profile
     let profile = await db.profile.findFirst({
-      where: { userId: user.id }
+      where: { userId: user.id },
     });
 
     if (!profile) {
       const userEmail = user.emailAddresses[0]?.emailAddress;
       if (!userEmail) {
-        return NextResponse.json({ error: 'No email found' }, { status: 400 });
+        return NextResponse.json({ error: "No email found" }, { status: 400 });
       }
 
       profile = await db.profile.create({
@@ -31,31 +31,31 @@ export async function POST(request: NextRequest) {
           name: `${user.firstName} ${user.lastName}`,
           email: userEmail,
           imageUrl: user.imageUrl,
-        }
+        },
       });
     }
 
     // Check if default server exists
     let defaultServer = await db.server.findFirst({
-      where: { 
+      where: {
         name: DEFAULT_SERVER_NAME,
-        inviteCode: DEFAULT_INVITE_CODE
+        inviteCode: DEFAULT_INVITE_CODE,
       },
       include: {
         members: true,
-        channels: true
-      }
+        channels: true,
+      },
     });
 
     // Create default server if it doesn't exist
     if (!defaultServer) {
       console.log(`🏗️ Creating default server: ${DEFAULT_SERVER_NAME}`);
-      
+
       // Find the first admin user to be the server owner, or use current profile
       const adminProfile = await db.profile.findFirst({
-        where: { isAdmin: true }
+        where: { isAdmin: true },
       });
-      
+
       const serverOwner = adminProfile || profile;
 
       defaultServer = await db.server.create({
@@ -69,42 +69,44 @@ export async function POST(request: NextRequest) {
               {
                 name: "general",
                 profileId: serverOwner.id,
-                type: "TEXT"
+                type: "TEXT",
               },
               {
-                name: "announcements", 
+                name: "announcements",
                 profileId: serverOwner.id,
-                type: "TEXT"
+                type: "TEXT",
               },
               {
                 name: "trading-discussion",
                 profileId: serverOwner.id,
-                type: "TEXT"
-              }
-            ]
+                type: "TEXT",
+              },
+            ],
           },
           members: {
             create: {
               profileId: serverOwner.id,
-              role: "ADMIN"
-            }
-          }
+              role: "ADMIN",
+            },
+          },
         },
         include: {
           members: true,
-          channels: true
-        }
+          channels: true,
+        },
       });
 
-      console.log(`✅ Created default server with ${defaultServer.channels.length} channels`);
+      console.log(
+        `✅ Created default server with ${defaultServer.channels.length} channels`,
+      );
     }
 
     // Check if user is already a member
     const existingMembership = await db.member.findFirst({
       where: {
         profileId: profile.id,
-        serverId: defaultServer.id
-      }
+        serverId: defaultServer.id,
+      },
     });
 
     if (!existingMembership) {
@@ -113,27 +115,31 @@ export async function POST(request: NextRequest) {
         data: {
           profileId: profile.id,
           serverId: defaultServer.id,
-          role: profile.isAdmin ? "ADMIN" : "GUEST"
-        }
+          role: profile.isAdmin ? "ADMIN" : "GUEST",
+        },
       });
 
-      console.log(`👥 Auto-joined user ${profile.email} to ${DEFAULT_SERVER_NAME} as ${profile.isAdmin ? 'ADMIN' : 'GUEST'}`);
+      console.log(
+        `👥 Auto-joined user ${profile.email} to ${DEFAULT_SERVER_NAME} as ${profile.isAdmin ? "ADMIN" : "GUEST"}`,
+      );
     } else {
       // ✅ UPDATE: Check if existing member needs role upgrade based on global admin status
       const currentRole = existingMembership.role;
       const expectedRole = profile.isAdmin ? "ADMIN" : "GUEST";
-      
+
       if (currentRole !== expectedRole) {
         await db.member.update({
           where: {
-            id: existingMembership.id
+            id: existingMembership.id,
           },
           data: {
-            role: expectedRole
-          }
+            role: expectedRole,
+          },
         });
-        
-        console.log(`🔄 Updated user ${profile.email} role in ${DEFAULT_SERVER_NAME} from ${currentRole} to ${expectedRole}`);
+
+        console.log(
+          `🔄 Updated user ${profile.email} role in ${DEFAULT_SERVER_NAME} from ${currentRole} to ${expectedRole}`,
+        );
       }
     }
 
@@ -143,30 +149,32 @@ export async function POST(request: NextRequest) {
       include: {
         channels: {
           orderBy: {
-            createdAt: "asc"
-          }
+            createdAt: "asc",
+          },
         },
         members: {
           include: {
-            profile: true
-          }
-        }
-      }
+            profile: true,
+          },
+        },
+      },
     });
 
     return NextResponse.json({
       success: true,
       server: server,
-      message: `Successfully joined ${DEFAULT_SERVER_NAME}!`
+      message: `Successfully joined ${DEFAULT_SERVER_NAME}!`,
     });
-
   } catch (error) {
-    console.error('Error ensuring default server:', error);
-    
+    console.error("Error ensuring default server:", error);
+
     // ✅ SECURITY: Generic error response - no internal details exposed
-    return NextResponse.json({ 
-      error: 'Failed to ensure default server',
-      message: 'Unable to set up default server. Please try again later.'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: "Failed to ensure default server",
+        message: "Unable to set up default server. Please try again later.",
+      },
+      { status: 500 },
+    );
   }
-} 
+}

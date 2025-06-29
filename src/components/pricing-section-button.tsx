@@ -1,18 +1,25 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Loader2, Zap, Crown, ArrowRight, Shield, CheckCircle } from 'lucide-react';
-import { useSmartRouting } from '@/lib/smart-routing';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Loader2,
+  Zap,
+  Crown,
+  ArrowRight,
+  Shield,
+  CheckCircle,
+} from "lucide-react";
+import { useSmartRouting } from "@/lib/smart-routing";
 
 export function PricingSectionButton() {
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const { handleSmartNavigation, isLoaded, isSignedIn } = useSmartRouting({
     loadingCallback: setIsProcessing,
     onError: (error) => {
-      console.error('Smart routing error:', error);
-    }
+      console.error("Smart routing error:", error);
+    },
   });
 
   const handleClick = async () => {
@@ -24,8 +31,8 @@ export function PricingSectionButton() {
   if (!isLoaded) {
     return (
       <div className="flex flex-col items-center gap-4">
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           disabled
           className="bg-gradient-to-r from-green-500 to-green-600 text-white px-12 py-8 text-2xl font-bold rounded-2xl opacity-50 w-full max-w-md shadow-2xl"
         >
@@ -56,15 +63,15 @@ export function PricingSectionButton() {
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <Button 
-        size="lg" 
+      <Button
+        size="lg"
         onClick={handleClick}
         disabled={isProcessing}
         className={`bg-gradient-to-r ${getButtonColors()} text-white font-black px-12 py-8 text-2xl rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-3xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none w-full max-w-md border-2 border-white/30 relative overflow-hidden group`}
       >
         {/* Animated background pulse */}
         <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out"></div>
-        
+
         {isProcessing ? (
           <div className="flex items-center gap-3 relative z-10">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -96,7 +103,7 @@ export function PricingSectionButton() {
               <span>Premium Support</span>
             </div>
           </div>
-          
+
           {/* Urgency indicator */}
           <div className="bg-red-600/20 border border-red-500/30 rounded-lg px-4 py-2 backdrop-blur-sm">
             <div className="flex items-center justify-center gap-2 text-red-300 text-sm font-bold">
@@ -105,7 +112,7 @@ export function PricingSectionButton() {
               <span className="animate-pulse">🔥</span>
             </div>
           </div>
-          
+
           {/* Money back guarantee */}
           <p className="text-gray-400 text-xs">
             ✅ 30-day money-back guarantee • Cancel anytime • No questions asked
@@ -114,4 +121,4 @@ export function PricingSectionButton() {
       )}
     </div>
   );
-} 
+}

@@ -26,10 +26,10 @@ export const showToast = {
       loading: string;
       success: string;
       error: string;
-    }
+    },
   ) => {
     return toast.promise(promise, messages);
-  }
+  },
 };
 
 // Database notification functions
@@ -41,7 +41,14 @@ export async function createNotification({
   actionUrl,
 }: {
   userId: string;
-  type: "MESSAGE" | "MENTION" | "SERVER_UPDATE" | "FRIEND_REQUEST" | "SYSTEM" | "PAYMENT" | "SECURITY";
+  type:
+    | "MESSAGE"
+    | "MENTION"
+    | "SERVER_UPDATE"
+    | "FRIEND_REQUEST"
+    | "SYSTEM"
+    | "PAYMENT"
+    | "SECURITY";
   title: string;
   message: string;
   actionUrl?: string;
@@ -66,7 +73,7 @@ export async function createNotification({
         email: true,
         emailNotifications: true,
         pushNotifications: true,
-      }
+      },
     });
 
     if (!profile) {
@@ -95,21 +102,23 @@ export async function createNotification({
 
     // Map notification types to preference keys
     const typeMapping: Record<string, keyof typeof emailPrefs> = {
-      SYSTEM: 'system',
-      SECURITY: 'security',
-      PAYMENT: 'payment',
-      MESSAGE: 'messages',
-      MENTION: 'mentions',
-      SERVER_UPDATE: 'serverUpdates',
-      FRIEND_REQUEST: 'messages', // Treat as messages
+      SYSTEM: "system",
+      SECURITY: "security",
+      PAYMENT: "payment",
+      MESSAGE: "messages",
+      MENTION: "mentions",
+      SERVER_UPDATE: "serverUpdates",
+      FRIEND_REQUEST: "messages", // Treat as messages
     };
 
-    const prefKey = typeMapping[type] || 'system';
+    const prefKey = typeMapping[type] || "system";
 
     // Send email notification if enabled
     if (emailPrefs[prefKey] && profile.email) {
-      console.log(`📧 [NOTIFICATION] Sending email for ${type} to: ${profile.email}`);
-      
+      console.log(
+        `📧 [NOTIFICATION] Sending email for ${type} to: ${profile.email}`,
+      );
+
       sendNotificationEmail({
         to: profile.email,
         userName: profile.name,
@@ -124,8 +133,10 @@ export async function createNotification({
 
     // Send push notification if enabled
     if (pushPrefs[prefKey]) {
-      console.log(`📱 [NOTIFICATION] Sending push notification for ${type} to user: ${userId}`);
-      
+      console.log(
+        `📱 [NOTIFICATION] Sending push notification for ${type} to user: ${userId}`,
+      );
+
       sendPushNotification({
         userId,
         title,
@@ -137,9 +148,10 @@ export async function createNotification({
       });
     }
 
-    console.log(`✅ [NOTIFICATION] Created ${type} notification for user: ${userId}`);
+    console.log(
+      `✅ [NOTIFICATION] Created ${type} notification for user: ${userId}`,
+    );
     return notification;
-
   } catch (error) {
     console.error("❌ [NOTIFICATION] Failed to create notification:", error);
     return null;
@@ -192,4 +204,4 @@ export async function markAllNotificationsAsRead(userId: string) {
     console.error("Failed to mark all notifications as read:", error);
     return false;
   }
-} 
+}

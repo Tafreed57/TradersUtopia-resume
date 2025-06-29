@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export function AutoRouteAfterSignIn() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -19,56 +19,61 @@ export function AutoRouteAfterSignIn() {
       }
 
       // Check if user just came from sign-in and should be auto-routed
-      const autoRoute = searchParams?.get('auto_route');
-      const hasRedirectParam = searchParams?.get('redirect_url') !== null;
-      const hasClerkParam = searchParams?.get('__clerk_redirect_url') !== null;
-      const shouldAutoRoute = autoRoute === 'true' || hasRedirectParam || hasClerkParam;
+      const autoRoute = searchParams?.get("auto_route");
+      const hasRedirectParam = searchParams?.get("redirect_url") !== null;
+      const hasClerkParam = searchParams?.get("__clerk_redirect_url") !== null;
+      const shouldAutoRoute =
+        autoRoute === "true" || hasRedirectParam || hasClerkParam;
 
       if (!shouldAutoRoute) {
         setHasChecked(true);
         return;
       }
 
-      console.log('🎯 User returned from sign-in, automatically checking subscription...');
+      console.log(
+        "🎯 User returned from sign-in, automatically checking subscription...",
+      );
       setHasChecked(true);
       setIsAutoRouting(true);
 
       try {
         // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auto-route timeout')), 5000)
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Auto-route timeout")), 5000),
         );
 
         // Check subscription status
-        const productPromise = fetch('/api/check-product-subscription', {
-          method: 'POST',
+        const productPromise = fetch("/api/check-product-subscription", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            allowedProductIds: ['prod_SWIyAf2tfVrJao']
-          })
+            allowedProductIds: ["prod_SWIyAf2tfVrJao"],
+          }),
         });
 
-        const productResponse = await Promise.race([productPromise, timeoutPromise]) as Response;
+        const productResponse = (await Promise.race([
+          productPromise,
+          timeoutPromise,
+        ])) as Response;
         const productResult = await productResponse.json();
-        console.log('📊 Auto-check subscription result:', productResult);
+        console.log("📊 Auto-check subscription result:", productResult);
 
         // Route based on subscription status
         if (productResult.hasAccess) {
-          console.log('✅ User has subscription, auto-routing to dashboard...');
+          console.log("✅ User has subscription, auto-routing to dashboard...");
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push("/dashboard");
           }, 1000);
         } else {
-          console.log('❌ User needs subscription, auto-routing to pricing...');
+          console.log("❌ User needs subscription, auto-routing to pricing...");
           setTimeout(() => {
-            router.push('/pricing');
+            router.push("/pricing");
           }, 1000);
         }
-
       } catch (error) {
-        console.error('❌ Error in auto-route check:', error);
+        console.error("❌ Error in auto-route check:", error);
         setIsAutoRouting(false);
         // On error, don't redirect - let user use the button manually
       }
@@ -94,4 +99,4 @@ export function AutoRouteAfterSignIn() {
 
   // This component doesn't render anything when not auto-routing
   return null;
-} 
+}
