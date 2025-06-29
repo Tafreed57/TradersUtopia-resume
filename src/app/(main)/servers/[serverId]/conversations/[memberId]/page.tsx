@@ -1,22 +1,22 @@
-import { ChatHeader } from "@/components/chat/chat-header";
-import { ChatMessages } from "@/components/chat/chat-messages";
-import { ChatInput } from "@/components/chat/chat-input";
+import { ChatHeader } from '@/components/chat/chat-header';
+import { ChatMessages } from '@/components/chat/chat-messages';
+import { ChatInput } from '@/components/chat/chat-input';
 import {
   getCurrentMember,
   getCurrentProfile,
   getOrCreateConversation,
-} from "@/lib/query";
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { MediaRoom } from "@/components/media-room";
+} from '@/lib/query';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { MediaRoom } from '@/components/media-room';
 
-import type { Metadata } from "next";
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Traders Utopia | Conversation",
-  description: "Private conversation between trading community members",
+  title: 'Traders Utopia | Conversation',
+  description: 'Private conversation between trading community members',
   openGraph: {
-    type: "website",
+    type: 'website',
   },
 };
 
@@ -41,11 +41,11 @@ export default async function MemberIdPage({
 
   const currentMember = await getCurrentMember(params?.serverId, profile?.id);
   if (!currentMember) {
-    return redirect("/");
+    return redirect('/');
   }
   const conversation = await getOrCreateConversation(
     currentMember?.id,
-    params?.memberId,
+    params?.memberId
   );
   if (!conversation) {
     return redirect(`/servers/${params.serverId}`);
@@ -55,13 +55,13 @@ export default async function MemberIdPage({
     memberOne.profileId === profile?.id ? memberTwo : memberOne;
 
   return (
-    <div className="bg-white dark:bg-[#313338] flex flex-col h-full">
-      <ChatHeader
-        name={otherMember.profile.name}
-        serverId={params?.serverId}
-        type="conversation"
-        imageUrl={otherMember.profile.imageUrl ?? undefined}
-      />
+    <div className='bg-white dark:bg-[#313338] flex flex-col h-full'>
+      {await ChatHeader({
+        name: otherMember.profile.name,
+        serverId: params?.serverId,
+        type: 'conversation',
+        imageUrl: otherMember.profile.imageUrl ?? undefined,
+      })}
       {searchParams?.video && (
         <MediaRoom
           serverId={params?.serverId}
@@ -76,19 +76,19 @@ export default async function MemberIdPage({
             member={currentMember}
             name={otherMember.profile.name}
             chatId={conversation.id}
-            type="conversation"
-            apiUrl="/api/direct-messages"
-            paramKey="conversationId"
+            type='conversation'
+            apiUrl='/api/direct-messages'
+            paramKey='conversationId'
             paramValue={conversation.id}
-            socketUrl="/api/socket/direct-messages"
+            socketUrl='/api/socket/direct-messages'
             socketQuery={{
               conversationId: conversation.id,
             }}
           />
           <ChatInput
             name={otherMember.profile.name}
-            type="conversation"
-            apiUrl="/api/socket/direct-messages"
+            type='conversation'
+            apiUrl='/api/socket/direct-messages'
             query={{
               conversationId: conversation.id,
             }}

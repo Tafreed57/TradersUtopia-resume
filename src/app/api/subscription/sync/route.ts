@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
-import Stripe from "stripe";
+import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-05-28.basil",
+  apiVersion: '2025-05-28.basil',
 });
 
 export async function POST(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const user = await currentUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const profile = await db.profile.findFirst({
@@ -21,13 +21,13 @@ export async function POST(request: NextRequest) {
 
     if (!profile || !profile.stripeCustomerId) {
       return NextResponse.json(
-        { error: "No Stripe customer found" },
-        { status: 400 },
+        { error: 'No Stripe customer found' },
+        { status: 400 }
       );
     }
 
     console.log(
-      `🔄 [SYNC] Syncing subscription for: ${profile.stripeCustomerId}`,
+      `🔄 [SYNC] Syncing subscription for: ${profile.stripeCustomerId}`
     );
 
     // Get latest data from Stripe
@@ -37,39 +37,40 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(
-      `📊 [SYNC] Found ${subscriptions.data.length} subscription(s) for customer`,
+      `📊 [SYNC] Found ${subscriptions.data.length} subscription(s) for customer`
     );
 
     const activeSubscription =
       subscriptions.data.find(
-        (sub) =>
-          sub.status === "active" ||
-          (sub.status === "canceled" &&
+        (sub: any) =>
+          sub.status === 'active' ||
+          (sub.status === 'canceled' &&
             sub.current_period_end &&
-            new Date(sub.current_period_end * 1000) > new Date()),
+            new Date(sub.current_period_end * 1000) > new Date())
       ) || subscriptions.data[0];
 
     if (!activeSubscription) {
       return NextResponse.json(
-        { error: "No active subscription found" },
-        { status: 404 },
+        { error: 'No active subscription found' },
+        { status: 404 }
       );
     }
 
+    const activeSubscriptionWithPeriods = activeSubscription as any;
     console.log(
-      `🎯 [SYNC] Using subscription: ${activeSubscription.id} (${activeSubscription.status})`,
+      `🎯 [SYNC] Using subscription: ${activeSubscription.id} (${activeSubscription.status})`
     );
     console.log(
-      `🔍 [SYNC] Period start: ${activeSubscription.current_period_start} (type: ${typeof activeSubscription.current_period_start})`,
+      `🔍 [SYNC] Period start: ${activeSubscriptionWithPeriods.current_period_start} (type: ${typeof activeSubscriptionWithPeriods.current_period_start})`
     );
     console.log(
-      `🔍 [SYNC] Period end: ${activeSubscription.current_period_end} (type: ${typeof activeSubscription.current_period_end})`,
+      `🔍 [SYNC] Period end: ${activeSubscriptionWithPeriods.current_period_end} (type: ${typeof activeSubscriptionWithPeriods.current_period_end})`
     );
     console.log(
-      `🔍 [SYNC] Items count: ${activeSubscription.items.data.length}`,
+      `🔍 [SYNC] Items count: ${activeSubscription.items.data.length}`
     );
     console.log(
-      `🔍 [SYNC] First item product: ${activeSubscription.items.data[0]?.price.product}`,
+      `🔍 [SYNC] First item product: ${activeSubscription.items.data[0]?.price.product}`
     );
 
     // Validate subscription has required data - check both subscription level and subscription item level
@@ -77,52 +78,53 @@ export async function POST(request: NextRequest) {
 
     if (!subscriptionItem) {
       console.error(
-        "❌ [SYNC] No subscription items found:",
-        activeSubscription.id,
+        '❌ [SYNC] No subscription items found:',
+        activeSubscription.id
       );
       return NextResponse.json(
-        { error: "Subscription has no items" },
-        { status: 400 },
+        { error: 'Subscription has no items' },
+        { status: 400 }
       );
     }
 
     // Get period data from subscription item (this is where Stripe stores it for subscription lists)
+    const subscriptionItemWithPeriods = subscriptionItem as any;
     const periodStart =
-      activeSubscription.current_period_start ||
-      subscriptionItem.current_period_start;
+      activeSubscriptionWithPeriods.current_period_start ||
+      subscriptionItemWithPeriods.current_period_start;
     const periodEnd =
-      activeSubscription.current_period_end ||
-      subscriptionItem.current_period_end;
+      activeSubscriptionWithPeriods.current_period_end ||
+      subscriptionItemWithPeriods.current_period_end;
 
     console.log(
-      `🔍 [SYNC] Subscription level periods: start=${activeSubscription.current_period_start}, end=${activeSubscription.current_period_end}`,
+      `🔍 [SYNC] Subscription level periods: start=${activeSubscriptionWithPeriods.current_period_start}, end=${activeSubscriptionWithPeriods.current_period_end}`
     );
     console.log(
-      `🔍 [SYNC] Item level periods: start=${subscriptionItem.current_period_start}, end=${subscriptionItem.current_period_end}`,
+      `🔍 [SYNC] Item level periods: start=${subscriptionItemWithPeriods.current_period_start}, end=${subscriptionItemWithPeriods.current_period_end}`
     );
     console.log(
-      `🔍 [SYNC] Using periods: start=${periodStart}, end=${periodEnd}`,
+      `🔍 [SYNC] Using periods: start=${periodStart}, end=${periodEnd}`
     );
 
     if (!periodStart || !periodEnd) {
       console.error(
-        "❌ [SYNC] Subscription missing period data at both levels:",
-        activeSubscription.id,
+        '❌ [SYNC] Subscription missing period data at both levels:',
+        activeSubscription.id
       );
       return NextResponse.json(
-        { error: "Subscription missing period information" },
-        { status: 400 },
+        { error: 'Subscription missing period information' },
+        { status: 400 }
       );
     }
 
     if (!subscriptionItem.price.product) {
       console.error(
-        "❌ [SYNC] Subscription missing product data:",
-        activeSubscription.id,
+        '❌ [SYNC] Subscription missing product data:',
+        activeSubscription.id
       );
       return NextResponse.json(
-        { error: "Subscription missing product information" },
-        { status: 400 },
+        { error: 'Subscription missing product information' },
+        { status: 400 }
       );
     }
 
@@ -134,18 +136,18 @@ export async function POST(request: NextRequest) {
 
     // Validate Stripe dates
     if (isNaN(stripeStart.getTime()) || isNaN(stripeEnd.getTime())) {
-      console.error("❌ [SYNC] Invalid dates from Stripe subscription");
+      console.error('❌ [SYNC] Invalid dates from Stripe subscription');
       return NextResponse.json(
-        { error: "Invalid subscription dates from Stripe" },
-        { status: 400 },
+        { error: 'Invalid subscription dates from Stripe' },
+        { status: 400 }
       );
     }
 
     console.log(
-      `📅 [SYNC] Stripe dates: ${stripeStart.toISOString()} to ${stripeEnd.toISOString()}`,
+      `📅 [SYNC] Stripe dates: ${stripeStart.toISOString()} to ${stripeEnd.toISOString()}`
     );
     console.log(
-      `📅 [SYNC] Database dates: ${profile.subscriptionStart ? profile.subscriptionStart.toISOString() : "null"} to ${profile.subscriptionEnd ? profile.subscriptionEnd.toISOString() : "null"}`,
+      `📅 [SYNC] Database dates: ${profile.subscriptionStart ? profile.subscriptionStart.toISOString() : 'null'} to ${profile.subscriptionEnd ? profile.subscriptionEnd.toISOString() : 'null'}`
     );
 
     // Update database with Stripe's accurate data
@@ -163,7 +165,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Subscription synchronized with Stripe",
+      message: 'Subscription synchronized with Stripe',
       subscription: {
         id: activeSubscription.id,
         status: activeSubscription.status,
@@ -173,19 +175,19 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("❌ [SYNC] Error:", error);
-    return NextResponse.json({ error: "Sync failed" }, { status: 500 });
+    console.error('❌ [SYNC] Error:', error);
+    return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
   }
 }
 
 export async function GET(request: NextRequest) {
   return NextResponse.json({
-    message: "Subscription Sync Endpoint",
-    description: "Use POST to sync your subscription data with Stripe",
+    message: 'Subscription Sync Endpoint',
+    description: 'Use POST to sync your subscription data with Stripe',
     usage: {
-      method: "POST",
-      authentication: "Required",
-      purpose: "Synchronize database subscription data with Stripe",
+      method: 'POST',
+      authentication: 'Required',
+      purpose: 'Synchronize database subscription data with Stripe',
     },
   });
 }

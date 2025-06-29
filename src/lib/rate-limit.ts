@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
 // ==============================================
 // 🛡️ RATE LIMITING SYSTEM
@@ -31,7 +31,7 @@ export const RATE_LIMITS = {
     maxRequests: 5,
     windowMs: 15 * 60 * 1000, // 15 minutes
     message:
-      "Too many admin operations. Please wait 15 minutes before trying again.",
+      'Too many admin operations. Please wait 15 minutes before trying again.',
   },
 
   // Password operations - Strict
@@ -39,7 +39,7 @@ export const RATE_LIMITS = {
     maxRequests: 3,
     windowMs: 60 * 60 * 1000, // 1 hour
     message:
-      "Too many password change attempts. Please wait 1 hour before trying again.",
+      'Too many password change attempts. Please wait 1 hour before trying again.',
   },
 
   // 2FA operations - Moderate
@@ -47,14 +47,14 @@ export const RATE_LIMITS = {
     maxRequests: 10,
     windowMs: 15 * 60 * 1000, // 15 minutes
     message:
-      "Too many 2FA attempts. Please wait 15 minutes before trying again.",
+      'Too many 2FA attempts. Please wait 15 minutes before trying again.',
   },
 
   // File uploads - Moderate
   FILE_UPLOADS: {
     maxRequests: 20,
     windowMs: 60 * 60 * 1000, // 1 hour
-    message: "Too many file uploads. Please wait before uploading more files.",
+    message: 'Too many file uploads. Please wait before uploading more files.',
   },
 
   // Subscription operations - Moderate
@@ -62,21 +62,21 @@ export const RATE_LIMITS = {
     maxRequests: 10,
     windowMs: 30 * 60 * 1000, // 30 minutes
     message:
-      "Too many subscription operations. Please wait 30 minutes before trying again.",
+      'Too many subscription operations. Please wait 30 minutes before trying again.',
   },
 
   // API calls - Generous but still limited
   GENERAL_API: {
     maxRequests: 100,
     windowMs: 15 * 60 * 1000, // 15 minutes
-    message: "Rate limit exceeded. Please slow down your requests.",
+    message: 'Rate limit exceeded. Please slow down your requests.',
   },
 
   // Debug endpoints - Very strict (development only)
   DEBUG_ENDPOINTS: {
     maxRequests: 10,
     windowMs: 60 * 60 * 1000, // 1 hour
-    message: "Too many debug requests. Please wait 1 hour before trying again.",
+    message: 'Too many debug requests. Please wait 1 hour before trying again.',
   },
 
   // ✅ NEW: Server/Channel operations - Moderate
@@ -84,42 +84,42 @@ export const RATE_LIMITS = {
     maxRequests: 15,
     windowMs: 30 * 60 * 1000, // 30 minutes
     message:
-      "Too many server operations. Please wait 30 minutes before trying again.",
+      'Too many server operations. Please wait 30 minutes before trying again.',
   },
 
   // ✅ NEW: Messaging operations - Generous but limited
   MESSAGING_OPERATIONS: {
     maxRequests: 200,
     windowMs: 15 * 60 * 1000, // 15 minutes
-    message: "Too many messages sent. Please slow down for 15 minutes.",
+    message: 'Too many messages sent. Please slow down for 15 minutes.',
   },
 
   // ✅ NEW: Authentication operations - Moderate
   AUTH_OPERATIONS: {
     maxRequests: 30,
     windowMs: 15 * 60 * 1000, // 15 minutes
-    message: "Too many authentication requests. Please wait 15 minutes.",
+    message: 'Too many authentication requests. Please wait 15 minutes.',
   },
 
   // ✅ NEW: Webhook operations - Very strict (external systems)
   WEBHOOK_OPERATIONS: {
     maxRequests: 1000,
     windowMs: 60 * 60 * 1000, // 1 hour
-    message: "Webhook rate limit exceeded. Please check your integration.",
+    message: 'Webhook rate limit exceeded. Please check your integration.',
   },
 
   // ✅ NEW: Notification operations - Moderate
   NOTIFICATION_OPERATIONS: {
     maxRequests: 50,
     windowMs: 15 * 60 * 1000, // 15 minutes
-    message: "Too many notification requests. Please wait 15 minutes.",
+    message: 'Too many notification requests. Please wait 15 minutes.',
   },
 
   // ✅ NEW: Media/Token operations - Moderate
   MEDIA_OPERATIONS: {
     maxRequests: 25,
     windowMs: 15 * 60 * 1000, // 15 minutes
-    message: "Too many media/token requests. Please wait 15 minutes.",
+    message: 'Too many media/token requests. Please wait 15 minutes.',
   },
 } as const;
 
@@ -130,7 +130,7 @@ export const RATE_LIMITS = {
 // Clean up expired entries periodically
 const cleanupExpiredEntries = () => {
   const now = Date.now();
-  for (const [key, store] of rateLimitStore.entries()) {
+  for (const [key, store] of Array.from(rateLimitStore.entries())) {
     if (now > store.resetTime) {
       rateLimitStore.delete(key);
     }
@@ -143,17 +143,17 @@ setInterval(cleanupExpiredEntries, 5 * 60 * 1000);
 // Generate rate limit key from request
 const generateKey = (request: NextRequest, prefix: string): string => {
   // Try to get user ID from various sources
-  const authHeader = request.headers.get("authorization");
-  const userAgent = request.headers.get("user-agent") || "unknown";
-  const forwarded = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
-  const remoteAddr = forwarded || realIp || "unknown";
+  const authHeader = request.headers.get('authorization');
+  const userAgent = request.headers.get('user-agent') || 'unknown';
+  const forwarded = request.headers.get('x-forwarded-for');
+  const realIp = request.headers.get('x-real-ip');
+  const remoteAddr = forwarded || realIp || 'unknown';
 
   // Prefer authenticated user identification over IP
   if (authHeader) {
     // In a real implementation, you'd extract the user ID from the JWT/session
     // For now, we'll use a hash of the auth header
-    const userHash = Buffer.from(authHeader).toString("base64").slice(0, 16);
+    const userHash = Buffer.from(authHeader).toString('base64').slice(0, 16);
     return `${prefix}:user:${userHash}`;
   }
 
@@ -164,10 +164,10 @@ const generateKey = (request: NextRequest, prefix: string): string => {
 // Main rate limiting function
 export const rateLimit = (
   config: RateLimitConfig,
-  prefix: string = "default",
+  prefix: string = 'default'
 ) => {
   return async (
-    request: NextRequest,
+    request: NextRequest
   ): Promise<{ success: true } | { success: false; error: NextResponse }> => {
     const key = config.keyGenerator
       ? config.keyGenerator(request)
@@ -194,16 +194,16 @@ export const rateLimit = (
 
       // Log rate limit violation for security monitoring
       console.warn(
-        `⚠️ [RATE LIMIT] ${prefix} - Key: ${key.slice(0, 20)}... - Limit exceeded`,
+        `⚠️ [RATE LIMIT] ${prefix} - Key: ${key.slice(0, 20)}... - Limit exceeded`
       );
 
       return {
         success: false,
         error: NextResponse.json(
           {
-            error: "Rate limit exceeded",
+            error: 'Rate limit exceeded',
             message:
-              config.message || "Too many requests. Please try again later.",
+              config.message || 'Too many requests. Please try again later.',
             retryAfter: retryAfter,
             limit: config.maxRequests,
             windowMs: config.windowMs,
@@ -211,12 +211,12 @@ export const rateLimit = (
           {
             status: 429,
             headers: {
-              "Retry-After": retryAfter.toString(),
-              "X-RateLimit-Limit": config.maxRequests.toString(),
-              "X-RateLimit-Remaining": "0",
-              "X-RateLimit-Reset": new Date(store.resetTime).toISOString(),
+              'Retry-After': retryAfter.toString(),
+              'X-RateLimit-Limit': config.maxRequests.toString(),
+              'X-RateLimit-Remaining': '0',
+              'X-RateLimit-Reset': new Date(store.resetTime).toISOString(),
             },
-          },
+          }
         ),
       };
     }
@@ -234,32 +234,32 @@ export const rateLimit = (
 // ==============================================
 
 export const rateLimitAdmin = () =>
-  rateLimit(RATE_LIMITS.ADMIN_OPERATIONS, "admin");
+  rateLimit(RATE_LIMITS.ADMIN_OPERATIONS, 'admin');
 export const rateLimitPassword = () =>
-  rateLimit(RATE_LIMITS.PASSWORD_OPERATIONS, "password");
-export const rateLimit2FA = () => rateLimit(RATE_LIMITS.TWO_FACTOR_AUTH, "2fa");
+  rateLimit(RATE_LIMITS.PASSWORD_OPERATIONS, 'password');
+export const rateLimit2FA = () => rateLimit(RATE_LIMITS.TWO_FACTOR_AUTH, '2fa');
 export const rateLimitUpload = () =>
-  rateLimit(RATE_LIMITS.FILE_UPLOADS, "upload");
+  rateLimit(RATE_LIMITS.FILE_UPLOADS, 'upload');
 export const rateLimitSubscription = () =>
-  rateLimit(RATE_LIMITS.SUBSCRIPTION_OPERATIONS, "subscription");
+  rateLimit(RATE_LIMITS.SUBSCRIPTION_OPERATIONS, 'subscription');
 export const rateLimitGeneral = () =>
-  rateLimit(RATE_LIMITS.GENERAL_API, "general");
+  rateLimit(RATE_LIMITS.GENERAL_API, 'general');
 export const rateLimitDebug = () =>
-  rateLimit(RATE_LIMITS.DEBUG_ENDPOINTS, "debug");
+  rateLimit(RATE_LIMITS.DEBUG_ENDPOINTS, 'debug');
 
 // ✅ NEW: Additional rate limiters for comprehensive protection
 export const rateLimitServer = () =>
-  rateLimit(RATE_LIMITS.SERVER_OPERATIONS, "server");
+  rateLimit(RATE_LIMITS.SERVER_OPERATIONS, 'server');
 export const rateLimitMessaging = () =>
-  rateLimit(RATE_LIMITS.MESSAGING_OPERATIONS, "messaging");
+  rateLimit(RATE_LIMITS.MESSAGING_OPERATIONS, 'messaging');
 export const rateLimitAuth = () =>
-  rateLimit(RATE_LIMITS.AUTH_OPERATIONS, "auth");
+  rateLimit(RATE_LIMITS.AUTH_OPERATIONS, 'auth');
 export const rateLimitWebhook = () =>
-  rateLimit(RATE_LIMITS.WEBHOOK_OPERATIONS, "webhook");
+  rateLimit(RATE_LIMITS.WEBHOOK_OPERATIONS, 'webhook');
 export const rateLimitNotification = () =>
-  rateLimit(RATE_LIMITS.NOTIFICATION_OPERATIONS, "notification");
+  rateLimit(RATE_LIMITS.NOTIFICATION_OPERATIONS, 'notification');
 export const rateLimitMedia = () =>
-  rateLimit(RATE_LIMITS.MEDIA_OPERATIONS, "media");
+  rateLimit(RATE_LIMITS.MEDIA_OPERATIONS, 'media');
 
 // ==============================================
 // 🛡️ SECURITY MONITORING
@@ -273,9 +273,9 @@ const suspiciousActivity = new Map<
 
 export const trackSuspiciousActivity = (
   request: NextRequest,
-  reason: string,
+  reason: string
 ) => {
-  const key = generateKey(request, "suspicious");
+  const key = generateKey(request, 'suspicious');
   const now = Date.now();
 
   let activity = suspiciousActivity.get(key);
@@ -291,7 +291,7 @@ export const trackSuspiciousActivity = (
   // Log high-risk activity
   if (activity.count > 5) {
     console.error(
-      `🚨 [SECURITY ALERT] High suspicious activity from ${key.slice(0, 30)}... - Reason: ${reason} - Count: ${activity.count}`,
+      `🚨 [SECURITY ALERT] High suspicious activity from ${key.slice(0, 30)}... - Reason: ${reason} - Count: ${activity.count}`
     );
   }
 
@@ -314,7 +314,7 @@ export const getRateLimitInfo = (request: NextRequest, prefix: string) => {
 
   const remaining = Math.max(
     0,
-    RATE_LIMITS.GENERAL_API.maxRequests - store.count,
+    RATE_LIMITS.GENERAL_API.maxRequests - store.count
   );
 
   return {
@@ -330,8 +330,8 @@ export const getRateLimitInfo = (request: NextRequest, prefix: string) => {
 // ==============================================
 
 export const clearRateLimit = (request: NextRequest, prefix: string) => {
-  if (process.env.NODE_ENV !== "development") {
-    console.warn("⚠️ Rate limit clearing is only available in development");
+  if (process.env.NODE_ENV !== 'development') {
+    console.warn('⚠️ Rate limit clearing is only available in development');
     return false;
   }
 
@@ -340,8 +340,8 @@ export const clearRateLimit = (request: NextRequest, prefix: string) => {
 };
 
 export const getRateLimitStats = () => {
-  if (process.env.NODE_ENV !== "development") {
-    return { error: "Stats only available in development" };
+  if (process.env.NODE_ENV !== 'development') {
+    return { error: 'Stats only available in development' };
   }
 
   return {

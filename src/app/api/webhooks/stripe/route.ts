@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-import { db } from "@/lib/db";
-import { rateLimitWebhook, trackSuspiciousActivity } from "@/lib/rate-limit";
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { db } from '@/lib/db';
+import { rateLimitWebhook, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-05-28.basil",
+  apiVersion: '2025-05-28.basil',
 });
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -14,25 +14,25 @@ export async function POST(request: NextRequest) {
     // ✅ SECURITY: Rate limiting for webhook operations (generous limit for external systems)
     const rateLimitResult = await rateLimitWebhook()(request);
     if (!rateLimitResult.success) {
-      trackSuspiciousActivity(request, "STRIPE_WEBHOOK_RATE_LIMIT_EXCEEDED");
+      trackSuspiciousActivity(request, 'STRIPE_WEBHOOK_RATE_LIMIT_EXCEEDED');
       return rateLimitResult.error;
     }
 
     const body = await request.text();
-    const signature = request.headers.get("stripe-signature")!;
+    const signature = request.headers.get('stripe-signature')!;
 
     let event: Stripe.Event;
 
     try {
       event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
     } catch (err: any) {
-      console.error("⚠️  Webhook signature verification failed.", err.message);
-      return NextResponse.json({ error: "Webhook Error" }, { status: 400 });
+      console.error('⚠️  Webhook signature verification failed.', err.message);
+      return NextResponse.json({ error: 'Webhook Error' }, { status: 400 });
     }
 
     // Handle the event
     switch (event.type) {
-      case "checkout.session.completed":
+      case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
 
         console.log(`🎉 Checkout session completed: ${session.id}`);
@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
           const customer = await stripe.customers.retrieve(customerId);
 
           if (customer.deleted) {
-            console.error("Customer was deleted");
+            console.error('Customer was deleted');
             return NextResponse.json(
-              { error: "Customer deleted" },
-              { status: 400 },
+              { error: 'Customer deleted' },
+              { status: 400 }
             );
           }
 
@@ -65,10 +65,10 @@ export async function POST(request: NextRequest) {
         }
 
         if (!email) {
-          console.error("No email found in session or customer");
+          console.error('No email found in session or customer');
           return NextResponse.json(
-            { error: "No email found" },
-            { status: 400 },
+            { error: 'No email found' },
+            { status: 400 }
           );
         }
 
@@ -78,12 +78,12 @@ export async function POST(request: NextRequest) {
           // Find ALL profiles with this email (to handle duplicates)
           const allProfiles = await db.profile.findMany({
             where: { email: email },
-            orderBy: { createdAt: "desc" }, // Most recent first
+            orderBy: { createdAt: 'desc' }, // Most recent first
           });
 
           if (allProfiles.length === 0) {
             console.log(
-              `No profiles found for email: ${email}, creating new profile...`,
+              `No profiles found for email: ${email}, creating new profile...`
             );
 
             // Get product ID from the checkout session
@@ -91,21 +91,21 @@ export async function POST(request: NextRequest) {
             if (session.line_items) {
               try {
                 const lineItems = await stripe.checkout.sessions.listLineItems(
-                  session.id,
+                  session.id
                 );
                 if (lineItems.data.length > 0 && lineItems.data[0].price) {
                   const price = await stripe.prices.retrieve(
-                    lineItems.data[0].price.id,
+                    lineItems.data[0].price.id
                   );
                   stripeProductId = price.product as string;
                   console.log(
-                    `📦 Product ID from checkout: ${stripeProductId}`,
+                    `📦 Product ID from checkout: ${stripeProductId}`
                   );
                 }
               } catch (error) {
                 console.log(
-                  "Could not retrieve product ID from line items:",
-                  error,
+                  'Could not retrieve product ID from line items:',
+                  error
                 );
               }
             }
@@ -114,13 +114,13 @@ export async function POST(request: NextRequest) {
             const profile = await db.profile.create({
               data: {
                 userId: `stripe_${customerId || session.id}`, // Use session.id if no customer ID
-                name: customerName || "Unknown User",
+                name: customerName || 'Unknown User',
                 email: email,
-                imageUrl: "",
-                subscriptionStatus: "ACTIVE",
+                imageUrl: '',
+                subscriptionStatus: 'ACTIVE',
                 subscriptionStart: new Date(),
                 subscriptionEnd: new Date(
-                  Date.now() + 30 * 24 * 60 * 60 * 1000,
+                  Date.now() + 30 * 24 * 60 * 60 * 1000
                 ), // 30 days from now
                 stripeCustomerId: customerId,
                 stripeSessionId: session.id,
@@ -129,17 +129,17 @@ export async function POST(request: NextRequest) {
             });
 
             console.log(
-              `✅ Created new profile for user: ${email} with product: ${stripeProductId}`,
+              `✅ Created new profile for user: ${email} with product: ${stripeProductId}`
             );
           } else {
             console.log(
-              `✅ Found ${allProfiles.length} profile(s) for email: ${email}`,
+              `✅ Found ${allProfiles.length} profile(s) for email: ${email}`
             );
 
             // Log all profiles found
             allProfiles.forEach((profile, index) => {
               console.log(
-                `   Profile ${index + 1}: ${profile.id} (${profile.userId}) - Status: ${profile.subscriptionStatus}`,
+                `   Profile ${index + 1}: ${profile.id} (${profile.userId}) - Status: ${profile.subscriptionStatus}`
               );
             });
 
@@ -148,21 +148,21 @@ export async function POST(request: NextRequest) {
             if (session.line_items) {
               try {
                 const lineItems = await stripe.checkout.sessions.listLineItems(
-                  session.id,
+                  session.id
                 );
                 if (lineItems.data.length > 0 && lineItems.data[0].price) {
                   const price = await stripe.prices.retrieve(
-                    lineItems.data[0].price.id,
+                    lineItems.data[0].price.id
                   );
                   stripeProductId = price.product as string;
                   console.log(
-                    `📦 Product ID from checkout: ${stripeProductId}`,
+                    `📦 Product ID from checkout: ${stripeProductId}`
                   );
                 }
               } catch (error) {
                 console.log(
-                  "Could not retrieve product ID from line items:",
-                  error,
+                  'Could not retrieve product ID from line items:',
+                  error
                 );
               }
             }
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
             // If we have a customer ID, find the profile with that customer ID
             if (customerId) {
               targetProfile = allProfiles.find(
-                (p) => p.stripeCustomerId === customerId,
+                p => p.stripeCustomerId === customerId
               );
             }
 
@@ -183,23 +183,23 @@ export async function POST(request: NextRequest) {
             if (!targetProfile) {
               targetProfile = allProfiles[0]; // Most recent due to orderBy
               console.log(
-                `⚠️ [SECURITY] No profile found with customer ID ${customerId}, updating most recent profile only`,
+                `⚠️ [SECURITY] No profile found with customer ID ${customerId}, updating most recent profile only`
               );
             }
 
             const subscriptionStart = new Date();
             const subscriptionEnd = new Date(
-              Date.now() + 30 * 24 * 60 * 60 * 1000,
+              Date.now() + 30 * 24 * 60 * 60 * 1000
             ); // 30 days from now
 
             console.log(
-              `🔒 [SECURITY] Updating ONLY the target profile: ${targetProfile.id} (${targetProfile.userId})`,
+              `🔒 [SECURITY] Updating ONLY the target profile: ${targetProfile.id} (${targetProfile.userId})`
             );
 
             const updated = await db.profile.update({
               where: { id: targetProfile.id },
               data: {
-                subscriptionStatus: "ACTIVE",
+                subscriptionStatus: 'ACTIVE',
                 subscriptionStart: subscriptionStart,
                 subscriptionEnd: subscriptionEnd,
                 stripeCustomerId: customerId,
@@ -209,26 +209,26 @@ export async function POST(request: NextRequest) {
             });
 
             console.log(
-              `✅ [SECURITY] Updated single profile: ${updated.id} (${updated.userId}) with product: ${stripeProductId}`,
+              `✅ [SECURITY] Updated single profile: ${updated.id} (${updated.userId}) with product: ${stripeProductId}`
             );
             console.log(
-              `📅 Subscription valid until: ${subscriptionEnd.toISOString()}`,
+              `📅 Subscription valid until: ${subscriptionEnd.toISOString()}`
             );
             console.log(
-              `🔒 [SECURITY] Access granted to specific account only, not all accounts with same email`,
+              `🔒 [SECURITY] Access granted to specific account only, not all accounts with same email`
             );
           }
         } catch (error) {
-          console.error("Error updating profile:", error);
+          console.error('Error updating profile:', error);
           return NextResponse.json(
-            { error: "Database update failed" },
-            { status: 500 },
+            { error: 'Database update failed' },
+            { status: 500 }
           );
         }
 
         break;
 
-      case "customer.subscription.created":
+      case 'customer.subscription.created':
         // Handle new subscription creation
         const newSubscription = event.data.object as Stripe.Subscription;
         console.log(`🆕 New subscription created: ${newSubscription.id}`);
@@ -236,15 +236,15 @@ export async function POST(request: NextRequest) {
         try {
           await updateSubscriptionInDatabase(newSubscription);
         } catch (error) {
-          console.error("Error handling subscription creation:", error);
+          console.error('Error handling subscription creation:', error);
           return NextResponse.json(
-            { error: "Subscription creation failed" },
-            { status: 500 },
+            { error: 'Subscription creation failed' },
+            { status: 500 }
           );
         }
         break;
 
-      case "customer.subscription.updated":
+      case 'customer.subscription.updated':
         // Handle subscription updates (auto-renewal changes, plan changes, etc.)
         const updatedSubscription = event.data.object as Stripe.Subscription;
         console.log(`🔄 Subscription updated: ${updatedSubscription.id}`);
@@ -252,15 +252,15 @@ export async function POST(request: NextRequest) {
         try {
           await updateSubscriptionInDatabase(updatedSubscription);
         } catch (error) {
-          console.error("Error handling subscription update:", error);
+          console.error('Error handling subscription update:', error);
           return NextResponse.json(
-            { error: "Subscription update failed" },
-            { status: 500 },
+            { error: 'Subscription update failed' },
+            { status: 500 }
           );
         }
         break;
 
-      case "customer.subscription.deleted":
+      case 'customer.subscription.deleted':
         // Handle subscription cancellation
         const cancelledSubscription = event.data.object as Stripe.Subscription;
         const cancelledCustomerId = cancelledSubscription.customer as string;
@@ -268,49 +268,51 @@ export async function POST(request: NextRequest) {
         console.log(`❌ Subscription cancelled: ${cancelledSubscription.id}`);
 
         try {
+          const cancelledSubscriptionWithPeriods = cancelledSubscription as any;
           await db.profile.updateMany({
             where: { stripeCustomerId: cancelledCustomerId },
             data: {
-              subscriptionStatus: "CANCELLED",
+              subscriptionStatus: 'CANCELLED',
               subscriptionEnd: new Date(
-                cancelledSubscription.current_period_end * 1000,
+                cancelledSubscriptionWithPeriods.current_period_end * 1000
               ),
             },
           });
 
           console.log(
-            `✅ Successfully cancelled subscription for customer: ${cancelledCustomerId}`,
+            `✅ Successfully cancelled subscription for customer: ${cancelledCustomerId}`
           );
         } catch (error) {
-          console.error("Error cancelling subscription:", error);
+          console.error('Error cancelling subscription:', error);
           return NextResponse.json(
-            { error: "Cancellation failed" },
-            { status: 500 },
+            { error: 'Cancellation failed' },
+            { status: 500 }
           );
         }
         break;
 
-      case "invoice.payment_succeeded":
+      case 'invoice.payment_succeeded':
         // Handle successful payment - extend subscription
         const successfulInvoice = event.data.object as Stripe.Invoice;
         console.log(
-          `💳 Payment succeeded for invoice: ${successfulInvoice.id}`,
+          `💳 Payment succeeded for invoice: ${successfulInvoice.id}`
         );
 
-        if (successfulInvoice.subscription) {
+        const successfulInvoiceWithSubscription = successfulInvoice as any;
+        if (successfulInvoiceWithSubscription.subscription) {
           try {
             const subscription = await stripe.subscriptions.retrieve(
-              successfulInvoice.subscription as string,
+              successfulInvoiceWithSubscription.subscription as string
             );
             await updateSubscriptionInDatabase(subscription);
             console.log(`✅ Updated subscription after successful payment`);
           } catch (error) {
-            console.error("Error updating subscription after payment:", error);
+            console.error('Error updating subscription after payment:', error);
           }
         }
         break;
 
-      case "invoice.payment_failed":
+      case 'invoice.payment_failed':
         // Handle failed payment
         const failedInvoice = event.data.object as Stripe.Invoice;
         console.log(`⚠️ Payment failed for invoice: ${failedInvoice.id}`);
@@ -320,16 +322,16 @@ export async function POST(request: NextRequest) {
             await db.profile.updateMany({
               where: { stripeCustomerId: failedInvoice.customer as string },
               data: {
-                subscriptionStatus: "ACTIVE", // Keep active during retry period
+                subscriptionStatus: 'ACTIVE', // Keep active during retry period
                 // Note: Don't immediately cancel - Stripe has retry logic
               },
             });
 
             console.log(
-              `⚠️ Marked payment issue for customer: ${failedInvoice.customer}`,
+              `⚠️ Marked payment issue for customer: ${failedInvoice.customer}`
             );
           } catch (error) {
-            console.error("Error handling payment failure:", error);
+            console.error('Error handling payment failure:', error);
           }
         }
         break;
@@ -340,11 +342,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (outerError) {
-    console.error("❌ [WEBHOOK] Outer webhook error:", outerError);
-    trackSuspiciousActivity(request, "WEBHOOK_PROCESSING_ERROR");
+    console.error('❌ [WEBHOOK] Outer webhook error:', outerError);
+    trackSuspiciousActivity(request, 'WEBHOOK_PROCESSING_ERROR');
     return NextResponse.json(
-      { error: "Webhook processing failed" },
-      { status: 500 },
+      { error: 'Webhook processing failed' },
+      { status: 500 }
     );
   }
 }
@@ -352,22 +354,27 @@ export async function POST(request: NextRequest) {
 // ✅ HELPER FUNCTION: Update subscription data in database
 async function updateSubscriptionInDatabase(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
+  const subscriptionWithPeriods = subscription as any;
 
   // Calculate subscription dates
-  const subscriptionStart = new Date(subscription.current_period_start * 1000);
-  const subscriptionEnd = new Date(subscription.current_period_end * 1000);
+  const subscriptionStart = new Date(
+    subscriptionWithPeriods.current_period_start * 1000
+  );
+  const subscriptionEnd = new Date(
+    subscriptionWithPeriods.current_period_end * 1000
+  );
 
   // Determine status based on Stripe subscription status
-  let dbStatus: "ACTIVE" | "CANCELLED" | "EXPIRED" | "FREE" = "ACTIVE";
-  if (subscription.status === "canceled") {
-    dbStatus = "CANCELLED";
+  let dbStatus: 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'FREE' = 'ACTIVE';
+  if (subscription.status === 'canceled') {
+    dbStatus = 'CANCELLED';
   } else if (
-    subscription.status === "unpaid" ||
-    subscription.status === "past_due"
+    subscription.status === 'unpaid' ||
+    subscription.status === 'past_due'
   ) {
-    dbStatus = "EXPIRED";
-  } else if (["active", "trialing"].includes(subscription.status)) {
-    dbStatus = "ACTIVE";
+    dbStatus = 'EXPIRED';
+  } else if (['active', 'trialing'].includes(subscription.status)) {
+    dbStatus = 'ACTIVE';
   }
 
   // Get product ID from subscription
@@ -401,7 +408,7 @@ async function updateSubscriptionInDatabase(subscription: Stripe.Subscription) {
   });
 
   console.log(
-    `✅ Updated ${updateResult.count} profile(s) for customer ${customerId}`,
+    `✅ Updated ${updateResult.count} profile(s) for customer ${customerId}`
   );
 
   return updateResult;

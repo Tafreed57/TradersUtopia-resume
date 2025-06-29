@@ -1,30 +1,34 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
-import { prismadb } from "@/lib/prismadb";
-import { stripe } from "@/lib/subscription";
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-05-28.basil',
+});
 
 export async function GET(request: NextRequest) {
   try {
     const { userId } = auth();
 
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user profile
-    const profile = await prismadb.profile.findUnique({
+    const profile = await db.profile.findUnique({
       where: { userId },
     });
 
     if (!profile?.stripeCustomerId) {
       return NextResponse.json(
-        { error: "No Stripe customer found" },
-        { status: 404 },
+        { error: 'No Stripe customer found' },
+        { status: 404 }
       );
     }
 
     console.log(
-      `🔍 [VERIFY] Fetching RAW Stripe data for customer: ${profile.stripeCustomerId}`,
+      `🔍 [VERIFY] Fetching RAW Stripe data for customer: ${profile.stripeCustomerId}`
     );
 
     // Get subscription directly from Stripe
@@ -35,28 +39,29 @@ export async function GET(request: NextRequest) {
 
     const activeSubscription =
       subscriptions.data.find(
-        (sub) =>
-          sub.status === "active" ||
-          (sub.status === "canceled" &&
+        (sub: any) =>
+          sub.status === 'active' ||
+          (sub.status === 'canceled' &&
             sub.current_period_end &&
-            new Date(sub.current_period_end * 1000) > new Date()),
+            new Date(sub.current_period_end * 1000) > new Date())
       ) || subscriptions.data[0];
 
     if (!activeSubscription) {
       return NextResponse.json(
-        { error: "No subscription found" },
-        { status: 404 },
+        { error: 'No subscription found' },
+        { status: 404 }
       );
     }
 
     // Extract the key auto-renewal indicators
+    const activeSubscriptionWithPeriods = activeSubscription as any;
     const autoRenewalStatus = {
       subscriptionId: activeSubscription.id,
       status: activeSubscription.status,
       cancelAtPeriodEnd: activeSubscription.cancel_at_period_end,
       autoRenewalEnabled: !activeSubscription.cancel_at_period_end,
       currentPeriodEnd: new Date(
-        activeSubscription.current_period_end! * 1000,
+        activeSubscriptionWithPeriods.current_period_end! * 1000
       ).toISOString(),
       canceledAt: activeSubscription.canceled_at
         ? new Date(activeSubscription.canceled_at * 1000).toISOString()
@@ -67,32 +72,33 @@ export async function GET(request: NextRequest) {
     console.log(`✅ [VERIFY] Auto-renewal status:`, autoRenewalStatus);
 
     return NextResponse.json({
-      message: "Raw Stripe subscription verification",
+      message: 'Raw Stripe subscription verification',
       verification: autoRenewalStatus,
       explanation: {
         cancelAtPeriodEnd: activeSubscription.cancel_at_period_end
-          ? "❌ AUTO-RENEWAL OFF - Subscription will end at period end"
-          : "✅ AUTO-RENEWAL ON - Subscription will automatically renew",
+          ? '❌ AUTO-RENEWAL OFF - Subscription will end at period end'
+          : '✅ AUTO-RENEWAL ON - Subscription will automatically renew',
         status: activeSubscription.status,
         nextAction: activeSubscription.cancel_at_period_end
-          ? "Subscription will expire on the end date unless re-enabled"
-          : "Subscription will automatically renew unless canceled",
+          ? 'Subscription will expire on the end date unless re-enabled'
+          : 'Subscription will automatically renew unless canceled',
       },
       rawStripeData: {
         id: activeSubscription.id,
         status: activeSubscription.status,
         cancel_at_period_end: activeSubscription.cancel_at_period_end,
-        current_period_start: activeSubscription.current_period_start,
-        current_period_end: activeSubscription.current_period_end,
+        current_period_start:
+          activeSubscriptionWithPeriods.current_period_start,
+        current_period_end: activeSubscriptionWithPeriods.current_period_end,
         canceled_at: activeSubscription.canceled_at,
         created: activeSubscription.created,
       },
     });
   } catch (error) {
-    console.error("❌ [VERIFY] Error:", error);
+    console.error('❌ [VERIFY] Error:', error);
     return NextResponse.json(
-      { error: "Failed to verify subscription status" },
-      { status: 500 },
+      { error: 'Failed to verify subscription status' },
+      { status: 500 }
     );
   }
 }

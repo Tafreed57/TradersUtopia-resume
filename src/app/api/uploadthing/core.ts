@@ -1,33 +1,32 @@
-import { createUploadthing, type FileRouter } from "uploadthing/next";
-import { UploadThingError } from "uploadthing/server";
-import { auth } from "@clerk/nextjs/server";
+import { createUploadthing, type FileRouter } from 'uploadthing/next';
+import { UploadThingError } from 'uploadthing/server';
+import { auth } from '@clerk/nextjs/server';
 import {
   validateFileUploadAdvanced,
   simulateVirusScan,
   validateUploadRate,
-  trackSuspiciousActivity,
-} from "@/lib/validation";
-import { rateLimitUpload } from "@/lib/rate-limit";
+} from '@/lib/validation';
+import { rateLimitUpload, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 const f = createUploadthing();
 
 // ✅ SECURITY: Enhanced authentication with rate limiting
 const handleAuth = async () => {
   const user = await auth();
-  if (!user) throw new UploadThingError("Unauthorized");
+  if (!user || !user.userId) throw new UploadThingError('Unauthorized');
   return { userId: user.userId };
 };
 
 // ✅ SECURITY: Comprehensive file validation middleware
 const secureFileValidation = async (
   file: { name: string; size: number; type: string },
-  userId: string,
+  userId: string
 ) => {
   // ✅ SECURITY: Rate limiting check
   const rateCheck = validateUploadRate(userId, 1);
   if (!rateCheck.allowed) {
     console.error(
-      `🚨 [UPLOAD] Rate limit exceeded for user: ${userId} - ${rateCheck.reason}`,
+      `🚨 [UPLOAD] Rate limit exceeded for user: ${userId} - ${rateCheck.reason}`
     );
     throw new UploadThingError(`Upload limit exceeded: ${rateCheck.reason}`);
   }
@@ -42,13 +41,13 @@ const secureFileValidation = async (
       mimeType: file.type,
     });
 
-    const threatMessage = validation.threats.includes("DANGEROUS_FILE_TYPE")
-      ? "Dangerous file type detected"
-      : validation.threats.includes("INVALID_FILE_EXTENSION")
-        ? "Invalid file extension"
-        : validation.threats.includes("FILE_TOO_LARGE")
+    const threatMessage = validation.threats.includes('DANGEROUS_FILE_TYPE')
+      ? 'Dangerous file type detected'
+      : validation.threats.includes('INVALID_FILE_EXTENSION')
+        ? 'Invalid file extension'
+        : validation.threats.includes('FILE_TOO_LARGE')
           ? `File too large. Maximum size: ${Math.round(validation.maxAllowedSize / (1024 * 1024))}MB`
-          : "File validation failed";
+          : 'File validation failed';
 
     throw new UploadThingError(threatMessage);
   }
@@ -72,7 +71,7 @@ const secureFileValidation = async (
         confidence: scanResult.confidence,
       });
 
-      throw new UploadThingError("File failed security scan. Upload rejected.");
+      throw new UploadThingError('File failed security scan. Upload rejected.');
     }
 
     // ✅ SECURITY: Log successful security validation
@@ -83,14 +82,14 @@ const secureFileValidation = async (
         fileSize: file.size,
         mimeType: file.type,
         scanTime: scanResult.scanTime,
-      },
+      }
     );
   } catch (scanError) {
     console.error(
       `❌ [UPLOAD] Virus scan error for user: ${userId}:`,
-      scanError,
+      scanError
     );
-    throw new UploadThingError("Security scan failed. Please try again.");
+    throw new UploadThingError('Security scan failed. Please try again.');
   }
 
   return true;
@@ -100,7 +99,7 @@ const secureFileValidation = async (
 export const ourFileRouter = {
   serverImage: f({
     image: {
-      maxFileSize: "5MB", // ✅ SECURITY: Reduced from 4MB, different per type
+      maxFileSize: '4MB', // ✅ SECURITY: Secure file size limit
       maxFileCount: 1,
     },
   })
@@ -112,10 +111,10 @@ export const ourFileRouter = {
       const rateLimitResult = await rateLimitUpload()(request);
       if (!rateLimitResult.success) {
         console.error(
-          `🚨 [UPLOAD] Rate limit exceeded for user: ${auth.userId}`,
+          `🚨 [UPLOAD] Rate limit exceeded for user: ${auth.userId}`
         );
         throw new UploadThingError(
-          "Upload rate limit exceeded. Please wait before uploading more files.",
+          'Upload rate limit exceeded. Please wait before uploading more files.'
         );
       }
 
@@ -128,7 +127,7 @@ export const ourFileRouter = {
     })
     .onUploadComplete(async ({ metadata, file }) => {
       // ✅ SECURITY: Enhanced logging with security details
-      console.log("✅ [UPLOAD] Server image upload complete", {
+      console.log('✅ [UPLOAD] Server image upload complete', {
         userId: metadata.userId,
         fileName: file.name,
         fileSize: file.size,
@@ -146,7 +145,7 @@ export const ourFileRouter = {
       };
     }),
 
-  messageFile: f(["image", "pdf"])
+  messageFile: f(['image', 'pdf'])
     .middleware(async ({ files }) => {
       const auth = await handleAuth();
 
@@ -155,10 +154,10 @@ export const ourFileRouter = {
       const rateLimitResult = await rateLimitUpload()(request);
       if (!rateLimitResult.success) {
         console.error(
-          `🚨 [UPLOAD] Rate limit exceeded for user: ${auth.userId}`,
+          `🚨 [UPLOAD] Rate limit exceeded for user: ${auth.userId}`
         );
         throw new UploadThingError(
-          "Upload rate limit exceeded. Please wait before uploading more files.",
+          'Upload rate limit exceeded. Please wait before uploading more files.'
         );
       }
 
@@ -167,14 +166,14 @@ export const ourFileRouter = {
         await secureFileValidation(file, auth.userId);
 
         // ✅ SECURITY: Additional checks for message files
-        if (file.type === "application/pdf" && file.size > 10 * 1024 * 1024) {
+        if (file.type === 'application/pdf' && file.size > 10 * 1024 * 1024) {
           // 10MB limit for PDFs
-          throw new UploadThingError("PDF files must be smaller than 10MB");
+          throw new UploadThingError('PDF files must be smaller than 10MB');
         }
 
-        if (file.type.startsWith("image/") && file.size > 8 * 1024 * 1024) {
+        if (file.type.startsWith('image/') && file.size > 8 * 1024 * 1024) {
           // 8MB limit for images
-          throw new UploadThingError("Image files must be smaller than 8MB");
+          throw new UploadThingError('Image files must be smaller than 8MB');
         }
       }
 
@@ -182,7 +181,7 @@ export const ourFileRouter = {
     })
     .onUploadComplete(async ({ metadata, file }) => {
       // ✅ SECURITY: Enhanced logging for message files
-      console.log("✅ [UPLOAD] Message file upload complete", {
+      console.log('✅ [UPLOAD] Message file upload complete', {
         userId: metadata.userId,
         fileName: file.name,
         fileSize: file.size,

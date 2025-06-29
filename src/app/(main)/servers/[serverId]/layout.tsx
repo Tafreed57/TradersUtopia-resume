@@ -1,8 +1,7 @@
-import { ServerSideBar } from "@/components/layout/server-side-bar";
-import { prisma } from "@/lib/prismadb";
-import { getCurrentProfile, getServer } from "@/lib/query";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { ServerSideBar } from '@/components/layout/server-side-bar';
+import { getCurrentProfile, getServer } from '@/lib/query';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
 export default async function ServerIdLayout({
   children,
@@ -17,14 +16,14 @@ export default async function ServerIdLayout({
   }
   const server = await getServer(params.serverId, profile.id);
   if (!server) {
-    return redirect("/");
+    return redirect('/');
   }
   return (
-    <section className="h-full">
-      <div className="hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0">
-        <ServerSideBar serverId={params.serverId} />
+    <section className='h-full'>
+      <div className='hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0'>
+        {await ServerSideBar({ serverId: params.serverId })}
       </div>
-      <main className="h-full md:pl-60">{children}</main>
+      <main className='h-full md:pl-60'>{children}</main>
     </section>
   );
 }
