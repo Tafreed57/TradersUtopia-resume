@@ -8,7 +8,13 @@
     "start": "next start",
     "lint": "next lint",
     "setup": "npx prisma migrate dev -n initial-setup && npx prisma db seed",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:setup": "node scripts/setup-database.js",
+    "db:setup:seed": "node scripts/setup-database.js --seed",
+    "db:migrate": "npx prisma migrate deploy",
+    "db:reset": "npx prisma migrate reset --force",
+    "amplify:build": "npm run build",
+    "verify:deployment": "node scripts/verify-deployment.js"
   },
   "prisma": {
     "seed": "ts-node --transpile-only  prisma/seed.ts"

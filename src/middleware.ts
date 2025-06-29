@@ -21,6 +21,7 @@ const alwaysPublicRoutes = [
   '/sign-up(.*)',
   '/2fa-verify',
   '/api/uploadthing',
+  '/api/health', // Health check endpoint for monitoring
 
   '/api/webhooks(.*)',
   '/api/sync-profiles',

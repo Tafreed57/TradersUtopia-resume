@@ -1,0 +1,34 @@
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - '# Execute Amplify CLI with the helper script'
+        - amplifyPush --simple
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Install dependencies
+        - npm ci --production=false
+        # Generate Prisma client with AWS-compatible binaries
+        - npx prisma generate
+    build:
+      commands:
+        # Set production environment
+        - echo "Building for production..."
+        # Run the Next.js build
+        - npm run build
+    postBuild:
+      commands:
+        # Optional: Clean up if needed
+        - echo "Build completed successfully"
+  artifacts:
+    # For Next.js SSR apps, use .next directory
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*

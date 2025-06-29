@@ -4,31 +4,31 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: "/(.*)",
+        source: '/(.*)',
         headers: [
           // ✅ SECURITY: Prevent clickjacking attacks
           {
-            key: "X-Frame-Options",
-            value: "DENY",
+            key: 'X-Frame-Options',
+            value: 'DENY',
           },
           // ✅ SECURITY: Prevent MIME type sniffing
           {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
           },
           // ✅ SECURITY: Control referrer information
           {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
           },
           // ✅ SECURITY: Prevent XSS attacks
           {
-            key: "X-XSS-Protection",
-            value: "1; mode=block",
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
           },
           // ✅ SECURITY: Control resource loading (Content Security Policy)
           {
-            key: "Content-Security-Policy",
+            key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://hcaptcha.com https://*.hcaptcha.com https://challenges.cloudflare.com",
@@ -42,30 +42,30 @@ const nextConfig = {
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
-            ].join("; "),
+            ].join('; '),
           },
           // ✅ SECURITY: Enforce HTTPS (only in production)
-          ...(process.env.NODE_ENV === "production"
+          ...(process.env.NODE_ENV === 'production'
             ? [
                 {
-                  key: "Strict-Transport-Security",
-                  value: "max-age=31536000; includeSubDomains; preload",
+                  key: 'Strict-Transport-Security',
+                  value: 'max-age=31536000; includeSubDomains; preload',
                 },
               ]
             : []),
           // ✅ SECURITY: Permissions policy
           {
-            key: "Permissions-Policy",
+            key: 'Permissions-Policy',
             value: [
-              "camera=()",
-              "microphone=()",
-              "geolocation=()",
-              "payment=()",
-              "usb=()",
-              "magnetometer=()",
-              "gyroscope=()",
-              "accelerometer=()",
-            ].join(", "),
+              'camera=()',
+              'microphone=()',
+              'geolocation=()',
+              'payment=()',
+              'usb=()',
+              'magnetometer=()',
+              'gyroscope=()',
+              'accelerometer=()',
+            ].join(', '),
           },
         ],
       },
@@ -84,7 +84,7 @@ const nextConfig = {
         assert: false,
         path: false,
         fs: false,
-        "web-push": false,
+        'web-push': false,
       };
     }
     return config;
@@ -92,29 +92,35 @@ const nextConfig = {
 
   // ✅ EXPERIMENTAL: Server components external packages
   experimental: {
-    serverComponentsExternalPackages: ["web-push", "resend"],
+    serverComponentsExternalPackages: ['web-push', 'resend'],
   },
 
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "img.clerk.com",
-        port: "",
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+        port: '',
       },
       {
-        protocol: "https",
-        hostname: "utfs.io",
+        protocol: 'https',
+        hostname: 'utfs.io',
         // pathname: `/a/${process.env.UPLOADTHING_APP_ID}/*`,
       },
       {
-        protocol: "https",
-        hostname: "i.imgur.com",
-        port: "",
-        pathname: "**",
+        protocol: 'https',
+        hostname: 'i.imgur.com',
+        port: '',
+        pathname: '**',
       },
     ],
+    // AWS Amplify image optimization
+    domains: ['img.clerk.com', 'utfs.io', 'i.imgur.com'],
   },
+
+  // AWS Amplify configuration
+  trailingSlash: false,
+  generateEtags: false,
 };
 
 export default nextConfig;
