@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prismadb } from '@/lib/prismadb';
+import { prisma } from '@/lib/prismadb';
 
 export async function GET() {
   try {
     // Check database connectivity
-    await prismadb.$queryRaw`SELECT 1`;
+    await prisma.$queryRaw`SELECT 1`;
 
     // Check environment variables
     const requiredEnvVars = [

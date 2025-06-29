@@ -201,7 +201,7 @@ export const strictCSRFValidation = async (
   return true; // Less critical endpoints can use regular validation
 };
 
-export default {
+const csrfConfig = {
   generateCSRFToken,
   validateCSRFToken,
   getCSRFTokenForUser,
@@ -210,3 +210,5 @@ export default {
   strictCSRFValidation,
   getCSRFStats,
 };
+
+export default csrfConfig;
