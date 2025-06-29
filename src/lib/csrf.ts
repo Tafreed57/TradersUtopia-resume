@@ -137,12 +137,7 @@ export const csrfProtection = () => {
     }
 
     // Skip CSRF validation for certain endpoints that have their own protection
-    const skipCSRFPaths = [
-      '/api/webhooks/',
-      '/api/auth/',
-      '/api/uploadthing',
-      '/api/socket/',
-    ];
+    const skipCSRFPaths = ['/api/webhooks/', '/api/auth/', '/api/uploadthing'];
 
     const pathname = request.nextUrl.pathname;
     if (skipCSRFPaths.some(path => pathname.startsWith(path))) {
@@ -176,12 +171,7 @@ export const needsCSRFProtection = (request: NextRequest): boolean => {
   }
 
   // Skip certain endpoints
-  const skipCSRFPaths = [
-    '/api/webhooks/',
-    '/api/auth/',
-    '/api/uploadthing',
-    '/api/socket/',
-  ];
+  const skipCSRFPaths = ['/api/webhooks/', '/api/auth/', '/api/uploadthing'];
 
   const pathname = request.nextUrl.pathname;
   return !skipCSRFPaths.some(path => pathname.startsWith(path));
