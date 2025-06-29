@@ -42,7 +42,7 @@ export function CountdownTimer({
   };
 
   return (
-    <div className="text-4xl md:text-6xl font-bold text-white font-mono bg-gradient-to-r from-red-600/20 to-orange-600/20 rounded-lg px-6 py-3 border border-red-400/30">
+    <div className="text-sm sm:text-lg md:text-xl font-bold text-white font-mono">
       {formatTime(timeLeft.minutes, timeLeft.seconds)}
     </div>
   );

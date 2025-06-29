@@ -98,7 +98,7 @@ export function PricingButtons() {
           disabled={loading}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl"
         >
-          {loading ? "Starting Trial..." : "Start 14-Day Free Trial"}
+          {loading ? "Processing..." : "Subscribe Now"}
         </Button>
         <Button
           size="lg"
@@ -109,7 +109,7 @@ export function PricingButtons() {
           Buy Now - $149.99/month
         </Button>
         <p className="text-gray-400 text-sm text-center">
-          Try free for 14 days, then $149.99/month
+          $149.99/month
         </p>
       </div>
     );
@@ -126,7 +126,7 @@ export function PricingButtons() {
         Subscribe Now - $149.99/month
       </Button>
       <p className="text-gray-400 text-sm text-center">
-        Automatic recurring payments • Cancel anytime
+        Automatic recurring payments • Secure billing
       </p>
     </div>
   );

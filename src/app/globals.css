@@ -77,6 +77,42 @@ body,
 	}
 	body {
 		@apply bg-background text-foreground;
+		/* Improve text rendering on mobile */
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		/* Disable text size adjustment on mobile */
+		-webkit-text-size-adjust: 100%;
+		-ms-text-size-adjust: 100%;
+		/* Better touch scrolling on iOS */
+		-webkit-overflow-scrolling: touch;
+	}
+	
+	/* Mobile-first responsive typography */
+	h1 { @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight; }
+	h2 { @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight; }
+	h3 { @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold leading-tight; }
+	h4 { @apply text-base sm:text-lg md:text-xl lg:text-2xl font-semibold leading-tight; }
+	h5 { @apply text-sm sm:text-base md:text-lg lg:text-xl font-medium leading-tight; }
+	h6 { @apply text-xs sm:text-sm md:text-base lg:text-lg font-medium leading-tight; }
+	
+	/* Better touch targets for mobile */
+	button, 
+	a, 
+	[role="button"] {
+		@apply min-h-[44px] min-w-[44px];
+		/* Better touch response */
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
+	}
+	
+	/* Responsive images */
+	img {
+		@apply max-w-full h-auto;
+	}
+	
+	/* Better focus states for accessibility */
+	*:focus-visible {
+		@apply ring-2 ring-ring ring-offset-2 ring-offset-background outline-none;
 	}
 }
 
@@ -169,4 +205,135 @@ body,
 
 ::-webkit-scrollbar-thumb:hover {
 	background: linear-gradient(45deg, #f59e0b, #d97706);
+}
+
+/* Mobile-optimized animations and utilities */
+@layer utilities {
+	.animate-gradient {
+		background-size: 200% 200%;
+		animation: gradient 3s ease infinite;
+	}
+	
+	.animate-float {
+		animation: float 6s ease-in-out infinite;
+	}
+	
+	.animate-glow {
+		animation: glow 2s ease-in-out infinite alternate;
+	}
+	
+	.animate-shimmer {
+		background: linear-gradient(
+			90deg,
+			transparent,
+			rgba(255, 255, 255, 0.1),
+			transparent
+		);
+		background-size: 200% 100%;
+		animation: shimmer 2s infinite;
+	}
+	
+	/* Mobile-first responsive spacing */
+	.space-mobile { @apply space-y-4 sm:space-y-6 md:space-y-8; }
+	.gap-mobile { @apply gap-2 sm:gap-4 md:gap-6; }
+	.p-mobile { @apply p-4 sm:p-6 md:p-8 lg:p-10; }
+	.px-mobile { @apply px-4 sm:px-6 md:px-8 lg:px-10; }
+	.py-mobile { @apply py-4 sm:py-6 md:py-8 lg:py-10; }
+	
+	/* Mobile-optimized containers */
+	.container-mobile {
+		@apply w-full max-w-none;
+		@apply px-4 sm:px-6 md:px-8;
+		@apply mx-auto;
+		@apply sm:max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl;
+	}
+	
+	/* Hide scrollbars but keep functionality */
+	.scrollbar-hide {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+	.scrollbar-hide::-webkit-scrollbar {
+		display: none;
+	}
+	
+	/* Force horizontal scrolling for admin tabs - override parent overflow-x-hidden */
+	.force-horizontal-scroll {
+		overflow-x: auto !important;
+		overflow-y: hidden !important;
+		-webkit-overflow-scrolling: touch !important;
+		scrollbar-width: none !important;
+		-ms-overflow-style: none !important;
+	}
+	.force-horizontal-scroll::-webkit-scrollbar {
+		display: none !important;
+	}
+	
+	/* Touch-friendly interactive elements */
+	.touch-manipulation {
+		touch-action: manipulation;
+	}
+	
+	/* Safe area support for modern mobile devices */
+	.safe-top { padding-top: env(safe-area-inset-top); }
+	.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+	.safe-left { padding-left: env(safe-area-inset-left); }
+	.safe-right { padding-right: env(safe-area-inset-right); }
+}
+
+/* Mobile-optimized scrollbar */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+	background: linear-gradient(45deg, #fbbf24, #f59e0b);
+	border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(45deg, #f59e0b, #d97706);
+}
+
+/* Mobile device optimizations */
+@media (max-width: 767px) {
+	/* Reduce motion for better mobile performance */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+		}
+	}
+	
+	/* Optimize font sizes for small screens */
+	.text-hero {
+		@apply text-3xl leading-tight;
+	}
+	
+	/* Ensure buttons are touch-friendly */
+	button {
+		@apply min-h-[48px] px-4;
+	}
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1023px) {
+	.tablet-optimized {
+		@apply text-lg;
+	}
+}
+
+/* Large screen optimizations */
+@media (min-width: 1920px) {
+	.container {
+		max-width: 1800px;
+	}
 }

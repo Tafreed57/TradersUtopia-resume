@@ -173,7 +173,7 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
 
             <div className="text-center text-xs text-muted-foreground">
               <p>Secure payment processing by Stripe</p>
-              <p>Cancel anytime • 30-day money-back guarantee</p>
+              				<p>Get instant access</p>
             </div>
           </CardContent>
         </Card>
