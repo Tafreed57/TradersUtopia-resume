@@ -1,6 +1,8 @@
-# AWS Amplify Deployment Guide
+# AWS Amplify Hosting Deployment Guide
 
-This guide will walk you through deploying your Next.js Discord clone to AWS Amplify.
+This guide will walk you through deploying your Next.js Discord clone to **AWS Amplify Hosting** (Git-based continuous deployment).
+
+> **Important:** This guide is for **Amplify Hosting** only, not Amplify CLI backend deployment. Your app uses external services (PostgreSQL, Clerk, Stripe, etc.) instead of Amplify backend services.
 
 ## Prerequisites
 
