@@ -1,46 +1,60 @@
 {
-  "name": "Traders Utopia - Professional Trading Platform",
-  "short_name": "TradersUtopia",
+  "name": "Traders Utopia",
+  "short_name": "Traders Utopia",
   "description": "Professional Trading Signals & Expert Education Platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1E1F22",
   "theme_color": "#1E1F22",
+  "categories": ["finance", "education", "business"],
+  "lang": "en",
+  "dir": "ltr",
   "orientation": "portrait-primary",
   "scope": "/",
-  "lang": "en-US",
-  "dir": "ltr",
-  "categories": ["finance", "business", "education"],
   "icons": [
     {
-      "src": "/android-icon.png",
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
     },
     {
       "src": "/apple-icon.png",
       "sizes": "180x180",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "apple touch icon"
     },
     {
-      "src": "/icon.png",
-      "sizes": "512x512",
+      "src": "/android-icon.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-2.png",
-      "sizes": "256x256",
-      "type": "image/png",
-      "purpose": "any"
+      "purpose": "android chrome icon"
     },
     {
       "src": "/logo.png",
-      "sizes": "48x48 96x96 144x144",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/mockup-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile view of Traders Utopia"
     }
   ],
   "shortcuts": [
@@ -52,7 +66,8 @@
       "icons": [
         {
           "src": "/icon.png",
-          "sizes": "96x96"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
@@ -64,18 +79,20 @@
       "icons": [
         {
           "src": "/icon.png",
-          "sizes": "96x96"
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }
   ],
-  "prefer_related_applications": false,
-  "related_applications": [],
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "edge_side_panel": {
     "preferred_width": 400
   },
+  "handle_links": "preferred",
   "launch_handler": {
     "client_mode": "navigate-existing"
-  }
-}
+  },
+  "display_override": ["window-controls-overlay", "standalone"],
+  "prefer_related_applications": false,
+  "related_applications": []
+} 
