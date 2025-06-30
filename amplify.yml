@@ -21,15 +21,6 @@ backend:
           else
             echo "Warning: .env file not found, skipping Prisma migrations"
           fi
-
-    postBuild:
-      commands:
-        - |
-          # EXAMPLE: only run the cleanup-branches command if you have tested it
-          if ! [ "${AWS_BRANCH}" = "main" ] && ! [ "${AWS_BRANCH}" = "dev" ]; then
-            echo "Skipping branch cleanup for branch: ${AWS_BRANCH}"
-            # bash neon-ci.sh cleanup-branches --app-id $AWS_APP_ID --neon-project-id YOUR_NEON_PROJECT_ID --api-key-param "neon-api-key"
-          fi
   cache:
     paths:
       - $(pnpm store path)
@@ -43,8 +34,8 @@ frontend:
       commands:
         # Set production environment
         - echo "Building for production..."
-        - echo .env
-        - echo pwd
+        - cat .env
+        - cat pwd
         - pnpm build
     postBuild:
       commands:
