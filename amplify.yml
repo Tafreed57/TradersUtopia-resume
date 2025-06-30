@@ -34,7 +34,6 @@ frontend:
       commands:
         # Set production environment
         - echo "Building for production..."
-        - cat .env
         - cat pwd
         - pnpm build
     postBuild:
