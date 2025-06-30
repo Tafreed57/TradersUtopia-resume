@@ -44,10 +44,11 @@ const isPublicRoute = createRouteMatcher(publicRoutes);
 export default clerkMiddleware(
   (auth, request) => {
     if (!isPublicRoute(request)) {
+      console.log(request);
       auth().protect();
     }
-  }
-  // { debug: process.env.NODE_ENV === "development" }
+  },
+  { debug: true }
 );
 
 export const config = {
