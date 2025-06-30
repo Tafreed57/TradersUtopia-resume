@@ -57,12 +57,12 @@ export const RATE_LIMITS = {
     message: 'Too many file uploads. Please wait before uploading more files.',
   },
 
-  // Subscription operations - Moderate
+  // Subscription operations - More generous for legitimate usage
   SUBSCRIPTION_OPERATIONS: {
-    maxRequests: 10,
-    windowMs: 30 * 60 * 1000, // 30 minutes
+    maxRequests: 50, // Increased from 10 to 50
+    windowMs: 15 * 60 * 1000, // 15 minutes (reduced window)
     message:
-      'Too many subscription operations. Please wait 30 minutes before trying again.',
+      'Too many subscription operations. Please wait 15 minutes before trying again.',
   },
 
   // API calls - Generous but still limited
@@ -339,6 +339,18 @@ export const clearRateLimit = (request: NextRequest, prefix: string) => {
   return rateLimitStore.delete(key);
 };
 
+export const clearAllRateLimits = () => {
+  if (process.env.NODE_ENV !== 'development') {
+    console.warn('⚠️ Rate limit clearing is only available in development');
+    return false;
+  }
+
+  const size = rateLimitStore.size;
+  rateLimitStore.clear();
+  console.log(`🧹 Cleared ${size} rate limit entries`);
+  return true;
+};
+
 export const getRateLimitStats = () => {
   if (process.env.NODE_ENV !== 'development') {
     return { error: 'Stats only available in development' };
@@ -370,6 +382,7 @@ export default {
   trackSuspiciousActivity,
   getRateLimitInfo,
   clearRateLimit,
+  clearAllRateLimits,
   getRateLimitStats,
   RATE_LIMITS,
 };

@@ -73,8 +73,7 @@ export function LoadingScreen({
                 src='/logo.png'
                 alt='TradersUtopia'
                 width={32}
-                height={32}
-                className='filter brightness-0'
+                height={32} className='filter brightness-0'
               />
             </div>
             <div className='text-left'>
@@ -103,8 +102,7 @@ export function LoadingScreen({
 
           {/* Progress Bar */}
           <div className='w-full bg-gray-800 rounded-full h-2 mb-4 overflow-hidden'>
-            <div
-              className='h-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-full transition-all duration-300 ease-out shadow-lg shadow-yellow-400/50'
+            <div className='h-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-full transition-all duration-300 ease-out shadow-lg shadow-yellow-400/50'
               style={{ width: `${Math.min(progress, 100)}%` }}
             ></div>
           </div>

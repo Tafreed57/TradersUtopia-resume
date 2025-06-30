@@ -208,13 +208,13 @@ export function TwoFactorAuth({
         {/* Disabled State */}
         {setupStep === 'disabled' && (
           <div className='space-y-4'>
-            <div className='flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg'>
+            <div className='flex items-center gap-3 p-4 bg-yellow-900/20 rounded-lg'>
               <ShieldX className='h-5 w-5 text-yellow-600' />
               <div>
-                <p className='font-medium text-yellow-800 dark:text-yellow-200'>
+                <p className='font-medium text-yellow-300'>
                   2FA is currently disabled
                 </p>
-                <p className='text-sm text-yellow-600 dark:text-yellow-300'>
+                <p className='text-sm text-yellow-300'>
                   Your account is less secure without two-factor authentication
                 </p>
               </div>
@@ -232,7 +232,7 @@ export function TwoFactorAuth({
           <div className='space-y-4'>
             <div className='text-center space-y-4'>
               <h3 className='font-semibold'>Scan QR Code</h3>
-              <p className='text-sm text-gray-600 dark:text-gray-300'>
+              <p className='text-sm text-gray-600'>
                 Scan this QR code with your authenticator app (Google
                 Authenticator, Authy, etc.)
               </p>
@@ -309,13 +309,11 @@ export function TwoFactorAuth({
         {/* Enabled State */}
         {setupStep === 'enabled' && (
           <div className='space-y-4'>
-            <div className='flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg'>
+            <div className='flex items-center gap-3 p-4 bg-green-900/20 rounded-lg'>
               <ShieldCheck className='h-5 w-5 text-green-600' />
               <div>
-                <p className='font-medium text-green-800 dark:text-green-200'>
-                  2FA is active
-                </p>
-                <p className='text-sm text-green-600 dark:text-green-300'>
+                <p className='font-medium text-green-300'>2FA is active</p>
+                <p className='text-sm text-green-300'>
                   Your account is protected with two-factor authentication
                 </p>
               </div>
@@ -342,11 +340,11 @@ export function TwoFactorAuth({
 
                 {showBackupCodes && (
                   <div className='space-y-2'>
-                    <div className='grid grid-cols-2 gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg'>
+                    <div className='grid grid-cols-2 gap-2 p-3 bg-gray-800 rounded-lg'>
                       {backupCodes.map((code, index) => (
                         <div
                           key={index}
-                          className='font-mono text-sm text-center p-2 bg-white dark:bg-gray-700 rounded'
+                          className='font-mono text-sm text-center p-2 bg-gray-700 text-white rounded'
                         >
                           {code}
                         </div>

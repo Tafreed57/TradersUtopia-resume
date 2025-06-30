@@ -67,7 +67,7 @@ export function ChatMessages({
     return (
       <div className='flex-1 justify-center flex flex-col items-center p-4'>
         <Loader2 className='h-6 w-6 sm:h-7 sm:w-7 text-zinc-500 animate-spin my-4' />
-        <p className='text-xs sm:text-sm dark:text-zinc-400 text-zinc-500 text-center'>
+        <p className='text-xs sm:text-sm text-zinc-500 text-center'>
           Loading messages...
         </p>
       </div>
@@ -77,14 +77,14 @@ export function ChatMessages({
     return (
       <div className='flex-1 justify-center flex flex-col items-center p-4'>
         <ServerCrash className='h-6 w-6 sm:h-7 sm:w-7 text-zinc-500 my-4' />
-        <p className='text-xs sm:text-sm dark:text-zinc-400 text-zinc-500 text-center'>
+        <p className='text-xs sm:text-sm text-zinc-500 text-center'>
           Failed to load messages.
         </p>
       </div>
     );
   }
   return (
-    <div ref={chatRef} className='flex-1  flex flex-col py-4 overflow-y-auto'>
+    <div ref={chatRef} className='flex-1 flex flex-col py-4 overflow-y-auto'>
       {!hasNextPage && <div className='flex-1' />}
       {!hasNextPage && <ChatWelcome type={type} name={name} />}
       {hasNextPage && (
@@ -93,15 +93,14 @@ export function ChatMessages({
             <Loader2 className='h-6 w-6 text-zinc-500 animate-spin my-4' />
           ) : (
             <button
-              onClick={() => fetchNextPage()}
-              className='text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 text-xs my-4 dark:hover:text-zinc-300 transition'
+              onClick={() => fetchNextPage()} className='text-zinc-500 hover:text-zinc-600 text-xs my-4 transition'
             >
               Load previous messages
             </button>
           )}
         </div>
       )}
-      <div className='flex flex-col-reverse mt-auto '>
+      <div className='flex flex-col-reverse mt-auto'>
         {data?.pages?.map((group, index) => (
           <Fragment key={index}>
             {group.items.map((message: MessagesWithMemberWithProfile) => (

@@ -1,6 +1,6 @@
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import { DiscordProfile } from '@/components/user/discord-profile';
-import { ModeToggle } from '@/components/mode-toggler';
+
 import { TwoFactorAuth } from '@/components/security/two-factor-auth';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { NotificationSettings } from '@/components/notifications/notification-settings';
@@ -122,16 +122,12 @@ export default async function Dashboard() {
                       </p>
                     </div>
                   </div>
-                  <div className='hidden lg:block flex-shrink-0'>
-                    <ModeToggle />
-                  </div>
                 </div>
                 <div className='flex items-center gap-2 lg:gap-4 flex-shrink-0'>
                   <Link href='/'>
                     <Button
                       variant='ghost'
-                      size='sm'
-                      className='text-white hover:bg-gray-700/50 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-300'
+                      size='sm' className='text-white hover:bg-gray-700/50 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-300'
                     >
                       <Home className='w-4 h-4 mr-1 lg:mr-2' />
                       <span className='hidden sm:inline'>Homepage</span>
@@ -151,9 +147,6 @@ export default async function Dashboard() {
                       },
                     }}
                   />
-                  <div className='lg:hidden'>
-                    <ModeToggle />
-                  </div>
                 </div>
               </div>
             </header>
@@ -272,8 +265,7 @@ export default async function Dashboard() {
                               <div className='w-14 h-14 rounded-2xl overflow-hidden border-2 border-gray-600 group-hover:border-yellow-400/50 transition-all duration-300'>
                                 <img
                                   src={server.imageUrl}
-                                  alt={server.name}
-                                  className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-300'
+                                  alt={server.name} className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-300'
                                 />
                               </div>
                             ) : (
@@ -336,8 +328,7 @@ export default async function Dashboard() {
                     className={`grid ${profile.isAdmin ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'} w-full max-w-md sm:max-w-lg ${profile.isAdmin ? 'lg:max-w-4xl' : 'lg:max-w-2xl'} bg-gray-900/80 backdrop-blur-xl border border-gray-600/40 rounded-2xl p-1.5 sm:p-2 shadow-2xl h-auto min-h-[80px] sm:min-h-[88px]`}
                   >
                     <TabsTrigger
-                      value='profile'
-                      className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
+                      value='profile' className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
                     >
                       <User className='h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110' />
                       <span className='text-xs sm:text-sm font-medium tracking-wide'>
@@ -345,8 +336,7 @@ export default async function Dashboard() {
                       </span>
                     </TabsTrigger>
                     <TabsTrigger
-                      value='security'
-                      className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
+                      value='security' className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
                     >
                       <Shield className='h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110' />
                       <span className='text-xs sm:text-sm font-medium tracking-wide'>
@@ -354,8 +344,7 @@ export default async function Dashboard() {
                       </span>
                     </TabsTrigger>
                     <TabsTrigger
-                      value='settings'
-                      className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
+                      value='settings' className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
                     >
                       <Settings className='h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110' />
                       <span className='text-xs sm:text-sm font-medium tracking-wide'>
@@ -365,8 +354,7 @@ export default async function Dashboard() {
                     {/* Admin Tab - Only visible to admin users */}
                     {profile.isAdmin && (
                       <TabsTrigger
-                        value='admin'
-                        className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
+                        value='admin' className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
                       >
                         <UserCog className='h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110' />
                         <span className='text-xs sm:text-sm font-medium tracking-wide'>
@@ -503,9 +491,6 @@ export default async function Dashboard() {
                                     Switch between light and dark mode
                                   </p>
                                 </div>
-                              </div>
-                              <div className='self-start sm:self-auto'>
-                                <ModeToggle />
                               </div>
                             </div>
                           </div>

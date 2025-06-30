@@ -83,7 +83,7 @@ export function EditServerModal() {
   };
   return (
     <Dialog open={isModelOpen} onOpenChange={handleClose}>
-      <DialogContent className='bg-white text-black p-0 overflow-hidden'>
+      <DialogContent className='bg-gray-900 text-white p-0 overflow-hidden'>
         <DialogHeader className='pt-8 px-6'>
           <DialogTitle className='text-2xl text-center font-bold'>
             Customize your server
@@ -116,11 +116,11 @@ export function EditServerModal() {
                             <Button
                               onClick={() => field.onChange('')}
                               type='button'
-                              className='w-7 h-7  p-[.35rem] absolute bg-rose-500 hover:bg-rose-800 text-white top-0 right-0 rounded-full shadow-sm'
+                              className='w-7 h-7 p-[.35rem] absolute bg-rose-500 hover:bg-rose-800 text-white top-0 right-0 rounded-full shadow-sm'
                             >
                               <svg
                                 xmlns='http://www.w3.org/2000/svg'
-                                className='h-6 w-6 '
+                                className='h-6 w-6'
                                 fill='none'
                                 viewBox='0 0 24 24'
                                 stroke='currentColor'
@@ -136,11 +136,11 @@ export function EditServerModal() {
                           </div>
                         ) : (
                           <UploadDropzone
-                            className='mt-4  focus-visible:outline-zinc-700
+                            className='mt-4 focus-visible:outline-zinc-700
 													focus-visible:outline-dashed
 													ut-button:bg-indigo-500 ut-button:text-white ut-button:hover:bg-indigo-500/90 ut-button:ut-readying:bg-indigo-500/90 ut-button:ut-uploading:bg-indigo-500/90 ut-button:after:bg-indigo-700
 													ut-label:text-zinc-700 ut-allowed-content:text-zinc-500
-													'
+												'
                             endpoint='serverImage'
                             onClientUploadComplete={res => {
                               field.onChange(res?.[0].url);
@@ -169,7 +169,7 @@ export function EditServerModal() {
                 name='name'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
+                    <FormLabel className='uppercase text-xs font-bold text-zinc-500'>
                       Server name
                     </FormLabel>
 
@@ -186,7 +186,7 @@ export function EditServerModal() {
                 )}
               />
             </div>
-            <DialogFooter className='bg-gray-100 px-6 py-4'>
+            <DialogFooter className='bg-gray-800 px-6 py-4'>
               <Button
                 type='submit'
                 variant='default'

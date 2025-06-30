@@ -59,7 +59,7 @@ export function MediaRoom({ serverId, chatId, video, audio }: MediaRoomProps) {
     return (
       <div className="flex flex-col flex-1 justify-center items-center">
         <Loader2 className="h-7 w-7 text-zinc-500 animate-spin my-4" />
-        <p className="text-zinc-500 dark:text-zinc-400 text-xs">Loading...</p>
+        <p className="text-zinc-500 text-xs">Loading...</p>
       </div>
     );
   }
@@ -75,8 +75,7 @@ export function MediaRoom({ serverId, chatId, video, audio }: MediaRoomProps) {
         router.push(`/servers/${serverId}`);
       }}
       // Use the default LiveKit theme for nice styles.
-      data-lk-theme="default"
-      className="flex flex-col flex-1 h-[80%]"
+      data-lk-theme="default" className="flex flex-col flex-1 h-[80%]"
     >
       {/* Your custom component with basic video conferencing functionality. */}
       <MyVideoConference />

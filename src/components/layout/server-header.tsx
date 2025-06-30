@@ -62,16 +62,15 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
   return (
     <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger className="focus:outline-none" asChild>
-        <button className="w-full text-md font-semibold px-3 flex items-center h-12 border-neutral-200 dark:border-neutral-800 border-b-2 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 transition">
+        <button className="w-full text-md font-semibold px-3 flex items-center h-12 border-neutral-200 border-b-2 hover:bg-zinc-700/10 transition">
           {server?.name}
           <ChevronDown className="w-5 h-5 ml-auto" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 text-sm font-medium text-black dark:text-neutral-400 space-y-[2px]">
+      <DropdownMenuContent className="w-56 text-sm font-medium text-black space-y-[2px]">
         {isModerator && (
           <DropdownMenuItem
-            onClick={handleInviteClick}
-            className="text-indigo-600 dark:text-indigo-400 text-sm px-3 py-2 cursor-pointer"
+            onClick={handleInviteClick} className="text-indigo-600 text-sm px-3 py-2 cursor-pointer"
           >
             Invite People
             <UserPlus className="w-4 h-4 ml-auto" />
@@ -79,8 +78,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
         )}
         {isAdmin && (
           <DropdownMenuItem
-            onClick={handleMangeMembersClick}
-            className="text-sm px-3 py-2 cursor-pointer"
+            onClick={handleMangeMembersClick} className="text-sm px-3 py-2 cursor-pointer"
           >
             Manage Members
             <Users className="w-4 h-4 ml-auto" />
@@ -88,8 +86,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
         )}
         {isAdmin && (
           <DropdownMenuItem
-            onClick={handleServerSettingsClick}
-            className="text-sm px-3 py-2 cursor-pointer"
+            onClick={handleServerSettingsClick} className="text-sm px-3 py-2 cursor-pointer"
           >
             Server Settings
             <Settings className="w-4 h-4 ml-auto" />
@@ -97,8 +94,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
         )}
         {isModerator && (
           <DropdownMenuItem
-            onClick={handleCreateChannelClick}
-            className="text-indigo-600 dark:text-indigo-400 text-sm px-3 py-2 cursor-pointer"
+            onClick={handleCreateChannelClick} className="text-indigo-600 text-sm px-3 py-2 cursor-pointer"
           >
             Create Channel
             <PlusCircle className="w-4 h-4 ml-auto" />
@@ -107,8 +103,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
         {isModerator && <DropdownMenuSeparator />}
         {isAdmin && (
           <DropdownMenuItem
-            onClick={handleDeleteServerClick}
-            className="text-rose-500 text-sm px-3 py-2 cursor-pointer"
+            onClick={handleDeleteServerClick} className="text-rose-500 text-sm px-3 py-2 cursor-pointer"
           >
             Delete Server
             <TrashIcon className="w-4 h-4 ml-auto" />
@@ -116,8 +111,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
         )}
         {!isAdmin && (
           <DropdownMenuItem
-            onClick={handleLeaveServerClick}
-            className="text-rose-500 text-sm px-3 py-2 cursor-pointer"
+            onClick={handleLeaveServerClick} className="text-rose-500 text-sm px-3 py-2 cursor-pointer"
           >
             Leave Server
             <LogOut className="w-4 h-4 ml-auto" />

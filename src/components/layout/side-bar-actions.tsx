@@ -51,10 +51,9 @@ export function SideBarActions() {
       <div>
         <ActionTooltip align="center" side="right" label="Loading...">
           <button
-            disabled
-            className="group flex items-center cursor-not-allowed"
+            disabled className="group flex items-center cursor-not-allowed"
           >
-            <div className="flex mx-3 h-[48px] w-[48px] rounded-[24px] transition-all overflow-hidden items-center justify-center bg-background dark:bg-neutral-700 opacity-50">
+            <div className="flex mx-3 h-[48px] w-[48px] rounded-[24px] transition-all overflow-hidden items-center justify-center bg-background opacity-50">
               <Plus size={25} className="text-gray-400" />
             </div>
           </button>
@@ -75,7 +74,7 @@ export function SideBarActions() {
           className={`group flex items-center ${!isAdmin ? "cursor-not-allowed" : ""}`}
         >
           <div
-            className={`flex mx-3 h-[48px] w-[48px] rounded-[24px] group-hover:rounded-[16px] transition-all overflow-hidden items-center justify-center bg-background dark:bg-neutral-700 ${
+            className={`flex mx-3 h-[48px] w-[48px] rounded-[24px] group-hover:rounded-[16px] transition-all overflow-hidden items-center justify-center bg-background ${
               isAdmin
                 ? "group-hover:bg-emerald-500"
                 : "group-hover:bg-red-500 opacity-60"
@@ -83,13 +82,11 @@ export function SideBarActions() {
           >
             {isAdmin ? (
               <Plus
-                size={25}
-                className="group-hover:text-white transition text-emerald-500"
+                size={25} className="group-hover:text-white transition text-emerald-500"
               />
             ) : (
               <Lock
-                size={25}
-                className="group-hover:text-white transition text-red-500"
+                size={25} className="group-hover:text-white transition text-red-500"
               />
             )}
           </div>

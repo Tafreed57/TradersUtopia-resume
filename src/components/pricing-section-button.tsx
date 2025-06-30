@@ -33,8 +33,7 @@ export function PricingSectionButton() {
       <div className='flex flex-col items-center gap-4'>
         <Button
           size='lg'
-          disabled
-          className='bg-gradient-to-r from-green-500 to-green-600 text-white px-12 py-8 text-2xl font-bold rounded-2xl opacity-50 w-full max-w-md shadow-2xl'
+          disabled className='bg-gradient-to-r from-green-500 to-green-600 text-white px-12 py-8 text-2xl font-bold rounded-2xl opacity-50 w-full max-w-md shadow-2xl'
         >
           <Loader2 className='h-6 w-6 animate-spin mr-3' />
           <span>Loading...</span>

@@ -71,8 +71,7 @@ export function PaymentGate({ children }: PaymentGateProps) {
             premium trading community today!
           </p>
           <Button
-            onClick={() => router.push("/pricing")}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 text-lg font-semibold"
+            onClick={() => router.push("/pricing")} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 text-lg font-semibold"
           >
             View Pricing
           </Button>

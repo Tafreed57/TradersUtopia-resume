@@ -11,15 +11,13 @@ export async function MobileToggle({ serverId }: { serverId: string }) {
       <SheetTrigger asChild>
         <Button
           variant='ghost'
-          size='icon'
-          className='md:hidden w-12 h-12 min-w-[48px] min-h-[48px] touch-manipulation hover:bg-gray-700/50 transition-all duration-200 rounded-xl border border-gray-600/30 backdrop-blur-sm'
+          size='icon' className='md:hidden w-12 h-12 min-w-[48px] min-h-[48px] touch-manipulation hover:bg-gray-700/50 transition-all duration-200 rounded-xl border border-gray-600/30 backdrop-blur-sm'
         >
           <Menu className='w-5 h-5 text-gray-300 hover:text-white transition-colors' />
         </Button>
       </SheetTrigger>
       <SheetContent
-        side='left'
-        className='p-0 flex gap-0 w-auto max-w-[85vw] bg-gradient-to-br from-gray-900 via-gray-900/95 to-black border-r border-gray-700/50 backdrop-blur-xl'
+        side='left' className='p-0 flex gap-0 w-auto max-w-[85vw] bg-gradient-to-br from-gray-900 via-gray-900/95 to-black border-r border-gray-700/50 backdrop-blur-xl'
       >
         <div className='w-[72px] border-r border-gray-700/50'>
           {await SideBar()}

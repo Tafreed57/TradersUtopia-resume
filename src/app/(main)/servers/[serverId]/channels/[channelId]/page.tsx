@@ -35,7 +35,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
   return (
     <div
       className={cn(
-        'bg-white dark:bg-[#313338] flex flex-col h-full',
+        'bg-[#313338] flex flex-col h-full',
         (channel.type === ChannelType.VIDEO ||
           channel.type === ChannelType.AUDIO) &&
           'overflow-hidden'

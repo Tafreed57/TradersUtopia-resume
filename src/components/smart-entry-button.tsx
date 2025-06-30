@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useUser, useSignIn } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Shield, LogIn, Loader2 } from 'lucide-react';
+import { Shield, LogIn, Loader2, Zap, Crown } from 'lucide-react';
 import { makeSecureRequest } from '@/lib/csrf-client';
 
 export function SmartEntryButton() {
@@ -107,8 +107,7 @@ export function SmartEntryButton() {
     return (
       <Button
         size='lg'
-        disabled
-        className='bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl font-bold rounded-lg opacity-50 border border-yellow-400/50 w-full sm:w-auto touch-manipulation'
+        disabled className='bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl font-bold rounded-lg opacity-50 border border-yellow-400/50 w-full sm:w-auto touch-manipulation'
       >
         <Loader2 className='h-4 w-4 sm:h-5 sm:w-5 animate-spin mr-2' />
         <span className='text-sm sm:text-base md:text-lg'>Loading...</span>
@@ -120,8 +119,7 @@ export function SmartEntryButton() {
     return (
       <Button
         size='lg'
-        onClick={handleEntryClick}
-        className='bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl border border-yellow-400/50 w-full sm:w-auto touch-manipulation min-h-[48px] sm:min-h-[52px] md:min-h-[56px]'
+        onClick={handleEntryClick} className='bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl border border-yellow-400/50 w-full sm:w-auto touch-manipulation min-h-[48px] sm:min-h-[52px] md:min-h-[56px]'
       >
         <LogIn className='h-4 w-4 sm:h-5 sm:w-5 mr-2' />
         <span className='text-sm sm:text-base md:text-lg'>Get Access Now</span>
@@ -134,22 +132,22 @@ export function SmartEntryButton() {
     <Button
       size='lg'
       onClick={handleEntryClick}
-      disabled={isProcessing}
-      className='bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none border border-green-500/50 w-full sm:w-auto touch-manipulation min-h-[48px] sm:min-h-[52px] md:min-h-[56px]'
+      disabled={isProcessing} className='bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none border border-green-500/50 w-full sm:w-auto touch-manipulation min-h-[48px] sm:min-h-[52px] md:min-h-[56px]'
     >
       {isProcessing ? (
         <div className='flex items-center gap-2'>
           <Loader2 className='h-4 w-4 sm:h-5 sm:w-5 animate-spin' />
-          <span className='text-sm sm:text-base md:text-lg'>
-            Accessing Platform...
+          <span className='text-sm sm:text-base md:text-lg bg-gradient-to-r from-white to-gray-100 bg-clip-text text-transparent'>
+            ✨ Entering Utopia...
           </span>
         </div>
       ) : (
         <div className='flex items-center gap-2'>
-          <Shield className='h-4 w-4 sm:h-5 sm:w-5' />
-          <span className='text-sm sm:text-base md:text-lg'>
-            Access Trading Platform
+          <Crown className='h-4 w-4 sm:h-5 sm:w-5 animate-pulse' />
+          <span className='text-sm sm:text-base md:text-lg bg-gradient-to-r from-white to-gray-100 bg-clip-text text-transparent'>
+            ✨ Enter Traders Utopia
           </span>
+          <Zap className='h-3 w-3 sm:h-4 sm:w-4 text-yellow-300 animate-bounce' />
         </div>
       )}
     </Button>

@@ -108,16 +108,16 @@ export default function TwoFactorVerifyPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-              <Shield className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <div className="p-3 bg-blue-100 rounded-full">
+              <Shield className="h-8 w-8 text-blue-600" />
             </div>
           </div>
           <CardTitle className="text-2xl">Two-Factor Authentication</CardTitle>
-          <p className="text-gray-600 dark:text-gray-300 mt-2">
+          <p className="text-gray-600 mt-2">
             Enter the 6-digit code from your authenticator app to complete
             sign-in
           </p>
@@ -133,15 +133,14 @@ export default function TwoFactorVerifyPage() {
                 setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
               }
               onKeyPress={handleKeyPress}
-              placeholder="123456"
-              className="text-center text-lg font-mono"
+              placeholder="123456" className="text-center text-lg font-mono"
               maxLength={6}
               autoFocus
             />
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-lg">
+            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg">
               <AlertCircle className="h-4 w-4" />
               <span className="text-sm">{error}</span>
             </div>
@@ -156,12 +155,11 @@ export default function TwoFactorVerifyPage() {
           </Button>
 
           <div className="text-center space-y-2">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500">
               Can't access your authenticator app?
             </p>
             <Button
-              variant="link"
-              className="text-sm p-0"
+              variant="link" className="text-sm p-0"
               onClick={() =>
                 showToast.info(
                   "Contact Support",
@@ -172,7 +170,7 @@ export default function TwoFactorVerifyPage() {
               Use backup code or contact support
             </Button>
 
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="pt-2 border-t border-gray-200">
               <Button
                 variant="outline"
                 className="text-sm"

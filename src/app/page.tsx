@@ -38,6 +38,9 @@ export default function HomePage() {
           <AutoRouteAfterSignIn />
         </Suspense>
 
+        {/* Hero Banner */}
+        <HeroBanner />
+
         {/* Trust Bar - Mobile-Optimized */}
         <div className='bg-gradient-to-r from-yellow-600/20 via-yellow-500/25 to-yellow-400/20 border-b border-yellow-400/30 backdrop-blur-sm'>
           <div className='max-w-7xl mx-auto px-4 sm:px-6 py-2 sm:py-3'>
@@ -58,14 +61,13 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Hero Banner */}
-        <HeroBanner />
-
         {/* Shared Navigation */}
         <SharedNavbar currentPage='home' />
 
         {/* Hero Section - Mobile-Optimized */}
-        <section className='max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-12 sm:pb-16'>
+        <section
+          id='hero' className='max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-12 sm:pb-16'
+        >
           <div className='text-center mb-16'>
             {/* Social Proof Badge - Mobile-Optimized */}
             <div className='inline-flex items-center gap-2 bg-green-600/20 border border-green-400/30 rounded-full px-3 sm:px-4 py-2 mb-6 touch-manipulation'>
@@ -75,7 +77,7 @@ export default function HomePage() {
                 <div className='w-5 h-5 sm:w-6 sm:h-6 bg-purple-500 rounded-full border-2 border-white'></div>
               </div>
               <span className='text-green-400 text-xs sm:text-sm font-medium'>
-                Trusted by 2,847+ professional traders
+                Trusted by 1,047+ professional traders
               </span>
             </div>
 
@@ -116,7 +118,7 @@ export default function HomePage() {
               </div>
               <div className='flex flex-col items-center bg-gradient-to-b from-green-500/10 to-green-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-green-400/20 hover:border-green-400/40 transition-all duration-300 hover:transform hover:-translate-y-1 touch-manipulation'>
                 <div className='text-2xl sm:text-3xl font-bold text-green-400'>
-                  $2.4M+
+                  $250K+
                 </div>
                 <div className='text-xs sm:text-sm text-gray-300 text-center'>
                   Member Profits
@@ -124,7 +126,7 @@ export default function HomePage() {
               </div>
               <div className='flex flex-col items-center bg-gradient-to-b from-blue-500/10 to-blue-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-blue-400/20 hover:border-blue-400/40 transition-all duration-300 hover:transform hover:-translate-y-1 touch-manipulation'>
                 <div className='text-2xl sm:text-3xl font-bold text-blue-400'>
-                  2,847
+                  1,047
                 </div>
                 <div className='text-xs sm:text-sm text-gray-300 text-center'>
                   Active Members
@@ -132,7 +134,7 @@ export default function HomePage() {
               </div>
               <div className='flex flex-col items-center bg-gradient-to-b from-purple-500/10 to-purple-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-purple-400/20 hover:border-purple-400/40 transition-all duration-300 hover:transform hover:-translate-y-1 touch-manipulation'>
                 <div className='text-2xl sm:text-3xl font-bold text-purple-400'>
-                  5 Years
+                  2 Years
                 </div>
                 <div className='text-xs sm:text-sm text-gray-300 text-center'>
                   Track Record
@@ -177,8 +179,7 @@ export default function HomePage() {
 
         {/* Features Section - Mobile-Optimized */}
         <section
-          id='features'
-          className='bg-gradient-to-b from-gray-900/50 to-black py-12 sm:py-16 md:py-20'
+          id='features' className='bg-gradient-to-b from-gray-900/50 to-black py-12 sm:py-16 md:py-20'
         >
           <div className='max-w-7xl mx-auto px-4 sm:px-6'>
             <div className='text-center mb-16'>
@@ -364,8 +365,174 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Free Videos Section - Mobile-Optimized */}
+        <section id='free-videos' className='py-12 sm:py-16 md:py-20'>
+          <div className='max-w-7xl mx-auto px-4 sm:px-6'>
+            <div className='text-center mb-12 sm:mb-16'>
+              <h2 className='text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6'>
+                Start Learning for{' '}
+                <span className='bg-gradient-to-r from-green-400 via-blue-500 to-purple-600 bg-clip-text text-transparent'>
+                  FREE
+                </span>
+              </h2>
+              <p className='text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed'>
+                Get instant access to our premium educational content and see
+                why thousands of traders trust TradersUtopia
+              </p>
+            </div>
+
+            <div className='bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 border border-gray-600/30 backdrop-blur-md shadow-2xl mx-4 sm:mx-0 mb-8 sm:mb-12'>
+              <div className='grid lg:grid-cols-2 gap-8 lg:gap-12 items-center'>
+                {/* Left Side - Content */}
+                <div className='space-y-6'>
+                  <div className='flex items-center gap-3 mb-4'>
+                    <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500/20 to-blue-600/30 rounded-xl sm:rounded-2xl flex items-center justify-center'>
+                      <Play className='w-6 h-6 sm:w-8 sm:h-8 text-green-400' />
+                    </div>
+                    <div>
+                      <h3 className='text-xl sm:text-2xl md:text-3xl font-bold text-white'>
+                        Free Trading Education
+                      </h3>
+                      <p className='text-green-400 text-sm sm:text-base font-medium'>
+                        No subscription required
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className='space-y-4'>
+                    <div className='flex items-start gap-3'>
+                      <div className='w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1'>
+                        <Check className='w-3 h-3 text-green-400' />
+                      </div>
+                      <div>
+                        <h4 className='text-white font-semibold mb-1'>
+                          Professional Trading Strategies
+                        </h4>
+                        <p className='text-gray-300 text-sm'>
+                          Learn the exact methods our premium members use to
+                          generate consistent profits
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className='flex items-start gap-3'>
+                      <div className='w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1'>
+                        <Check className='w-3 h-3 text-blue-400' />
+                      </div>
+                      <div>
+                        <h4 className='text-white font-semibold mb-1'>
+                          Risk Management Fundamentals
+                        </h4>
+                        <p className='text-gray-300 text-sm'>
+                          Master the art of protecting your capital while
+                          maximizing returns
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className='flex items-start gap-3'>
+                      <div className='w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1'>
+                        <Check className='w-3 h-3 text-purple-400' />
+                      </div>
+                      <div>
+                        <h4 className='text-white font-semibold mb-1'>
+                          Market Analysis Techniques
+                        </h4>
+                        <p className='text-gray-300 text-sm'>
+                          Discover how to read charts and identify
+                          high-probability setups
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className='pt-4'>
+                    <Link
+                      href='/free-videos' className='inline-flex items-center gap-3 bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 hover:from-green-500 hover:via-blue-500 hover:to-purple-500 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 touch-manipulation'
+                    >
+                      <Play className='w-5 h-5 sm:w-6 sm:h-6' />
+                      <span className='text-sm sm:text-base'>
+                        Watch Free Videos
+                      </span>
+                      <ChevronRight className='w-4 h-4 sm:w-5 sm:h-5' />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Right Side - Visual Preview */}
+                <div className='relative'>
+                  <div className='aspect-video bg-gradient-to-br from-gray-900 to-black rounded-xl sm:rounded-2xl border border-gray-600/50 shadow-2xl overflow-hidden group hover:border-blue-400/50 transition-all duration-500'>
+                    {/* Video preview overlay */}
+                    <div className='absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500'></div>
+
+                    {/* Play button */}
+                    <div className='absolute inset-0 flex items-center justify-center'>
+                      <div className='w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-green-500 via-blue-500 to-purple-600 rounded-full flex items-center justify-center cursor-pointer group-hover:scale-110 transition-transform duration-300 shadow-lg'>
+                        <Play className='w-8 h-8 sm:w-10 sm:h-10 text-white ml-1' />
+                      </div>
+                    </div>
+
+                    {/* Preview text */}
+                    <div className='absolute bottom-4 left-4 right-4'>
+                      <div className='bg-black/80 rounded-lg p-3 backdrop-blur-sm'>
+                        <p className='text-white text-xs sm:text-sm font-medium'>
+                          🎯 Preview: "How to Identify High-Probability Trades"
+                        </p>
+                        <p className='text-gray-300 text-xs'>
+                          Duration: 15 minutes • Free Access
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating stats */}
+                  <div className='absolute -top-4 -right-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-black text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-full shadow-lg'>
+                    🔥 10K+ Views
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Video Stats Grid */}
+            <div className='grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-4xl mx-auto'>
+              <div className='bg-gradient-to-b from-green-500/10 to-green-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-green-400/20 text-center'>
+                <div className='text-xl sm:text-2xl font-bold text-green-400 mb-1'>
+                  25+
+                </div>
+                <div className='text-xs sm:text-sm text-gray-300'>
+                  Free Videos
+                </div>
+              </div>
+              <div className='bg-gradient-to-b from-blue-500/10 to-blue-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-blue-400/20 text-center'>
+                <div className='text-xl sm:text-2xl font-bold text-blue-400 mb-1'>
+                  15+
+                </div>
+                <div className='text-xs sm:text-sm text-gray-300'>
+                  Hours Content
+                </div>
+              </div>
+              <div className='bg-gradient-to-b from-purple-500/10 to-purple-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-purple-400/20 text-center'>
+                <div className='text-xl sm:text-2xl font-bold text-purple-400 mb-1'>
+                  4.8★
+                </div>
+                <div className='text-xs sm:text-sm text-gray-300'>
+                  Average Rating
+                </div>
+              </div>
+              <div className='bg-gradient-to-b from-yellow-500/10 to-yellow-600/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-yellow-400/20 text-center'>
+                <div className='text-xl sm:text-2xl font-bold text-yellow-400 mb-1'>
+                  100%
+                </div>
+                <div className='text-xs sm:text-sm text-gray-300'>
+                  Free Access
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Results Section */}
-        <section className='py-20'>
+        <section id='results' className='py-20'>
           <div className='max-w-7xl mx-auto px-6'>
             <div className='text-center mb-16'>
               <h2 className='text-4xl md:text-5xl font-bold mb-4'>
@@ -384,8 +551,7 @@ export default function HomePage() {
                   src='/phone.png'
                   alt='Mobile Trading Results'
                   width={200}
-                  height={300}
-                  className='mx-auto mb-6'
+                  height={300} className='mx-auto mb-6'
                 />
                 <div className='text-center'>
                   <h3 className='text-2xl font-bold mb-2'>
@@ -408,8 +574,7 @@ export default function HomePage() {
                   src='/laptop.png'
                   alt='Desktop Trading Platform'
                   width={300}
-                  height={200}
-                  className='mx-auto mb-6'
+                  height={200} className='mx-auto mb-6'
                 />
                 <div className='text-center'>
                   <h3 className='text-2xl font-bold mb-2'>
@@ -432,8 +597,7 @@ export default function HomePage() {
 
         {/* Testimonials Section */}
         <section
-          id='testimonials'
-          className='bg-gradient-to-b from-gray-900/50 to-black py-20'
+          id='testimonials' className='bg-gradient-to-b from-gray-900/50 to-black py-20'
         >
           <div className='max-w-7xl mx-auto px-6'>
             <div className='text-center mb-16'>
@@ -448,8 +612,7 @@ export default function HomePage() {
                 <div className='flex items-center gap-1 mb-4'>
                   {[...Array(5)].map((_, i) => (
                     <Star
-                      key={i}
-                      className='w-4 h-4 text-yellow-400 fill-current'
+                      key={i} className='w-4 h-4 text-yellow-400 fill-current'
                     />
                   ))}
                 </div>
@@ -476,8 +639,7 @@ export default function HomePage() {
                 <div className='flex items-center gap-1 mb-4'>
                   {[...Array(5)].map((_, i) => (
                     <Star
-                      key={i}
-                      className='w-4 h-4 text-yellow-400 fill-current'
+                      key={i} className='w-4 h-4 text-yellow-400 fill-current'
                     />
                   ))}
                 </div>
@@ -504,8 +666,7 @@ export default function HomePage() {
                 <div className='flex items-center gap-1 mb-4'>
                   {[...Array(5)].map((_, i) => (
                     <Star
-                      key={i}
-                      className='w-4 h-4 text-yellow-400 fill-current'
+                      key={i} className='w-4 h-4 text-yellow-400 fill-current'
                     />
                   ))}
                 </div>
@@ -531,7 +692,7 @@ export default function HomePage() {
         </section>
 
         {/* Guarantee Section */}
-        <section className='py-20'>
+        <section id='guarantee' className='py-20'>
           <div className='max-w-4xl mx-auto px-6 text-center'>
             <div className='bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-400/30 rounded-2xl p-8'>
               <div className='w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6'>
@@ -568,8 +729,7 @@ export default function HomePage() {
 
         {/* Final CTA Section */}
         <section
-          id='pricing'
-          className='bg-gradient-to-b from-gray-900/50 to-black py-20'
+          id='pricing' className='bg-gradient-to-b from-gray-900/50 to-black py-20'
         >
           <div className='max-w-4xl mx-auto px-6 text-center'>
             <h2 className='text-4xl md:text-5xl font-bold mb-6'>
@@ -577,7 +737,7 @@ export default function HomePage() {
               <span className='text-yellow-400'>Trading Journey</span> Today
             </h2>
             <p className='text-xl text-gray-300 mb-8'>
-              Join 2,847+ successful traders and start receiving profitable
+              Join 1,047+ successful traders and start receiving profitable
               trade alerts within minutes.
             </p>
 
@@ -599,9 +759,23 @@ export default function HomePage() {
               </div>
 
               <div className='space-y-4 mb-8'>
-                <SmartEntryButton />
+                <Link href='/pricing'>
+                  <Button
+                    size='lg' className='bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-800 text-white px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-2xl border border-blue-400/30 hover:border-purple-400/50 hover:shadow-purple-500/25 w-full sm:w-auto touch-manipulation min-h-[48px] sm:min-h-[52px] md:min-h-[56px]'
+                  >
+                    <div className='flex items-center gap-2'>
+                      <span className='text-lg sm:text-xl animate-pulse'>
+                        💰
+                      </span>
+                      <span className='text-sm sm:text-base md:text-lg bg-gradient-to-r from-white to-gray-100 bg-clip-text text-transparent'>
+                        💎 View Pricing
+                      </span>
+                      <ChevronRight className='h-3 w-3 sm:h-4 sm:w-4 text-yellow-300 animate-bounce' />
+                    </div>
+                  </Button>
+                </Link>
                 <p className='text-green-400 text-sm'>
-                  ✅ Get instant access to professional trading alerts
+                  ✅ Explore our pricing options and get started
                 </p>
               </div>
 
@@ -634,7 +808,7 @@ export default function HomePage() {
             </div>
 
             <p className='text-gray-400 text-sm'>
-              Over 2,847 members • 4.9/5 rating • Join risk-free today
+              Over 1,047 members • 4.9/5 rating • Join risk-free today
             </p>
           </div>
         </section>
@@ -665,20 +839,17 @@ export default function HomePage() {
                 <h4 className='text-white font-semibold mb-3'>Product</h4>
                 <div className='space-y-2 text-sm'>
                   <Link
-                    href='#features'
-                    className='text-gray-400 hover:text-white block'
+                    href='#features' className='text-gray-400 hover:text-white block'
                   >
                     Features
                   </Link>
                   <Link
-                    href='#pricing'
-                    className='text-gray-400 hover:text-white block'
+                    href='#pricing' className='text-gray-400 hover:text-white block'
                   >
                     Pricing
                   </Link>
                   <SubscriptionProtectedLink
-                    href='/dashboard'
-                    className='text-gray-400 hover:text-white block'
+                    href='/dashboard' className='text-gray-400 hover:text-white block'
                   >
                     Dashboard
                   </SubscriptionProtectedLink>
@@ -689,20 +860,17 @@ export default function HomePage() {
                 <h4 className='text-white font-semibold mb-3'>Support</h4>
                 <div className='space-y-2 text-sm'>
                   <Link
-                    href='#'
-                    className='text-gray-400 hover:text-white block'
+                    href='#' className='text-gray-400 hover:text-white block'
                   >
                     Help Center
                   </Link>
                   <Link
-                    href='#'
-                    className='text-gray-400 hover:text-white block'
+                    href='#' className='text-gray-400 hover:text-white block'
                   >
                     Contact Us
                   </Link>
                   <Link
-                    href='#'
-                    className='text-gray-400 hover:text-white block'
+                    href='#' className='text-gray-400 hover:text-white block'
                   >
                     Terms of Service
                   </Link>
@@ -713,20 +881,17 @@ export default function HomePage() {
                 <h4 className='text-white font-semibold mb-3'>Legal</h4>
                 <div className='space-y-2 text-sm'>
                   <Link
-                    href='#'
-                    className='text-gray-400 hover:text-white block'
+                    href='#' className='text-gray-400 hover:text-white block'
                   >
                     Privacy Policy
                   </Link>
                   <Link
-                    href='#'
-                    className='text-gray-400 hover:text-white block'
+                    href='#' className='text-gray-400 hover:text-white block'
                   >
                     Risk Disclosure
                   </Link>
                   <Link
-                    href='#'
-                    className='text-gray-400 hover:text-white block'
+                    href='#' className='text-gray-400 hover:text-white block'
                   >
                     SEC Compliance
                   </Link>

@@ -120,8 +120,7 @@ export function DiscordProfile() {
                   src={user.imageUrl}
                   alt={`${user.firstName} ${user.lastName}`}
                   width={96}
-                  height={96}
-                  className='w-full h-full object-cover'
+                  height={96} className='w-full h-full object-cover'
                 />
               </div>
               {/* Enhanced online status indicator */}
@@ -161,8 +160,7 @@ export function DiscordProfile() {
                 </h2>
                 <Button
                   variant='ghost'
-                  size='sm'
-                  className='h-8 w-8 p-0 hover:bg-blue-500/20 hover:text-blue-400 transition-all duration-300 self-center sm:self-auto'
+                  size='sm' className='h-8 w-8 p-0 hover:bg-blue-500/20 hover:text-blue-400 transition-all duration-300 self-center sm:self-auto'
                   onClick={() => window.open('/user-profile', '_blank')}
                 >
                   <Edit className='h-4 w-4' />
@@ -173,8 +171,7 @@ export function DiscordProfile() {
                   @{user.username || user.firstName?.toLowerCase()}
                 </span>
                 <Badge
-                  variant='outline'
-                  className='text-xs border-gray-500/50 text-gray-400'
+                  variant='outline' className='text-xs border-gray-500/50 text-gray-400'
                 >
                   ID: {user.id.substring(0, 8)}...
                 </Badge>
@@ -280,8 +277,7 @@ export function DiscordProfile() {
                 </div>
                 <Button
                   variant='ghost'
-                  size='sm'
-                  className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-blue-500/20 hover:text-blue-400 self-end sm:self-auto'
+                  size='sm' className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-blue-500/20 hover:text-blue-400 self-end sm:self-auto'
                   onClick={() => window.open('/user-profile#email', '_blank')}
                 >
                   <Edit className='h-4 w-4' />
@@ -307,8 +303,7 @@ export function DiscordProfile() {
                 </div>
                 <Button
                   variant='ghost'
-                  size='sm'
-                  className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-green-500/20 hover:text-green-400 self-end sm:self-auto'
+                  size='sm' className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-green-500/20 hover:text-green-400 self-end sm:self-auto'
                   onClick={() => window.open('/user-profile#phone', '_blank')}
                 >
                   <Edit className='h-4 w-4' />
@@ -398,8 +393,7 @@ export function DiscordProfile() {
                 </div>
                 <Button
                   variant='ghost'
-                  size='sm'
-                  className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-purple-500/20 hover:text-purple-400 self-end sm:self-auto'
+                  size='sm' className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-purple-500/20 hover:text-purple-400 self-end sm:self-auto'
                   onClick={() =>
                     window.open('/user-profile#username', '_blank')
                   }
@@ -483,8 +477,7 @@ export function DiscordProfile() {
             {/* Enhanced OAuth Providers - Mobile Responsive */}
             {oauthAccounts.map(account => (
               <div
-                key={account.id}
-                className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300'
+                key={account.id} className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300'
               >
                 <div className='flex items-center space-x-3 sm:space-x-4'>
                   <Shield className='h-4 w-4 sm:h-5 sm:w-5 text-blue-400' />

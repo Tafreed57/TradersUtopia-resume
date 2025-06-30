@@ -8,8 +8,7 @@ export function AuthHeader() {
       <SignedOut>
         <Link href='/sign-in'>
           <Button
-            variant='outline'
-            className='h-10 bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200'
+            variant='outline' className='h-10 bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200'
           >
             Sign In
           </Button>

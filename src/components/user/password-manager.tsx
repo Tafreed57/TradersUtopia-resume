@@ -181,9 +181,7 @@ export function PasswordManager() {
       ) : (
         <XCircle className='h-4 w-4 text-red-500' />
       )}
-      <span
-        className={`text-sm ${met ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}
-      >
+      <span className={`text-sm ${met ? 'text-green-700' : 'text-red-700'}`}>
         {text}
       </span>
     </div>
@@ -201,10 +199,10 @@ export function PasswordManager() {
     <div className='max-w-2xl mx-auto space-y-6'>
       {/* Header */}
       <div className='text-center'>
-        <h1 className='text-2xl font-bold text-gray-900 dark:text-white mb-2'>
+        <h1 className='text-2xl font-bold text-gray-900 mb-2'>
           Password Management
         </h1>
-        <p className='text-gray-600 dark:text-gray-400'>
+        <p className='text-gray-600'>
           {hasOAuthOnly
             ? 'Add a password for enhanced security'
             : hasPassword
@@ -229,7 +227,7 @@ export function PasswordManager() {
                 <Lock
                   className={`h-4 w-4 ${hasPassword ? 'text-green-600' : 'text-gray-400'}`}
                 />
-                <span className='text-sm text-gray-700 dark:text-gray-300'>
+                <span className='text-sm text-gray-700'>
                   Password Authentication
                 </span>
               </div>
@@ -245,7 +243,7 @@ export function PasswordManager() {
                   <Smartphone
                     className={`h-4 w-4 ${passwordStatus.has2FA ? 'text-green-600' : 'text-gray-400'}`}
                   />
-                  <span className='text-sm text-gray-700 dark:text-gray-300'>
+                  <span className='text-sm text-gray-700'>
                     Two-Factor Authentication
                   </span>
                 </div>
@@ -263,7 +261,7 @@ export function PasswordManager() {
               >
                 <div className='flex items-center space-x-3'>
                   <Key className='h-4 w-4 text-blue-600' />
-                  <span className='text-sm text-gray-700 dark:text-gray-300'>
+                  <span className='text-sm text-gray-700'>
                     {account.provider.replace('oauth_', '').toUpperCase()} OAuth
                   </span>
                 </div>
@@ -416,7 +414,7 @@ export function PasswordManager() {
                     )}
                   </div>
                 </div>
-                <div className='flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400'>
+                <div className='flex items-center gap-2 text-sm text-gray-600'>
                   <HelpCircle className='h-4 w-4' />
                   <span>
                     Open your authenticator app and enter the 6-digit code for
@@ -494,7 +492,7 @@ export function PasswordManager() {
                     <XCircle className='h-4 w-4 text-red-500' />
                   )}
                   <span
-                    className={`text-sm ${passwordsMatch ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}
+                    className={`text-sm ${passwordsMatch ? 'text-green-700' : 'text-red-700'}`}
                   >
                     {passwordsMatch
                       ? 'Passwords match'
@@ -508,7 +506,7 @@ export function PasswordManager() {
             {newPassword && (
               <div className='space-y-3'>
                 <Label>Password Requirements</Label>
-                <div className='space-y-2 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg'>
+                <div className='space-y-2 p-4 bg-gray-800 rounded-lg'>
                   <RequirementItem
                     met={requirements.minLength}
                     text='At least 8 characters long'
@@ -563,16 +561,16 @@ export function PasswordManager() {
           <div className='flex items-start space-x-3'>
             <Shield className='h-5 w-5 text-blue-600 mt-0.5' />
             <div>
-              <h4 className='font-medium text-gray-900 dark:text-white'>
+              <h4 className='font-medium text-gray-900'>
                 Enhanced Security Notice
               </h4>
-              <p className='text-sm text-gray-600 dark:text-gray-400 mt-1'>
+              <p className='text-sm text-gray-600 mt-1'>
                 Your password is encrypted and stored securely using
                 industry-standard practices. We never store passwords in plain
                 text, and they cannot be recovered by our support team.
               </p>
               {passwordStatus?.canUse2FAForPasswordChange && (
-                <p className='text-sm text-green-600 dark:text-green-400 mt-2'>
+                <p className='text-sm text-green-600 mt-2'>
                   <strong>🔒 Enhanced Security:</strong> You can now use 2FA
                   authentication to change your password, providing an
                   additional layer of security even if you forget your current
@@ -580,7 +578,7 @@ export function PasswordManager() {
                 </p>
               )}
               {hasOAuthOnly && (
-                <p className='text-sm text-blue-600 dark:text-blue-400 mt-2'>
+                <p className='text-sm text-blue-600 mt-2'>
                   Even with OAuth authentication, having a password provides
                   backup access to your account.
                 </p>
@@ -595,10 +593,8 @@ export function PasswordManager() {
         <CardContent className='p-4'>
           <div className='flex items-center justify-between'>
             <div>
-              <h4 className='font-medium text-gray-900 dark:text-white'>
-                Advanced Settings
-              </h4>
-              <p className='text-sm text-gray-600 dark:text-gray-400'>
+              <h4 className='font-medium text-gray-900'>Advanced Settings</h4>
+              <p className='text-sm text-gray-600'>
                 Manage additional account settings and security options
               </p>
             </div>

@@ -302,8 +302,7 @@ export function NotificationSettings() {
       <Button
         variant='outline'
         size='sm'
-        onClick={() => setIsExpanded(true)}
-        className='flex items-center gap-2 border-yellow-400/30 text-yellow-300 hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all duration-300'
+        onClick={() => setIsExpanded(true)} className='flex items-center gap-2 border-yellow-400/30 text-yellow-300 hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all duration-300'
       >
         <Settings className='h-4 w-4' />
         View Settings
@@ -328,8 +327,7 @@ export function NotificationSettings() {
             <Button
               variant='ghost'
               size='sm'
-              onClick={() => setIsExpanded(false)}
-              className='h-8 w-8 p-0 text-gray-400 hover:text-white'
+              onClick={() => setIsExpanded(false)} className='h-8 w-8 p-0 text-gray-400 hover:text-white'
             >
               <X className='h-4 w-4' />
             </Button>
@@ -362,8 +360,7 @@ export function NotificationSettings() {
                         Email Notifications
                       </h3>
                       <Badge
-                        variant='outline'
-                        className='text-xs mt-1 border-blue-400/30 text-blue-300'
+                        variant='outline' className='text-xs mt-1 border-blue-400/30 text-blue-300'
                       >
                         {Object.values(settings.email).filter(Boolean).length}{' '}
                         enabled
@@ -374,8 +371,7 @@ export function NotificationSettings() {
                     variant='outline'
                     size='sm'
                     onClick={testEmailNotification}
-                    disabled={isSaving}
-                    className='text-xs px-3 py-2 h-8 border-blue-400/30 text-blue-300 hover:bg-blue-500/20'
+                    disabled={isSaving} className='text-xs px-3 py-2 h-8 border-blue-400/30 text-blue-300 hover:bg-blue-500/20'
                   >
                     Test Email
                   </Button>
@@ -385,8 +381,7 @@ export function NotificationSettings() {
                     const IconComponent = type.icon;
                     return (
                       <div
-                        key={`email-${type.key}`}
-                        className='flex items-center justify-between p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300'
+                        key={`email-${type.key}`} className='flex items-center justify-between p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300'
                       >
                         <div className='flex items-center gap-3'>
                           <div
@@ -453,8 +448,7 @@ export function NotificationSettings() {
                       </div>
                       <Button
                         size='sm'
-                        onClick={enablePushNotifications}
-                        className='bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg'
+                        onClick={enablePushNotifications} className='bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg'
                       >
                         Enable
                       </Button>
@@ -523,8 +517,7 @@ export function NotificationSettings() {
                     <Button
                       variant='outline'
                       size='sm'
-                      onClick={() => setIsExpanded(false)}
-                      className='border-gray-600/50 text-gray-300 hover:bg-gray-700/50 h-10 sm:h-8 touch-manipulation w-full sm:w-auto'
+                      onClick={() => setIsExpanded(false)} className='border-gray-600/50 text-gray-300 hover:bg-gray-700/50 h-10 sm:h-8 touch-manipulation w-full sm:w-auto'
                     >
                       <ChevronUp className='h-4 w-4 mr-2' />
                       Collapse
@@ -532,8 +525,7 @@ export function NotificationSettings() {
                     <Button
                       size='sm'
                       onClick={savePreferences}
-                      disabled={isSaving}
-                      className='bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg h-10 sm:h-8 touch-manipulation font-semibold w-full sm:w-auto min-w-[120px]'
+                      disabled={isSaving} className='bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg h-10 sm:h-8 touch-manipulation font-semibold w-full sm:w-auto min-w-[120px]'
                     >
                       {isSaving ? (
                         <div className='flex items-center gap-2'>

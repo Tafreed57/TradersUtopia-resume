@@ -111,8 +111,7 @@ export function SubscriptionSmartEntry({
     return (
       <Button
         size="lg"
-        disabled
-        className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-6 sm:px-8 md:px-12 py-4 sm:py-6 text-lg sm:text-xl font-bold rounded-lg opacity-50 border border-yellow-400/50 w-full sm:w-auto"
+        disabled className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-6 sm:px-8 md:px-12 py-4 sm:py-6 text-lg sm:text-xl font-bold rounded-lg opacity-50 border border-yellow-400/50 w-full sm:w-auto"
       >
         <Loader2 className="h-4 h-4 sm:h-5 sm:w-5 animate-spin mr-2" />
         <span className="hidden xs:inline">Checking access...</span>

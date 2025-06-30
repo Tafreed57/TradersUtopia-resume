@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -16,8 +16,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -25,16 +25,16 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useStore } from "@/store/store";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ChannelType } from "@prisma/client";
-import { secureAxiosPost } from "@/lib/csrf-client";
-import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { useEffect } from "react";
-import qs from "query-string";
+} from '@/components/ui/select';
+import { useStore } from '@/store/store';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ChannelType } from '@prisma/client';
+import { secureAxiosPost } from '@/lib/csrf-client';
+import { useParams, useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { useEffect } from 'react';
+import qs from 'query-string';
 
 export function CreateChannelModal() {
   const router = useRouter();
@@ -44,13 +44,13 @@ export function CreateChannelModal() {
   const onClose = useStore.use.onClose();
   const data = useStore.use.data();
 
-  const isModelOpen = isOpen && type === "createChannel";
+  const isModelOpen = isOpen && type === 'createChannel';
 
   const schema = z.object({
     name: z
       .string()
-      .min(1, { message: "Channel name is required" })
-      .refine((name) => name !== "general", {
+      .min(1, { message: 'Channel name is required' })
+      .refine(name => name !== 'general', {
         message: "Channel name can't be 'general'",
       }),
     type: z.nativeEnum(ChannelType),
@@ -58,16 +58,16 @@ export function CreateChannelModal() {
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: "",
+      name: '',
       type: data?.channelType || ChannelType.TEXT,
     },
   });
 
   useEffect(() => {
     if (data?.channelType) {
-      form.setValue("type", data?.channelType);
+      form.setValue('type', data?.channelType);
     } else {
-      form.setValue("type", ChannelType.TEXT);
+      form.setValue('type', ChannelType.TEXT);
     }
   }, [data?.channelType, form]);
 
@@ -79,7 +79,7 @@ export function CreateChannelModal() {
     console.log(values);
     try {
       const url = qs.stringifyUrl({
-        url: "/api/channels",
+        url: '/api/channels',
         query: {
           serverId: params?.serverId,
         },
@@ -98,37 +98,37 @@ export function CreateChannelModal() {
   };
   return (
     <Dialog open={isModelOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-white text-black p-0 overflow-hidden">
-        <DialogHeader className="pt-8 px-6">
-          <DialogTitle className="text-2xl text-center font-bold">
+      <DialogContent className='bg-gray-900 text-white p-0 overflow-hidden'>
+        <DialogHeader className='pt-8 px-6'>
+          <DialogTitle className='text-2xl text-center font-bold'>
             Create Channel
           </DialogTitle>
-          <DialogDescription className="text-center text-zinc-500">
+          <DialogDescription className='text-center text-zinc-500'>
             Channels are where your members communicate. <br />
             for example #general.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            <div className="space-y-8 px-6">
+          <form onSubmit={handleSubmit(onSubmit)} className='space-y-8'>
+            <div className='space-y-8 px-6'>
               <FormField
                 control={form.control}
-                name="name"
+                name='name'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70">
+                    <FormLabel className='uppercase text-xs font-bold text-zinc-500'>
                       Chanel name
                     </FormLabel>
 
                     <FormControl>
                       <Input
                         disabled={isLoading}
-                        className="bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0"
-                        placeholder="Enter Channel name"
-                        autoComplete="off"
+                        className='bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0'
+                        placeholder='Enter Channel name'
+                        autoComplete='off'
                         spellCheck={false}
-                        autoCorrect="off"
-                        autoCapitalize="off"
+                        autoCorrect='off'
+                        autoCapitalize='off'
                         {...field}
                       />
                     </FormControl>
@@ -138,7 +138,7 @@ export function CreateChannelModal() {
               />
               <FormField
                 control={form.control}
-                name="type"
+                name='type'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Channel Type</FormLabel>
@@ -148,16 +148,16 @@ export function CreateChannelModal() {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className="bg-zinc-300/50 border-0 focus:ring-0 text-black  ring-offset-0 focus:ring-offset-0 capitalize outline-none">
-                          <SelectValue placeholder="Select a channel type" />
+                        <SelectTrigger className='bg-zinc-300/50 border-0 focus:ring-0 text-black ring-offset-0 focus:ring-offset-0 capitalize outline-none'>
+                          <SelectValue placeholder='Select a channel type' />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.values(ChannelType).map((type) => (
+                        {Object.values(ChannelType).map(type => (
                           <SelectItem
                             key={type}
                             value={type}
-                            className="capitalize"
+                            className='capitalize'
                           >
                             {type?.toLocaleLowerCase()}
                           </SelectItem>
@@ -169,12 +169,12 @@ export function CreateChannelModal() {
                 )}
               />
             </div>
-            <DialogFooter className="bg-gray-100 px-6 py-4">
+            <DialogFooter className='bg-gray-800 px-6 py-4'>
               <Button
-                type="submit"
-                variant="default"
+                type='submit'
+                variant='default'
                 disabled={isLoading}
-                className="w-full"
+                className='w-full'
               >
                 Create Channel
               </Button>

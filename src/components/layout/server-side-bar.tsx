@@ -65,10 +65,10 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
     member => member.profileId === profile.id
   )?.role;
   return (
-    <div className='flex flex-col h-full text-primary w-full dark:bg-[#2B2D31] bg-[#F2F3F5] overflow-hidden'>
+    <div className='flex flex-col h-full text-primary w-full bg-[#F2F3F5] overflow-hidden'>
       <div className='flex-shrink-0'>
         <ServerHeader server={server} role={role} />
-        <Separator className='h-[2px] bg-zinc-300 dark:bg-zinc-700 rounded-md w-10 mx-auto my-3' />
+        <Separator className='h-[2px] bg-zinc-700 rounded-md w-10 mx-auto my-3' />
       </div>
       <ScrollArea className='flex-1 w-full px-2 sm:px-3 pb-4'>
         <ServerSearch
@@ -102,7 +102,7 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
             },
           ]}
         />
-        <Separator className=' bg-zinc-200 dark:bg-zinc-700 rounded-md my-2' />
+        <Separator className=' bg-zinc-200 rounded-md my-2' />
         {!!textChannels?.length && (
           <div className='mb-2'>
             <ServerSection
@@ -171,7 +171,7 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
         <SubscriptionProtectedLink
           href='/dashboard'
           variant='ghost'
-          className='w-full justify-start text-zinc-500 dark:text-zinc-400 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 hover:text-zinc-600 dark:hover:text-zinc-300 transition'
+          className='w-full justify-start text-zinc-500 hover:bg-zinc-700/10 hover:text-zinc-600 transition'
         >
           <Settings className='h-4 w-4 mr-2' />
           Dashboard Settings
@@ -181,7 +181,7 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
         <Link href='/'>
           <Button
             variant='ghost'
-            className='w-full justify-start text-zinc-500 dark:text-zinc-400 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 hover:text-zinc-600 dark:hover:text-zinc-300 transition'
+            className='w-full justify-start text-zinc-500 hover:bg-zinc-700/10 hover:text-zinc-600 transition'
           >
             <Home className='h-4 w-4 mr-2' />
             Back to Homepage

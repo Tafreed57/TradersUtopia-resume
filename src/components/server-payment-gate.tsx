@@ -91,11 +91,11 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
 
   if (!paymentStatus?.hasAccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-full w-fit">
-              <Lock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+            <div className="mx-auto mb-4 p-3 bg-yellow-100 rounded-full w-fit">
+              <Lock className="h-8 w-8 text-yellow-600" />
             </div>
             <CardTitle className="text-2xl mb-2">
               🔒 Premium Access Required
@@ -119,7 +119,7 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
             </div>
 
             <div className="grid gap-4">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-lg border">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <Star className="h-5 w-5 text-yellow-500" />
                   What You Get With Premium:
@@ -151,8 +151,7 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
-                size="lg"
-                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                size="lg" className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                 onClick={() =>
                   window.open(
                     "https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01",

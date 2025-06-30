@@ -24,15 +24,14 @@ export function ServerSection({
   const onOpen = useStore.use.onOpen();
 
   return (
-    <div className="flex items-center justify-between p-2 ">
-      <p className="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">
+    <div className="flex items-center justify-between p-2">
+      <p className="text-sm font-semibold uppercase text-zinc-500">
         {label}
       </p>
       {role !== MemberRole.GUEST && sectionType === "channels" && (
         <ActionTooltip label="Create Channel" side="top">
           <button
-            onClick={() => onOpen("createChannel", { channelType })}
-            className="text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300 transition"
+            onClick={() => onOpen("createChannel", { channelType })} className="text-zinc-500 hover:text-zinc-600 transition"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -41,8 +40,7 @@ export function ServerSection({
       {role === MemberRole.ADMIN && sectionType === "members" && (
         <ActionTooltip label="Manage Members" side="top">
           <button
-            onClick={() => onOpen("manageMembers", { server })}
-            className="text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300 transition"
+            onClick={() => onOpen("manageMembers", { server })} className="text-zinc-500 hover:text-zinc-600 transition"
           >
             <Settings className="h-4 w-4" />
           </button>

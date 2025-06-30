@@ -73,17 +73,17 @@ export function ChatInput({
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <div className='relative p-3 sm:p-4 pb-4 sm:pb-6 bg-white dark:bg-[#313338] border-t border-neutral-200 dark:border-neutral-800'>
+                <div className='relative p-3 sm:p-4 pb-4 sm:pb-6 bg-[#313338] border-t border-neutral-200'>
                   <button
                     type='button'
                     onClick={() => onOpen('messageFile', { apiUrl, query })}
-                    className='absolute top-6 sm:top-7 left-6 sm:left-8 h-6 w-6 sm:h-7 sm:w-7 bg-zinc-500 dark:bg-zinc-400 hover:bg-zinc-600 dark:hover:bg-zinc-300 transition rounded-full p-1 flex items-center justify-center touch-manipulation'
+                    className='absolute top-6 sm:top-7 left-6 sm:left-8 h-6 w-6 sm:h-7 sm:w-7 bg-zinc-500 hover:bg-zinc-600 transition rounded-full p-1 flex items-center justify-center touch-manipulation'
                   >
-                    <Plus className='h-3 w-3 sm:h-4 sm:w-4 text-white dark:text-[#313338]' />
+                    <Plus className='h-3 w-3 sm:h-4 sm:w-4 text-white#313338]' />
                   </button>
                   <Input
                     disabled={isLoading}
-                    className='px-12 sm:px-14 py-3 sm:py-4 md:py-6 bg-zinc-200/90 dark:bg-zinc-700/75 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-600 dark:text-zinc-200 text-sm sm:text-base rounded-lg sm:rounded-xl min-h-[44px] touch-manipulation'
+                    className='px-12 sm:px-14 py-3 sm:py-4 md:py-6 bg-zinc-200/90 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-600 text-sm sm:text-base rounded-lg sm:rounded-xl min-h-[44px] touch-manipulation'
                     placeholder={`Message ${type === 'conversation' ? name : '#' + name}`}
                     autoComplete='off'
                     spellCheck={false}

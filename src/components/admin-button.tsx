@@ -126,8 +126,7 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
       <Button
         onClick={handleRevokeAdmin}
         disabled={isLoading}
-        variant="outline"
-        className="border-red-200 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:hover:bg-red-900/20 dark:hover:border-red-700"
+        variant="outline" className="border-red-200 hover:bg-red-50 hover:border-red-300"
       >
         {isLoading ? (
           <>
@@ -147,8 +146,7 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
   return (
     <Button
       onClick={handleGrantAdmin}
-      disabled={isLoading}
-      className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white"
+      disabled={isLoading} className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white"
     >
       {isLoading ? (
         <>

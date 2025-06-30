@@ -84,8 +84,7 @@ export default function PaymentVerificationPage() {
                 src='/logo.png'
                 alt='TradersUtopia'
                 width={20}
-                height={20}
-                className='sm:w-6 sm:h-6'
+                height={20} className='sm:w-6 sm:h-6'
               />
             </div>
             <span className='text-white text-lg sm:text-xl font-bold'>
@@ -103,8 +102,7 @@ export default function PaymentVerificationPage() {
           <NavigationButton
             href='/pricing'
             asButton={true}
-            variant='ghost'
-            className='text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30'
+            variant='ghost' className='text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30'
             loadingMessage='Loading pricing information...'
           >
             Back to Pricing
@@ -157,8 +155,7 @@ export default function PaymentVerificationPage() {
                         'https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01',
                         '_blank'
                       )
-                    }
-                    className='border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black flex-shrink-0'
+                    } className='border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black flex-shrink-0'
                   >
                     <ExternalLink className='w-4 h-4 mr-2' />
                     Open Stripe
@@ -200,8 +197,7 @@ export default function PaymentVerificationPage() {
                   <div className='space-y-4'>
                     <Button
                       onClick={verifyStripePayment}
-                      disabled={isVerifying}
-                      className='w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none'
+                      disabled={isVerifying} className='w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none'
                     >
                       {isVerifying ? (
                         <div className='flex items-center justify-center gap-2'>

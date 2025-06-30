@@ -1,14 +1,24 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ModeToggle } from '@/components/mode-toggler';
+
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { AuthHeader } from '@/components/auth-header';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
-import { Home, Crown, Play, DollarSign } from 'lucide-react';
+import {
+  Home,
+  Crown,
+  Play,
+  DollarSign,
+  Target,
+  Video,
+  TrendingUp,
+  MessageSquare,
+  Shield,
+} from 'lucide-react';
 
 interface SharedNavbarProps {
   currentPage?: 'home' | 'free-videos' | 'pricing' | 'dashboard';
@@ -49,62 +59,128 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
 
         {/* Center Navigation Links */}
         <nav className='hidden md:flex items-center gap-2 sm:gap-3 h-full'>
-          <Link href='/'>
-            <Button
-              variant='ghost'
-              className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
-                currentPage === 'home'
-                  ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
-                  : ''
-              }`}
-            >
-              <Home className='w-4 h-4 mr-2' />
-              <span className='hidden lg:inline'>Home</span>
-            </Button>
-          </Link>
+          {currentPage === 'home' ? (
+            // Homepage Section Anchor Links
+            <>
+              <Link href='/dashboard'>
+                <Button
+                  variant='ghost'
+                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                >
+                  <Crown className='w-4 h-4 mr-2' />
+                  <span className='hidden lg:inline'>Dashboard</span>
+                  <span className='lg:hidden'>App</span>
+                </Button>
+              </Link>
 
-          <Link href='/free-videos'>
-            <Button
-              variant='ghost'
-              className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
-                currentPage === 'free-videos'
-                  ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
-                  : ''
-              }`}
-            >
-              <Play className='w-4 h-4 mr-2' />
-              <span className='hidden lg:inline'>Free Videos</span>
-              <span className='lg:hidden'>Videos</span>
-            </Button>
-          </Link>
+              <a href='#features'>
+                <Button
+                  variant='ghost'
+                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                >
+                  <Target className='w-4 h-4 mr-2' />
+                  <span className='hidden lg:inline'>Features</span>
+                </Button>
+              </a>
 
-          <Link href='/pricing'>
-            <Button
-              variant='ghost'
-              className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
-                currentPage === 'pricing'
-                  ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
-                  : ''
-              }`}
-            >
-              <DollarSign className='w-4 h-4 mr-2' />
-              <span className='hidden lg:inline'>Pricing</span>
-            </Button>
-          </Link>
+              <a href='#free-videos'>
+                <Button
+                  variant='ghost'
+                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                >
+                  <Video className='w-4 h-4 mr-2' />
+                  <span className='hidden lg:inline'>Free Videos</span>
+                  <span className='lg:hidden'>Videos</span>
+                </Button>
+              </a>
 
-          <SubscriptionProtectedLink
-            href='/dashboard'
-            variant='ghost'
-            className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
-              currentPage === 'dashboard'
-                ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
-                : ''
-            }`}
-          >
-            <Crown className='w-4 h-4 mr-2' />
-            <span className='hidden lg:inline'>Dashboard</span>
-            <span className='lg:hidden'>App</span>
-          </SubscriptionProtectedLink>
+              <a href='#results'>
+                <Button
+                  variant='ghost'
+                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                >
+                  <TrendingUp className='w-4 h-4 mr-2' />
+                  <span className='hidden lg:inline'>Results</span>
+                </Button>
+              </a>
+
+              <a href='#testimonials'>
+                <Button
+                  variant='ghost'
+                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                >
+                  <MessageSquare className='w-4 h-4 mr-2' />
+                  <span className='hidden lg:inline'>Reviews</span>
+                </Button>
+              </a>
+
+              <a href='#pricing'>
+                <Button
+                  variant='ghost'
+                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                >
+                  <DollarSign className='w-4 h-4 mr-2' />
+                  <span className='hidden lg:inline'>Pricing</span>
+                </Button>
+              </a>
+            </>
+          ) : (
+            // Regular Page Links
+            <>
+              <Link href='/'>
+                <Button
+                  variant='ghost'
+                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200'
+                >
+                  <Home className='w-4 h-4 mr-2' />
+                  <span className='hidden lg:inline'>Home</span>
+                </Button>
+              </Link>
+
+              <Link href='/free-videos'>
+                <Button
+                  variant='ghost'
+                  className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
+                    currentPage === 'free-videos'
+                      ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
+                      : ''
+                  }`}
+                >
+                  <Play className='w-4 h-4 mr-2' />
+                  <span className='hidden lg:inline'>Free Videos</span>
+                  <span className='lg:hidden'>Videos</span>
+                </Button>
+              </Link>
+
+              <Link href='/pricing'>
+                <Button
+                  variant='ghost'
+                  className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
+                    currentPage === 'pricing'
+                      ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
+                      : ''
+                  }`}
+                >
+                  <DollarSign className='w-4 h-4 mr-2' />
+                  <span className='hidden lg:inline'>Pricing</span>
+                </Button>
+              </Link>
+
+              <SubscriptionProtectedLink
+                href='/dashboard'
+                variant='ghost'
+                className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
+                  currentPage === 'dashboard'
+                    ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
+                    : ''
+                }`}
+              >
+                <Crown className='w-4 h-4 mr-2' />
+                <span className='hidden lg:inline'>Dashboard</span>
+                <span className='lg:hidden'>App</span>
+              </SubscriptionProtectedLink>
+            </>
+          )}
         </nav>
 
         {/* Right Side Actions */}
@@ -124,12 +200,7 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
 
           {/* Mobile Menu */}
           <div className='md:hidden flex items-center'>
-            <GlobalMobileMenu />
-          </div>
-
-          {/* Desktop Mode Toggle */}
-          <div className='hidden sm:flex sm:items-center sm:h-full'>
-            <ModeToggle />
+            <GlobalMobileMenu currentPage={currentPage} />
           </div>
         </div>
       </header>
