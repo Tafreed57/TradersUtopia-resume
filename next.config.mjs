@@ -121,6 +121,14 @@ const nextConfig = {
   // AWS Amplify configuration
   trailingSlash: false,
   generateEtags: false,
+  output: 'standalone', // ✅ This can help with AWS environment variable issues
+
+  // ✅ AWS AMPLIFY: Force environment variables to be available
+  env: {
+    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  },
 };
 
 export default nextConfig;
