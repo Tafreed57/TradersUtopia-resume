@@ -70,7 +70,7 @@ const isPublicRoute = createRouteMatcher(publicRoutes);
 
 // ✅ EXPLICIT CONFIGURATION: Set environment variable for Clerk if needed
 if (clerkSecretKey && !process.env.CLERK_SECRET_KEY) {
-  process.env.CLERK_SECRET_KEY = clerkSecretKey;
+  // process.env.CLERK_SECRET_KEY = clerkSecretKey;
   console.log('✅ [MIDDLEWARE] Set CLERK_SECRET_KEY from alternative source');
 }
 
@@ -99,6 +99,7 @@ export default clerkMiddleware(
     console.log(
       `🔍 [MIDDLEWARE] ${request.nextUrl.pathname} - Public: ${isPublic}`
     );
+    console.log(process.env);
 
     if (!isPublic) {
       console.log(
