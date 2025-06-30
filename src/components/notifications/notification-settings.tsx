@@ -501,42 +501,50 @@ export function NotificationSettings() {
 
               <Separator className='bg-gray-600/30' />
 
-              {/* Save Button */}
-              <div className='flex items-center justify-between bg-gray-800/30 rounded-xl p-6 border border-gray-600/30'>
-                <div className='text-sm text-gray-300'>
-                  <p className='flex items-center gap-2'>
-                    <span className='w-2 h-2 bg-blue-400 rounded-full'></span>
-                    Email:{' '}
-                    {
-                      Object.values(settings.email).filter(Boolean).length
-                    } of {notificationTypes.length} enabled
-                  </p>
-                  <p className='flex items-center gap-2 mt-1'>
-                    <span className='w-2 h-2 bg-green-400 rounded-full'></span>
-                    Push: {
-                      Object.values(settings.push).filter(Boolean).length
-                    }{' '}
-                    of {notificationTypes.length} enabled
-                  </p>
-                </div>
-                <div className='flex gap-3'>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={() => setIsExpanded(false)}
-                    className='border-gray-600/50 text-gray-300 hover:bg-gray-700/50'
-                  >
-                    <ChevronUp className='h-4 w-4 mr-2' />
-                    Collapse
-                  </Button>
-                  <Button
-                    size='sm'
-                    onClick={savePreferences}
-                    disabled={isSaving}
-                    className='bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg'
-                  >
-                    {isSaving ? 'Saving...' : 'Save Settings'}
-                  </Button>
+              {/* Save Button - Mobile Optimized */}
+              <div className='bg-gray-800/30 rounded-xl p-4 sm:p-6 border border-gray-600/30'>
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+                  <div className='text-sm text-gray-300 space-y-2'>
+                    <p className='flex items-center gap-2'>
+                      <span className='w-2 h-2 bg-blue-400 rounded-full'></span>
+                      Email:{' '}
+                      {
+                        Object.values(settings.email).filter(Boolean).length
+                      } of {notificationTypes.length} enabled
+                    </p>
+                    <p className='flex items-center gap-2'>
+                      <span className='w-2 h-2 bg-green-400 rounded-full'></span>
+                      Push:{' '}
+                      {Object.values(settings.push).filter(Boolean).length} of{' '}
+                      {notificationTypes.length} enabled
+                    </p>
+                  </div>
+                  <div className='flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto'>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      onClick={() => setIsExpanded(false)}
+                      className='border-gray-600/50 text-gray-300 hover:bg-gray-700/50 h-10 sm:h-8 touch-manipulation w-full sm:w-auto'
+                    >
+                      <ChevronUp className='h-4 w-4 mr-2' />
+                      Collapse
+                    </Button>
+                    <Button
+                      size='sm'
+                      onClick={savePreferences}
+                      disabled={isSaving}
+                      className='bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg h-10 sm:h-8 touch-manipulation font-semibold w-full sm:w-auto min-w-[120px]'
+                    >
+                      {isSaving ? (
+                        <div className='flex items-center gap-2'>
+                          <div className='w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin'></div>
+                          Saving...
+                        </div>
+                      ) : (
+                        'Save Settings'
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </>

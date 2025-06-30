@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+} from '@/components/ui/card';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -37,8 +37,8 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("🚨 [ERROR BOUNDARY] Caught an error:", error);
-    console.error("📍 [ERROR BOUNDARY] Error info:", errorInfo);
+    console.error('🚨 [ERROR BOUNDARY] Caught an error:', error);
+    console.error('📍 [ERROR BOUNDARY] Error info:', errorInfo);
 
     this.setState({
       error,
@@ -51,9 +51,9 @@ export class ErrorBoundary extends React.Component<
     }
 
     // Log to error monitoring service in production
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV === 'production') {
       // Send to monitoring service (Sentry, LogRocket, etc.)
-      console.error("Production error logged:", {
+      console.error('Production error logged:', {
         error: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack,
@@ -70,7 +70,7 @@ export class ErrorBoundary extends React.Component<
   };
 
   handleGoHome = () => {
-    window.location.href = "/";
+    window.location.href = '/';
   };
 
   render() {
@@ -88,30 +88,30 @@ export class ErrorBoundary extends React.Component<
 
       // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+        <div className='min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900'>
+          <Card className='w-full max-w-md'>
+            <CardHeader className='text-center'>
+              <div className='mx-auto mb-4 w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center'>
+                <AlertTriangle className='w-6 h-6 text-red-600 dark:text-red-400' />
               </div>
-              <CardTitle className="text-xl">Something went wrong</CardTitle>
+              <CardTitle className='text-xl'>Something went wrong</CardTitle>
               <CardDescription>
                 We apologize for the inconvenience. An unexpected error
                 occurred.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {process.env.NODE_ENV === "development" && this.state.error && (
-                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                  <p className="text-sm font-mono text-red-600 dark:text-red-400">
+            <CardContent className='space-y-4'>
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <div className='p-3 bg-gray-100 dark:bg-gray-800 rounded-lg'>
+                  <p className='text-sm font-mono text-red-600 dark:text-red-400'>
                     {this.state.error.message}
                   </p>
                   {this.state.error.stack && (
-                    <details className="mt-2">
-                      <summary className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                    <details className='mt-2'>
+                      <summary className='text-xs text-gray-600 dark:text-gray-400 cursor-pointer'>
                         Show stack trace
                       </summary>
-                      <pre className="text-xs mt-1 text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                      <pre className='text-xs mt-1 text-gray-600 dark:text-gray-400 whitespace-pre-wrap'>
                         {this.state.error.stack}
                       </pre>
                     </details>
@@ -119,26 +119,26 @@ export class ErrorBoundary extends React.Component<
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className='flex flex-col sm:flex-row gap-2'>
                 <Button
                   onClick={this.handleRetry}
-                  className="flex-1 flex items-center gap-2"
-                  variant="default"
+                  className='flex-1 flex items-center gap-2'
+                  variant='default'
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className='w-4 h-4' />
                   Try Again
                 </Button>
                 <Button
                   onClick={this.handleGoHome}
-                  className="flex-1 flex items-center gap-2"
-                  variant="outline"
+                  className='flex-1 flex items-center gap-2'
+                  variant='outline'
                 >
-                  <Home className="w-4 h-4" />
+                  <Home className='w-4 h-4' />
                   Go Home
                 </Button>
               </div>
 
-              <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+              <p className='text-xs text-center text-gray-500 dark:text-gray-400'>
                 If this problem persists, please contact support.
               </p>
             </CardContent>
@@ -151,32 +151,4 @@ export class ErrorBoundary extends React.Component<
   }
 }
 
-// ✅ Hook-based error boundary for functional components
-export function useErrorHandler() {
-  return (error: Error, errorInfo?: React.ErrorInfo) => {
-    console.error("🚨 [ERROR HANDLER] Manually caught error:", error);
-    if (errorInfo) {
-      console.error("📍 [ERROR HANDLER] Error info:", errorInfo);
-    }
-
-    // Rethrow error to be caught by nearest error boundary
-    throw error;
-  };
-}
-
-// ✅ HOC for wrapping components with error boundary
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  fallback?: React.ComponentType<{ error: Error; retry: () => void }>,
-) {
-  const WrappedComponent = (props: P) => {
-    return (
-      <ErrorBoundary fallback={fallback}>
-        <Component {...props} />
-      </ErrorBoundary>
-    );
-  };
-
-  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
-  return WrappedComponent;
-}
+// Note: useErrorHandler and withErrorBoundary exports have been removed as they were unused

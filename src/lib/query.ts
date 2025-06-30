@@ -1,43 +1,49 @@
-import { prisma } from "@/lib/prismadb";
-import { auth, currentUser, getAuth } from "@clerk/nextjs/server";
-import { NextApiRequest } from "next";
-import { unstable_noStore as noStore } from "next/cache";
-import { redirect } from "next/navigation";
-import { createNotification } from "@/lib/notifications";
+import { prisma } from '@/lib/prismadb';
+import { auth, currentUser, getAuth } from '@clerk/nextjs/server';
+import { NextApiRequest } from 'next';
+import { unstable_noStore as noStore } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { createNotification } from '@/lib/notifications';
 
 // Login-triggered auto sync function
 async function performLoginSync(userEmail: string) {
   try {
-    console.log(`🔄 [Login Sync] Checking sync for email: ${userEmail}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔄 [Login Sync] Checking sync for email: ${userEmail}`);
+    }
 
     // Find all profiles with this email
     const allProfiles = await prisma.profile.findMany({
       where: { email: userEmail },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (allProfiles.length <= 1) {
-      console.log(
-        `ℹ️ [Login Sync] Only ${allProfiles.length} profile(s) found for ${userEmail}, no sync needed`,
-      );
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          `ℹ️ [Login Sync] Only ${allProfiles.length} profile(s) found for ${userEmail}, no sync needed`
+        );
+      }
       return;
     }
 
-    console.log(
-      `🔍 [Login Sync] Found ${allProfiles.length} profiles for ${userEmail}`,
-    );
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        `🔍 [Login Sync] Found ${allProfiles.length} profiles for ${userEmail}`
+      );
+    }
 
     // Check if there's an ACTIVE profile to sync from
     const activeProfile = allProfiles.find(
-      (p) => p.subscriptionStatus === "ACTIVE",
+      p => p.subscriptionStatus === 'ACTIVE'
     );
     const freeProfiles = allProfiles.filter(
-      (p) => p.subscriptionStatus === "FREE" && p.id !== activeProfile?.id,
+      p => p.subscriptionStatus === 'FREE' && p.id !== activeProfile?.id
     );
 
     if (activeProfile && freeProfiles.length > 0) {
       console.log(
-        `✅ [Login Sync] Found ACTIVE profile ${activeProfile.id}, syncing to ${freeProfiles.length} FREE profile(s)`,
+        `✅ [Login Sync] Found ACTIVE profile ${activeProfile.id}, syncing to ${freeProfiles.length} FREE profile(s)`
       );
 
       // Update all FREE profiles to match the ACTIVE one
@@ -54,12 +60,12 @@ async function performLoginSync(userEmail: string) {
           },
         });
         console.log(
-          `🔄 [Login Sync] Synced profile ${freeProfile.id} to ACTIVE status`,
+          `🔄 [Login Sync] Synced profile ${freeProfile.id} to ACTIVE status`
         );
       }
     } else {
       console.log(
-        `ℹ️ [Login Sync] No ACTIVE profile found to sync from, or no FREE profiles to sync to`,
+        `ℹ️ [Login Sync] No ACTIVE profile found to sync from, or no FREE profiles to sync to`
       );
     }
   } catch (error) {
@@ -88,10 +94,10 @@ export async function initProfile() {
       .then(() => {
         performLoginSync(userEmail);
       })
-      .catch((error) => {
+      .catch(error => {
         console.error(
           `❌ [Login Sync] Background sync failed for ${userEmail}:`,
-          error,
+          error
         );
       });
     return profile;
@@ -101,8 +107,8 @@ export async function initProfile() {
     user?.fullName ||
     user?.firstName ||
     user?.lastName ||
-    user.primaryEmailAddress?.emailAddress.split("@")[0] ||
-    "unknown";
+    user.primaryEmailAddress?.emailAddress.split('@')[0] ||
+    'unknown';
 
   const newProfile = await prisma.profile.create({
     data: {
@@ -119,10 +125,10 @@ export async function initProfile() {
       .then(() => {
         performLoginSync(userEmail);
       })
-      .catch((error) => {
+      .catch(error => {
         console.error(
           `❌ [Login Sync] Background sync failed for ${userEmail}:`,
-          error,
+          error
         );
       });
   }
@@ -131,14 +137,14 @@ export async function initProfile() {
   try {
     await createNotification({
       userId: user.id,
-      type: "SYSTEM",
-      title: "Welcome to TradersUtopia! 🎉",
+      type: 'SYSTEM',
+      title: 'Welcome to TradersUtopia! 🎉',
       message:
-        "Your account has been successfully created. Explore the dashboard to set up two-factor authentication and customize your experience.",
-      actionUrl: "/dashboard?tab=security",
+        'Your account has been successfully created. Explore the dashboard to set up two-factor authentication and customize your experience.',
+      actionUrl: '/dashboard?tab=security',
     });
   } catch (error) {
-    console.error("Failed to create welcome notification:", error);
+    console.error('Failed to create welcome notification:', error);
   }
 
   return newProfile;
@@ -163,8 +169,8 @@ export async function getCurrentProfile() {
     user?.fullName ||
     user?.firstName ||
     user?.lastName ||
-    user.primaryEmailAddress?.emailAddress.split("@")[0] ||
-    "unknown";
+    user.primaryEmailAddress?.emailAddress.split('@')[0] ||
+    'unknown';
 
   const newProfile = await prisma.profile.create({
     data: {
@@ -181,10 +187,10 @@ export async function getCurrentProfile() {
       .then(() => {
         performLoginSync(userEmail);
       })
-      .catch((error) => {
+      .catch(error => {
         console.error(
           `❌ [Login Sync] Background sync failed for ${userEmail}:`,
-          error,
+          error
         );
       });
   }
@@ -217,7 +223,7 @@ export async function getServer(id: string, profileId: string) {
     include: {
       channels: {
         orderBy: {
-          createdAt: "asc",
+          createdAt: 'asc',
         },
       },
       members: {
@@ -225,7 +231,7 @@ export async function getServer(id: string, profileId: string) {
           profile: true,
         },
         orderBy: {
-          role: "asc",
+          role: 'asc',
         },
       },
     },
@@ -246,15 +252,15 @@ export async function getGeneralServer(id: string, profileId: string) {
     include: {
       channels: {
         where: {
-          name: "general",
+          name: 'general',
         },
         orderBy: {
-          createdAt: "asc",
+          createdAt: 'asc',
         },
       },
     },
   });
-  if (server?.channels[0]?.name !== "general") return null;
+  if (server?.channels[0]?.name !== 'general') return null;
   if (server) return server;
 }
 
@@ -286,7 +292,7 @@ export async function getFirstServer(id: string) {
 
 export async function getServerByInviteCode(
   inviteCode: string,
-  profileId: string,
+  profileId: string
 ) {
   const server = await prisma.server.findFirst({
     where: {
@@ -322,7 +328,7 @@ export async function getChannel(channelId: string) {
 
 export async function getConversation(
   memberOneId: string,
-  memberTwoId: string,
+  memberTwoId: string
 ) {
   try {
     const conversation = await prisma.conversation.findFirst({
@@ -358,7 +364,7 @@ export async function getConversation(
 
 export async function createConversation(
   memberOneId: string,
-  memberTwoId: string,
+  memberTwoId: string
 ) {
   try {
     const conversation = await prisma.conversation.create({
@@ -388,7 +394,7 @@ export async function createConversation(
 
 export async function getOrCreateConversation(
   memberOneId: string,
-  memberTwoId: string,
+  memberTwoId: string
 ) {
   if (!memberOneId || !memberTwoId) return;
   const conversation =

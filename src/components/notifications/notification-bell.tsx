@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { useUser } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useCallback } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +18,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, BellRing, Check, CheckCheck } from "lucide-react";
-import { showToast } from "@/lib/notifications-client";
-import { formatDistanceToNow } from "date-fns";
-import { useSocket } from "@/contexts/socket-provider";
+} from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Bell, BellRing, Check, CheckCheck } from 'lucide-react';
+import { showToast } from '@/lib/notifications-client';
+import { formatDistanceToNow } from 'date-fns';
+import { useSocket } from '@/contexts/socket-provider';
 
 interface Notification {
   id: string;
@@ -55,7 +55,7 @@ export function NotificationBell() {
       }
 
       try {
-        const response = await fetch("/api/notifications");
+        const response = await fetch('/api/notifications');
         if (response.ok) {
           const data = await response.json();
           setNotifications(data.notifications);
@@ -63,58 +63,56 @@ export function NotificationBell() {
           setLastFetched(now);
         }
       } catch (error) {
-        console.error("Failed to fetch notifications:", error);
+        console.error('Failed to fetch notifications:', error);
       }
     },
-    [user?.id],
+    [user?.id]
   ); // ✅ FIX: Remove lastFetched from deps to prevent infinite recreations
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const response = await fetch("/api/notifications", {
-        method: "POST",
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: "mark_read",
+          action: 'mark_read',
           notificationId,
         }),
       });
 
       if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((notif) =>
-            notif.id === notificationId ? { ...notif, read: true } : notif,
-          ),
+        setNotifications(prev =>
+          prev.map(notif =>
+            notif.id === notificationId ? { ...notif, read: true } : notif
+          )
         );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+        setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (error) {
-      console.error("Failed to mark notification as read:", error);
+      console.error('Failed to mark notification as read:', error);
     }
   };
 
   const markAllAsRead = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/notifications", {
-        method: "POST",
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: "mark_all_read" }),
+        body: JSON.stringify({ action: 'mark_all_read' }),
       });
 
       if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((notif) => ({ ...notif, read: true })),
-        );
+        setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
         setUnreadCount(0);
-        showToast.success("Notifications", "All notifications marked as read");
+        showToast.success('Notifications', 'All notifications marked as read');
       }
     } catch (error) {
-      showToast.error("Error", "Failed to mark all notifications as read");
+      showToast.error('Error', 'Failed to mark all notifications as read');
     } finally {
       setIsLoading(false);
     }
@@ -122,20 +120,20 @@ export function NotificationBell() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case "SECURITY":
-        return "🔒";
-      case "PAYMENT":
-        return "💳";
-      case "MESSAGE":
-        return "💬";
-      case "MENTION":
-        return "👤";
-      case "SERVER_UPDATE":
-        return "📢";
-      case "SYSTEM":
-        return "⚙️";
+      case 'SECURITY':
+        return '🔒';
+      case 'PAYMENT':
+        return '💳';
+      case 'MESSAGE':
+        return '💬';
+      case 'MENTION':
+        return '👤';
+      case 'SERVER_UPDATE':
+        return '📢';
+      case 'SYSTEM':
+        return '⚙️';
       default:
-        return "📔";
+        return '📔';
     }
   };
 
@@ -168,7 +166,9 @@ export function NotificationBell() {
 
       return () => {
         clearInterval(interval);
-        console.log("🧹 [NOTIFICATIONS] Cleaned up polling interval");
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🧹 [NOTIFICATIONS] Cleaned up polling interval');
+        }
       };
     }
   }, [user?.id]); // ✅ FIX: Only depend on user.id to prevent frequent re-creation
@@ -177,20 +177,20 @@ export function NotificationBell() {
   useEffect(() => {
     if (socket && user) {
       const handleNewNotification = (notification: Notification) => {
-        setNotifications((prev) => [notification, ...prev]);
-        setUnreadCount((prev) => prev + 1);
+        setNotifications(prev => [notification, ...prev]);
+        setUnreadCount(prev => prev + 1);
 
         // Show toast for new notification
         showToast.info(notification.title, notification.message);
       };
 
       const handleNotificationRead = (notificationId: string) => {
-        setNotifications((prev) =>
-          prev.map((notif) =>
-            notif.id === notificationId ? { ...notif, read: true } : notif,
-          ),
+        setNotifications(prev =>
+          prev.map(notif =>
+            notif.id === notificationId ? { ...notif, read: true } : notif
+          )
         );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+        setUnreadCount(prev => Math.max(0, prev - 1));
       };
 
       const handleNotificationUpdate = () => {
@@ -198,16 +198,20 @@ export function NotificationBell() {
         fetchNotifications(true);
       };
 
-      console.log("🔌 [NOTIFICATIONS] Setting up WebSocket listeners");
-      socket.on("notification:new", handleNewNotification);
-      socket.on("notification:read", handleNotificationRead);
-      socket.on("notification:update", handleNotificationUpdate);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔌 [NOTIFICATIONS] Setting up WebSocket listeners');
+      }
+      socket.on('notification:new', handleNewNotification);
+      socket.on('notification:read', handleNotificationRead);
+      socket.on('notification:update', handleNotificationUpdate);
 
       return () => {
-        console.log("🧹 [NOTIFICATIONS] Cleaning up WebSocket listeners");
-        socket.off("notification:new", handleNewNotification);
-        socket.off("notification:read", handleNotificationRead);
-        socket.off("notification:update", handleNotificationUpdate);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🧹 [NOTIFICATIONS] Cleaning up WebSocket listeners');
+        }
+        socket.off('notification:new', handleNewNotification);
+        socket.off('notification:read', handleNotificationRead);
+        socket.off('notification:update', handleNotificationUpdate);
       };
     }
   }, [socket?.id, user?.id]); // ✅ FIX: Use stable identifiers instead of object references
@@ -223,36 +227,47 @@ export function NotificationBell() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
+        <Button
+          variant='ghost'
+          size='sm'
+          className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation'
+        >
           {unreadCount > 0 ? (
-            <BellRing className="h-4 w-4" />
+            <BellRing className='h-5 w-5 sm:h-6 sm:w-6' />
           ) : (
-            <Bell className="h-4 w-4" />
+            <Bell className='h-5 w-5 sm:h-6 sm:w-6' />
           )}
           {unreadCount > 0 && (
             <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+              variant='destructive'
+              className='absolute -top-1 -right-1 h-5 w-5 sm:h-6 sm:w-6 rounded-full p-0 flex items-center justify-center text-xs'
             >
-              {unreadCount > 99 ? "99+" : unreadCount}
+              {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
           )}
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-80 max-h-96" sideOffset={5}>
-        <DropdownMenuLabel className="flex items-center justify-between">
-          <span>Notifications</span>
+      <DropdownMenuContent
+        align='end'
+        className='w-72 sm:w-80 max-h-80 sm:max-h-96 mr-2 sm:mr-0'
+        sideOffset={5}
+      >
+        <DropdownMenuLabel className='flex items-center justify-between p-3 sm:p-4'>
+          <span className='text-sm sm:text-base font-semibold'>
+            Notifications
+          </span>
           {unreadCount > 0 && (
             <Button
-              variant="ghost"
-              size="sm"
+              variant='ghost'
+              size='sm'
               onClick={markAllAsRead}
               disabled={isLoading}
-              className="h-auto p-1 text-xs"
+              className='h-auto p-1 sm:p-2 text-xs touch-manipulation'
             >
-              <CheckCheck className="h-3 w-3 mr-1" />
-              Mark all read
+              <CheckCheck className='h-3 w-3 sm:h-4 sm:w-4 mr-1' />
+              <span className='hidden sm:inline'>Mark all read</span>
+              <span className='sm:hidden'>Read all</span>
             </Button>
           )}
         </DropdownMenuLabel>
@@ -260,60 +275,60 @@ export function NotificationBell() {
         <DropdownMenuSeparator />
 
         {notifications.length === 0 ? (
-          <div className="p-4 text-center text-sm text-gray-500">
-            <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+          <div className='p-4 text-center text-sm text-gray-500'>
+            <Bell className='h-8 w-8 mx-auto mb-2 text-gray-300' />
             <p>No notifications yet</p>
           </div>
         ) : (
-          <ScrollArea className="max-h-80">
-            {notifications.map((notification) => (
+          <ScrollArea className='max-h-80'>
+            {notifications.map(notification => (
               <DropdownMenuItem
                 key={notification.id}
-                className="p-0"
+                className='p-0'
                 onSelect={() => handleNotificationClick(notification)}
               >
                 <Card
                   className={`w-full border-0 shadow-none ${
                     notification.read
-                      ? "opacity-60"
-                      : "bg-blue-50 dark:bg-blue-900/20"
+                      ? 'opacity-60'
+                      : 'bg-blue-50 dark:bg-blue-900/20'
                   }`}
                 >
-                  <CardContent className="p-3">
-                    <div className="flex items-start gap-3">
-                      <div className="text-lg">
+                  <CardContent className='p-3'>
+                    <div className='flex items-start gap-3'>
+                      <div className='text-lg'>
                         {getNotificationIcon(notification.type)}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-medium truncate">
+                      <div className='flex-1 min-w-0'>
+                        <div className='flex items-center gap-2'>
+                          <h4 className='text-sm font-medium truncate'>
                             {notification.title}
                           </h4>
                           {!notification.read && (
-                            <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
+                            <div className='h-2 w-2 bg-blue-500 rounded-full flex-shrink-0' />
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                        <p className='text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2'>
                           {notification.message}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className='text-xs text-gray-400 mt-1'>
                           {formatDistanceToNow(
                             new Date(notification.createdAt),
-                            { addSuffix: true },
+                            { addSuffix: true }
                           )}
                         </p>
                       </div>
                       {!notification.read && (
                         <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto p-1"
-                          onClick={(e) => {
+                          variant='ghost'
+                          size='sm'
+                          className='h-auto p-1'
+                          onClick={e => {
                             e.stopPropagation();
                             markAsRead(notification.id);
                           }}
                         >
-                          <Check className="h-3 w-3" />
+                          <Check className='h-3 w-3' />
                         </Button>
                       )}
                     </div>
@@ -327,8 +342,8 @@ export function NotificationBell() {
         {notifications.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-center justify-center">
-              <Button variant="ghost" size="sm" className="w-full">
+            <DropdownMenuItem className='text-center justify-center'>
+              <Button variant='ghost' size='sm' className='w-full'>
                 View All Notifications
               </Button>
             </DropdownMenuItem>

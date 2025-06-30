@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useUser } from "@clerk/nextjs";
-import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useUser } from '@clerk/nextjs';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 interface TwoFactorGuardProps {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
   const [is2FAChecked, setIs2FAChecked] = useState(false);
   const [requires2FA, setRequires2FA] = useState(false);
   const [lastCheckedUserId, setLastCheckedUserId] = useState<string | null>(
-    null,
+    null
   );
 
   // Use ref to prevent multiple simultaneous checks
@@ -24,41 +24,50 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
 
   // Skip 2FA check for auth pages and API routes
   const skipRoutes = [
-    "/api",
-    "/2fa-verify",
-    "/sign-in",
-    "/sign-up",
-    "/.well-known",
-    "/favicon.ico",
-    "/robots.txt",
-    "/_next",
+    '/',
+    '/api',
+    '/2fa-verify',
+    '/sign-in',
+    '/sign-up',
+    '/.well-known',
+    '/favicon.ico',
+    '/robots.txt',
+    '/_next',
   ];
 
   const shouldSkip = skipRoutes.some(
-    (route) => pathname === route || pathname?.startsWith(route + "/"),
+    route => pathname === route || pathname?.startsWith(route + '/')
   );
 
   // Memoized check function to prevent recreating on every render
   const check2FA = useCallback(async () => {
     // Prevent multiple simultaneous checks
     if (isCheckingRef.current) {
-      console.log("🔄 [2FA-GUARD] Already checking, skipping...");
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 [2FA-GUARD] Already checking, skipping...');
+      }
       return;
     }
 
     // If already checked for this user and route, don't check again
     if (hasCheckedRef.current && lastCheckedUserId === user?.id) {
-      console.log("✅ [2FA-GUARD] Already checked for this user, skipping...");
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          '✅ [2FA-GUARD] Already checked for this user, skipping...'
+        );
+      }
       return;
     }
 
     isCheckingRef.current = true;
-    console.log("🔍 [2FA-GUARD] Starting 2FA check for user:", user?.id);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 [2FA-GUARD] Starting 2FA check for user:', user?.id);
+    }
 
     try {
-      const response = await fetch("/api/user/profile", {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache" },
+      const response = await fetch('/api/user/profile', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
       });
 
       if (response.ok) {
@@ -66,21 +75,21 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
 
         if (profile.twoFactorEnabled) {
           console.log(
-            "🔐 [2FA-GUARD] 2FA enabled, checking verification status...",
+            '🔐 [2FA-GUARD] 2FA enabled, checking verification status...'
           );
 
-          const statusResponse = await fetch("/api/2fa/status", {
-            cache: "no-store",
-            headers: { "Cache-Control": "no-cache" },
+          const statusResponse = await fetch('/api/2fa/status', {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' },
           });
 
           if (statusResponse.ok) {
             const statusData = await statusResponse.json();
-            console.log("📊 [2FA-GUARD] 2FA status:", statusData);
+            console.log('📊 [2FA-GUARD] 2FA status:', statusData);
 
             if (!statusData.verified) {
               console.log(
-                "❌ [2FA-GUARD] 2FA not verified, blocking access and redirecting...",
+                '❌ [2FA-GUARD] 2FA not verified, blocking access and redirecting...'
               );
               setRequires2FA(true);
               setIs2FAChecked(false); // Keep as false to prevent access
@@ -88,16 +97,16 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
               hasCheckedRef.current = false; // Allow future rechecks
               isCheckingRef.current = false;
               router.push(
-                `/2fa-verify?redirect=${encodeURIComponent(pathname || "/dashboard")}`,
+                `/2fa-verify?redirect=${encodeURIComponent(pathname || '/dashboard')}`
               );
               return;
             } else {
-              console.log("✅ [2FA-GUARD] 2FA verified successfully");
+              console.log('✅ [2FA-GUARD] 2FA verified successfully');
               setRequires2FA(false);
             }
           }
         } else {
-          console.log("ℹ️ [2FA-GUARD] 2FA not enabled for user");
+          console.log('ℹ️ [2FA-GUARD] 2FA not enabled for user');
           setRequires2FA(false);
         }
       }
@@ -107,7 +116,7 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
       setLastCheckedUserId(user?.id || null);
       hasCheckedRef.current = true;
     } catch (error) {
-      console.error("❌ [2FA-GUARD] Error checking 2FA status:", error);
+      console.error('❌ [2FA-GUARD] Error checking 2FA status:', error);
       // On error, allow access to prevent blocking the user
       setIs2FAChecked(true);
       setRequires2FA(false);
@@ -121,7 +130,9 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
   // Reset check state when user changes
   useEffect(() => {
     if (lastCheckedUserId !== user?.id) {
-      console.log("👤 [2FA-GUARD] User changed, resetting check state");
+      if (process.env.NODE_ENV === 'development') {
+        console.log('👤 [2FA-GUARD] User changed, resetting check state');
+      }
       setIs2FAChecked(false);
       setRequires2FA(false);
       hasCheckedRef.current = false;
@@ -131,14 +142,16 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
 
   // Main effect for 2FA checking
   useEffect(() => {
-    console.log("🛡️ [2FA-GUARD] Effect triggered:", {
-      isLoaded,
-      userId: user?.id,
-      pathname,
-      shouldSkip,
-      is2FAChecked,
-      isChecking: isCheckingRef.current,
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🛡️ [2FA-GUARD] Effect triggered:', {
+        isLoaded,
+        userId: user?.id,
+        pathname,
+        shouldSkip,
+        is2FAChecked,
+        isChecking: isCheckingRef.current,
+      });
+    }
 
     // Skip checks for auth pages
     if (shouldSkip) {
@@ -170,16 +183,16 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
   // Listen for force recheck events
   useEffect(() => {
     const handleForceRecheck = () => {
-      console.log("🔄 [2FA-GUARD] Force recheck triggered");
+      console.log('🔄 [2FA-GUARD] Force recheck triggered');
       setIs2FAChecked(false);
       setRequires2FA(false);
       hasCheckedRef.current = false;
       isCheckingRef.current = false;
     };
 
-    window.addEventListener("force-2fa-recheck", handleForceRecheck);
+    window.addEventListener('force-2fa-recheck', handleForceRecheck);
     return () =>
-      window.removeEventListener("force-2fa-recheck", handleForceRecheck);
+      window.removeEventListener('force-2fa-recheck', handleForceRecheck);
   }, []);
 
   // Always skip if on auth/verification pages
@@ -190,10 +203,10 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
   // Show loading while Clerk is loading
   if (!isLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <div className="text-gray-300">Loading...</div>
+      <div className='flex items-center justify-center min-h-screen bg-gray-900'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4'></div>
+          <div className='text-gray-300'>Loading...</div>
         </div>
       </div>
     );
@@ -207,10 +220,10 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
   // Show checking state when actively checking 2FA
   if (isCheckingRef.current) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <div className="text-gray-300">Verifying 2FA status...</div>
+      <div className='flex items-center justify-center min-h-screen bg-gray-900'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4'></div>
+          <div className='text-gray-300'>Verifying 2FA status...</div>
         </div>
       </div>
     );
@@ -219,13 +232,13 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
   // BLOCK ACCESS: 2FA is required but not verified
   if (requires2FA) {
     console.log(
-      "🚫 [2FA-GUARD] Blocking access - 2FA required but not verified",
+      '🚫 [2FA-GUARD] Blocking access - 2FA required but not verified'
     );
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <div className="text-gray-300">
+      <div className='flex items-center justify-center min-h-screen bg-gray-900'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4'></div>
+          <div className='text-gray-300'>
             Redirecting to 2FA verification...
           </div>
         </div>
@@ -236,16 +249,16 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
   // Show loading if we haven't checked 2FA yet for this user
   if (!is2FAChecked) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <div className="text-gray-300">Checking authentication...</div>
+      <div className='flex items-center justify-center min-h-screen bg-gray-900'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400 mx-auto mb-4'></div>
+          <div className='text-gray-300'>Checking authentication...</div>
         </div>
       </div>
     );
   }
 
   // Allow access - all checks passed
-  console.log("✅ [2FA-GUARD] Allowing access - all checks passed");
+  console.log('✅ [2FA-GUARD] Allowing access - all checks passed');
   return <>{children}</>;
 }

@@ -22,6 +22,7 @@ import {
   Calendar,
   Clock,
 } from 'lucide-react';
+import NextImage from 'next/image';
 
 export function DiscordProfile() {
   const { user } = useUser();
@@ -107,28 +108,30 @@ export function DiscordProfile() {
   };
 
   return (
-    <div className='space-y-8'>
-      {/* Enhanced User Header */}
-      <Card className='bg-gradient-to-br from-gray-700/50 via-gray-800/40 to-gray-900/50 border border-gray-600/30 backdrop-blur-md hover:border-blue-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-400/10 overflow-hidden'>
-        <CardContent className='p-8'>
-          <div className='flex items-center space-x-6'>
-            {/* Enhanced Avatar */}
-            <div className='relative group'>
-              <div className='w-24 h-24 rounded-3xl overflow-hidden border-4 border-gradient-to-br from-yellow-400 to-yellow-600 shadow-2xl group-hover:scale-105 transition-transform duration-300'>
-                <img
+    <div className='space-y-4 sm:space-y-6'>
+      {/* Enhanced User Header - Mobile Optimized */}
+      <Card className='bg-gradient-to-br from-gray-700/40 via-gray-800/30 to-gray-900/40 border border-gray-600/30 backdrop-blur-md hover:border-blue-400/50 transition-all duration-500 hover:shadow-xl hover:shadow-blue-400/10 overflow-hidden'>
+        <CardContent className='p-4 sm:p-6'>
+          <div className='flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6'>
+            {/* Enhanced Avatar - Mobile Responsive */}
+            <div className='relative group flex-shrink-0'>
+              <div className='w-20 h-20 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl overflow-hidden border-4 border-gradient-to-br from-yellow-400 to-yellow-600 shadow-xl group-hover:scale-105 transition-transform duration-300'>
+                <NextImage
                   src={user.imageUrl}
                   alt={`${user.firstName} ${user.lastName}`}
+                  width={96}
+                  height={96}
                   className='w-full h-full object-cover'
                 />
               </div>
               {/* Enhanced online status indicator */}
-              <div className='absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-400 to-green-500 rounded-full border-4 border-gray-800 flex items-center justify-center shadow-lg'>
-                <div className='w-3 h-3 bg-white rounded-full animate-pulse'></div>
+              <div className='absolute -bottom-1 -right-1 sm:-bottom-2 sm:-right-2 w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-green-400 to-green-500 rounded-full border-4 border-gray-800 flex items-center justify-center shadow-lg'>
+                <div className='w-2 h-2 sm:w-3 sm:h-3 bg-white rounded-full animate-pulse'></div>
               </div>
               {/* Enhanced OAuth indicator */}
               {googleAccount && (
-                <div className='absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-white to-gray-100 rounded-full border-4 border-gray-800 flex items-center justify-center shadow-lg'>
-                  <svg className='w-4 h-4' viewBox='0 0 24 24'>
+                <div className='absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-white to-gray-100 rounded-full border-4 border-gray-800 flex items-center justify-center shadow-lg'>
+                  <svg className='w-3 h-3 sm:w-4 sm:h-4' viewBox='0 0 24 24'>
                     <path
                       fill='#4285F4'
                       d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'
@@ -150,23 +153,23 @@ export function DiscordProfile() {
               )}
             </div>
 
-            {/* Enhanced User Info */}
-            <div className='flex-1'>
-              <div className='flex items-center gap-4 mb-3'>
-                <h2 className='text-3xl font-bold bg-gradient-to-r from-white via-gray-100 to-gray-200 bg-clip-text text-transparent'>
+            {/* Enhanced User Info - Mobile Responsive */}
+            <div className='flex-1 text-center sm:text-left'>
+              <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3'>
+                <h2 className='text-2xl sm:text-3xl font-bold bg-gradient-to-r from-white via-gray-100 to-gray-200 bg-clip-text text-transparent'>
                   {user.firstName} {user.lastName}
                 </h2>
                 <Button
                   variant='ghost'
                   size='sm'
-                  className='h-8 w-8 p-0 hover:bg-blue-500/20 hover:text-blue-400 transition-all duration-300'
+                  className='h-8 w-8 p-0 hover:bg-blue-500/20 hover:text-blue-400 transition-all duration-300 self-center sm:self-auto'
                   onClick={() => window.open('/user-profile', '_blank')}
                 >
                   <Edit className='h-4 w-4' />
                 </Button>
               </div>
-              <div className='flex items-center gap-3 text-sm text-gray-300 mb-4'>
-                <span className='font-mono bg-gray-700/50 px-3 py-1 rounded-lg'>
+              <div className='flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 text-sm text-gray-300 mb-4'>
+                <span className='font-mono bg-gray-700/50 px-3 py-1 rounded-lg text-xs sm:text-sm'>
                   @{user.username || user.firstName?.toLowerCase()}
                 </span>
                 <Badge
@@ -193,8 +196,8 @@ export function DiscordProfile() {
                   </Badge>
                 )}
               </div>
-              <div className='flex items-center gap-4'>
-                <div className='flex items-center gap-2 text-sm text-gray-400'>
+              <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-400'>
+                <div className='flex items-center justify-center sm:justify-start gap-2'>
                   <Calendar className='w-4 h-4' />
                   <span>
                     Member since{' '}
@@ -204,7 +207,7 @@ export function DiscordProfile() {
                     })}
                   </span>
                 </div>
-                <div className='flex items-center gap-2 text-sm text-gray-400'>
+                <div className='flex items-center justify-center sm:justify-start gap-2'>
                   <Clock className='w-4 h-4' />
                   <span>
                     Last active{' '}
@@ -220,55 +223,57 @@ export function DiscordProfile() {
         </CardContent>
       </Card>
 
-      {/* Enhanced Account Information */}
-      <Card className='bg-gradient-to-br from-gray-700/50 via-gray-800/40 to-gray-900/50 border border-gray-600/30 backdrop-blur-md hover:border-purple-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-400/10'>
-        <CardContent className='p-8'>
-          <div className='flex items-center gap-3 mb-8'>
-            <div className='w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center'>
-              <User className='h-6 w-6 text-white' />
+      {/* Enhanced Account Information - Mobile Optimized */}
+      <Card className='bg-gradient-to-br from-gray-700/40 via-gray-800/30 to-gray-900/40 border border-gray-600/30 backdrop-blur-md hover:border-purple-400/50 transition-all duration-500 hover:shadow-xl hover:shadow-purple-400/10'>
+        <CardContent className='p-4 sm:p-6'>
+          <div className='flex items-center gap-3 mb-4 sm:mb-6'>
+            <div className='w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center'>
+              <User className='h-4 w-4 sm:h-5 sm:w-5 text-white' />
             </div>
-            <h3 className='text-2xl font-bold text-white'>
+            <h3 className='text-lg sm:text-xl font-bold text-white'>
               Account Information
             </h3>
           </div>
 
-          <div className='space-y-6'>
-            {/* Enhanced Email Address */}
-            <div className='group p-6 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-2xl border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/10'>
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center space-x-4'>
-                  <div className='p-3 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl border border-blue-400/30'>
-                    <Mail className='h-5 w-5 text-blue-400' />
+          <div className='space-y-3 sm:space-y-4'>
+            {/* Enhanced Email Address - Mobile Responsive */}
+            <div className='group p-3 sm:p-4 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/10'>
+              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                <div className='flex items-center space-x-3 sm:space-x-4'>
+                  <div className='p-2 sm:p-3 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg border border-blue-400/30'>
+                    <Mail className='h-4 w-4 sm:h-5 sm:w-5 text-blue-400' />
                   </div>
-                  <div>
-                    <div className='flex items-center gap-3 mb-2'>
-                      <span className='text-sm font-semibold text-gray-300 tracking-wider'>
+                  <div className='flex-1'>
+                    <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2'>
+                      <span className='text-xs sm:text-sm font-semibold text-gray-300 tracking-wider'>
                         EMAIL ADDRESS
                       </span>
-                      {isEmailVerified ? (
-                        <Badge className='text-xs bg-gradient-to-r from-green-600 to-green-700 border-green-500'>
-                          <CheckCircle className='h-3 w-3 mr-1' />
-                          VERIFIED
-                        </Badge>
-                      ) : (
-                        <Badge className='text-xs bg-gradient-to-r from-red-600 to-red-700 border-red-500'>
-                          <AlertTriangle className='h-3 w-3 mr-1' />
-                          UNVERIFIED
-                        </Badge>
-                      )}
-                      {googleAccount && (
-                        <Badge className='text-xs bg-gradient-to-r from-blue-600 to-blue-700 border-blue-500'>
-                          <svg className='w-3 h-3 mr-1' viewBox='0 0 24 24'>
-                            <path
-                              fill='currentColor'
-                              d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'
-                            />
-                          </svg>
-                          Google
-                        </Badge>
-                      )}
+                      <div className='flex flex-wrap gap-2'>
+                        {isEmailVerified ? (
+                          <Badge className='text-xs bg-gradient-to-r from-green-600 to-green-700 border-green-500'>
+                            <CheckCircle className='h-3 w-3 mr-1' />
+                            VERIFIED
+                          </Badge>
+                        ) : (
+                          <Badge className='text-xs bg-gradient-to-r from-red-600 to-red-700 border-red-500'>
+                            <AlertTriangle className='h-3 w-3 mr-1' />
+                            UNVERIFIED
+                          </Badge>
+                        )}
+                        {googleAccount && (
+                          <Badge className='text-xs bg-gradient-to-r from-blue-600 to-blue-700 border-blue-500'>
+                            <svg className='w-3 h-3 mr-1' viewBox='0 0 24 24'>
+                              <path
+                                fill='currentColor'
+                                d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'
+                              />
+                            </svg>
+                            Google
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <p className='text-white text-lg font-medium'>
+                    <p className='text-white text-sm sm:text-base font-medium break-all'>
                       {primaryEmail?.emailAddress || 'No email set'}
                     </p>
                   </div>
@@ -276,7 +281,7 @@ export function DiscordProfile() {
                 <Button
                   variant='ghost'
                   size='sm'
-                  className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-blue-500/20 hover:text-blue-400'
+                  className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-blue-500/20 hover:text-blue-400 self-end sm:self-auto'
                   onClick={() => window.open('/user-profile#email', '_blank')}
                 >
                   <Edit className='h-4 w-4' />
@@ -284,18 +289,18 @@ export function DiscordProfile() {
               </div>
             </div>
 
-            {/* Enhanced Phone Number */}
-            <div className='group p-6 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-2xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-green-400/10'>
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center space-x-4'>
-                  <div className='p-3 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-xl border border-green-400/30'>
-                    <Phone className='h-5 w-5 text-green-400' />
+            {/* Enhanced Phone Number - Mobile Responsive */}
+            <div className='group p-3 sm:p-4 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-green-400/10'>
+              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                <div className='flex items-center space-x-3 sm:space-x-4'>
+                  <div className='p-2 sm:p-3 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg border border-green-400/30'>
+                    <Phone className='h-4 w-4 sm:h-5 sm:w-5 text-green-400' />
                   </div>
                   <div>
-                    <span className='text-sm font-semibold text-gray-300 tracking-wider block mb-2'>
+                    <span className='text-xs sm:text-sm font-semibold text-gray-300 tracking-wider block mb-2'>
                       PHONE NUMBER
                     </span>
-                    <p className='text-white text-lg font-medium'>
+                    <p className='text-white text-sm sm:text-base font-medium'>
                       {primaryPhone?.phoneNumber || 'Not Set'}
                     </p>
                   </div>
@@ -303,7 +308,7 @@ export function DiscordProfile() {
                 <Button
                   variant='ghost'
                   size='sm'
-                  className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-green-500/20 hover:text-green-400'
+                  className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-green-500/20 hover:text-green-400 self-end sm:self-auto'
                   onClick={() => window.open('/user-profile#phone', '_blank')}
                 >
                   <Edit className='h-4 w-4' />
@@ -311,14 +316,14 @@ export function DiscordProfile() {
               </div>
             </div>
 
-            {/* Enhanced Password / Authentication */}
+            {/* Enhanced Password / Authentication - Mobile Responsive */}
             <div
-              className={`group p-6 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-2xl border border-gray-600/30 hover:border-${passwordInfo.isOAuth ? 'blue' : hasPassword ? 'green' : 'red'}-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-${passwordInfo.isOAuth ? 'blue' : hasPassword ? 'green' : 'red'}-400/10`}
+              className={`group p-3 sm:p-4 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-${passwordInfo.isOAuth ? 'blue' : hasPassword ? 'green' : 'red'}-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-${passwordInfo.isOAuth ? 'blue' : hasPassword ? 'green' : 'red'}-400/10`}
             >
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center space-x-4'>
+              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                <div className='flex items-center space-x-3 sm:space-x-4'>
                   <div
-                    className={`p-3 rounded-xl border ${
+                    className={`p-2 sm:p-3 rounded-lg border ${
                       passwordInfo.isOAuth
                         ? 'bg-gradient-to-br from-blue-500/20 to-blue-600/20 border-blue-400/30'
                         : hasPassword
@@ -327,18 +332,18 @@ export function DiscordProfile() {
                     }`}
                   >
                     {passwordInfo.isOAuth ? (
-                      <Key className={`h-5 w-5 text-blue-400`} />
+                      <Key className={`h-4 w-4 sm:h-5 sm:w-5 text-blue-400`} />
                     ) : (
                       <Lock
-                        className={`h-5 w-5 ${
+                        className={`h-4 w-4 sm:h-5 sm:w-5 ${
                           hasPassword ? 'text-green-400' : 'text-red-400'
                         }`}
                       />
                     )}
                   </div>
                   <div className='flex-1'>
-                    <div className='flex items-center gap-3 mb-2'>
-                      <span className='text-sm font-semibold text-gray-300 tracking-wider'>
+                    <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2'>
+                      <span className='text-xs sm:text-sm font-semibold text-gray-300 tracking-wider'>
                         {passwordInfo.isOAuth ? 'AUTHENTICATION' : 'PASSWORD'}
                       </span>
                       {passwordInfo.isOAuth && (
@@ -349,7 +354,7 @@ export function DiscordProfile() {
                       )}
                     </div>
                     <div className='flex items-center gap-3'>
-                      <p className='text-white text-lg font-medium font-mono'>
+                      <p className='text-white text-sm sm:text-base font-medium font-mono'>
                         {passwordInfo.text}
                       </p>
                     </div>
@@ -361,7 +366,7 @@ export function DiscordProfile() {
                 <Button
                   variant='ghost'
                   size='sm'
-                  className={`opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-${passwordInfo.isOAuth ? 'blue' : hasPassword ? 'green' : 'red'}-500/20 hover:text-${passwordInfo.isOAuth ? 'blue' : hasPassword ? 'green' : 'red'}-400`}
+                  className={`opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-${passwordInfo.isOAuth ? 'blue' : hasPassword ? 'green' : 'red'}-500/20 hover:text-${passwordInfo.isOAuth ? 'blue' : hasPassword ? 'green' : 'red'}-400 self-end sm:self-auto`}
                   onClick={handlePasswordAction}
                 >
                   {passwordInfo.isOAuth ? (
@@ -373,18 +378,18 @@ export function DiscordProfile() {
               </div>
             </div>
 
-            {/* Enhanced Username */}
-            <div className='group p-6 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-2xl border border-gray-600/30 hover:border-purple-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-400/10'>
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center space-x-4'>
-                  <div className='p-3 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl border border-purple-400/30'>
-                    <User className='h-5 w-5 text-purple-400' />
+            {/* Enhanced Username - Mobile Responsive */}
+            <div className='group p-3 sm:p-4 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-purple-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-400/10'>
+              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                <div className='flex items-center space-x-3 sm:space-x-4'>
+                  <div className='p-2 sm:p-3 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg border border-purple-400/30'>
+                    <User className='h-4 w-4 sm:h-5 sm:w-5 text-purple-400' />
                   </div>
                   <div>
-                    <span className='text-sm font-semibold text-gray-300 tracking-wider block mb-2'>
+                    <span className='text-xs sm:text-sm font-semibold text-gray-300 tracking-wider block mb-2'>
                       USERNAME
                     </span>
-                    <p className='text-white text-lg font-medium'>
+                    <p className='text-white text-sm sm:text-base font-medium'>
                       {user.username ||
                         user.firstName?.toLowerCase() ||
                         'Not set'}
@@ -394,7 +399,7 @@ export function DiscordProfile() {
                 <Button
                   variant='ghost'
                   size='sm'
-                  className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-purple-500/20 hover:text-purple-400'
+                  className='opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-purple-500/20 hover:text-purple-400 self-end sm:self-auto'
                   onClick={() =>
                     window.open('/user-profile#username', '_blank')
                   }
@@ -405,18 +410,18 @@ export function DiscordProfile() {
             </div>
           </div>
 
-          <Separator className='my-8 bg-gray-600/30' />
+          <Separator className='my-4 sm:my-6 bg-gray-600/30' />
 
-          {/* Enhanced Account Stats */}
-          <div className='grid grid-cols-2 gap-6'>
-            <div className='text-center p-6 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-2xl border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/10'>
-              <div className='flex items-center justify-center gap-2 mb-3'>
-                <Calendar className='w-5 h-5 text-blue-400' />
-                <div className='text-sm font-semibold text-gray-300 tracking-wider'>
+          {/* Enhanced Account Stats - Mobile Responsive Grid */}
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
+            <div className='text-center p-3 sm:p-4 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-400/10'>
+              <div className='flex items-center justify-center gap-2 mb-2 sm:mb-3'>
+                <Calendar className='w-4 h-4 sm:w-5 sm:h-5 text-blue-400' />
+                <div className='text-xs sm:text-sm font-semibold text-gray-300 tracking-wider'>
                   MEMBER SINCE
                 </div>
               </div>
-              <div className='text-white text-xl font-bold'>
+              <div className='text-white text-sm sm:text-base font-bold'>
                 {new Date(user.createdAt!).toLocaleDateString('en-US', {
                   month: 'long',
                   day: 'numeric',
@@ -424,14 +429,14 @@ export function DiscordProfile() {
                 })}
               </div>
             </div>
-            <div className='text-center p-6 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-2xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-green-400/10'>
-              <div className='flex items-center justify-center gap-2 mb-3'>
-                <Clock className='w-5 h-5 text-green-400' />
-                <div className='text-sm font-semibold text-gray-300 tracking-wider'>
+            <div className='text-center p-3 sm:p-4 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-green-400/10'>
+              <div className='flex items-center justify-center gap-2 mb-2 sm:mb-3'>
+                <Clock className='w-4 h-4 sm:w-5 sm:h-5 text-green-400' />
+                <div className='text-xs sm:text-sm font-semibold text-gray-300 tracking-wider'>
                   LAST ACTIVE
                 </div>
               </div>
-              <div className='text-white text-xl font-bold'>
+              <div className='text-white text-sm sm:text-base font-bold'>
                 {new Date(user.lastSignInAt!).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
@@ -442,23 +447,23 @@ export function DiscordProfile() {
         </CardContent>
       </Card>
 
-      {/* Enhanced Authentication Methods */}
-      <Card className='bg-gradient-to-br from-gray-700/50 via-gray-800/40 to-gray-900/50 border border-gray-600/30 backdrop-blur-md hover:border-yellow-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-yellow-400/10'>
-        <CardContent className='p-8'>
-          <div className='flex items-center gap-3 mb-8'>
-            <div className='w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center'>
-              <Shield className='h-6 w-6 text-white' />
+      {/* Enhanced Authentication Methods - Mobile Optimized */}
+      <Card className='bg-gradient-to-br from-gray-700/40 via-gray-800/30 to-gray-900/40 border border-gray-600/30 backdrop-blur-md hover:border-yellow-400/50 transition-all duration-500 hover:shadow-xl hover:shadow-yellow-400/10'>
+        <CardContent className='p-4 sm:p-6'>
+          <div className='flex items-center gap-3 mb-4 sm:mb-6'>
+            <div className='w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center'>
+              <Shield className='h-4 w-4 sm:h-5 sm:w-5 text-white' />
             </div>
-            <h3 className='text-2xl font-bold text-white'>
+            <h3 className='text-lg sm:text-xl font-bold text-white'>
               Authentication Methods
             </h3>
           </div>
 
-          <div className='space-y-4'>
-            {/* Enhanced Password Authentication */}
-            <div className='flex items-center justify-between p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-gray-500/50 transition-all duration-300'>
-              <div className='flex items-center space-x-4'>
-                <Lock className='h-5 w-5 text-gray-400' />
+          <div className='space-y-3'>
+            {/* Enhanced Password Authentication - Mobile Responsive */}
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-gray-500/50 transition-all duration-300'>
+              <div className='flex items-center space-x-3 sm:space-x-4'>
+                <Lock className='h-4 w-4 sm:h-5 sm:w-5 text-gray-400' />
                 <span className='text-sm text-gray-300 font-medium'>
                   Password Authentication
                 </span>
@@ -475,28 +480,28 @@ export function DiscordProfile() {
               </Badge>
             </div>
 
-            {/* Enhanced OAuth Providers */}
+            {/* Enhanced OAuth Providers - Mobile Responsive */}
             {oauthAccounts.map(account => (
               <div
                 key={account.id}
-                className='flex items-center justify-between p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300'
+                className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-blue-400/50 transition-all duration-300'
               >
-                <div className='flex items-center space-x-4'>
-                  <Shield className='h-5 w-5 text-blue-400' />
+                <div className='flex items-center space-x-3 sm:space-x-4'>
+                  <Shield className='h-4 w-4 sm:h-5 sm:w-5 text-blue-400' />
                   <span className='text-sm text-gray-300 font-medium'>
                     {account.provider.replace('oauth_', '').toUpperCase()} OAuth
                   </span>
                 </div>
-                <Badge className='bg-gradient-to-r from-blue-600 to-blue-700 border-blue-500'>
+                <Badge className='bg-gradient-to-r from-blue-600 to-blue-700 border-blue-500 self-start sm:self-auto'>
                   Connected
                 </Badge>
               </div>
             ))}
 
-            {/* Enhanced Two-Factor Authentication */}
-            <div className='flex items-center justify-between p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300'>
-              <div className='flex items-center space-x-4'>
-                <Shield className='h-5 w-5 text-green-400' />
+            {/* Enhanced Two-Factor Authentication - Mobile Responsive */}
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300'>
+              <div className='flex items-center space-x-3 sm:space-x-4'>
+                <Shield className='h-4 w-4 sm:h-5 sm:w-5 text-green-400' />
                 <span className='text-sm text-gray-300 font-medium'>
                   Two-Factor Authentication
                 </span>
@@ -519,10 +524,10 @@ export function DiscordProfile() {
               )}
             </div>
 
-            {/* Enhanced Email Verification */}
-            <div className='flex items-center justify-between p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300'>
-              <div className='flex items-center space-x-4'>
-                <CheckCircle className='h-5 w-5 text-green-400' />
+            {/* Enhanced Email Verification - Mobile Responsive */}
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300'>
+              <div className='flex items-center space-x-3 sm:space-x-4'>
+                <CheckCircle className='h-4 w-4 sm:h-5 sm:w-5 text-green-400' />
                 <span className='text-sm text-gray-300 font-medium'>
                   Email Verification
                 </span>
@@ -540,14 +545,14 @@ export function DiscordProfile() {
             </div>
           </div>
 
-          {/* Enhanced Security Recommendations */}
+          {/* Enhanced Security Recommendations - Mobile Responsive */}
           {!hasPassword && oauthAccounts.length > 0 && (
-            <div className='mt-6 p-6 bg-gradient-to-br from-yellow-600/20 via-orange-500/15 to-red-600/20 rounded-2xl border border-yellow-400/30 backdrop-blur-sm'>
-              <div className='flex items-start gap-3'>
-                <div className='w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1'>
-                  <Shield className='h-5 w-5 text-yellow-400' />
+            <div className='mt-4 sm:mt-6 p-4 sm:p-6 bg-gradient-to-br from-yellow-600/20 via-orange-500/15 to-red-600/20 rounded-xl border border-yellow-400/30 backdrop-blur-sm'>
+              <div className='flex flex-col sm:flex-row sm:items-start gap-3'>
+                <div className='w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center flex-shrink-0'>
+                  <Shield className='h-4 w-4 sm:h-5 sm:w-5 text-yellow-400' />
                 </div>
-                <div>
+                <div className='flex-1'>
                   <p className='text-sm text-yellow-200 font-semibold mb-2'>
                     Security Recommendation
                   </p>

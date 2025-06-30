@@ -1,13 +1,13 @@
-import { createUserModelSlice } from "@/store/use-modal-slice";
-import { Store } from "@/types/store";
+import { createUserModelSlice } from '@/store/use-modal-slice';
+import { Store } from '@/types/store';
 import {
   createSelectorFunctions,
   ZustandFuncSelectors,
-} from "auto-zustand-selectors-hook";
-import { mountStoreDevtool } from "simple-zustand-devtools";
-import { create } from "zustand";
-import { devtools, persist, subscribeWithSelector } from "zustand/middleware";
-import { immer } from "zustand/middleware/immer";
+} from 'auto-zustand-selectors-hook';
+
+import { create } from 'zustand';
+import { devtools, persist, subscribeWithSelector } from 'zustand/middleware';
+import { immer } from 'zustand/middleware/immer';
 
 //? Create the Global store
 //* plugins :
@@ -22,25 +22,32 @@ const useStoreBase = create<Store>()(
       subscribeWithSelector(
         immer((...a) => ({
           ...createUserModelSlice(...a),
-        })),
+        }))
       ),
       {
-        name: "store", // localStorage key
-      },
-    ),
-  ),
+        name: 'store', // localStorage key
+      }
+    )
+  )
 );
 
 //? Auto generated selectors for the store using 'auto-zustand-selectors-hook'
 //* Usage : useStore.use.selectorName()
 
 export const useStore = createSelectorFunctions(
-  useStoreBase,
+  useStoreBase
 ) as typeof useStoreBase & ZustandFuncSelectors<Store>;
 
 //? Setup the devtools using 'simple-zustand-devtools'
 //* You can use Redux Devtools Extension as well , with the built in  'zustand/middleware'
 
-if (process.env.NODE_ENV === "development") {
-  mountStoreDevtool("store", useStore);
+// Mount dev tools only in development
+if (process.env.NODE_ENV === 'development') {
+  import('simple-zustand-devtools')
+    .then(({ mountStoreDevtool }) => {
+      mountStoreDevtool('store', useStore);
+    })
+    .catch(() => {
+      // Silently fail if dev tools aren't available
+    });
 }
