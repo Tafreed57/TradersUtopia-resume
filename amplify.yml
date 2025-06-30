@@ -17,7 +17,7 @@ frontend:
             exit 1
           fi
         - |
-          if [ -z "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" ]; then
+          if [ -z "$CLERK_ENCRYPTION_KEY" ]; then
             echo "❌ ERROR: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable is not set"
             exit 1
           fi
