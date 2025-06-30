@@ -3,11 +3,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { strictCSRFValidation } from '@/lib/csrf';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
+import { getStripeInstance } from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,49 +64,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (targetProfile.subscriptionStatus === 'ACTIVE') {
+    // Check if Stripe is configured
+    const stripe = getStripeInstance();
+    if (!stripe) {
+      console.warn(
+        '⚠️ [ADMIN] Stripe not configured - cannot create subscription'
+      );
       return NextResponse.json(
-        { error: 'User already has an active subscription' },
-        { status: 400 }
+        {
+          error: 'Payment service not configured',
+          message:
+            'Stripe is not properly configured. Cannot create subscription.',
+        },
+        { status: 503 }
       );
     }
 
     console.log(
-      `🎁 [ADMIN] Admin ${adminProfile.email} is granting subscription to ${targetProfile.email} (${userId})`
+      `🎯 [ADMIN] Admin ${adminProfile.email} is granting subscription to user ${targetProfile.email} (${userId})`
     );
 
-    // Create or get Stripe customer
+    // Create or update customer in Stripe
     let customerId = targetProfile.stripeCustomerId;
 
     if (!customerId) {
-      try {
-        const customer = await stripe.customers.create({
-          email: targetProfile.email,
-          name: targetProfile.name,
-          metadata: {
-            userId: targetProfile.userId,
-            adminGranted: 'true',
-            grantedBy: adminProfile.email,
-            grantedAt: new Date().toISOString(),
-          },
-        });
-        customerId = customer.id;
-        console.log(
-          `👤 [ADMIN] Created Stripe customer ${customerId} for user ${userId}`
-        );
-      } catch (stripeError) {
-        console.error(
-          `Failed to create Stripe customer for user ${userId}:`,
-          stripeError
-        );
-        return NextResponse.json(
-          {
-            error: 'Failed to create Stripe customer',
-            message: 'Unable to set up payment processing. Please try again.',
-          },
-          { status: 500 }
-        );
-      }
+      console.log(
+        `👤 [ADMIN] Creating new Stripe customer for: ${targetProfile.email}`
+      );
+
+      const customer = await stripe.customers.create({
+        email: targetProfile.email,
+        name: targetProfile.name,
+        metadata: {
+          userId: targetProfile.userId,
+          adminGranted: 'true',
+          grantedBy: adminProfile.email,
+          grantedAt: new Date().toISOString(),
+        },
+      });
+
+      customerId = customer.id;
+      console.log(`✅ [ADMIN] Created Stripe customer: ${customerId}`);
+
+      // Update profile with customer ID
+      await db.profile.update({
+        where: { userId },
+        data: { stripeCustomerId: customerId },
+      });
+    } else {
+      console.log(`✅ [ADMIN] Using existing Stripe customer: ${customerId}`);
     }
 
     // Create a subscription with admin-granted pricing (free or special pricing)
@@ -171,7 +173,7 @@ export async function POST(request: NextRequest) {
       );
 
       // Create the 100% off coupon first
-      const adminCouponId = await createAdminCoupon();
+      const adminCouponId = await createAdminCoupon(stripe);
       console.log(
         `🎫 [ADMIN] Using coupon ${adminCouponId} for user ${userId}`
       );
@@ -215,214 +217,108 @@ export async function POST(request: NextRequest) {
       let subscriptionStart: Date;
       let subscriptionEnd: Date;
 
-      try {
-        // Log the subscription object to see what properties are available
-        // Type assertion to access period properties that exist but aren't in the TypeScript definition
-        const subscriptionWithPeriods = subscription as any;
-        console.log(`📅 [ADMIN] Subscription object properties:`, {
-          id: subscription.id,
-          current_period_start: subscriptionWithPeriods.current_period_start,
-          current_period_end: subscriptionWithPeriods.current_period_end,
-          status: subscription.status,
-          created: subscription.created,
-        });
+      // Use proper type assertion for accessing subscription periods
+      const subscriptionWithPeriods = subscription as any;
 
-        if (
-          subscriptionWithPeriods.current_period_start &&
-          subscriptionWithPeriods.current_period_end
-        ) {
-          subscriptionStart = new Date(
-            subscriptionWithPeriods.current_period_start * 1000
-          );
-          subscriptionEnd = new Date(
-            subscriptionWithPeriods.current_period_end * 1000
-          );
-        } else {
-          // Fallback: Use current date and add 30 days for admin grants
-          const now = new Date();
-          subscriptionStart = now;
-          subscriptionEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
-          console.log(
-            `⚠️ [ADMIN] Using fallback dates - Start: ${subscriptionStart.toISOString()}, End: ${subscriptionEnd.toISOString()}`
-          );
-        }
-
-        // Validate the dates
-        if (
-          isNaN(subscriptionStart.getTime()) ||
-          isNaN(subscriptionEnd.getTime())
-        ) {
-          throw new Error('Invalid subscription dates calculated');
-        }
-
-        console.log(
-          `📅 [ADMIN] Final dates - Start: ${subscriptionStart.toISOString()}, End: ${subscriptionEnd.toISOString()}`
+      if (
+        subscriptionWithPeriods.current_period_start &&
+        subscriptionWithPeriods.current_period_end
+      ) {
+        subscriptionStart = new Date(
+          subscriptionWithPeriods.current_period_start * 1000
         );
-      } catch (dateError) {
-        console.error(
-          '❌ [ADMIN] Error processing subscription dates:',
-          dateError
+        subscriptionEnd = new Date(
+          subscriptionWithPeriods.current_period_end * 1000
         );
-        // Use safe fallback dates
-        const now = new Date();
-        subscriptionStart = now;
-        subscriptionEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        console.log(
-          `🔄 [ADMIN] Using safe fallback dates - Start: ${subscriptionStart.toISOString()}, End: ${subscriptionEnd.toISOString()}`
+      } else {
+        // Fallback dates if Stripe data is missing
+        subscriptionStart = new Date();
+        subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        console.warn(
+          '⚠️ [ADMIN] Using fallback dates - Stripe period data missing'
         );
       }
 
-      // Update profile with subscription data
-      await db.profile.update({
+      // Update the database with the subscription details
+      const updatedProfile = await db.profile.update({
         where: { userId },
         data: {
           subscriptionStatus: 'ACTIVE',
           subscriptionStart: subscriptionStart,
           subscriptionEnd: subscriptionEnd,
           stripeCustomerId: customerId,
-          stripeSessionId: subscription.id,
           stripeProductId: productId,
-          updatedAt: new Date(),
         },
       });
 
       console.log(
-        `🗄️ [ADMIN] Updated database subscription for user ${userId}`
+        `✅ [ADMIN] Successfully granted subscription to user ${targetProfile.email}`
       );
+      console.log(
+        `📅 [ADMIN] Subscription valid from ${subscriptionStart.toISOString()} to ${subscriptionEnd.toISOString()}`
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: `Subscription successfully granted to ${targetProfile.email}`,
+        subscription: {
+          id: subscription.id,
+          productId: productId,
+          productName: product.name,
+          status: 'ACTIVE',
+          start: subscriptionStart.toISOString(),
+          end: subscriptionEnd.toISOString(),
+          customer: customerId,
+        },
+        user: {
+          userId: targetProfile.userId,
+          email: targetProfile.email,
+          name: targetProfile.name,
+        },
+      });
     } catch (error) {
-      console.error(
-        `❌ [ADMIN] Error in subscription process for user ${userId}:`,
-        error
-      );
+      console.error('❌ [ADMIN] Error creating subscription:', error);
+      trackSuspiciousActivity(request, 'ADMIN_GRANT_STRIPE_ERROR');
 
-      // Check if this is a Stripe error or database error
-      if (error instanceof Error) {
-        if (
-          error.message.includes('Stripe') ||
-          error.message.includes('stripe')
-        ) {
-          console.error('🚨 [ADMIN] Stripe API Error:', error);
-          return NextResponse.json(
-            {
-              error: 'Failed to create Stripe subscription',
-              message:
-                'Unable to set up subscription with payment processor. Please try again.',
-            },
-            { status: 500 }
-          );
-        } else if (
-          error.message.includes('Prisma') ||
-          error.message.includes('database')
-        ) {
-          console.error('🚨 [ADMIN] Database Error:', error);
-          return NextResponse.json(
-            {
-              error: 'Failed to save subscription',
-              message:
-                'Subscription was created but failed to save to database. Please contact support.',
-            },
-            { status: 500 }
-          );
-        }
-      }
-
-      // General error fallback
       return NextResponse.json(
         {
-          error: 'Failed to grant subscription',
-          message: 'Unable to grant subscription access. Please try again.',
+          error: 'Failed to create subscription',
+          message: 'Unable to create subscription. Please try again later.',
         },
         { status: 500 }
       );
     }
-
-    console.log(
-      `✅ [ADMIN] Successfully granted subscription to ${targetProfile.email} by admin ${adminProfile.email}`
-    );
-
-    return NextResponse.json({
-      success: true,
-      message: 'User has been granted subscription access',
-      grantedSubscription: {
-        userId: targetProfile.userId,
-        email: targetProfile.email,
-        name: targetProfile.name,
-        customerId: customerId,
-      },
-    });
   } catch (error) {
-    console.error('Error granting subscription:', error);
+    console.error('❌ [ADMIN] Error granting subscription:', error);
     trackSuspiciousActivity(request, 'ADMIN_GRANT_ERROR');
 
     return NextResponse.json(
       {
         error: 'Failed to grant subscription',
-        message: 'Unable to grant subscription access. Please try again later.',
+        message: 'Unable to grant subscription. Please try again later.',
       },
       { status: 500 }
     );
   }
 }
 
-// Helper function to create or get admin coupon
-async function createAdminCoupon() {
+// Helper function to create admin coupon (100% off)
+async function createAdminCoupon(stripe: any) {
   try {
-    console.log('🎫 [ADMIN] Looking for existing admin coupon...');
-
-    // Try to get existing admin coupon
-    const coupons = await stripe.coupons.list({ limit: 100 });
-    const adminCoupon = coupons.data.find(c => c.id === 'admin-grant-100-off');
-
-    if (adminCoupon && adminCoupon.valid) {
-      console.log(
-        '🎫 [ADMIN] Using existing admin coupon: admin-grant-100-off'
-      );
-      return adminCoupon.id;
-    }
-
-    console.log('🎫 [ADMIN] Creating new admin coupon...');
-
-    // Create new admin coupon if it doesn't exist
     const coupon = await stripe.coupons.create({
-      id: 'admin-grant-100-off',
-      name: 'Admin Grant - 100% Off',
       percent_off: 100,
       duration: 'forever',
+      name: 'Admin Granted Access',
       metadata: {
-        type: 'admin_grant',
-        description: 'Coupon for admin-granted subscriptions',
+        type: 'admin_granted',
         createdAt: new Date().toISOString(),
       },
     });
 
-    console.log(`🎫 [ADMIN] Created new admin coupon: ${coupon.id}`);
+    console.log(`🎫 [ADMIN] Created 100% off coupon: ${coupon.id}`);
     return coupon.id;
   } catch (error) {
-    console.error('🚨 [ADMIN] Error with admin coupon:', error);
-
-    // Fallback: create a one-time coupon with timestamp to avoid ID conflicts
-    try {
-      const timestamp = Date.now();
-      const fallbackCoupon = await stripe.coupons.create({
-        id: `admin-grant-${timestamp}`,
-        name: `Admin Grant - ${timestamp}`,
-        percent_off: 100,
-        duration: 'forever',
-        metadata: {
-          type: 'admin_grant_fallback',
-          description: 'Fallback admin grant coupon',
-          createdAt: new Date().toISOString(),
-        },
-      });
-
-      console.log(`🎫 [ADMIN] Created fallback coupon: ${fallbackCoupon.id}`);
-      return fallbackCoupon.id;
-    } catch (fallbackError) {
-      console.error(
-        '🚨 [ADMIN] Failed to create fallback coupon:',
-        fallbackError
-      );
-      throw new Error('Unable to create admin discount coupon');
-    }
+    console.error('❌ [ADMIN] Error creating coupon:', error);
+    throw new Error('Failed to create admin coupon');
   }
 }

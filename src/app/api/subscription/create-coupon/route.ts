@@ -1,14 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
-import { z } from "zod";
-import Stripe from "stripe";
-import { db } from "@/lib/db";
-import { createNotification } from "@/lib/notifications";
-
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-05-28.basil",
-});
+import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
+import { z } from 'zod';
+import { db } from '@/lib/db';
+import { createNotification } from '@/lib/notifications';
+import { getStripeInstance } from '@/lib/stripe';
 
 // Validation schema
 const createCouponSchema = z.object({
@@ -21,235 +16,225 @@ const createCouponSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  console.log("🎯 [CREATE-COUPON] Starting coupon creation process...");
+  console.log('🎯 [CREATE-COUPON] Starting coupon creation process...');
 
   try {
-    // Get authenticated user
     const user = await currentUser();
+
     if (!user) {
-      console.log("❌ [CREATE-COUPON] No authenticated user");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Parse and validate request body
+    const stripe = getStripeInstance();
+    if (!stripe) {
+      return NextResponse.json(
+        {
+          error: 'Payment service not configured',
+          message: 'Stripe is not properly configured. Cannot create coupon.',
+        },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const validatedData = createCouponSchema.parse(body);
+
     const {
       percentOff,
       newMonthlyPrice,
       currentPrice,
       originalPrice,
+      customerId,
       subscriptionId,
     } = validatedData;
 
-    // Use originalPrice if provided, otherwise fallback to currentPrice
-    const basePrice = originalPrice || currentPrice;
+    console.log('📊 [CREATE-COUPON] Validated request data:', {
+      percentOff,
+      newMonthlyPrice,
+      currentPrice,
+      originalPrice,
+      hasCustomerId: !!customerId,
+      hasSubscriptionId: !!subscriptionId,
+    });
 
-    console.log(
-      `🎯 [CREATE-COUPON] Creating ${percentOff}% off coupon for user: ${user.id}`,
-    );
-    console.log(
-      `📊 [CREATE-COUPON] Original: $${basePrice}, Current: $${currentPrice}, Target: $${newMonthlyPrice}`,
-    );
-
-    // Get user profile to verify they have an active subscription
+    // Get user profile
     const profile = await db.profile.findFirst({
       where: { userId: user.id },
     });
 
     if (!profile) {
-      return NextResponse.json(
-        { error: "User profile not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    if (!profile.stripeCustomerId) {
-      return NextResponse.json(
-        { error: "No Stripe customer ID found" },
-        { status: 400 },
-      );
-    }
+    // Calculate the discount details
+    const discountAmount = currentPrice - newMonthlyPrice;
+    const actualPercentOff = Math.round((discountAmount / currentPrice) * 100);
 
-    // Get the user's active subscription from Stripe
-    let activeSubscription;
-    try {
-      const subscriptions = await stripe.subscriptions.list({
-        customer: profile.stripeCustomerId,
-        status: "active",
-        limit: 1,
-      });
-
-      if (subscriptions.data.length === 0) {
-        return NextResponse.json(
-          { error: "No active subscription found" },
-          { status: 400 },
-        );
-      }
-
-      activeSubscription = subscriptions.data[0];
-    } catch (stripeError) {
-      console.error("❌ [CREATE-COUPON] Stripe API error:", stripeError);
-      return NextResponse.json(
-        {
-          error: "Failed to retrieve subscription data",
-          message: "Service temporarily unavailable",
-        },
-        { status: 503 },
-      );
-    }
-
-    // Recalculate the percentage based on the base price to ensure accuracy
-    const actualPercentOff = Math.round(
-      ((basePrice - newMonthlyPrice) / basePrice) * 100,
-    );
-
-    console.log(
-      `🔍 [CREATE-COUPON] Verification: Base: $${basePrice}, Target: $${newMonthlyPrice}`,
-    );
-    console.log(
-      `🔍 [CREATE-COUPON] Percentage: Frontend: ${percentOff}%, Calculated: ${actualPercentOff}%`,
-    );
+    console.log('💰 [CREATE-COUPON] Discount calculation:', {
+      currentPrice,
+      newMonthlyPrice,
+      discountAmount,
+      requestedPercentOff: percentOff,
+      actualPercentOff,
+    });
 
     // Create the coupon in Stripe
-    let coupon;
-    try {
-      coupon = await stripe.coupons.create({
-        percent_off: actualPercentOff,
-        duration: "forever", // Permanent discount as requested
-        metadata: {
-          customer_id: profile.stripeCustomerId,
-          user_id: user.id,
-          original_price: basePrice.toString(),
-          current_price: currentPrice.toString(),
-          negotiated_price: newMonthlyPrice.toString(),
-          created_by: "cancellation_negotiation",
-          created_at: new Date().toISOString(),
-        },
-      });
+    const couponId = `user-${user.id}-${Date.now()}`;
+    const coupon = await stripe.coupons.create({
+      id: couponId,
+      percent_off: actualPercentOff,
+      duration: 'forever',
+      name: `Custom Discount - ${actualPercentOff}% off`,
+      metadata: {
+        userId: user.id,
+        userEmail: profile.email,
+        originalPrice: originalPrice?.toString() || currentPrice.toString(),
+        newPrice: newMonthlyPrice.toString(),
+        createdAt: new Date().toISOString(),
+        type: 'user_requested_discount',
+      },
+    });
 
-      console.log(
-        `✅ [CREATE-COUPON] Coupon created: ${coupon.id} with ${actualPercentOff}% discount`,
-      );
-    } catch (stripeError) {
-      console.error("❌ [CREATE-COUPON] Failed to create coupon:", stripeError);
-      return NextResponse.json(
-        {
-          error: "Failed to create discount coupon",
-          message: "Could not process discount request",
-        },
-        { status: 500 },
-      );
-    }
+    console.log('🎫 [CREATE-COUPON] Created Stripe coupon:', {
+      id: coupon.id,
+      percentOff: coupon.percent_off,
+      duration: coupon.duration,
+    });
 
-    // Apply the coupon to the customer's subscription
-    let updatedSubscription;
-    try {
-      updatedSubscription = await stripe.subscriptions.update(
-        activeSubscription.id,
-        {
-          discounts: [{ coupon: coupon.id }],
-          proration_behavior: "create_prorations", // Handle mid-cycle changes
-        },
-      );
-
-      console.log(
-        `✅ [CREATE-COUPON] Coupon applied to subscription: ${activeSubscription.id}`,
-      );
-    } catch (stripeError) {
-      console.error(
-        "❌ [CREATE-COUPON] Failed to apply coupon to subscription:",
-        stripeError,
-      );
-
-      // If we can't apply the coupon, delete it to avoid orphaned coupons
+    // If we have subscription info, we could apply it immediately
+    let subscriptionUpdate = null;
+    if (subscriptionId && customerId) {
       try {
-        await stripe.coupons.del(coupon.id);
-        console.log(
-          `🧹 [CREATE-COUPON] Cleaned up unused coupon: ${coupon.id}`,
-        );
-      } catch (cleanupError) {
-        console.error(
-          "❌ [CREATE-COUPON] Failed to cleanup coupon:",
-          cleanupError,
-        );
-      }
+        // Get the subscription
+        const subscription =
+          await stripe.subscriptions.retrieve(subscriptionId);
 
-      return NextResponse.json(
-        {
-          error: "Failed to apply discount to subscription",
-          message: "Could not update subscription pricing",
-        },
-        { status: 500 },
-      );
+        if (subscription.customer === customerId) {
+          // Apply the coupon to the subscription
+          const updatedSubscription = await stripe.subscriptions.update(
+            subscriptionId,
+            {
+              coupon: coupon.id,
+            }
+          );
+
+          subscriptionUpdate = {
+            id: updatedSubscription.id,
+            status: updatedSubscription.status,
+            couponApplied: true,
+            discount: updatedSubscription.discount,
+          };
+
+          console.log(
+            '✅ [CREATE-COUPON] Applied coupon to subscription:',
+            subscriptionId
+          );
+        } else {
+          console.warn(
+            '⚠️ [CREATE-COUPON] Customer ID mismatch for subscription'
+          );
+        }
+      } catch (subscriptionError) {
+        console.error(
+          '❌ [CREATE-COUPON] Failed to apply coupon to subscription:',
+          subscriptionError
+        );
+        // Don't fail the entire request, just log the error
+      }
     }
 
     // Create notification for the user
     await createNotification({
       userId: user.id,
-      type: "PAYMENT",
-      title: "Permanent Discount Applied! 🎉",
-      message: `Great news! Your negotiated rate of $${newMonthlyPrice}/month (${percentOff}% off) has been permanently applied to your subscription. This discount will continue for the lifetime of your subscription.`,
+      type: 'SYSTEM',
+      title: 'Custom Discount Created',
+      message: `Your ${actualPercentOff}% discount coupon has been created! New monthly price: $${newMonthlyPrice}`,
+      actionUrl: '/pricing',
     });
 
-    // Calculate actual new amount after discount
-    const originalAmount =
-      updatedSubscription.items.data[0]?.price?.unit_amount || 0;
-    const discountedAmount = Math.round(
-      originalAmount * (1 - actualPercentOff / 100),
-    );
-
-    // Log successful operation
     console.log(
-      `🎉 [CREATE-COUPON] Success! User: ${profile.email || user.id}`,
-    );
-    console.log(
-      `📊 [CREATE-COUPON] Discount: ${actualPercentOff}% off permanently`,
-    );
-    console.log(
-      `💰 [CREATE-COUPON] New amount: $${discountedAmount / 100}/month`,
-    );
-    console.log(`🔗 [CREATE-COUPON] Coupon ID: ${coupon.id}`);
-    console.log(
-      `📅 [CREATE-COUPON] Applied to subscription: ${updatedSubscription.id}`,
+      '✅ [CREATE-COUPON] Successfully created coupon and notification'
     );
 
     return NextResponse.json({
       success: true,
-      message: `Permanent discount of ${actualPercentOff}% applied successfully`,
       coupon: {
         id: coupon.id,
-        percentOff: actualPercentOff,
+        percentOff: coupon.percent_off,
+        discountAmount: discountAmount,
         newMonthlyPrice: newMonthlyPrice,
-        duration: "forever",
+        originalPrice: currentPrice,
+        duration: coupon.duration,
+        valid: coupon.valid,
       },
-      subscription: {
-        id: updatedSubscription.id,
-        newAmount: discountedAmount,
-        currency: updatedSubscription.items.data[0]?.price?.currency || "usd",
-      },
+      subscription: subscriptionUpdate,
+      message: `Custom ${actualPercentOff}% discount coupon created successfully!`,
     });
   } catch (error) {
-    console.error("❌ [CREATE-COUPON] Unexpected error:", error);
+    console.error('❌ [CREATE-COUPON] Error:', error);
 
-    // Handle validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error: "Invalid request data",
+          error: 'Validation failed',
           details: error.errors,
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    // Generic error response
+    // Check if it's a Stripe error
+    if (error && typeof error === 'object' && 'type' in error) {
+      const stripeError = error as any;
+      console.error(
+        '🚨 [CREATE-COUPON] Stripe error:',
+        stripeError.type,
+        stripeError.message
+      );
+
+      return NextResponse.json(
+        {
+          error: 'Failed to create discount',
+          message:
+            'Unable to create your custom discount. Please try again later.',
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       {
-        error: "Failed to create and apply discount",
-        message: "An internal error occurred. Please try again later.",
+        error: 'Internal server error',
+        message: 'Unable to process your request. Please try again later.',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
+}
+
+export async function GET(request: NextRequest) {
+  return NextResponse.json({
+    message: 'Create Custom Coupon Endpoint',
+    description: 'Create a custom discount coupon for subscription pricing',
+    usage: {
+      method: 'POST',
+      authentication: 'Required',
+      body: {
+        percentOff: 'number (1-99) - Percentage discount',
+        newMonthlyPrice: 'number - New monthly price after discount',
+        currentPrice: 'number - Current monthly price',
+        originalPrice:
+          'number (optional) - Original price before any discounts',
+        customerId: 'string (optional) - Stripe customer ID',
+        subscriptionId:
+          'string (optional) - Stripe subscription ID to apply coupon to',
+      },
+    },
+    example: {
+      percentOff: 20,
+      newMonthlyPrice: 39.99,
+      currentPrice: 49.99,
+      originalPrice: 59.99,
+    },
+  });
 }
