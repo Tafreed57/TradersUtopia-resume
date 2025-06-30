@@ -8,17 +8,11 @@ backend:
         - npm i -g neonctl@v1
     build:
       commands:
-        - nvm use 18
+        - nvm use 20
         - corepack enable
         - pnpm install
-        # - npx amplify pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
-        - |
-          if [ "${AWS_BRANCH}" = "main" ] || [ "${AWS_BRANCH}" = "dev" ]; then 
-            pnpm amplify pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
-          else
-            pnpm amplify generate config --branch main --app-id $AWS_APP_ID 
-          fi
-        - bash neon-ci.sh create-branch --app-id $AWS_APP_ID --neon-project-id YOUR_NEON_PROJECT_ID --branch-name $AWS_BRANCH --parent-branch main --api-key-param "neon-api-key" --role-name neondb_owner --database-name neondb --suspend-timeout 0
+        - npx amplify pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+        # - bash neon-ci.sh create-branch --app-id $AWS_APP_ID --neon-project-id YOUR_NEON_PROJECT_ID --branch-name $AWS_BRANCH --parent-branch main --api-key-param "neon-api-key" --role-name neondb_owner --database-name neondb --suspend-timeout 0
         - |
           if [ -f .env ]; then
             echo "Found .env file, running Prisma migrations..."
