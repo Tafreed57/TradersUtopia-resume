@@ -83,7 +83,7 @@ const finalSecretKey =
 
 if (finalSecretKey) {
   // Force set the environment variable that Clerk expects
-  process.env.CLERK_SECRET_KEY = finalSecretKey;
+  // process.env.CLERK_SECRET_KEY = finalSecretKey;
   console.log('✅ [MIDDLEWARE] Forced CLERK_SECRET_KEY to be set');
 } else {
   console.error(
