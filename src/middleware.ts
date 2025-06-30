@@ -1,5 +1,14 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
+// ✅ DEBUG: Log environment variable status at module load time
+console.log('🔍 [MIDDLEWARE] Environment check at load time:', {
+  nodeEnv: process.env.NODE_ENV,
+  hasClerkSecret: !!process.env.CLERK_SECRET_KEY,
+  hasClerkPublishable: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  secretKeyPrefix: process.env.CLERK_SECRET_KEY?.substring(0, 8) || 'NOT_FOUND',
+  timestamp: new Date().toISOString(),
+});
+
 // Debug/test routes that should only be accessible in development
 const developmentOnlyRoutes = [
   '/api/test-env', // Environment variables check
@@ -11,6 +20,7 @@ const developmentOnlyRoutes = [
   '/api/check-payment-status', // Payment status debugging
   '/api/upload-security', // File upload security monitoring
   '/api/test-2fa-status', // 2FA status debugging
+  '/api/debug-runtime-env', // Runtime environment debugging
 ];
 
 // Always public routes (regardless of environment)
@@ -22,6 +32,7 @@ const alwaysPublicRoutes = [
   '/2fa-verify',
   '/api/uploadthing',
   '/api/health', // Health check endpoint for monitoring
+  '/api/debug-runtime-env', // TEMPORARY: For debugging production environment issues
 
   '/api/webhooks(.*)',
   '/api/sync-profiles',
