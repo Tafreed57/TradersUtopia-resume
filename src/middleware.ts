@@ -21,7 +21,6 @@ if (!clerkSecretKey) {
   );
   console.log(
     '🔍 [MIDDLEWARE] Available CLERK-related env vars:',
-    process.env,
     Object.keys(process.env).filter(key => key.includes('CLERK'))
   );
 }
@@ -70,7 +69,7 @@ const isPublicRoute = createRouteMatcher(publicRoutes);
 
 // ✅ EXPLICIT CONFIGURATION: Set environment variable for Clerk if needed
 if (clerkSecretKey && !process.env.CLERK_SECRET_KEY) {
-  // process.env.CLERK_SECRET_KEY = clerkSecretKey;
+  process.env.CLERK_SECRET_KEY = clerkSecretKey;
   console.log('✅ [MIDDLEWARE] Set CLERK_SECRET_KEY from alternative source');
 }
 
@@ -83,7 +82,7 @@ const finalSecretKey =
 
 if (finalSecretKey) {
   // Force set the environment variable that Clerk expects
-  // process.env.CLERK_SECRET_KEY = finalSecretKey;
+  process.env.CLERK_SECRET_KEY = finalSecretKey;
   console.log('✅ [MIDDLEWARE] Forced CLERK_SECRET_KEY to be set');
 } else {
   console.error(
@@ -99,7 +98,6 @@ export default clerkMiddleware(
     console.log(
       `🔍 [MIDDLEWARE] ${request.nextUrl.pathname} - Public: ${isPublic}`
     );
-    console.log(process.env);
 
     if (!isPublic) {
       console.log(
@@ -111,12 +109,8 @@ export default clerkMiddleware(
   },
   {
     debug: true,
-    // ✅ EXPLICIT: Force secret key configuration
-    ...(finalSecretKey && {
-      secretKey: finalSecretKey,
-      // Also try these alternative configuration options
-      publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-    }),
+    // ✅ Let Clerk automatically detect environment variables
+    // Don't pass secretKey explicitly to avoid CLERK_ENCRYPTION_KEY requirement
   }
 );
 
