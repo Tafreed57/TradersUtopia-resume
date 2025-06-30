@@ -9,6 +9,22 @@ console.log('🔍 [MIDDLEWARE] Environment check at load time:', {
   timestamp: new Date().toISOString(),
 });
 
+// ✅ WORKAROUND: Check for alternative environment variable names
+const clerkSecretKey =
+  process.env.CLERK_SECRET_KEY ||
+  process.env.CLERK_SECRET ||
+  process.env.NEXT_CLERK_SECRET_KEY;
+
+if (!clerkSecretKey) {
+  console.error(
+    '❌ [MIDDLEWARE] CLERK_SECRET_KEY not found in environment variables'
+  );
+  console.log(
+    '🔍 [MIDDLEWARE] Available CLERK-related env vars:',
+    Object.keys(process.env).filter(key => key.includes('CLERK'))
+  );
+}
+
 // Debug/test routes that should only be accessible in development
 const developmentOnlyRoutes = [
   '/api/test-env', // Environment variables check
@@ -51,15 +67,34 @@ const publicRoutes =
 
 const isPublicRoute = createRouteMatcher(publicRoutes);
 
+// ✅ EXPLICIT CONFIGURATION: Set environment variable for Clerk if needed
+if (clerkSecretKey && !process.env.CLERK_SECRET_KEY) {
+  process.env.CLERK_SECRET_KEY = clerkSecretKey;
+  console.log('✅ [MIDDLEWARE] Set CLERK_SECRET_KEY from alternative source');
+}
+
 // protect all routes except the public ones
 export default clerkMiddleware(
   (auth, request) => {
-    if (!isPublicRoute(request)) {
-      console.log(request);
+    // ✅ DEBUG: Log route matching for debugging
+    const isPublic = isPublicRoute(request);
+    console.log(
+      `🔍 [MIDDLEWARE] ${request.nextUrl.pathname} - Public: ${isPublic}`
+    );
+
+    if (!isPublic) {
+      console.log(
+        '🔐 [MIDDLEWARE] Protecting route:',
+        request.nextUrl.pathname
+      );
       auth().protect();
     }
   },
-  { debug: true }
+  {
+    debug: true,
+    // ✅ EXPLICIT: Force secret key if available
+    ...(clerkSecretKey && { secretKey: clerkSecretKey }),
+  }
 );
 
 export const config = {
