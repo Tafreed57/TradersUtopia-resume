@@ -115,14 +115,14 @@ export async function POST(request: NextRequest) {
             subscriptionId,
             {
               coupon: coupon.id,
-            }
+            } as any
           );
 
           subscriptionUpdate = {
             id: updatedSubscription.id,
             status: updatedSubscription.status,
             couponApplied: true,
-            discount: updatedSubscription.discount,
+            discount: (updatedSubscription as any).discount,
           };
 
           console.log(

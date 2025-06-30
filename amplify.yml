@@ -1,18 +1,57 @@
 version: 1
+backend:
+  phases:
+    preBuild:
+      commands:
+        - sudo yum -y install jq
+        - jq --version
+        - npm i -g neonctl@v1
+    build:
+      commands:
+        - nvm use 18
+        - corepack enable
+        - pnpm install
+        # - npx amplify pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+        - |
+          if [ "${AWS_BRANCH}" = "main" ] || [ "${AWS_BRANCH}" = "dev" ]; then 
+            pnpm amplify pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+          else
+            pnpm amplify generate config --branch main --app-id $AWS_APP_ID 
+          fi
+        - bash neon-ci.sh create-branch --app-id $AWS_APP_ID --neon-project-id YOUR_NEON_PROJECT_ID --branch-name $AWS_BRANCH --parent-branch main --api-key-param "neon-api-key" --role-name neondb_owner --database-name neondb --suspend-timeout 0
+        - |
+          if [ -f .env ]; then
+            echo "Found .env file, running Prisma migrations..."
+            source .env && npx prisma migrate deploy
+            source .env && npx prisma generate
+          else
+            echo "Warning: .env file not found, skipping Prisma migrations"
+          fi
+
+    postBuild:
+      commands:
+        - |
+          # EXAMPLE: only run the cleanup-branches command if you have tested it
+          if ! [ "${AWS_BRANCH}" = "main" ] && ! [ "${AWS_BRANCH}" = "dev" ]; then
+            echo "Skipping branch cleanup for branch: ${AWS_BRANCH}"
+            # bash neon-ci.sh cleanup-branches --app-id $AWS_APP_ID --neon-project-id YOUR_NEON_PROJECT_ID --api-key-param "neon-api-key"
+          fi
+  cache:
+    paths:
+      - $(pnpm store path)
 frontend:
   phases:
     preBuild:
       commands:
         # Install dependencies
-        - npm ci --production=false
-        # Generate Prisma client with AWS-compatible binaries
-        - npx prisma generate
+        - pnpm install --production=false
     build:
       commands:
         # Set production environment
         - echo "Building for production..."
-        # Run the Next.js build
-        - npm run build
+        - echo .env
+        - echo pwd
+        - pnpm build
     postBuild:
       commands:
         # Optional: Clean up if needed
