@@ -8,6 +8,9 @@ import {
   secureTextInput,
 } from "@/lib/validation";
 
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     // ✅ SECURITY: Rate limiting for admin operations

@@ -15,6 +15,9 @@ const createCouponSchema = z.object({
   subscriptionId: z.string().optional(),
 });
 
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   console.log('🎯 [CREATE-COUPON] Starting coupon creation process...');
 

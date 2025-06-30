@@ -6,6 +6,9 @@ import { v4 as uuidv4 } from "uuid";
 const DEFAULT_SERVER_NAME = "Traders Utopia";
 const DEFAULT_INVITE_CODE = "TRADERS-UTOPIA";
 
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();

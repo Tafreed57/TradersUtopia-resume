@@ -3,6 +3,9 @@ import { currentUser } from "@clerk/nextjs/server";
 import { subscribeToPushNotifications } from "@/lib/push-notifications";
 import { rateLimitGeneral, trackSuspiciousActivity } from "@/lib/rate-limit";
 
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting

@@ -3,6 +3,9 @@ import { db } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
 import { getStripeInstance } from '@/lib/stripe';
 
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();

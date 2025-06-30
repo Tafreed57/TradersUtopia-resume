@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { strictCSRFValidation } from "@/lib/csrf";
 import { trackSuspiciousActivity } from "@/lib/rate-limit";
 
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   // ✅ SECURITY: CSRF protection for admin operations
   const csrfValid = await strictCSRFValidation(request);

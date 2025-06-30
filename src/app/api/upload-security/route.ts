@@ -3,6 +3,9 @@ import { currentUser } from "@clerk/nextjs/server";
 import { rateLimitDebug, trackSuspiciousActivity } from "@/lib/rate-limit";
 
 // ✅ SECURITY: Upload security monitoring endpoint
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     // ✅ SECURITY: Production protection

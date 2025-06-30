@@ -52,6 +52,9 @@ async function getSubscriptionWithName(profile: any) {
   };
 }
 
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     // Rate limiting for admin operations

@@ -2,6 +2,9 @@ import { AccessToken } from "livekit-server-sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitMedia, trackSuspiciousActivity } from "@/lib/rate-limit";
 
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     // ✅ SECURITY: Rate limiting for media token generation
