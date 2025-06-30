@@ -50,6 +50,7 @@ export default function RootLayout({
       <body className={cn(open_sans.className, 'bg-white dark:bg-[#313338]')}>
         <ClerkProvider
           publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+          secretKey={process.env.CLERK_SECRET_KEY}
           appearance={{
             variables: { colorPrimary: '#000000' },
             elements: {
