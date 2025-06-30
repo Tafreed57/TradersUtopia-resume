@@ -22,4 +22,6 @@
 #           fi
 #   cache:
 #     paths:
-#       - $(pnpm store path)
+#       - $(pnpm store pat
+
+h)
