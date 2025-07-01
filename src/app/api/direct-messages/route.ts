@@ -3,6 +3,7 @@ import { getCurrentProfile } from '@/lib/query';
 import { DirectMessage, Message } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitMessaging, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { z } from 'zod';
 
 const MESSAGE_BATCH = 10;
 
@@ -33,7 +34,6 @@ export async function GET(req: NextRequest) {
 
     // ✅ SECURITY: Validate conversationId format (CUID)
     try {
-      const { z } = await import('zod');
       z.string()
         .regex(/^c[a-z0-9]{24}$/)
         .parse(conversationId);
