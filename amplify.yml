@@ -10,18 +10,6 @@ frontend:
     build:
       commands:
         - echo "Building for production..."
-        # Debug: Check if STRIPE_SECRET_KEY exists at build time
-        - echo "🔍 Checking STRIPE_SECRET_KEY availability..."
-        - 'echo "STRIPE_SECRET_KEY is set: $(if [ -n "$STRIPE_SECRET_KEY" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        - 'echo "STRIPE_API_KEY is set: $(if [ -n "$STRIPE_API_KEY" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        - 'echo "STRIPE_WEBHOOK_SECRET is set: $(if [ -n "$STRIPE_WEBHOOK_SECRET" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        # Show which Stripe environment variables are available
-        - echo "🔍 Available Stripe environment variables:"
-        - env | grep -i stripe || echo "❌ No STRIPE environment variables found"
-        - env | grep -e DATABASE_URL >> .env.production
-        - env | grep -e STRIPE_SECRET_KEY >> .env.production
-        - env | grep -e CLERK_SECRET_KEY >> .env.production
-        - env | grep -e STRIPE_WEBHOOK_SECRET >> .env.production
         - pnpm build
   artifacts:
     # For Next.js SSR apps, use .next directory
