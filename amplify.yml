@@ -10,17 +10,14 @@ frontend:
     build:
       commands:
         - echo "Building for production..."
-        - env | grep -e DATABASE_URL >> .env.production
-        - env | grep -e CLERK_SECRET_KEY >> .env.production
-        - env | grep -e STRIPE_SECRET_KEY >> .env.production
-        - env | grep -e STRIPE_WEBHOOK_SECRET >> .env.production
         - pnpm build
     postBuild:
       commands:
         # Final verification after build
-        - echo "🔍 POST-BUILD Environment Variables Check"
-        - 'echo "DATABASE_URL available after build: $(if [ -n "$DATABASE_URL" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        - echo "Build completed successfully"
+        - env | grep -e DATABASE_URL >> .env.production
+        - env | grep -e CLERK_SECRET_KEY >> .env.production
+        - env | grep -e STRIPE_SECRET_KEY >> .env.production
+        - env | grep -e STRIPE_WEBHOOK_SECRET >> .env.production
   artifacts:
     # For Next.js SSR apps, use .next directory
     baseDirectory: .next
