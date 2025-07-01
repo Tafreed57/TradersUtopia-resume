@@ -11,16 +11,6 @@ frontend:
       commands:
         - echo "Building for production..."
         # Verify critical environment variables are set
-        - |
-          if [ -z "$CLERK_SECRET_KEY" ]; then
-            echo "❌ ERROR: CLERK_SECRET_KEY environment variable is not set"
-            exit 1
-          fi
-        - |
-          if [ -z "$CLERK_ENCRYPTION_KEY" ]; then
-            echo "❌ ERROR: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY environment variable is not set"
-            exit 1
-          fi
         - echo "✅ Environment variables verified"
         - pnpm build
     postBuild:

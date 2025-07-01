@@ -89,23 +89,13 @@ export default clerkMiddleware(
   (auth, request) => {
     // ✅ DEBUG: Log route matching for debugging
     const isPublic = isPublicRoute(request);
-    console.log(
-      `🔍 [MIDDLEWARE] ${request.nextUrl.pathname} - Public: ${isPublic}`
-    );
-    console.log(process.env);
 
     if (!isPublic) {
-      console.log(
-        '🔐 [MIDDLEWARE] Protecting route:',
-        request.nextUrl.pathname
-      );
       auth().protect();
     }
   },
   {
-    debug: true,
-    // ✅ Let Clerk automatically detect environment variables
-    // Don't pass secretKey explicitly to avoid CLERK_ENCRYPTION_KEY requirement
+    debug: false,
   }
 );
 
