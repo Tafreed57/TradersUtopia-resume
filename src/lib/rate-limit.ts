@@ -339,18 +339,6 @@ export const clearRateLimit = (request: NextRequest, prefix: string) => {
   return rateLimitStore.delete(key);
 };
 
-export const clearAllRateLimits = () => {
-  if (process.env.NODE_ENV !== 'development') {
-    console.warn('⚠️ Rate limit clearing is only available in development');
-    return false;
-  }
-
-  const size = rateLimitStore.size;
-  rateLimitStore.clear();
-  console.log(`🧹 Cleared ${size} rate limit entries`);
-  return true;
-};
-
 export const getRateLimitStats = () => {
   if (process.env.NODE_ENV !== 'development') {
     return { error: 'Stats only available in development' };
@@ -376,6 +364,7 @@ export const clearAllRateLimits = () => {
   return true;
 };
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default {
   rateLimit,
   rateLimitAdmin,
@@ -396,6 +385,5 @@ export default {
   clearRateLimit,
   clearAllRateLimits,
   getRateLimitStats,
-  clearAllRateLimits,
   RATE_LIMITS,
 };
