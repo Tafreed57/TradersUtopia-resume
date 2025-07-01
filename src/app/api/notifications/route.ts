@@ -11,8 +11,6 @@ import {
 } from "@/lib/rate-limit";
 import { validateInput, notificationActionSchema } from "@/lib/validation";
 
-
-// Mark this route as dynamic to prevent static generation
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {

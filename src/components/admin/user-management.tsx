@@ -1,46 +1,41 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Users,
-  Search,
-  Crown,
-  Shield,
-  Trash2,
-  UserPlus,
-  CreditCard,
-  Calendar,
-  Mail,
-  Phone,
   Activity,
+  AlertTriangle,
+  CheckCircle,
+  CreditCard,
+  Crown,
+  Database,
   Eye,
   EyeOff,
   RefreshCw,
-  AlertTriangle,
-  CheckCircle,
+  Search,
+  Trash2,
+  UserCog,
+  UserPlus,
+  Users,
   XCircle,
-  Clock,
-  DollarSign,
-  Database,
-} from "lucide-react";
-import { showToast } from "@/lib/notifications-client";
-import { makeSecureRequest } from "@/lib/csrf-client";
-import { formatDistanceToNow } from "date-fns";
+} from 'lucide-react';
+import { showToast } from '@/lib/notifications-client';
+import { makeSecureRequest } from '@/lib/csrf-client';
+import { formatDistanceToNow } from 'date-fns';
 
 interface UserData {
   id: string;
@@ -94,40 +89,40 @@ export function UserManagement() {
   const { user } = useUser();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [showDetailedView, setShowDetailedView] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Filter users based on search term
   const filteredUsers = users.filter(
-    (user) =>
+    user =>
       user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.userId?.toLowerCase().includes(searchTerm.toLowerCase()),
+      user.userId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await makeSecureRequest("/api/admin/users", {
-        method: "GET",
+      const response = await makeSecureRequest('/api/admin/users', {
+        method: 'GET',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
       });
 
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users);
-        showToast.success("Users Loaded", `Found ${data.users.length} users`);
+        showToast.success('Users Loaded', `Found ${data.users.length} users`);
       } else {
         const error = await response.json();
-        showToast.error("Failed to Load Users", error.message);
+        showToast.error('Failed to Load Users', error.message);
       }
     } catch (error) {
-      console.error("Error fetching users:", error);
-      showToast.error("Error", "Failed to fetch users");
+      console.error('Error fetching users:', error);
+      showToast.error('Error', 'Failed to fetch users');
     } finally {
       setLoading(false);
     }
@@ -136,7 +131,7 @@ export function UserManagement() {
   const handleDeleteAccount = async (userId: string) => {
     if (
       !confirm(
-        "Are you sure you want to DELETE this user account? This action cannot be undone and will remove ALL user data.",
+        'Are you sure you want to DELETE this user account? This action cannot be undone and will remove ALL user data.'
       )
     ) {
       return;
@@ -144,28 +139,28 @@ export function UserManagement() {
 
     setActionLoading(`delete-${userId}`);
     try {
-      const response = await makeSecureRequest("/api/admin/users/delete", {
-        method: "POST",
+      const response = await makeSecureRequest('/api/admin/users/delete', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId }),
       });
 
       if (response.ok) {
-        setUsers((prev) => prev.filter((u) => u.userId !== userId));
+        setUsers(prev => prev.filter(u => u.userId !== userId));
         setSelectedUser(null);
         showToast.success(
-          "Account Deleted",
-          "User account has been permanently deleted",
+          'Account Deleted',
+          'User account has been permanently deleted'
         );
       } else {
         const error = await response.json();
-        showToast.error("Delete Failed", error.message);
+        showToast.error('Delete Failed', error.message);
       }
     } catch (error) {
-      console.error("Error deleting account:", error);
-      showToast.error("Error", "Failed to delete account");
+      console.error('Error deleting account:', error);
+      showToast.error('Error', 'Failed to delete account');
     } finally {
       setActionLoading(null);
     }
@@ -174,7 +169,7 @@ export function UserManagement() {
   const handleDeleteSubscription = async (userId: string) => {
     if (
       !confirm(
-        "Are you sure you want to cancel this user's subscription? They will lose access immediately.",
+        "Are you sure you want to cancel this user's subscription? They will lose access immediately."
       )
     ) {
       return;
@@ -183,30 +178,30 @@ export function UserManagement() {
     setActionLoading(`subscription-${userId}`);
     try {
       const response = await makeSecureRequest(
-        "/api/admin/users/cancel-subscription",
+        '/api/admin/users/cancel-subscription',
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ userId }),
-        },
+        }
       );
 
       if (response.ok) {
         // Refresh user data
         await fetchUsers();
         showToast.success(
-          "Subscription Cancelled",
-          "User subscription has been cancelled",
+          'Subscription Cancelled',
+          'User subscription has been cancelled'
         );
       } else {
         const error = await response.json();
-        showToast.error("Cancellation Failed", error.message);
+        showToast.error('Cancellation Failed', error.message);
       }
     } catch (error) {
-      console.error("Error cancelling subscription:", error);
-      showToast.error("Error", "Failed to cancel subscription");
+      console.error('Error cancelling subscription:', error);
+      showToast.error('Error', 'Failed to cancel subscription');
     } finally {
       setActionLoading(null);
     }
@@ -215,7 +210,7 @@ export function UserManagement() {
   const handleGrantSubscription = async (userId: string) => {
     if (
       !confirm(
-        "Grant subscription access to this user? They will get immediate access to premium features.",
+        'Grant subscription access to this user? They will get immediate access to premium features.'
       )
     ) {
       return;
@@ -224,27 +219,27 @@ export function UserManagement() {
     setActionLoading(`grant-${userId}`);
     try {
       const response = await makeSecureRequest(
-        "/api/admin/users/grant-subscription",
+        '/api/admin/users/grant-subscription',
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ userId }),
-        },
+        }
       );
 
       if (response.ok) {
         // Refresh user data
         await fetchUsers();
-        showToast.success("Access Granted", "User now has subscription access");
+        showToast.success('Access Granted', 'User now has subscription access');
       } else {
         const error = await response.json();
-        showToast.error("Grant Failed", error.message);
+        showToast.error('Grant Failed', error.message);
       }
     } catch (error) {
-      console.error("Error granting subscription:", error);
-      showToast.error("Error", "Failed to grant subscription");
+      console.error('Error granting subscription:', error);
+      showToast.error('Error', 'Failed to grant subscription');
     } finally {
       setActionLoading(null);
     }
@@ -252,12 +247,12 @@ export function UserManagement() {
 
   const handleToggleAdmin = async (
     userId: string,
-    isCurrentlyAdmin: boolean,
+    isCurrentlyAdmin: boolean
   ) => {
-    const action = isCurrentlyAdmin ? "revoke" : "grant";
+    const action = isCurrentlyAdmin ? 'revoke' : 'grant';
     if (
       !confirm(
-        `${action === "grant" ? "Grant" : "Revoke"} admin privileges ${action === "grant" ? "to" : "from"} this user?`,
+        `${action === 'grant' ? 'Grant' : 'Revoke'} admin privileges ${action === 'grant' ? 'to' : 'from'} this user?`
       )
     ) {
       return;
@@ -266,30 +261,30 @@ export function UserManagement() {
     setActionLoading(`admin-${userId}`);
     try {
       const response = await makeSecureRequest(
-        "/api/admin/users/toggle-admin",
+        '/api/admin/users/toggle-admin',
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ userId, grantAdmin: !isCurrentlyAdmin }),
-        },
+        }
       );
 
       if (response.ok) {
         // Refresh user data
         await fetchUsers();
         showToast.success(
-          "Admin Status Updated",
-          `User is now ${!isCurrentlyAdmin ? "an admin" : "a regular user"}`,
+          'Admin Status Updated',
+          `User is now ${!isCurrentlyAdmin ? 'an admin' : 'a regular user'}`
         );
       } else {
         const error = await response.json();
-        showToast.error("Update Failed", error.message);
+        showToast.error('Update Failed', error.message);
       }
     } catch (error) {
-      console.error("Error updating admin status:", error);
-      showToast.error("Error", "Failed to update admin status");
+      console.error('Error updating admin status:', error);
+      showToast.error('Error', 'Failed to update admin status');
     } finally {
       setActionLoading(null);
     }
@@ -298,7 +293,7 @@ export function UserManagement() {
   const formatDate = (date: string | number) => {
     return (
       new Date(date).toLocaleDateString() +
-      " " +
+      ' ' +
       new Date(date).toLocaleTimeString()
     );
   };
@@ -306,23 +301,23 @@ export function UserManagement() {
   const getStatusBadge = (user: UserData) => {
     if (user.isAdmin) {
       return (
-        <Badge className="bg-red-600 text-white">
-          <Crown className="w-3 h-3 mr-1" />
+        <Badge className='bg-red-600 text-white text-xs'>
+          <Crown className='w-3 h-3 mr-1' />
           Admin
         </Badge>
       );
     }
-    if (user.subscription?.status === "active") {
+    if (user.subscription?.status === 'active') {
       return (
-        <Badge className="bg-green-600 text-white">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          {user.subscription.planName || "Premium"}
+        <Badge className='bg-green-600 text-white text-xs'>
+          <CheckCircle className='w-3 h-3 mr-1' />
+          {user.subscription.planName || 'Premium'}
         </Badge>
       );
     }
     return (
-      <Badge variant="outline">
-        <XCircle className="w-3 h-3 mr-1" />
+      <Badge variant='outline' className='text-xs'>
+        <XCircle className='w-3 h-3 mr-1' />
         Free
       </Badge>
     );
@@ -331,16 +326,18 @@ export function UserManagement() {
   if (!user) return null;
 
   return (
-    <div className="w-full space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-            <Users className="h-6 w-6 text-blue-400" />
+    <div className='w-full space-y-4 sm:space-y-6'>
+      {/* Mobile-First Header */}
+      <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4'>
+        <div className='flex items-center gap-3'>
+          <div className='w-8 h-8 sm:w-10 sm:h-10 bg-blue-500/20 rounded-xl flex items-center justify-center'>
+            <Users className='h-4 w-4 sm:h-6 sm:w-6 text-blue-400' />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white">User Management</h3>
-            <p className="text-gray-400 text-sm">
+            <h3 className='text-lg sm:text-xl font-bold text-white'>
+              User Management
+            </h3>
+            <p className='text-gray-400 text-xs sm:text-sm'>
               Manage all registered users and their data
             </p>
           </div>
@@ -348,233 +345,262 @@ export function UserManagement() {
         <Button
           onClick={fetchUsers}
           disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700"
+          size='sm'
+          className='bg-blue-600 hover:bg-blue-700 w-full sm:w-auto'
         >
           {loading ? (
-            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
           ) : (
-            <Database className="w-4 h-4 mr-2" />
+            <Database className='w-4 h-4 mr-2' />
           )}
-          {loading ? "Loading..." : "Load Users"}
+          {loading ? 'Loading...' : 'Load Users'}
         </Button>
       </div>
 
       {users.length > 0 && (
         <>
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          {/* Mobile-Optimized Search */}
+          <div className='relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
             <Input
-              placeholder="Search by name, email, or user ID..."
+              placeholder='Search by name, email, or user ID...'
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-800/50 border-gray-600 text-white"
+              onChange={e => setSearchTerm(e.target.value)}
+              className='pl-10 bg-gray-800/50 border-gray-600 text-white h-10 sm:h-auto'
             />
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-gray-800/50 border-gray-600">
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-blue-400">
+          {/* Mobile-First Stats Grid */}
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4'>
+            <Card className='bg-gray-800/50 border-gray-600'>
+              <CardContent className='p-3 sm:p-4'>
+                <div className='text-lg sm:text-2xl font-bold text-blue-400'>
                   {users.length}
                 </div>
-                <div className="text-xs text-gray-400">Total Users</div>
+                <div className='text-xs text-gray-400'>Total Users</div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-800/50 border-gray-600">
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-green-400">
+            <Card className='bg-gray-800/50 border-gray-600'>
+              <CardContent className='p-3 sm:p-4'>
+                <div className='text-lg sm:text-2xl font-bold text-green-400'>
                   {
-                    users.filter((u) => u.subscription?.status === "active")
+                    users.filter(u => u.subscription?.status === 'active')
                       .length
                   }
                 </div>
-                <div className="text-xs text-gray-400">
-                  Active Subscriptions
-                </div>
+                <div className='text-xs text-gray-400'>Active Subs</div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-800/50 border-gray-600">
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-red-400">
-                  {users.filter((u) => u.isAdmin).length}
+            <Card className='bg-gray-800/50 border-gray-600'>
+              <CardContent className='p-3 sm:p-4'>
+                <div className='text-lg sm:text-2xl font-bold text-red-400'>
+                  {users.filter(u => u.isAdmin).length}
                 </div>
-                <div className="text-xs text-gray-400">Admins</div>
+                <div className='text-xs text-gray-400'>Admins</div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-800/50 border-gray-600">
-              <CardContent className="p-4">
-                <div className="text-2xl font-bold text-purple-400">
-                  {users.filter((u) => u.twoFactorEnabled).length}
+            <Card className='bg-gray-800/50 border-gray-600'>
+              <CardContent className='p-3 sm:p-4'>
+                <div className='text-lg sm:text-2xl font-bold text-purple-400'>
+                  {users.filter(u => u.twoFactorEnabled).length}
                 </div>
-                <div className="text-xs text-gray-400">2FA Enabled</div>
+                <div className='text-xs text-gray-400'>2FA On</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Users List */}
-          <Card className="bg-gray-800/50 border-gray-600">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Users className="w-5 h-5" />
+          {/* Mobile-First Users List */}
+          <Card className='bg-gray-800/50 border-gray-600'>
+            <CardHeader className='pb-3 sm:pb-6'>
+              <CardTitle className='text-white flex items-center gap-2 text-base sm:text-lg'>
+                <Users className='w-4 h-4 sm:w-5 sm:h-5' />
                 Users ({filteredUsers.length})
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[600px]">
-                <div className="space-y-3">
-                  {filteredUsers.map((user) => (
+            <CardContent className='p-2 sm:p-6'>
+              <ScrollArea className='h-[400px] sm:h-[600px]'>
+                <div className='space-y-2 sm:space-y-3'>
+                  {filteredUsers.map(userData => (
                     <Card
-                      key={user.id}
-                      className="bg-gray-900/50 border-gray-600 hover:border-gray-500 transition-colors"
+                      key={userData.id}
+                      className='bg-gray-900/50 border-gray-600 hover:border-gray-500 transition-colors'
                     >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {user.imageUrl ? (
+                      <CardContent className='p-3 sm:p-4'>
+                        {/* Mobile-First Layout */}
+                        <div className='space-y-3'>
+                          {/* User Info Row */}
+                          <div className='flex items-start gap-3'>
+                            {userData.imageUrl ? (
                               <img
-                                src={user.imageUrl}
-                                alt={user.name}
-                                className="w-10 h-10 rounded-full"
+                                src={userData.imageUrl}
+                                alt={userData.name}
+                                className='w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0'
                               />
                             ) : (
-                              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                                {user.name.charAt(0).toUpperCase()}
+                              <div className='w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0'>
+                                {userData.name.charAt(0).toUpperCase()}
                               </div>
                             )}
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium text-white">
-                                  {user.name}
+                            <div className='flex-1 min-w-0'>
+                              <div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1'>
+                                <h4 className='font-medium text-white text-sm sm:text-base truncate'>
+                                  {userData.name}
                                 </h4>
-                                {getStatusBadge(user)}
+                                {getStatusBadge(userData)}
                               </div>
-                              <p className="text-sm text-gray-400">
-                                {user.email}
+                              <p className='text-xs sm:text-sm text-gray-400 truncate'>
+                                {userData.email}
                               </p>
-                              {user.subscription?.productName && (
-                                <p className="text-xs text-blue-400 font-medium">
-                                  {user.subscription.productName}
+                              {userData.subscription?.productName && (
+                                <p className='text-xs text-blue-400 font-medium truncate'>
+                                  {userData.subscription.productName}
                                 </p>
                               )}
-                              <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
-                                <span>
-                                  ID: {user.userId.substring(0, 8)}...
+                              <div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-gray-500 mt-1'>
+                                <span className='truncate'>
+                                  ID: {userData.userId.substring(0, 8)}...
                                 </span>
-                                <span>
-                                  Joined:{" "}
+                                <span className='truncate'>
+                                  Joined:{' '}
                                   {formatDistanceToNow(
-                                    new Date(user.createdAt),
-                                  )}{" "}
+                                    new Date(userData.createdAt)
+                                  )}{' '}
                                   ago
                                 </span>
-                                {user.lastActiveAt && (
-                                  <span className="flex items-center gap-1">
-                                    <Activity className="w-3 h-3" />
-                                    {formatDistanceToNow(
-                                      new Date(user.lastActiveAt),
-                                    )}{" "}
-                                    ago
-                                  </span>
-                                )}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+
+                          {/* Mobile Actions Row */}
+                          <div className='flex flex-col sm:flex-row gap-2 sm:gap-1'>
+                            {/* View Details Button - Full Width on Mobile */}
                             <Button
-                              size="sm"
-                              variant="outline"
+                              size='sm'
+                              variant='outline'
                               onClick={() => {
-                                setSelectedUser(user);
+                                setSelectedUser(userData);
                                 setShowDetailedView(true);
                               }}
-                              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                              className='border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto order-1 sm:order-none'
                             >
-                              <Eye className="w-4 h-4 mr-1" />
+                              <Eye className='w-4 h-4 mr-2' />
                               View Details
                             </Button>
 
-                            {/* Quick Actions */}
-                            <div className="flex gap-1">
-                              {user.subscription?.status === "active" ? (
+                            {/* Quick Actions - Grid on Mobile */}
+                            <div className='grid grid-cols-3 gap-2 sm:flex sm:gap-1 order-2 sm:order-none'>
+                              {/* Subscription Action */}
+                              {userData.subscription?.status === 'active' ? (
                                 <Button
-                                  size="sm"
-                                  variant="destructive"
+                                  size='sm'
+                                  variant='destructive'
                                   onClick={() =>
-                                    handleDeleteSubscription(user.userId)
+                                    handleDeleteSubscription(userData.userId)
                                   }
                                   disabled={
                                     actionLoading ===
-                                    `subscription-${user.userId}`
+                                    `subscription-${userData.userId}`
                                   }
-                                  className="bg-orange-600 hover:bg-orange-700"
+                                  className='bg-orange-600 hover:bg-orange-700 min-w-0'
+                                  title='Cancel Subscription'
                                 >
                                   {actionLoading ===
-                                  `subscription-${user.userId}` ? (
-                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  `subscription-${userData.userId}` ? (
+                                    <RefreshCw className='w-3 h-3 sm:w-4 sm:h-4 animate-spin' />
                                   ) : (
-                                    <CreditCard className="w-3 h-3" />
+                                    <CreditCard className='w-3 h-3 sm:w-4 sm:h-4' />
                                   )}
+                                  <span className='ml-1 text-xs sm:hidden'>
+                                    Cancel
+                                  </span>
                                 </Button>
                               ) : (
                                 <Button
-                                  size="sm"
+                                  size='sm'
                                   onClick={() =>
-                                    handleGrantSubscription(user.userId)
+                                    handleGrantSubscription(userData.userId)
                                   }
                                   disabled={
-                                    actionLoading === `grant-${user.userId}`
+                                    actionLoading === `grant-${userData.userId}`
                                   }
-                                  className="bg-green-600 hover:bg-green-700"
+                                  className='bg-green-600 hover:bg-green-700 min-w-0'
+                                  title='Grant Subscription'
                                 >
-                                  {actionLoading === `grant-${user.userId}` ? (
-                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  {actionLoading ===
+                                  `grant-${userData.userId}` ? (
+                                    <RefreshCw className='w-3 h-3 sm:w-4 sm:h-4 animate-spin' />
                                   ) : (
-                                    <UserPlus className="w-3 h-3" />
+                                    <UserPlus className='w-3 h-3 sm:w-4 sm:h-4' />
                                   )}
+                                  <span className='ml-1 text-xs sm:hidden'>
+                                    Grant
+                                  </span>
                                 </Button>
                               )}
 
+                              {/* Admin Toggle */}
                               <Button
-                                size="sm"
+                                size='sm'
                                 variant={
-                                  user.isAdmin ? "destructive" : "default"
+                                  userData.isAdmin ? 'destructive' : 'default'
                                 }
                                 onClick={() =>
-                                  handleToggleAdmin(user.userId, user.isAdmin)
+                                  handleToggleAdmin(
+                                    userData.userId,
+                                    userData.isAdmin
+                                  )
                                 }
                                 disabled={
-                                  actionLoading === `admin-${user.userId}` ||
-                                  user.userId === user.id
+                                  actionLoading ===
+                                    `admin-${userData.userId}` ||
+                                  userData.userId === user?.id
                                 }
-                                className={
-                                  user.isAdmin
-                                    ? "bg-red-600 hover:bg-red-700"
-                                    : "bg-purple-600 hover:bg-purple-700"
+                                className={`min-w-0 ${
+                                  userData.isAdmin
+                                    ? 'bg-red-600 hover:bg-red-700'
+                                    : 'bg-purple-600 hover:bg-purple-700'
+                                }`}
+                                title={
+                                  userData.isAdmin
+                                    ? 'Remove Admin'
+                                    : 'Make Admin'
                                 }
                               >
-                                {actionLoading === `admin-${user.userId}` ? (
-                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                {actionLoading ===
+                                `admin-${userData.userId}` ? (
+                                  <RefreshCw className='w-3 h-3 sm:w-4 sm:h-4 animate-spin' />
                                 ) : (
-                                  <Crown className="w-3 h-3" />
+                                  <Crown className='w-3 h-3 sm:w-4 sm:h-4' />
                                 )}
+                                <span className='ml-1 text-xs sm:hidden'>
+                                  {userData.isAdmin ? 'Remove' : 'Admin'}
+                                </span>
                               </Button>
 
+                              {/* Delete User */}
                               <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteAccount(user.userId)}
-                                disabled={
-                                  actionLoading === `delete-${user.userId}` ||
-                                  user.userId === user.id
+                                size='sm'
+                                variant='destructive'
+                                onClick={() =>
+                                  handleDeleteAccount(userData.userId)
                                 }
+                                disabled={
+                                  actionLoading ===
+                                    `delete-${userData.userId}` ||
+                                  userData.userId === user?.id
+                                }
+                                className='min-w-0'
+                                title='Delete User'
                               >
-                                {actionLoading === `delete-${user.userId}` ? (
-                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                {actionLoading ===
+                                `delete-${userData.userId}` ? (
+                                  <RefreshCw className='w-3 h-3 sm:w-4 sm:h-4 animate-spin' />
                                 ) : (
-                                  <Trash2 className="w-3 h-3" />
+                                  <Trash2 className='w-3 h-3 sm:w-4 sm:h-4' />
                                 )}
+                                <span className='ml-1 text-xs sm:hidden'>
+                                  Delete
+                                </span>
                               </Button>
                             </div>
                           </div>
@@ -589,556 +615,416 @@ export function UserManagement() {
         </>
       )}
 
-      {/* Detailed User View Modal */}
+      {/* Mobile-Responsive Detailed User View Modal */}
       {showDetailedView && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-4xl max-h-[90vh] bg-gray-900 border-gray-600">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div className="flex items-center gap-3">
-                {selectedUser.imageUrl ? (
-                  <img
-                    src={selectedUser.imageUrl}
-                    alt={selectedUser.name}
-                    className="w-12 h-12 rounded-full"
-                  />
-                ) : (
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                    {selectedUser.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <CardTitle className="text-white">
-                    {selectedUser.name}
-                  </CardTitle>
-                  <CardDescription>{selectedUser.email}</CardDescription>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => setShowDetailedView(false)}
-              >
-                <EyeOff className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[60vh]">
-                <Tabs defaultValue="profile" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="profile">Profile</TabsTrigger>
-                    <TabsTrigger value="subscription">Subscription</TabsTrigger>
-                    <TabsTrigger value="stripe">Stripe Data</TabsTrigger>
-                    <TabsTrigger value="clerk">Clerk Data</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="profile" className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-400">
-                          User ID
-                        </label>
-                        <p className="text-white font-mono text-sm">
-                          {selectedUser.userId}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-400">
-                          Name
-                        </label>
-                        <p className="text-white">{selectedUser.name}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-400">
-                          Email
-                        </label>
-                        <p className="text-white">{selectedUser.email}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-400">
-                          Admin Status
-                        </label>
-                        <p className="text-white">
-                          {selectedUser.isAdmin ? "Admin" : "Regular User"}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-400">
-                          2FA Enabled
-                        </label>
-                        <p className="text-white">
-                          {selectedUser.twoFactorEnabled ? "Yes" : "No"}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-400">
-                          Created
-                        </label>
-                        <p className="text-white">
-                          {formatDate(selectedUser.createdAt)}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-400">
-                          Last Updated
-                        </label>
-                        <p className="text-white">
-                          {formatDate(selectedUser.updatedAt)}
-                        </p>
-                      </div>
-                      {selectedUser.lastActiveAt && (
-                        <div>
-                          <label className="text-sm font-medium text-gray-400">
-                            Last Active
-                          </label>
-                          <p className="text-white">
-                            {formatDate(selectedUser.lastActiveAt)}
-                          </p>
-                        </div>
-                      )}
+        <div className='fixed inset-0 bg-black/60 flex items-center justify-center p-2 sm:p-4 z-50 backdrop-blur-sm'>
+          <Card className='w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] sm:max-h-[90vh] bg-gray-900 border-gray-600 flex flex-col shadow-2xl'>
+            {/* Enhanced Header */}
+            <CardHeader className='flex-shrink-0 pb-3 sm:pb-6 border-b border-gray-700/50'>
+              <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'>
+                <div className='flex items-center gap-3 min-w-0 flex-1'>
+                  {selectedUser.imageUrl ? (
+                    <img
+                      src={selectedUser.imageUrl}
+                      alt={selectedUser.name}
+                      className='w-12 h-12 sm:w-14 sm:h-14 rounded-full flex-shrink-0 border-2 border-blue-500/30'
+                    />
+                  ) : (
+                    <div className='w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-xl flex-shrink-0 border-2 border-blue-500/30'>
+                      {selectedUser.name.charAt(0).toUpperCase()}
                     </div>
-                  </TabsContent>
+                  )}
+                  <div className='min-w-0 flex-1'>
+                    <CardTitle className='text-white text-base sm:text-xl truncate font-semibold'>
+                      {selectedUser.name}
+                    </CardTitle>
+                    <CardDescription className='text-sm sm:text-base truncate text-gray-300'>
+                      {selectedUser.email}
+                    </CardDescription>
+                    <div className='flex items-center gap-2 mt-1'>
+                      {getStatusBadge(selectedUser)}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={() => setShowDetailedView(false)}
+                  className='flex-shrink-0 hover:bg-gray-700/50'
+                >
+                  <EyeOff className='w-4 h-4' />
+                  <span className='ml-2 text-sm'>Close</span>
+                </Button>
+              </div>
+            </CardHeader>
 
-                  <TabsContent value="subscription" className="space-y-6">
-                    {selectedUser.subscription ? (
-                      <div className="space-y-6">
-                        {/* Subscription Overview */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">
-                              Product Name
+            {/* Enhanced Content Area */}
+            <CardContent className='flex-1 overflow-hidden p-0'>
+              <Tabs
+                defaultValue='profile'
+                className='w-full h-full flex flex-col'
+              >
+                {/* Enhanced Tab Navigation - Mobile Optimized */}
+                <div className='flex-shrink-0 border-b border-gray-700/30 bg-gray-800/20'>
+                  <TabsList className='grid grid-cols-4 w-full h-auto bg-transparent rounded-none p-0'>
+                    <TabsTrigger
+                      value='profile'
+                      className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
+                    >
+                      <UserCog className='w-4 h-4 mb-1' />
+                      <span className='text-xs font-medium'>Profile</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value='subscription'
+                      className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
+                    >
+                      <CreditCard className='w-4 h-4 mb-1' />
+                      <span className='text-xs font-medium'>Sub</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value='stripe'
+                      className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
+                    >
+                      <CreditCard className='w-4 h-4 mb-1' />
+                      <span className='text-xs font-medium'>Stripe</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value='clerk'
+                      className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
+                    >
+                      <Users className='w-4 h-4 mb-1' />
+                      <span className='text-xs font-medium'>Clerk</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                {/* Enhanced Tab Content */}
+                <div className='flex-1 overflow-hidden'>
+                  <ScrollArea className='h-full'>
+                    <div className='p-4 sm:p-6'>
+                      <TabsContent value='profile' className='mt-0 space-y-6'>
+                        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6'>
+                          <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                            <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                              User ID
                             </label>
-                            <p className="text-white font-semibold text-lg">
-                              {selectedUser.subscription.productName}
+                            <p className='text-white font-mono text-sm bg-gray-900/50 p-2 rounded border break-all'>
+                              {selectedUser.userId}
                             </p>
                           </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">
-                              Plan Name
-                            </label>
-                            <p className="text-white font-semibold text-lg">
-                              {selectedUser.subscription.planName}
-                            </p>
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Subscription Status */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">
-                              Status
-                            </label>
-                            <p className="text-white capitalize font-medium">
-                              {selectedUser.subscription.status}
-                            </p>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">
-                              Current Period End
-                            </label>
-                            <p className="text-white">
-                              {formatDate(
-                                selectedUser.subscription.currentPeriodEnd,
-                              )}
-                            </p>
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Stripe IDs */}
-                        <div className="space-y-4">
-                          <h4 className="text-white font-medium text-lg">
-                            Stripe Information
-                          </h4>
-                          <div className="grid grid-cols-1 gap-4">
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-gray-400">
-                                Subscription ID
-                              </label>
-                              <p className="text-white font-mono text-sm bg-gray-800 p-2 rounded break-all">
-                                {selectedUser.subscription.subscriptionId ||
-                                  "N/A"}
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-gray-400">
-                                Customer ID
-                              </label>
-                              <p className="text-white font-mono text-sm bg-gray-800 p-2 rounded break-all">
-                                {selectedUser.subscription.customerId || "N/A"}
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-gray-400">
-                                Product ID
-                              </label>
-                              <p className="text-white font-mono text-sm bg-gray-800 p-2 rounded break-all">
-                                {selectedUser.subscription.productId || "N/A"}
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium text-gray-400">
-                                Price ID
-                              </label>
-                              <p className="text-white font-mono text-sm bg-gray-800 p-2 rounded break-all">
-                                {selectedUser.subscription.priceId || "N/A"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Dates */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">
-                              Created
-                            </label>
-                            <p className="text-white">
-                              {formatDate(selectedUser.subscription.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <Alert>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          No subscription data found for this user.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="stripe" className="space-y-4">
-                    {selectedUser.stripeCustomer ? (
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              Stripe Customer ID
-                            </label>
-                            <p className="text-white font-mono text-sm">
-                              {selectedUser.stripeCustomer.id}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              Email
-                            </label>
-                            <p className="text-white">
-                              {selectedUser.stripeCustomer.email}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
+                          <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                            <label className='text-sm font-semibold text-gray-300 mb-2 block'>
                               Name
                             </label>
-                            <p className="text-white">
-                              {selectedUser.stripeCustomer.name || "N/A"}
+                            <p className='text-white text-sm'>
+                              {selectedUser.name}
                             </p>
                           </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              Created
+                          <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                            <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                              Email
                             </label>
-                            <p className="text-white">
-                              {formatDate(
-                                selectedUser.stripeCustomer.created * 1000,
-                              )}
+                            <p className='text-white text-sm break-all'>
+                              {selectedUser.email}
                             </p>
                           </div>
-                        </div>
-
-                        <Separator />
-
-                        <div>
-                          <h4 className="text-white font-medium mb-2">
-                            Subscriptions (
-                            {selectedUser.stripeCustomer.subscriptions.length})
-                          </h4>
-                          {selectedUser.stripeCustomer.subscriptions.length >
-                          0 ? (
-                            <div className="space-y-2">
-                              {selectedUser.stripeCustomer.subscriptions.map(
-                                (sub: any, index: number) => (
-                                  <div
-                                    key={index}
-                                    className="bg-gray-800 p-3 rounded"
-                                  >
-                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                      <div>
-                                        Status:{" "}
-                                        <span className="text-white">
-                                          {sub.status}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        ID:{" "}
-                                        <span className="text-white font-mono">
-                                          {sub.id}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ),
+                          <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                            <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                              Admin Status
+                            </label>
+                            <div className='flex items-center gap-2'>
+                              {selectedUser.isAdmin ? (
+                                <Crown className='w-4 h-4 text-red-400' />
+                              ) : (
+                                <Users className='w-4 h-4 text-gray-400' />
                               )}
+                              <p className='text-white text-sm'>
+                                {selectedUser.isAdmin
+                                  ? 'Admin User'
+                                  : 'Regular User'}
+                              </p>
                             </div>
-                          ) : (
-                            <p className="text-gray-400 text-sm">
-                              No subscriptions found
-                            </p>
-                          )}
-                        </div>
-
-                        <div>
-                          <h4 className="text-white font-medium mb-2">
-                            Payment Methods (
-                            {selectedUser.stripeCustomer.paymentMethods.length})
-                          </h4>
-                          {selectedUser.stripeCustomer.paymentMethods.length >
-                          0 ? (
-                            <div className="space-y-2">
-                              {selectedUser.stripeCustomer.paymentMethods.map(
-                                (pm: any, index: number) => (
-                                  <div
-                                    key={index}
-                                    className="bg-gray-800 p-3 rounded"
-                                  >
-                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                      <div>
-                                        Type:{" "}
-                                        <span className="text-white">
-                                          {pm.type}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        ID:{" "}
-                                        <span className="text-white font-mono">
-                                          {pm.id}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ),
+                          </div>
+                          <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                            <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                              2FA Security
+                            </label>
+                            <div className='flex items-center gap-2'>
+                              {selectedUser.twoFactorEnabled ? (
+                                <CheckCircle className='w-4 h-4 text-green-400' />
+                              ) : (
+                                <XCircle className='w-4 h-4 text-red-400' />
                               )}
+                              <p className='text-white text-sm'>
+                                {selectedUser.twoFactorEnabled
+                                  ? 'Enabled'
+                                  : 'Disabled'}
+                              </p>
                             </div>
-                          ) : (
-                            <p className="text-gray-400 text-sm">
-                              No payment methods found
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <Alert>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          No Stripe customer data found for this user.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="clerk" className="space-y-4">
-                    {selectedUser.clerkData ? (
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              Clerk User ID
+                          </div>
+                          <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                            <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                              Account Created
                             </label>
-                            <p className="text-white font-mono text-sm">
-                              {selectedUser.clerkData.id}
+                            <p className='text-white text-sm'>
+                              {formatDate(selectedUser.createdAt)}
                             </p>
                           </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              Username
+                          <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                            <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                              Last Updated
                             </label>
-                            <p className="text-white">
-                              {selectedUser.clerkData.username || "N/A"}
+                            <p className='text-white text-sm'>
+                              {formatDate(selectedUser.updatedAt)}
                             </p>
                           </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              First Name
-                            </label>
-                            <p className="text-white">
-                              {selectedUser.clerkData.firstName || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              Last Name
-                            </label>
-                            <p className="text-white">
-                              {selectedUser.clerkData.lastName || "N/A"}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              Password Enabled
-                            </label>
-                            <p className="text-white">
-                              {selectedUser.clerkData.passwordEnabled
-                                ? "Yes"
-                                : "No"}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              Created
-                            </label>
-                            <p className="text-white">
-                              {formatDate(selectedUser.clerkData.createdAt)}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-400">
-                              Updated
-                            </label>
-                            <p className="text-white">
-                              {formatDate(selectedUser.clerkData.updatedAt)}
-                            </p>
-                          </div>
-                          {selectedUser.clerkData.lastSignInAt && (
-                            <div>
-                              <label className="text-sm font-medium text-gray-400">
-                                Last Sign In
+                          {selectedUser.lastActiveAt && (
+                            <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                              <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                Last Active
                               </label>
-                              <p className="text-white">
-                                {formatDate(
-                                  selectedUser.clerkData.lastSignInAt,
-                                )}
+                              <p className='text-white text-sm'>
+                                {formatDate(selectedUser.lastActiveAt)}
                               </p>
                             </div>
                           )}
                         </div>
+                      </TabsContent>
 
-                        <Separator />
-
-                        <div>
-                          <h4 className="text-white font-medium mb-2">
-                            Email Addresses (
-                            {selectedUser.clerkData.emailAddresses.length})
-                          </h4>
-                          {selectedUser.clerkData.emailAddresses.map(
-                            (email: any, index: number) => (
-                              <div
-                                key={index}
-                                className="bg-gray-800 p-3 rounded mb-2"
-                              >
-                                <div className="grid grid-cols-2 gap-2 text-sm">
-                                  <div>
-                                    Email:{" "}
-                                    <span className="text-white">
-                                      {email.emailAddress}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    Verified:{" "}
-                                    <span className="text-white">
-                                      {email.verification?.status === "verified"
-                                        ? "Yes"
-                                        : "No"}
-                                    </span>
-                                  </div>
+                      <TabsContent
+                        value='subscription'
+                        className='mt-0 space-y-6'
+                      >
+                        {selectedUser.subscription ? (
+                          <div className='space-y-6'>
+                            {/* Subscription Overview */}
+                            <div className='bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-lg p-6 border border-green-500/20'>
+                              <h3 className='text-lg font-semibold text-white mb-4 flex items-center gap-2'>
+                                <CheckCircle className='w-5 h-5 text-green-400' />
+                                Active Subscription
+                              </h3>
+                              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                                <div>
+                                  <label className='text-sm font-medium text-gray-300 mb-1 block'>
+                                    Product Name
+                                  </label>
+                                  <p className='text-white font-semibold text-lg'>
+                                    {selectedUser.subscription.productName}
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className='text-sm font-medium text-gray-300 mb-1 block'>
+                                    Plan Name
+                                  </label>
+                                  <p className='text-white font-semibold text-lg'>
+                                    {selectedUser.subscription.planName}
+                                  </p>
                                 </div>
                               </div>
-                            ),
-                          )}
-                        </div>
+                            </div>
 
-                        <div>
-                          <h4 className="text-white font-medium mb-2">
-                            Phone Numbers (
-                            {selectedUser.clerkData.phoneNumbers.length})
-                          </h4>
-                          {selectedUser.clerkData.phoneNumbers.length > 0 ? (
-                            selectedUser.clerkData.phoneNumbers.map(
-                              (phone: any, index: number) => (
-                                <div
-                                  key={index}
-                                  className="bg-gray-800 p-3 rounded mb-2"
-                                >
-                                  <div className="grid grid-cols-2 gap-2 text-sm">
-                                    <div>
-                                      Phone:{" "}
-                                      <span className="text-white">
-                                        {phone.phoneNumber}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      Verified:{" "}
-                                      <span className="text-white">
-                                        {phone.verification?.status ===
-                                        "verified"
-                                          ? "Yes"
-                                          : "No"}
-                                      </span>
-                                    </div>
+                            {/* Subscription Details */}
+                            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                              <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                  Status
+                                </label>
+                                <div className='flex items-center gap-2'>
+                                  <div className='w-2 h-2 bg-green-400 rounded-full animate-pulse'></div>
+                                  <p className='text-white capitalize font-medium'>
+                                    {selectedUser.subscription.status}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                  Renewal Date
+                                </label>
+                                <p className='text-white text-sm'>
+                                  {formatDate(
+                                    selectedUser.subscription.currentPeriodEnd
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Stripe Information */}
+                            <div className='bg-gray-800/20 rounded-lg p-4 border border-gray-700/30'>
+                              <h4 className='text-white font-semibold text-base mb-4 flex items-center gap-2'>
+                                <CreditCard className='w-4 h-4' />
+                                Stripe Details
+                              </h4>
+                              <div className='space-y-3'>
+                                <div>
+                                  <label className='text-sm font-medium text-gray-400 mb-1 block'>
+                                    Subscription ID
+                                  </label>
+                                  <p className='text-white font-mono text-xs bg-gray-900/50 p-2 rounded border break-all'>
+                                    {selectedUser.subscription.subscriptionId ||
+                                      'N/A'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <label className='text-sm font-medium text-gray-400 mb-1 block'>
+                                    Customer ID
+                                  </label>
+                                  <p className='text-white font-mono text-xs bg-gray-900/50 p-2 rounded border break-all'>
+                                    {selectedUser.subscription.customerId ||
+                                      'N/A'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className='text-center py-12'>
+                            <XCircle className='mx-auto h-16 w-16 text-gray-400 mb-4' />
+                            <h3 className='text-lg font-semibold text-gray-300 mb-2'>
+                              No Subscription
+                            </h3>
+                            <p className='text-gray-400 text-sm'>
+                              This user doesn't have an active subscription
+                            </p>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value='stripe' className='mt-0 space-y-6'>
+                        {selectedUser.stripeCustomer ? (
+                          <div className='space-y-6'>
+                            <div className='bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-6 border border-purple-500/20'>
+                              <h3 className='text-lg font-semibold text-white mb-4 flex items-center gap-2'>
+                                <CreditCard className='w-5 h-5 text-purple-400' />
+                                Stripe Customer
+                              </h3>
+                              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                                <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                  <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                    Customer ID
+                                  </label>
+                                  <p className='text-white font-mono text-sm break-all'>
+                                    {selectedUser.stripeCustomer.id}
+                                  </p>
+                                </div>
+                                <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                  <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                    Email
+                                  </label>
+                                  <p className='text-white text-sm break-all'>
+                                    {selectedUser.stripeCustomer.email}
+                                  </p>
+                                </div>
+                                <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                  <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                    Created
+                                  </label>
+                                  <p className='text-white text-sm'>
+                                    {formatDate(
+                                      selectedUser.stripeCustomer.created * 1000
+                                    )}
+                                  </p>
+                                </div>
+                                <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                  <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                    Subscriptions
+                                  </label>
+                                  <p className='text-white text-sm'>
+                                    {selectedUser.stripeCustomer.subscriptions
+                                      ?.length || 0}{' '}
+                                    active
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className='text-center py-12'>
+                            <XCircle className='mx-auto h-16 w-16 text-gray-400 mb-4' />
+                            <h3 className='text-lg font-semibold text-gray-300 mb-2'>
+                              No Stripe Data
+                            </h3>
+                            <p className='text-gray-400 text-sm'>
+                              No Stripe customer information available
+                            </p>
+                          </div>
+                        )}
+                      </TabsContent>
+
+                      <TabsContent value='clerk' className='mt-0 space-y-6'>
+                        {selectedUser.clerkData ? (
+                          <div className='space-y-6'>
+                            <div className='bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-lg p-6 border border-orange-500/20'>
+                              <h3 className='text-lg font-semibold text-white mb-4 flex items-center gap-2'>
+                                <Users className='w-5 h-5 text-orange-400' />
+                                Clerk Authentication
+                              </h3>
+                              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                                <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                  <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                    Clerk ID
+                                  </label>
+                                  <p className='text-white font-mono text-sm break-all'>
+                                    {selectedUser.clerkData.id}
+                                  </p>
+                                </div>
+                                <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                  <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                    Username
+                                  </label>
+                                  <p className='text-white text-sm'>
+                                    {selectedUser.clerkData.username || 'N/A'}
+                                  </p>
+                                </div>
+                                <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                  <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                    Password Auth
+                                  </label>
+                                  <div className='flex items-center gap-2'>
+                                    {selectedUser.clerkData.passwordEnabled ? (
+                                      <CheckCircle className='w-4 h-4 text-green-400' />
+                                    ) : (
+                                      <XCircle className='w-4 h-4 text-red-400' />
+                                    )}
+                                    <p className='text-white text-sm'>
+                                      {selectedUser.clerkData.passwordEnabled
+                                        ? 'Enabled'
+                                        : 'Disabled'}
+                                    </p>
                                   </div>
                                 </div>
-                              ),
-                            )
-                          ) : (
-                            <p className="text-gray-400 text-sm">
-                              No phone numbers found
-                            </p>
-                          )}
-                        </div>
-
-                        <div>
-                          <h4 className="text-white font-medium mb-2">
-                            External Accounts (
-                            {selectedUser.clerkData.externalAccounts.length})
-                          </h4>
-                          {selectedUser.clerkData.externalAccounts.length >
-                          0 ? (
-                            selectedUser.clerkData.externalAccounts.map(
-                              (account: any, index: number) => (
-                                <div
-                                  key={index}
-                                  className="bg-gray-800 p-3 rounded mb-2"
-                                >
-                                  <div className="grid grid-cols-2 gap-2 text-sm">
-                                    <div>
-                                      Provider:{" "}
-                                      <span className="text-white">
-                                        {account.provider}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      ID:{" "}
-                                      <span className="text-white font-mono">
-                                        {account.id}
-                                      </span>
-                                    </div>
-                                  </div>
+                                <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
+                                  <label className='text-sm font-semibold text-gray-300 mb-2 block'>
+                                    Last Sign In
+                                  </label>
+                                  <p className='text-white text-sm'>
+                                    {selectedUser.clerkData.lastSignInAt
+                                      ? formatDate(
+                                          selectedUser.clerkData.lastSignInAt
+                                        )
+                                      : 'Never'}
+                                  </p>
                                 </div>
-                              ),
-                            )
-                          ) : (
-                            <p className="text-gray-400 text-sm">
-                              No external accounts found
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className='text-center py-12'>
+                            <AlertTriangle className='mx-auto h-16 w-16 text-yellow-400 mb-4' />
+                            <h3 className='text-lg font-semibold text-yellow-400 mb-2'>
+                              Clerk Data Unavailable
+                            </h3>
+                            <p className='text-gray-400 text-sm max-w-md mx-auto'>
+                              This user may have been deleted from Clerk or
+                              there was an error fetching their authentication
+                              data.
                             </p>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <Alert>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          No Clerk data found for this user.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </ScrollArea>
+                          </div>
+                        )}
+                      </TabsContent>
+                    </div>
+                  </ScrollArea>
+                </div>
+              </Tabs>
             </CardContent>
           </Card>
         </div>

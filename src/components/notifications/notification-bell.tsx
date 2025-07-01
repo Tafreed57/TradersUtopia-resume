@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell, BellRing, Check, CheckCheck } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 import { formatDistanceToNow } from 'date-fns';
+import { useSocket } from '@/contexts/socket-provider';
 
 interface Notification {
   id: string;
@@ -36,6 +37,7 @@ interface Notification {
 
 export function NotificationBell() {
   const { user } = useUser();
+  const { socket } = useSocket();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -164,24 +166,55 @@ export function NotificationBell() {
 
       return () => {
         clearInterval(interval);
-        console.log('🧹 [NOTIFICATIONS] Cleaned up polling interval');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🧹 [NOTIFICATIONS] Cleaned up polling interval');
+        }
       };
     }
   }, [user?.id]); // ✅ FIX: Only depend on user.id to prevent frequent re-creation
 
-  // Additional polling for more frequent updates when needed
+  // WebSocket event listeners for real-time notifications
   useEffect(() => {
-    if (user && isOpen) {
-      // Poll more frequently when notification panel is open
-      const interval = setInterval(() => {
-        fetchNotifications(false);
-      }, 5000); // Poll every 5 seconds when open
+    if (socket && user) {
+      const handleNewNotification = (notification: Notification) => {
+        setNotifications(prev => [notification, ...prev]);
+        setUnreadCount(prev => prev + 1);
+
+        // Show toast for new notification
+        showToast.info(notification.title, notification.message);
+      };
+
+      const handleNotificationRead = (notificationId: string) => {
+        setNotifications(prev =>
+          prev.map(notif =>
+            notif.id === notificationId ? { ...notif, read: true } : notif
+          )
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      };
+
+      const handleNotificationUpdate = () => {
+        // Refresh notifications when server indicates updates
+        fetchNotifications(true);
+      };
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔌 [NOTIFICATIONS] Setting up WebSocket listeners');
+      }
+      socket.on('notification:new', handleNewNotification);
+      socket.on('notification:read', handleNotificationRead);
+      socket.on('notification:update', handleNotificationUpdate);
 
       return () => {
-        clearInterval(interval);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🧹 [NOTIFICATIONS] Cleaning up WebSocket listeners');
+        }
+        socket.off('notification:new', handleNewNotification);
+        socket.off('notification:read', handleNotificationRead);
+        socket.off('notification:update', handleNotificationUpdate);
       };
     }
-  }, [user?.id, isOpen, fetchNotifications]);
+  }, [socket?.id, user?.id]); // ✅ FIX: Use stable identifiers instead of object references
 
   useEffect(() => {
     if (isOpen) {
@@ -194,16 +227,20 @@ export function NotificationBell() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant='ghost' size='sm' className='relative'>
+        <Button
+          variant='ghost'
+          size='sm'
+          className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation'
+        >
           {unreadCount > 0 ? (
-            <BellRing className='h-4 w-4' />
+            <BellRing className='h-5 w-5 sm:h-6 sm:w-6' />
           ) : (
-            <Bell className='h-4 w-4' />
+            <Bell className='h-5 w-5 sm:h-6 sm:w-6' />
           )}
           {unreadCount > 0 && (
             <Badge
               variant='destructive'
-              className='absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs'
+              className='absolute -top-1 -right-1 h-5 w-5 sm:h-6 sm:w-6 rounded-full p-0 flex items-center justify-center text-xs'
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
@@ -211,19 +248,26 @@ export function NotificationBell() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align='end' className='w-80 max-h-96' sideOffset={5}>
-        <DropdownMenuLabel className='flex items-center justify-between'>
-          <span>Notifications</span>
+      <DropdownMenuContent
+        align='end'
+        className='w-72 sm:w-80 max-h-80 sm:max-h-96 mr-2 sm:mr-0'
+        sideOffset={5}
+      >
+        <DropdownMenuLabel className='flex items-center justify-between p-3 sm:p-4'>
+          <span className='text-sm sm:text-base font-semibold'>
+            Notifications
+          </span>
           {unreadCount > 0 && (
             <Button
               variant='ghost'
               size='sm'
               onClick={markAllAsRead}
               disabled={isLoading}
-              className='h-auto p-1 text-xs'
+              className='h-auto p-1 sm:p-2 text-xs touch-manipulation'
             >
-              <CheckCheck className='h-3 w-3 mr-1' />
-              Mark all read
+              <CheckCheck className='h-3 w-3 sm:h-4 sm:w-4 mr-1' />
+              <span className='hidden sm:inline'>Mark all read</span>
+              <span className='sm:hidden'>Read all</span>
             </Button>
           )}
         </DropdownMenuLabel>

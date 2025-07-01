@@ -352,6 +352,18 @@ export const getRateLimitStats = () => {
   };
 };
 
+export const clearAllRateLimits = () => {
+  if (process.env.NODE_ENV !== 'development') {
+    console.warn('⚠️ Rate limit clearing is only available in development');
+    return false;
+  }
+
+  const clearedCount = rateLimitStore.size;
+  rateLimitStore.clear();
+  console.log(`🧹 Cleared ${clearedCount} rate limit entries`);
+  return true;
+};
+
 export default {
   rateLimit,
   rateLimitAdmin,
@@ -371,5 +383,6 @@ export default {
   getRateLimitInfo,
   clearRateLimit,
   getRateLimitStats,
+  clearAllRateLimits,
   RATE_LIMITS,
 };

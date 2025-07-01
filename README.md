@@ -107,28 +107,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Deployment
-
-### Deploy on AWS Amplify (Recommended)
-
-For production deployments with better scaling and cost-effectiveness, we recommend using AWS Amplify:
-
-1. **Prerequisites**: Set up external services (PostgreSQL database, Clerk, Stripe, LiveKit, etc.)
-2. **Push to GitHub**: Ensure your code is in a GitHub repository
-3. **Deploy to Amplify**: Follow our comprehensive [AWS Amplify Deployment Guide](docs/AWS_AMPLIFY_DEPLOYMENT.md)
-4. **Configure Environment Variables**: Set all required environment variables in the Amplify console
-5. **Test**: Verify all functionality works correctly
-
-**Benefits of AWS Amplify:**
-- 🚀 Automatic scaling and performance optimization
-- 💰 Cost-effective pricing with free tier
-- 🔒 Built-in security and SSL certificates
-- 📊 Integrated monitoring and analytics
-- 🌍 Global CDN distribution
-
-### Deploy on Vercel (Alternative)
-
-You can also deploy on Vercel for quick prototyping:
+## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 

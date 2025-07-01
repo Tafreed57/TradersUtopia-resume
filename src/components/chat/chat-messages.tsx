@@ -4,7 +4,7 @@ import { ChatItem } from '@/components/chat/chat-item';
 import { ChatWelcome } from '@/components/chat/chat-welcome';
 import { useChatQuery } from '@/hooks/use-chat-query';
 import { useChatScroll } from '@/hooks/use-chat-scroll';
-import { useChatPolling } from '@/hooks/use-chat-polling';
+import { useChatSocket } from '@/hooks/use-chat-socket';
 import { MessagesWithMemberWithProfile } from '@/types/server';
 import { Member } from '@prisma/client';
 import { format } from 'date-fns';
@@ -18,6 +18,8 @@ interface ChatMessagesProps {
   member: Member;
   chatId: string;
   apiUrl: string;
+  socketUrl: string;
+  socketQuery: Record<string, string>;
   paramKey: 'channelId' | 'conversationId';
   paramValue: string;
   type: 'channel' | 'conversation';
@@ -28,11 +30,15 @@ export function ChatMessages({
   member,
   chatId,
   apiUrl,
+  socketUrl,
+  socketQuery,
   paramKey,
   paramValue,
   type,
 }: ChatMessagesProps) {
   const queryKey = `chat:${chatId}`;
+  const addKey = `chat:${chatId}/messages`;
+  const updateKey = `chat:${chatId}/messages:update`;
   const chatRef = useRef<ElementRef<'div'>>(null);
   const bottomRef = useRef<ElementRef<'div'>>(null);
 
@@ -47,8 +53,7 @@ export function ChatMessages({
   const latestMessageId =
     data?.pages?.[0]?.items?.[data?.pages?.[0]?.items?.length - 1]?.id;
 
-  // Use polling for real-time updates instead of sockets
-  useChatPolling({ queryKey });
+  useChatSocket({ queryKey, addKey, updateKey });
 
   useChatScroll({
     chatRef,
@@ -60,9 +65,9 @@ export function ChatMessages({
 
   if (status === 'pending') {
     return (
-      <div className='flex-1 justify-center flex flex-col items-center'>
-        <Loader2 className='h-7 w-7 text-zinc-500 animate-spin my-4' />
-        <p className='text-xs dark:text-zinc-400 text-zinc-500'>
+      <div className='flex-1 justify-center flex flex-col items-center p-4'>
+        <Loader2 className='h-6 w-6 sm:h-7 sm:w-7 text-zinc-500 animate-spin my-4' />
+        <p className='text-xs sm:text-sm dark:text-zinc-400 text-zinc-500 text-center'>
           Loading messages...
         </p>
       </div>
@@ -70,9 +75,9 @@ export function ChatMessages({
   }
   if (status === 'error') {
     return (
-      <div className='flex-1 justify-center flex flex-col items-center'>
-        <ServerCrash className='h-7 w-7 text-zinc-500  my-4' />
-        <p className='text-xs dark:text-zinc-400 text-zinc-500'>
+      <div className='flex-1 justify-center flex flex-col items-center p-4'>
+        <ServerCrash className='h-6 w-6 sm:h-7 sm:w-7 text-zinc-500 my-4' />
+        <p className='text-xs sm:text-sm dark:text-zinc-400 text-zinc-500 text-center'>
           Failed to load messages.
         </p>
       </div>
@@ -110,13 +115,8 @@ export function ChatMessages({
                 fileUrl={message.fileUrl}
                 deleted={message.deleted}
                 timestamp={format(new Date(message.createdAt), DATE_FORMAT)}
-                updateApiUrl={
-                  paramKey === 'channelId'
-                    ? '/api/messages'
-                    : '/api/direct-messages'
-                }
-                paramKey={paramKey}
-                paramValue={paramValue}
+                socketUrl={socketUrl}
+                socketQuery={socketQuery}
               />
             ))}
           </Fragment>

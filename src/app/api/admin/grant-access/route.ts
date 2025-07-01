@@ -10,9 +10,8 @@ const grantAccessSchema = z.object({
   reason: z.string().max(500, "Reason too long").optional(),
 });
 
-
-// Mark this route as dynamic to prevent static generation
 export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // ✅ SECURITY: Rate limiting for admin operations

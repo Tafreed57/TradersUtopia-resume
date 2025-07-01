@@ -3,9 +3,8 @@ import { currentUser } from "@clerk/nextjs/server";
 import { getCSRFTokenForUser, getCSRFStats } from "@/lib/csrf";
 import { rateLimitGeneral, trackSuspiciousActivity } from "@/lib/rate-limit";
 
-
-// Mark this route as dynamic to prevent static generation
 export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // ✅ SECURITY: Rate limiting for CSRF token generation

@@ -29,9 +29,6 @@ function base32Encode(buffer: Buffer): string {
   return output;
 }
 
-
-// Mark this route as dynamic to prevent static generation
-export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();

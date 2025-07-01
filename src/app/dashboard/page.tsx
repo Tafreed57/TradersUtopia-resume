@@ -29,11 +29,14 @@ import {
   TrendingUp,
   BarChart3,
   Home,
+  Bell,
+  UserCog,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AdminButton } from '@/components/admin-button';
-import { AutoJoinDefault } from '@/components/auto-join-default';
+import { GlobalMobileMenu } from '@/components/global-mobile-menu';
+import { UserManagement } from '@/components/admin/user-management';
 
 export default async function Dashboard() {
   const profile = await initProfile();
@@ -60,9 +63,9 @@ export default async function Dashboard() {
         'Priority features',
       ]}
     >
-      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden'>
+      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-x-hidden'>
         {/* Animated Background Effects */}
-        <div className='absolute inset-0 overflow-hidden'>
+        <div className='absolute inset-0 pointer-events-none'>
           <div className='absolute -top-40 -right-40 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl animate-pulse'></div>
           <div className='absolute top-60 -left-40 w-96 h-96 bg-purple-500/6 rounded-full blur-3xl animate-pulse delay-1000'></div>
           <div className='absolute bottom-40 right-20 w-64 h-64 bg-yellow-500/8 rounded-full blur-3xl animate-pulse delay-2000'></div>
@@ -70,166 +73,168 @@ export default async function Dashboard() {
         </div>
 
         <div className='relative z-10'>
-          <main className='max-w-[85rem] w-full mx-auto p-6'>
-            {/* Enhanced Header */}
-            <header className='flex items-center justify-between w-full h-20 gap-4 mb-12 bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-700/30 px-8 shadow-2xl'>
-              <div className='flex items-center gap-6'>
-                <div className='flex items-center gap-4'>
-                  <div className='w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg'>
-                    <Sparkles className='w-6 h-6 text-black' />
+          <main className='max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6'>
+            {/* Enhanced Header - Mobile-Optimized */}
+            <header className='w-full mb-8 sm:mb-12'>
+              {/* Mobile Header */}
+              <div className='flex md:hidden items-center justify-between w-full p-4 bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-xl border border-gray-700/30 shadow-2xl'>
+                <div className='flex items-center gap-3 min-w-0 flex-1'>
+                  <div className='w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0'>
+                    <Sparkles className='w-5 h-5 text-black' />
                   </div>
-                  <div>
-                    <h1 className='text-2xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent'>
-                      Trading Dashboard
+                  <div className='min-w-0 flex-1'>
+                    <h1 className='text-lg font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent truncate'>
+                      Dashboard
                     </h1>
-                    <p className='text-gray-400 text-sm'>
-                      Welcome back, {profile.name}
+                    <p className='text-gray-400 text-xs truncate'>
+                      Welcome, {profile.name?.split(' ')[0]}
                     </p>
                   </div>
                 </div>
-                <ModeToggle />
-              </div>
-              <div className='flex items-center gap-4'>
-                <Link href='/'>
-                  <Button
-                    variant='ghost'
-                    className='text-white hover:bg-gray-700/50 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-300'
-                  >
-                    <Home className='w-4 h-4 mr-2' />
-                    Homepage
-                  </Button>
-                </Link>
-                <div className='flex items-center gap-3 bg-gray-700/30 rounded-full px-4 py-2 backdrop-blur-sm'>
-                  <div className='w-2 h-2 bg-green-400 rounded-full animate-pulse'></div>
-                  <span className='text-sm text-gray-300'>Online</span>
+                <div className='flex items-center gap-2 flex-shrink-0'>
+                  <NotificationBell />
+                  <UserButton
+                    afterSignOutUrl='/'
+                    appearance={{
+                      elements: {
+                        userButtonAvatarBox:
+                          'size-8 border-2 border-yellow-400/50',
+                      },
+                    }}
+                  />
+                  <GlobalMobileMenu />
                 </div>
-                <NotificationBell />
-                <UserButton
-                  afterSignOutUrl='/'
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox:
-                        'size-8 border-2 border-yellow-400/50',
-                    },
-                  }}
-                />
+              </div>
+
+              {/* Desktop Header */}
+              <div className='hidden md:flex items-center justify-between w-full h-20 gap-4 bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-700/30 px-6 lg:px-8 shadow-2xl'>
+                <div className='flex items-center gap-6 min-w-0 flex-1'>
+                  <div className='flex items-center gap-4 min-w-0 flex-1'>
+                    <div className='w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0'>
+                      <Sparkles className='w-6 h-6 text-black' />
+                    </div>
+                    <div className='min-w-0 flex-1'>
+                      <h1 className='text-xl lg:text-2xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent truncate'>
+                        Trading Dashboard
+                      </h1>
+                      <p className='text-gray-400 text-sm truncate'>
+                        Welcome back, {profile.name}
+                      </p>
+                    </div>
+                  </div>
+                  <div className='hidden lg:block flex-shrink-0'>
+                    <ModeToggle />
+                  </div>
+                </div>
+                <div className='flex items-center gap-2 lg:gap-4 flex-shrink-0'>
+                  <Link href='/'>
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='text-white hover:bg-gray-700/50 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-300'
+                    >
+                      <Home className='w-4 h-4 mr-1 lg:mr-2' />
+                      <span className='hidden sm:inline'>Homepage</span>
+                    </Button>
+                  </Link>
+                  <div className='hidden lg:flex items-center gap-3 bg-gray-700/30 rounded-full px-4 py-2 backdrop-blur-sm'>
+                    <div className='w-2 h-2 bg-green-400 rounded-full animate-pulse'></div>
+                    <span className='text-sm text-gray-300'>Online</span>
+                  </div>
+                  <NotificationBell />
+                  <UserButton
+                    afterSignOutUrl='/'
+                    appearance={{
+                      elements: {
+                        userButtonAvatarBox:
+                          'size-8 border-2 border-yellow-400/50',
+                      },
+                    }}
+                  />
+                  <div className='lg:hidden'>
+                    <ModeToggle />
+                  </div>
+                </div>
               </div>
             </header>
 
             {/* Auto-join to default server */}
             {/* DISABLED: This was causing automatic redirects and misdirection issues */}
-            {/* <AutoJoinDefault /> */}
 
-            {/* Dashboard Stats */}
-            <div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8'>
-              <Card className='bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-blue-700/20 border border-blue-400/30 backdrop-blur-md hover:border-blue-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-400/20'>
-                <CardContent className='p-6'>
-                  <div className='flex items-center justify-between'>
-                    <div>
-                      <p className='text-blue-200 text-sm font-medium'>
+            {/* Dashboard Stats - Mobile-First Cards */}
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8'>
+              <Card className='bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-blue-700/20 border border-blue-400/30 backdrop-blur-md hover:border-blue-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-400/20 touch-manipulation cursor-pointer'>
+                <CardContent className='p-3 sm:p-4 md:p-6'>
+                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
+                    <div className='mb-2 sm:mb-0'>
+                      <p className='text-blue-200 text-xs sm:text-sm font-medium'>
                         Active Servers
                       </p>
-                      <p className='text-3xl font-bold text-white'>
+                      <p className='text-xl sm:text-2xl md:text-3xl font-bold text-white'>
                         {servers?.length || 0}
                       </p>
                     </div>
-                    <div className='w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center'>
-                      <Users className='w-6 h-6 text-blue-400' />
+                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-blue-500/20 rounded-lg sm:rounded-xl flex items-center justify-center self-end sm:self-auto'>
+                      <Users className='w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-blue-400' />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className='bg-gradient-to-br from-green-600/20 via-green-600/10 to-green-700/20 border border-green-400/30 backdrop-blur-md hover:border-green-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-green-400/20'>
-                <CardContent className='p-6'>
-                  <div className='flex items-center justify-between'>
-                    <div>
-                      <p className='text-green-200 text-sm font-medium'>
+              <Card className='bg-gradient-to-br from-green-600/20 via-green-600/10 to-green-700/20 border border-green-400/30 backdrop-blur-md hover:border-green-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-green-400/20 touch-manipulation cursor-pointer'>
+                <CardContent className='p-3 sm:p-4 md:p-6'>
+                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
+                    <div className='mb-2 sm:mb-0'>
+                      <p className='text-green-200 text-xs sm:text-sm font-medium'>
                         Account Status
                       </p>
-                      <p className='text-xl font-bold text-white'>
+                      <p className='text-lg sm:text-xl font-bold text-white'>
                         {profile.isAdmin ? 'Admin' : 'Member'}
                       </p>
                     </div>
-                    <div className='w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center'>
-                      <Shield className='w-6 h-6 text-green-400' />
+                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-green-500/20 rounded-lg sm:rounded-xl flex items-center justify-center self-end sm:self-auto'>
+                      <Shield className='w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-green-400' />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className='bg-gradient-to-br from-purple-600/20 via-purple-600/10 to-purple-700/20 border border-purple-400/30 backdrop-blur-md hover:border-purple-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-400/20'>
-                <CardContent className='p-6'>
-                  <div className='flex items-center justify-between'>
-                    <div>
-                      <p className='text-purple-200 text-sm font-medium'>
+              <Card className='bg-gradient-to-br from-purple-600/20 via-purple-600/10 to-purple-700/20 border border-purple-400/30 backdrop-blur-md hover:border-purple-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-purple-400/20 touch-manipulation cursor-pointer'>
+                <CardContent className='p-3 sm:p-4 md:p-6'>
+                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
+                    <div className='mb-2 sm:mb-0'>
+                      <p className='text-purple-200 text-xs sm:text-sm font-medium'>
                         Security
                       </p>
-                      <p className='text-xl font-bold text-white'>
+                      <p className='text-lg sm:text-xl font-bold text-white'>
                         {profile.twoFactorEnabled ? 'Secure' : 'Basic'}
                       </p>
                     </div>
-                    <div className='w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center'>
-                      <Activity className='w-6 h-6 text-purple-400' />
+                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-purple-500/20 rounded-lg sm:rounded-xl flex items-center justify-center self-end sm:self-auto'>
+                      <Activity className='w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-purple-400' />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className='bg-gradient-to-br from-yellow-600/20 via-yellow-600/10 to-yellow-700/20 border border-yellow-400/30 backdrop-blur-md hover:border-yellow-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-yellow-400/20'>
-                <CardContent className='p-6'>
-                  <div className='flex items-center justify-between'>
-                    <div>
-                      <p className='text-yellow-200 text-sm font-medium'>
+              <Card className='bg-gradient-to-br from-yellow-600/20 via-yellow-600/10 to-yellow-700/20 border border-yellow-400/30 backdrop-blur-md hover:border-yellow-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-yellow-400/20 touch-manipulation cursor-pointer'>
+                <CardContent className='p-3 sm:p-4 md:p-6'>
+                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between'>
+                    <div className='mb-2 sm:mb-0'>
+                      <p className='text-yellow-200 text-xs sm:text-sm font-medium'>
                         Subscription
                       </p>
-                      <p className='text-xl font-bold text-white'>Premium</p>
+                      <p className='text-lg sm:text-xl font-bold text-white'>
+                        Premium
+                      </p>
                     </div>
-                    <div className='w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center'>
-                      <TrendingUp className='w-6 h-6 text-yellow-400' />
+                    <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-yellow-500/20 rounded-lg sm:rounded-xl flex items-center justify-center self-end sm:self-auto'>
+                      <TrendingUp className='w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-yellow-400' />
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Admin Controls - Enhanced */}
-            <Card className='mb-8 bg-gradient-to-br from-red-600/20 via-orange-500/15 to-red-700/20 border border-red-400/30 backdrop-blur-md hover:border-red-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-red-400/20'>
-              <CardHeader className='pb-4'>
-                <CardTitle className='flex items-center gap-3 text-red-200'>
-                  <div className='w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center'>
-                    <Crown className='h-6 w-6 text-red-400' />
-                  </div>
-                  <div>
-                    <span className='text-xl font-bold'>Admin Controls</span>
-                    <span className='block text-sm text-red-300 font-normal'>
-                      Testing Environment
-                    </span>
-                  </div>
-                </CardTitle>
-                <CardDescription className='text-red-300 ml-13'>
-                  For testing purposes only - Grant yourself admin privileges
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className='flex items-center justify-between bg-red-900/20 rounded-xl p-6 border border-red-400/20'>
-                  <div>
-                    <p className='text-sm text-red-200 mb-2'>
-                      Current Role:{' '}
-                      <span className='font-bold text-lg text-white'>
-                        {profile.isAdmin ? 'Admin' : 'Regular User'}
-                      </span>
-                    </p>
-                    <p className='text-xs text-red-300'>
-                      {profile.isAdmin
-                        ? '🎉 You have admin access - you can send messages, create servers, and manage channels'
-                        : '⚠️ You have read-only access - click below to gain admin privileges'}
-                    </p>
-                  </div>
-                  <AdminButton isAdmin={profile.isAdmin} />
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Servers Section - Enhanced */}
             <Card className='mb-8 bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 border border-gray-600/30 backdrop-blur-md hover:border-blue-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-400/10'>
@@ -322,201 +327,222 @@ export default async function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Enhanced Tabs */}
-            <Tabs defaultValue='profile' className='w-full'>
-              <div className='w-full flex justify-center mb-8'>
-                <div className='w-full max-w-4xl'>
+            {/* Enhanced Tabs - Mobile-First Design */}
+            <div className='w-full mb-6 sm:mb-8'>
+              <Tabs defaultValue='profile' className='w-full'>
+                {/* Mobile-Optimized Tab Navigation - Dynamic Grid Based on Admin Status */}
+                <div className='flex justify-center mb-6 sm:mb-8'>
                   <TabsList
-                    className='grid grid-cols-3 w-full h-auto p-4 rounded-2xl shadow-2xl'
-                    style={{
-                      background: 'rgba(31, 41, 55, 0.6) !important',
-                      backdropFilter: 'blur(16px)',
-                      border: '1px solid rgba(75, 85, 99, 0.3)',
-                      height: 'auto !important',
-                      minHeight: '80px !important',
-                      display: 'grid !important',
-                      gridTemplateColumns: 'repeat(3, 1fr) !important',
-                    }}
+                    className={`grid ${profile.isAdmin ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'} w-full max-w-md sm:max-w-lg ${profile.isAdmin ? 'lg:max-w-4xl' : 'lg:max-w-2xl'} bg-gray-900/80 backdrop-blur-xl border border-gray-600/40 rounded-2xl p-1.5 sm:p-2 shadow-2xl h-auto min-h-[80px] sm:min-h-[88px]`}
                   >
                     <TabsTrigger
                       value='profile'
-                      className='flex items-center justify-center gap-4 h-auto min-h-[60px] py-5 px-8 text-lg font-semibold text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-lg'
-                      style={{
-                        height: 'auto !important',
-                        minHeight: '60px !important',
-                        fontSize: '18px !important',
-                        fontWeight: '600 !important',
-                        color: 'white !important',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        display: 'flex !important',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        whiteSpace: 'nowrap',
-                      }}
+                      className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
                     >
-                      <User className='h-6 w-6' />
-                      <span>Profile</span>
+                      <User className='h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110' />
+                      <span className='text-xs sm:text-sm font-medium tracking-wide'>
+                        Profile
+                      </span>
                     </TabsTrigger>
                     <TabsTrigger
                       value='security'
-                      className='flex items-center justify-center gap-4 h-auto min-h-[60px] py-5 px-8 text-lg font-semibold text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-green-700 data-[state=active]:text-white data-[state=active]:shadow-lg'
-                      style={{
-                        height: 'auto !important',
-                        minHeight: '60px !important',
-                        fontSize: '18px !important',
-                        fontWeight: '600 !important',
-                        color: 'white !important',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        display: 'flex !important',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        whiteSpace: 'nowrap',
-                      }}
+                      className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
                     >
-                      <Shield className='h-6 w-6' />
-                      <span>Security</span>
+                      <Shield className='h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110' />
+                      <span className='text-xs sm:text-sm font-medium tracking-wide'>
+                        Security
+                      </span>
                     </TabsTrigger>
                     <TabsTrigger
                       value='settings'
-                      className='flex items-center justify-center gap-4 h-auto min-h-[60px] py-5 px-8 text-lg font-semibold text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=active]:text-white data-[state=active]:shadow-lg'
-                      style={{
-                        height: 'auto !important',
-                        minHeight: '60px !important',
-                        fontSize: '18px !important',
-                        fontWeight: '600 !important',
-                        color: 'white !important',
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        display: 'flex !important',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        whiteSpace: 'nowrap',
-                      }}
+                      className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
                     >
-                      <Settings className='h-6 w-6' />
-                      <span>Settings</span>
+                      <Settings className='h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110' />
+                      <span className='text-xs sm:text-sm font-medium tracking-wide'>
+                        Settings
+                      </span>
                     </TabsTrigger>
+                    {/* Admin Tab - Only visible to admin users */}
+                    {profile.isAdmin && (
+                      <TabsTrigger
+                        value='admin'
+                        className='flex flex-col items-center justify-center gap-2 py-4 px-3 sm:px-4 text-white rounded-xl transition-all duration-300 hover:bg-gray-700/50 data-[state=active]:bg-gradient-to-br data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg touch-manipulation min-h-[72px] sm:min-h-[80px] relative group h-auto whitespace-normal'
+                      >
+                        <UserCog className='h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:scale-110' />
+                        <span className='text-xs sm:text-sm font-medium tracking-wide'>
+                          Admin
+                        </span>
+                      </TabsTrigger>
+                    )}
                   </TabsList>
                 </div>
-              </div>
 
-              <TabsContent value='profile' className='w-full'>
-                <div className='w-full bg-gradient-to-br from-gray-800/60 via-gray-800/40 to-gray-900/60 rounded-3xl p-6 lg:p-10 border border-gray-600/30 backdrop-blur-md min-h-[1000px] h-auto overflow-visible relative'>
-                  <div className='w-full h-full'>
-                    <DiscordProfile />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value='security' className='w-full'>
-                <div className='w-full min-h-[800px] h-auto overflow-visible space-y-8'>
-                  <Card className='w-full bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 border border-gray-600/30 backdrop-blur-md hover:border-green-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-green-400/10 overflow-visible'>
-                    <CardHeader className='pb-6 px-6 lg:px-10 pt-6 lg:pt-10'>
-                      <CardTitle className='flex items-center gap-3 text-white'>
-                        <div className='w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center'>
-                          <Shield className='h-6 w-6 text-green-400' />
+                {/* Profile Tab Content - Mobile Optimized with Proper Spacing */}
+                <TabsContent value='profile' className='mt-6 w-full'>
+                  <div className='bg-gradient-to-br from-gray-800/50 via-gray-900/40 to-black/60 rounded-2xl border border-gray-600/30 backdrop-blur-md shadow-2xl'>
+                    <div className='p-4 sm:p-6 lg:p-8'>
+                      <div className='flex items-center gap-3 mb-6'>
+                        <div className='w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg'>
+                          <User className='h-5 w-5 text-white' />
                         </div>
-                        <span className='text-2xl font-bold'>
-                          Account Security
-                        </span>
-                      </CardTitle>
-                      <CardDescription className='text-gray-300 ml-13'>
-                        Manage your account security settings and two-factor
-                        authentication
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className='w-full bg-gray-900/30 rounded-2xl mx-6 lg:mx-10 mb-6 lg:mb-10 p-6 lg:p-10 border border-gray-700/30 overflow-visible'>
-                      <div className='w-full'>
+                        <div>
+                          <h2 className='text-xl sm:text-2xl font-bold text-white'>
+                            User Profile
+                          </h2>
+                          <p className='text-gray-400 text-sm'>
+                            Manage your account information
+                          </p>
+                        </div>
+                      </div>
+                      <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
+                        <DiscordProfile />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Security Tab Content - Mobile Optimized with Proper Spacing */}
+                <TabsContent value='security' className='mt-6 w-full'>
+                  <div className='bg-gradient-to-br from-gray-800/50 via-gray-900/40 to-black/60 rounded-2xl border border-gray-600/30 backdrop-blur-md shadow-2xl'>
+                    <div className='p-4 sm:p-6 lg:p-8'>
+                      <div className='flex items-center gap-3 mb-6'>
+                        <div className='w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg'>
+                          <Shield className='h-5 w-5 text-white' />
+                        </div>
+                        <div>
+                          <h2 className='text-xl sm:text-2xl font-bold text-white'>
+                            Account Security
+                          </h2>
+                          <p className='text-gray-400 text-sm'>
+                            Protect your account with enhanced security
+                          </p>
+                        </div>
+                      </div>
+                      <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
                         <TwoFactorAuth
                           initialTwoFactorEnabled={profile.twoFactorEnabled}
                         />
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value='settings' className='w-full'>
-                <div className='w-full max-w-6xl mx-auto min-h-[800px] h-auto overflow-visible space-y-8'>
-                  {/* Enhanced Subscription Management */}
-                  <div className='w-full bg-gradient-to-br from-gray-800/60 via-gray-800/40 to-gray-900/60 rounded-3xl p-8 lg:p-12 border border-gray-600/30 backdrop-blur-md overflow-visible shadow-2xl'>
-                    <div className='w-full max-w-4xl mx-auto'>
-                      <SubscriptionManager />
                     </div>
                   </div>
+                </TabsContent>
 
-                  {/* Enhanced General Settings */}
-                  <div className='w-full bg-gradient-to-br from-gray-800/60 via-gray-800/40 to-gray-900/60 rounded-3xl border border-gray-600/30 backdrop-blur-md overflow-visible shadow-2xl'>
-                    {/* Header Section */}
-                    <div className='px-8 lg:px-12 pt-8 lg:pt-12 pb-6'>
-                      <div className='flex items-center gap-4 mb-3'>
-                        <div className='w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center border border-purple-400/20'>
-                          <Settings className='h-7 w-7 text-purple-400' />
+                {/* Settings Tab Content - Mobile Optimized with Proper Spacing */}
+                <TabsContent value='settings' className='mt-6 w-full'>
+                  <div className='space-y-4 sm:space-y-6 w-full'>
+                    {/* Subscription Management Card */}
+                    <div className='bg-gradient-to-br from-gray-800/50 via-gray-900/40 to-black/60 rounded-2xl border border-gray-600/30 backdrop-blur-md shadow-2xl'>
+                      <div className='p-4 sm:p-6 lg:p-8'>
+                        <div className='flex items-center gap-3 mb-6'>
+                          <div className='w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg'>
+                            <Crown className='h-5 w-5 text-white' />
+                          </div>
+                          <div>
+                            <h2 className='text-xl sm:text-2xl font-bold text-white'>
+                              Subscription
+                            </h2>
+                            <p className='text-gray-400 text-sm'>
+                              Manage your premium membership
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h2 className='text-3xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent'>
-                            General Settings
-                          </h2>
-                          <p className='text-gray-400 text-sm mt-1'>
-                            Customize your experience and preferences
-                          </p>
+                        <div className='w-full'>
+                          <SubscriptionManager />
                         </div>
                       </div>
                     </div>
 
-                    {/* Content Section */}
-                    <div className='px-8 lg:px-12 pb-8 lg:pb-12'>
-                      <div className='w-full max-w-6xl mx-auto space-y-8'>
-                        {/* Notifications Section - Now at the top and larger */}
-                        <div className='w-full'>
-                          <div className='mb-6'>
-                            <div className='flex items-center gap-4 mb-4'>
-                              <div className='w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center'>
-                                <div className='w-5 h-5 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600'></div>
+                    {/* General Settings Card */}
+                    <div className='bg-gradient-to-br from-gray-800/50 via-gray-900/40 to-black/60 rounded-2xl border border-gray-600/30 backdrop-blur-md shadow-2xl'>
+                      <div className='p-4 sm:p-6 lg:p-8'>
+                        <div className='flex items-center gap-3 mb-6'>
+                          <div className='w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg'>
+                            <Settings className='h-5 w-5 text-white' />
+                          </div>
+                          <div>
+                            <h2 className='text-xl sm:text-2xl font-bold text-white'>
+                              General Settings
+                            </h2>
+                            <p className='text-gray-400 text-sm'>
+                              Customize your experience
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className='space-y-4 w-full'>
+                          {/* Notifications Section */}
+                          <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
+                            <div className='flex items-center gap-3 mb-4'>
+                              <div className='w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center'>
+                                <Bell className='h-4 w-4 text-yellow-400' />
                               </div>
                               <div>
-                                <h4 className='font-semibold text-white text-xl'>
+                                <h3 className='text-lg font-semibold text-white'>
                                   Notifications
-                                </h4>
-                                <p className='text-sm text-gray-400 mt-1'>
-                                  Configure your notification preferences and
-                                  delivery options
+                                </h3>
+                                <p className='text-gray-400 text-sm'>
+                                  Configure your notification preferences
                                 </p>
                               </div>
                             </div>
-                          </div>
-                          <div className='w-full bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl border border-gray-600/30 p-6 lg:p-8 backdrop-blur-sm'>
                             <NotificationSettings />
                           </div>
-                        </div>
 
-                        {/* Theme Setting */}
-                        <div className='w-full flex items-center justify-between p-6 lg:p-8 bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-2xl border border-gray-600/30 hover:border-purple-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-400/10 backdrop-blur-sm'>
-                          <div className='flex items-center gap-4'>
-                            <div className='w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center'>
-                              <div className='w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600'></div>
+                          {/* Theme Setting */}
+                          <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
+                            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+                              <div className='flex items-center gap-3'>
+                                <div className='w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center'>
+                                  <div className='w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-600'></div>
+                                </div>
+                                <div>
+                                  <h3 className='text-lg font-semibold text-white'>
+                                    Theme
+                                  </h3>
+                                  <p className='text-gray-400 text-sm'>
+                                    Switch between light and dark mode
+                                  </p>
+                                </div>
+                              </div>
+                              <div className='self-start sm:self-auto'>
+                                <ModeToggle />
+                              </div>
                             </div>
-                            <div>
-                              <h4 className='font-semibold text-white text-lg'>
-                                Theme
-                              </h4>
-                              <p className='text-sm text-gray-400 mt-1'>
-                                Toggle between light and dark mode
-                              </p>
-                            </div>
-                          </div>
-                          <div className='flex-shrink-0'>
-                            <ModeToggle />
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                </TabsContent>
+
+                {/* Admin Tab Content - Only accessible to admin users */}
+                {profile.isAdmin && (
+                  <TabsContent value='admin' className='mt-6 w-full'>
+                    <div className='bg-gradient-to-br from-gray-800/50 via-gray-900/40 to-black/60 rounded-2xl border border-gray-600/30 backdrop-blur-md shadow-2xl'>
+                      <div className='p-4 sm:p-6 lg:p-8'>
+                        <div className='flex items-center gap-3 mb-6'>
+                          <div className='w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg'>
+                            <UserCog className='h-5 w-5 text-white' />
+                          </div>
+                          <div>
+                            <h2 className='text-xl sm:text-2xl font-bold text-white'>
+                              Admin Panel
+                            </h2>
+                            <p className='text-gray-400 text-sm'>
+                              Manage users, subscriptions, and system
+                              administration
+                            </p>
+                          </div>
+                        </div>
+                        <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
+                          <UserManagement />
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                )}
+              </Tabs>
+            </div>
           </main>
         </div>
       </div>

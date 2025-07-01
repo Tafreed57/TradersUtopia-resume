@@ -80,9 +80,6 @@ async function verify2FACode(
   }
 }
 
-
-// Mark this route as dynamic to prevent static generation
-export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     // ✅ SECURITY: CSRF protection for password operations

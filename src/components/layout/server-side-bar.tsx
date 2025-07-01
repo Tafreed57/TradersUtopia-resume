@@ -1,14 +1,14 @@
-import { ServerHeader } from "@/components/layout/server-header";
-import { SideBarItem } from "@/components/layout/side-bar-item";
-import { ServerChannel } from "@/components/server-channel";
-import { ServerSearch } from "@/components/server-search";
-import { ServerSection } from "@/components/server-section";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { SubscriptionProtectedLink } from "@/components/subscription-protected-link";
-import { getCurrentProfile, getServer } from "@/lib/query";
-import { ChannelType, MemberRole } from "@prisma/client";
+import { ServerHeader } from '@/components/layout/server-header';
+import { SideBarItem } from '@/components/layout/side-bar-item';
+import { ServerChannel } from '@/components/server-channel';
+import { ServerSearch } from '@/components/server-search';
+import { ServerSection } from '@/components/server-section';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
+import { getCurrentProfile, getServer } from '@/lib/query';
+import { ChannelType, MemberRole } from '@prisma/client';
 import {
   Hash,
   Mic,
@@ -17,82 +17,84 @@ import {
   Video,
   Home,
   Settings,
-} from "lucide-react";
-import { redirect } from "next/navigation";
-import Link from "next/link";
+} from 'lucide-react';
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
 
 interface ServerSideBarProps {
   serverId: string;
 }
 
 const iconMap = {
-  [ChannelType.TEXT]: <Hash className="mr-2 h-4 w-4" />,
-  [ChannelType.AUDIO]: <Mic className="mr-2 h-4 w-4" />,
-  [ChannelType.VIDEO]: <Video className="mr-2 h-4 w-4" />,
+  [ChannelType.TEXT]: <Hash className='mr-2 h-4 w-4' />,
+  [ChannelType.AUDIO]: <Mic className='mr-2 h-4 w-4' />,
+  [ChannelType.VIDEO]: <Video className='mr-2 h-4 w-4' />,
 };
 
 const roleIconMap = {
   [MemberRole.GUEST]: null,
-  [MemberRole.ADMIN]: <ShieldAlert className="text-rose-500 mr-2 h-4 w-4" />,
+  [MemberRole.ADMIN]: <ShieldAlert className='text-rose-500 mr-2 h-4 w-4' />,
   [MemberRole.MODERATOR]: (
-    <ShieldCheck className="text-indigo-500 mr-2 h-4 w-4" />
+    <ShieldCheck className='text-indigo-500 mr-2 h-4 w-4' />
   ),
 };
 
 export async function ServerSideBar({ serverId }: ServerSideBarProps) {
   const profile = await getCurrentProfile();
   if (!profile) {
-    return redirect("/");
+    return redirect('/');
   }
 
   const server = await getServer(serverId, profile.id);
 
   const textChannels = server?.channels.filter(
-    (channel) => channel.type === ChannelType.TEXT,
+    channel => channel.type === ChannelType.TEXT
   );
   const audioChannels = server?.channels.filter(
-    (channel) => channel.type === ChannelType.AUDIO,
+    channel => channel.type === ChannelType.AUDIO
   );
   const videoChannels = server?.channels.filter(
-    (channel) => channel.type === ChannelType.VIDEO,
+    channel => channel.type === ChannelType.VIDEO
   );
 
   if (!server) {
-    return redirect("/");
+    return redirect('/');
   }
 
   const role = server?.members?.find(
-    (member) => member.profileId === profile.id,
+    member => member.profileId === profile.id
   )?.role;
   return (
-    <div className="flex flex-col space-y-4 items-center h-full text-primary w-full dark:bg-[#2B2D31] bg-[#F2F3F5] ">
-      <ServerHeader server={server} role={role} />
-      <Separator className="h-[2px] bg-zinc-300 dark:bg-zinc-700 rounded-md w-10 mx-auto" />
-      <ScrollArea className="flex-1 w-full px-3">
+    <div className='flex flex-col h-full text-primary w-full dark:bg-[#2B2D31] bg-[#F2F3F5] overflow-hidden'>
+      <div className='flex-shrink-0'>
+        <ServerHeader server={server} role={role} />
+        <Separator className='h-[2px] bg-zinc-300 dark:bg-zinc-700 rounded-md w-10 mx-auto my-3' />
+      </div>
+      <ScrollArea className='flex-1 w-full px-2 sm:px-3 pb-4'>
         <ServerSearch
           data={[
             {
-              label: "Text Channels",
-              type: "channel",
-              data: textChannels?.map((channel) => ({
+              label: 'Text Channels',
+              type: 'channel',
+              data: textChannels?.map(channel => ({
                 icon: iconMap[channel.type],
                 id: channel.id,
                 name: channel.name,
               })),
             },
             {
-              label: "Voice Channels",
-              type: "channel",
-              data: audioChannels?.map((channel) => ({
+              label: 'Voice Channels',
+              type: 'channel',
+              data: audioChannels?.map(channel => ({
                 icon: iconMap[channel.type],
                 id: channel.id,
                 name: channel.name,
               })),
             },
             {
-              label: "Video Channels",
-              type: "channel",
-              data: videoChannels?.map((channel) => ({
+              label: 'Video Channels',
+              type: 'channel',
+              data: videoChannels?.map(channel => ({
                 icon: iconMap[channel.type],
                 id: channel.id,
                 name: channel.name,
@@ -100,17 +102,17 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
             },
           ]}
         />
-        <Separator className=" bg-zinc-200 dark:bg-zinc-700 rounded-md my-2" />
+        <Separator className=' bg-zinc-200 dark:bg-zinc-700 rounded-md my-2' />
         {!!textChannels?.length && (
-          <div className="mb-2">
+          <div className='mb-2'>
             <ServerSection
-              sectionType="channels"
+              sectionType='channels'
               channelType={ChannelType.TEXT}
               role={role}
-              label="Text Channels"
+              label='Text Channels'
             />
-            <div className="flex flex-col space-y-[2px]">
-              {textChannels.map((channel) => (
+            <div className='flex flex-col space-y-[2px]'>
+              {textChannels.map(channel => (
                 <ServerChannel
                   key={channel.id}
                   channel={channel}
@@ -122,15 +124,15 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
           </div>
         )}
         {!!audioChannels?.length && (
-          <div className="mb-2">
+          <div className='mb-2'>
             <ServerSection
-              sectionType="channels"
+              sectionType='channels'
               channelType={ChannelType.AUDIO}
               role={role}
-              label="Voice Channels"
+              label='Voice Channels'
             />
-            <div className="flex flex-col space-y-[2px]">
-              {audioChannels.map((channel) => (
+            <div className='flex flex-col space-y-[2px]'>
+              {audioChannels.map(channel => (
                 <ServerChannel
                   key={channel.id}
                   channel={channel}
@@ -142,15 +144,15 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
           </div>
         )}
         {!!videoChannels?.length && (
-          <div className="mb-2">
+          <div className='mb-2'>
             <ServerSection
-              sectionType="channels"
+              sectionType='channels'
               channelType={ChannelType.VIDEO}
               role={role}
-              label="Video Channels"
+              label='Video Channels'
             />
-            <div className="flex flex-col space-y-[2px]">
-              {videoChannels.map((channel) => (
+            <div className='flex flex-col space-y-[2px]'>
+              {videoChannels.map(channel => (
                 <ServerChannel
                   key={channel.id}
                   channel={channel}
@@ -164,24 +166,24 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
       </ScrollArea>
 
       {/* Settings and Homepage Buttons */}
-      <div className="pb-3 px-3 w-full space-y-2">
+      <div className='pb-3 px-3 w-full space-y-2'>
         {/* Settings Button */}
         <SubscriptionProtectedLink
-          href="/dashboard"
-          variant="ghost"
-          className="w-full justify-start text-zinc-500 dark:text-zinc-400 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 hover:text-zinc-600 dark:hover:text-zinc-300 transition"
+          href='/dashboard'
+          variant='ghost'
+          className='w-full justify-start text-zinc-500 dark:text-zinc-400 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 hover:text-zinc-600 dark:hover:text-zinc-300 transition'
         >
-          <Settings className="h-4 w-4 mr-2" />
+          <Settings className='h-4 w-4 mr-2' />
           Dashboard Settings
         </SubscriptionProtectedLink>
 
         {/* Homepage Button */}
-        <Link href="/">
+        <Link href='/'>
           <Button
-            variant="ghost"
-            className="w-full justify-start text-zinc-500 dark:text-zinc-400 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 hover:text-zinc-600 dark:hover:text-zinc-300 transition"
+            variant='ghost'
+            className='w-full justify-start text-zinc-500 dark:text-zinc-400 hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 hover:text-zinc-600 dark:hover:text-zinc-300 transition'
           >
-            <Home className="h-4 w-4 mr-2" />
+            <Home className='h-4 w-4 mr-2' />
             Back to Homepage
           </Button>
         </Link>

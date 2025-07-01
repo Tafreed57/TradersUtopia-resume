@@ -1,53 +1,34 @@
 import webpush from 'web-push';
 import { db } from '@/lib/db';
 
-// Flag to track if VAPID is configured
-let vapidConfigured = false;
+// Configure web-push with proper VAPID subject
+let vapidSubject: string;
 
-// Configure VAPID details only when needed
-function ensureVapidConfigured(): boolean {
-  if (vapidConfigured) return true;
+if (process.env.NODE_ENV === 'production') {
+  // In production, use HTTPS URL
+  vapidSubject =
+    process.env.NEXT_PUBLIC_APP_URL || 'mailto:notifications@tradersutopia.com';
+} else {
+  // In development, use a simple mailto format that web-push accepts
+  vapidSubject = 'mailto:admin@example.com';
+}
 
-  // Skip configuration during build time if environment variables are not properly set
-  if (
-    !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-    !process.env.VAPID_PRIVATE_KEY
-  ) {
-    console.warn(
-      '⚠️ [PUSH] VAPID keys not found - push notifications disabled'
-    );
-    return false;
-  }
-
+// Only configure if we have the required keys
+if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   try {
-    let vapidSubject: string;
-
-    if (process.env.NODE_ENV === 'production') {
-      // In production, use HTTPS URL - fallback to mailto if URL not set
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-      if (appUrl && appUrl.startsWith('https://')) {
-        vapidSubject = appUrl;
-      } else {
-        vapidSubject = 'mailto:notifications@tradersutopia.com';
-      }
-    } else {
-      // In development, use a simple mailto format that web-push accepts
-      vapidSubject = 'mailto:admin@example.com';
-    }
-
     webpush.setVapidDetails(
       vapidSubject,
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       process.env.VAPID_PRIVATE_KEY
     );
-
-    vapidConfigured = true;
-    console.log('✅ [PUSH] VAPID details configured successfully');
-    return true;
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ [PUSH] VAPID details configured successfully');
+    }
   } catch (error) {
     console.error('❌ [PUSH] Failed to configure VAPID details:', error);
-    return false;
   }
+} else {
+  console.warn('⚠️ [PUSH] VAPID keys not found - push notifications disabled');
 }
 
 export interface PushNotificationData {
@@ -83,12 +64,6 @@ export async function sendPushNotification(
   data: PushNotificationData
 ): Promise<boolean> {
   try {
-    // Ensure VAPID is configured before sending
-    if (!ensureVapidConfigured()) {
-      console.warn('⚠️ [PUSH] Cannot send notification - VAPID not configured');
-      return false;
-    }
-
     // Get user's profile with push subscriptions
     const profile = await db.profile.findFirst({
       where: { userId: data.userId },

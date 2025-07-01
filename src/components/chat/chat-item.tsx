@@ -11,7 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Member, MemberRole, Profile } from '@prisma/client';
 import { secureAxiosPatch } from '@/lib/csrf-client';
 import { Edit, FileText, ShieldAlert, ShieldCheck, Trash } from 'lucide-react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import qs from 'query-string';
 import { useEffect, useState } from 'react';
@@ -27,9 +27,8 @@ interface ChatItemProps {
   deleted: boolean;
   currentMember: Member;
   isUpdated: boolean;
-  updateApiUrl: string;
-  paramKey: 'channelId' | 'conversationId';
-  paramValue: string;
+  socketUrl: string;
+  socketQuery: Record<string, string>;
 }
 
 const roleIconMap = {
@@ -51,9 +50,8 @@ export function ChatItem({
   deleted,
   currentMember,
   isUpdated,
-  updateApiUrl,
-  paramKey,
-  paramValue,
+  socketUrl,
+  socketQuery,
 }: ChatItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const onOpen = useStore.use.onOpen();
@@ -97,10 +95,8 @@ export function ChatItem({
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const url = qs.stringifyUrl({
-        url: `${updateApiUrl}/${id}`,
-        query: {
-          [paramKey]: paramValue,
-        },
+        url: `/api/messages/${id}`,
+        query: socketQuery,
       });
 
       await secureAxiosPatch(url, values);
@@ -118,20 +114,23 @@ export function ChatItem({
   };
 
   return (
-    <div className='relative group flex items-center hover:bg-black/5 p-4 transition w-full'>
-      <div className='group flex gap-x-2 items-start w-full'>
+    <div className='relative group flex items-start hover:bg-black/5 dark:hover:bg-white/5 p-3 sm:p-4 transition w-full touch-manipulation'>
+      <div className='group flex gap-x-2 sm:gap-x-3 items-start w-full'>
         <div
           onClick={onMemberClick}
-          className='transition cursor-pointer hover:drop-shadow-md'
+          className='transition cursor-pointer hover:drop-shadow-md flex-shrink-0'
         >
-          <UserAvatar src={member.profile.imageUrl ?? undefined} />
+          <UserAvatar
+            src={member.profile.imageUrl ?? undefined}
+            className='h-8 w-8 sm:h-10 sm:w-10'
+          />
         </div>
-        <div className='flex flex-col w-full'>
-          <div className='flex items-center gap-x-2'>
-            <div className='flex items-center'>
+        <div className='flex flex-col w-full min-w-0'>
+          <div className='flex items-center gap-x-2 flex-wrap'>
+            <div className='flex items-center gap-x-1'>
               <p
                 onClick={onMemberClick}
-                className='font-semibold text-sm hover:underline cursor-pointer'
+                className='font-semibold text-sm sm:text-base hover:underline cursor-pointer truncate'
               >
                 {member.profile.name}
               </p>
@@ -139,7 +138,7 @@ export function ChatItem({
                 {roleIconMap[member.role]}
               </ActionTooltip>
             </div>
-            <span className='text-xs text-zinc-500 dark:text-zinc-400'>
+            <span className='text-xs text-zinc-500 dark:text-zinc-400 flex-shrink-0'>
               {timestamp}
             </span>
           </div>
@@ -148,9 +147,9 @@ export function ChatItem({
               href={fileUrl}
               target='_blank'
               rel='noreferrer noopener'
-              className='relative aspect-square rounded-md mt-2 overflow-hidden border flex items-center bg-secondary h-48 w-48'
+              className='relative rounded-md mt-2 overflow-hidden border flex items-center bg-secondary h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 touch-manipulation'
             >
-              <Image
+              <NextImage
                 src={fileUrl}
                 alt={content}
                 fill
@@ -163,22 +162,22 @@ export function ChatItem({
               href={fileUrl}
               target='_blank'
               rel='noreferrer noopener'
-              className='relative aspect-square rounded-md mt-2 overflow-hidden border flex items-center bg-secondary h-48 w-48'
+              className='relative rounded-md mt-2 overflow-hidden border flex items-center bg-secondary h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 touch-manipulation'
             >
-              <FileText className='w-12 h-12 text-zinc-500 dark:text-zinc-400 m-auto' />
+              <FileText className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-zinc-500 dark:text-zinc-400 m-auto' />
             </a>
           )}
           {!fileUrl && !isEditing && (
             <p
               className={cn(
-                'text-sm text-zinc-600 dark:text-zinc-300',
+                'text-sm sm:text-base text-zinc-600 dark:text-zinc-300 break-words',
                 deleted &&
-                  'italic text-zinc-500 dark:text-zinc-400 text-xs mt-1'
+                  'italic text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm mt-1'
               )}
             >
               {content}
               {isUpdated && !deleted && (
-                <span className='text-[10px] text-zinc-500 dark:text-zinc-400 '>
+                <span className='text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 ml-1'>
                   (edited)
                 </span>
               )}
@@ -188,7 +187,7 @@ export function ChatItem({
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className='flex items-center w-full gap-x-2 pt-2'
+                className='flex flex-col sm:flex-row sm:items-center w-full gap-2 pt-2'
               >
                 <FormField
                   control={form.control}
@@ -199,7 +198,7 @@ export function ChatItem({
                         <div className='relative w-full'>
                           <Input
                             disabled={isLoading}
-                            className='p-2 bg-zinc-200/90 dark:bg-zinc-700/75 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-600 dark:text-zinc-200'
+                            className='p-2 sm:p-3 bg-zinc-200/90 dark:bg-zinc-700/75 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-600 dark:text-zinc-200 text-sm sm:text-base min-h-[44px] touch-manipulation'
                             placeholder='Edited Message'
                             autoComplete='off'
                             spellCheck={false}
@@ -212,24 +211,29 @@ export function ChatItem({
                     </FormItem>
                   )}
                 />
-                <Button disabled={isLoading} size='sm' variant='default'>
+                <Button
+                  disabled={isLoading}
+                  size='sm'
+                  variant='default'
+                  className='min-h-[44px] px-4 touch-manipulation'
+                >
                   Save
                 </Button>
               </form>
-              <span className='mt-1 text-[10px] text-zinc-400'>
-                Press escape to cancel , enter to save
+              <span className='mt-1 text-[10px] sm:text-xs text-zinc-400'>
+                Press escape to cancel, enter to save
               </span>
             </Form>
           )}
         </div>
       </div>
       {canDeleteMessage && (
-        <div className='hidden group-hover:flex items-center gap-x-2 absolute p-1 -top-2 right-5 bg-white dark:bg-zinc-800 border rounded-sm'>
+        <div className='hidden group-hover:flex items-center gap-x-1 sm:gap-x-2 absolute p-1 -top-2 right-3 sm:right-5 bg-white dark:bg-zinc-800 border rounded-sm shadow-lg'>
           {canEditMessage && (
             <ActionTooltip label='Edit'>
               <Edit
                 onClick={() => setIsEditing(true)}
-                className='cursor-pointer ml-auto w-4 h-4 text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition'
+                className='cursor-pointer w-4 h-4 text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition touch-manipulation'
               />
             </ActionTooltip>
           )}
@@ -237,13 +241,11 @@ export function ChatItem({
             <Trash
               onClick={() =>
                 onOpen('deleteMessage', {
-                  apiUrl: `${updateApiUrl}/${id}`,
-                  query: {
-                    [paramKey]: paramValue,
-                  },
+                  apiUrl: `${socketUrl}/${id}`,
+                  query: socketQuery,
                 })
               }
-              className='cursor-pointer ml-auto w-4 h-4 text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition'
+              className='cursor-pointer w-4 h-4 text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition touch-manipulation'
             />
           </ActionTooltip>
         </div>

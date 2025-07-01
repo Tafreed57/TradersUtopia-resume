@@ -106,9 +106,6 @@ async function performLoginSync(userEmail: string) {
   }
 }
 
-
-// Mark this route as dynamic to prevent static generation
-export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();

@@ -1,34 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import { getStripeInstance } from '@/lib/stripe';
+import { NextRequest, NextResponse } from "next/server";
+import { currentUser } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
+import Stripe from "stripe";
 
 
-// Mark this route as dynamic to prevent static generation
+
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-05-28.basil",
+});
   try {
     const user = await currentUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const userEmail = user.emailAddresses[0]?.emailAddress;
     if (!userEmail) {
-      return NextResponse.json({ error: 'No email found' }, { status: 400 });
-    }
-
-    const stripe = getStripeInstance();
-    if (!stripe) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Payment service not configured',
-          hasAccess: false,
-        },
-        { status: 503 }
-      );
+      return NextResponse.json({ error: "No email found" }, { status: 400 });
     }
 
     console.log(`🔍 Checking Stripe payment for user: ${userEmail}`);
@@ -42,7 +33,7 @@ export async function POST(request: NextRequest) {
     if (customers.data.length === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No customer found in Stripe with this email',
+        message: "No customer found in Stripe with this email",
         hasAccess: false,
       });
     }
@@ -53,7 +44,7 @@ export async function POST(request: NextRequest) {
     // Step 2: Check for active subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customer.id,
-      status: 'active',
+      status: "active",
       limit: 1,
     });
 
@@ -64,7 +55,7 @@ export async function POST(request: NextRequest) {
     });
 
     const successfulPayments = paymentIntents.data.filter(
-      payment => payment.status === 'succeeded'
+      (payment) => payment.status === "succeeded",
     );
 
     // Step 3b: Also check for completed checkout sessions (including $0 promo payments)
@@ -74,84 +65,120 @@ export async function POST(request: NextRequest) {
     });
 
     const completedSessions = checkoutSessions.data.filter(
-      session => session.status === 'complete'
+      (session) => session.status === "complete",
     );
 
-    // Determine if user has valid access
+    console.log(
+      `💳 Found ${successfulPayments.length} successful payment intents`,
+    );
+    console.log(
+      `🎟️ Found ${completedSessions.length} completed checkout sessions (including promo codes)`,
+    );
+    console.log(`📋 Found ${subscriptions.data.length} active subscriptions`);
+
+    // Log details about payments and sessions
+    if (completedSessions.length > 0) {
+      completedSessions.forEach((session, index) => {
+        console.log(
+          `Session ${index + 1}: Amount: $${(session.amount_total || 0) / 100}, Status: ${session.status}`,
+        );
+      });
+    }
+
+    // Step 4: Determine if user should have access (including $0 promo payments)
     const hasActiveSubscription = subscriptions.data.length > 0;
     const hasSuccessfulPayment = successfulPayments.length > 0;
     const hasCompletedCheckout = completedSessions.length > 0;
+    const shouldHaveAccess =
+      hasActiveSubscription || hasSuccessfulPayment || hasCompletedCheckout;
 
-    if (
-      !hasActiveSubscription &&
-      !hasSuccessfulPayment &&
-      !hasCompletedCheckout
-    ) {
+    if (!shouldHaveAccess) {
       return NextResponse.json({
         success: false,
-        message: 'No valid payments or subscriptions found',
+        message:
+          "No active subscription, successful payment, or completed checkout session found in Stripe",
         hasAccess: false,
+        stripeData: {
+          customerId: customer.id,
+          subscriptions: subscriptions.data.length,
+          payments: successfulPayments.length,
+          checkoutSessions: completedSessions.length,
+        },
       });
     }
 
-    // Get subscription end date for access validation
-    let subscriptionEnd = null;
-    let accessReason = '';
+    // Step 5: Find or create profile in database
+    let profile = await db.profile.findFirst({
+      where: { userId: user.id },
+    });
 
-    if (hasActiveSubscription) {
-      const subscription = subscriptions.data[0];
-      // Use the actual subscription end date from Stripe
-      const subscriptionWithPeriods = subscription as any;
-      subscriptionEnd = new Date(
-        subscriptionWithPeriods.current_period_end * 1000
-      );
-      accessReason = 'Active subscription found';
-    } else if (hasCompletedCheckout) {
-      // For completed checkouts, grant access for 30 days
-      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      accessReason = 'Completed checkout session found';
-    } else if (hasSuccessfulPayment) {
-      // For successful payments, grant access for 30 days
-      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      accessReason = 'Successful payment found';
+    if (!profile) {
+      // Create profile if it doesn't exist
+      profile = await db.profile.create({
+        data: {
+          userId: user.id,
+          name: `${user.firstName} ${user.lastName}`,
+          email: userEmail,
+          imageUrl: user.imageUrl,
+          subscriptionStatus: "FREE",
+        },
+      });
+      console.log(`➕ Created new profile: ${profile.id}`);
     }
 
-    // Update user profile with verified subscription data
-    const profile = await db.profile.findFirst({
-      where: {
-        OR: [{ userId: user.id }, { email: userEmail }],
+    // Step 6: Update subscription status based on Stripe data
+    let subscriptionEnd: Date;
+
+    if (hasActiveSubscription && subscriptions.data.length > 0) {
+      // Use the actual subscription end date from Stripe
+      const activeSubscription = subscriptions.data[0] as any;
+      if (activeSubscription.current_period_end) {
+        subscriptionEnd = new Date(
+          activeSubscription.current_period_end * 1000,
+        );
+        console.log(
+          `📅 Using actual subscription end date: ${subscriptionEnd.toISOString()}`,
+        );
+      } else {
+        subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        console.log(`📅 No period end found, using 30-day fallback`);
+      }
+    } else {
+      // For one-time payments or when no active subscription
+      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      console.log(`📅 Using 30-day fallback for one-time payment`);
+    }
+
+    // Validate the date
+    if (isNaN(subscriptionEnd.getTime())) {
+      console.log("⚠️ Invalid subscription end date, using 30-day fallback");
+      subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    }
+
+    const updatedProfile = await db.profile.update({
+      where: { id: profile.id },
+      data: {
+        subscriptionStatus: "ACTIVE",
+        subscriptionStart: new Date(),
+        subscriptionEnd: subscriptionEnd,
+        stripeCustomerId: customer.id,
       },
     });
 
-    let updatedProfile;
-    if (profile) {
-      // Update existing profile
-      updatedProfile = await db.profile.update({
-        where: { id: profile.id },
-        data: {
-          subscriptionStatus: 'ACTIVE',
-          subscriptionStart: new Date(),
-          subscriptionEnd: subscriptionEnd,
-          stripeCustomerId: customer.id,
-        },
-      });
-    } else {
-      // Create new profile
-      updatedProfile = await db.profile.create({
-        data: {
-          userId: user.id,
-          name: user.fullName || user.firstName || 'Unknown User',
-          email: userEmail,
-          imageUrl: user.imageUrl || '',
-          subscriptionStatus: 'ACTIVE',
-          subscriptionStart: new Date(),
-          subscriptionEnd: subscriptionEnd,
-          stripeCustomerId: customer.id,
-        },
-      });
-    }
+    console.log(
+      `✅ Successfully verified and activated subscription for: ${userEmail}`,
+    );
 
-    console.log(`✅ Updated subscription access for user: ${userEmail}`);
+    // Determine the access reason for better messaging
+    let accessReason = "";
+    if (hasActiveSubscription) {
+      accessReason = "Active subscription found";
+    } else if (hasSuccessfulPayment) {
+      accessReason = "Successful payment found";
+    } else if (hasCompletedCheckout) {
+      accessReason =
+        "Completed checkout session found (including promo code payments)";
+    }
 
     return NextResponse.json({
       success: true,
@@ -175,13 +202,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('❌ Error verifying Stripe payment:', error);
+    console.error("❌ Error verifying Stripe payment:", error);
 
     // ✅ SECURITY: Detailed logging for server-side debugging (not exposed to user)
     if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
     }
 
     // ✅ SECURITY: Generic error response - no internal details exposed
@@ -189,11 +216,11 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         message:
-          'Unable to verify payment at this time. Please try again later.',
-        error: 'Payment verification failed',
+          "Unable to verify payment at this time. Please try again later.",
+        error: "Payment verification failed",
         hasAccess: false,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
