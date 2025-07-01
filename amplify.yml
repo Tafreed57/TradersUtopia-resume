@@ -10,20 +10,30 @@ frontend:
     build:
       commands:
         - echo "Building for production..."
-        # Debug: Check critical environment variables
-        - echo "🔍 Debugging Environment Variables"
+        # Debug: Check critical environment variables at BUILD TIME
+        - echo "🔍 BUILD-TIME Environment Variables Check"
         - 'echo "DATABASE_URL is set: $(if [ -n "$DATABASE_URL" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        - 'echo "DATABASE_URL starts with: $(echo $DATABASE_URL | cut -c1-20)..." || echo "❌ DATABASE_URL not accessible"'
+        - 'echo "DATABASE_URL starts with: $(echo $DATABASE_URL | cut -c1-30)..." || echo "❌ DATABASE_URL not accessible"'
         - 'echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is set: $(if [ -n "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
         - 'echo "CLERK_SECRET_KEY is set: $(if [ -n "$CLERK_SECRET_KEY" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        - 'echo "STRIPE_API_KEY is set: $(if [ -n "$STRIPE_API_KEY" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        - 'echo "UPLOADTHING_SECRET is set: $(if [ -n "$UPLOADTHING_SECRET" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
+        - 'echo "STRIPE_SECRET_KEY is set: $(if [ -n "$STRIPE_API_KEY" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
+        # List all environment variables starting with DATABASE, CLERK, STRIPE for debugging
+        - echo "🔍 All DATABASE/CLERK/STRIPE related environment variables:"
+        - env | grep -E "(DATABASE|CLERK|STRIPE)" || echo "❌ No DATABASE/CLERK/STRIPE env vars found"
+        # Generate Prisma client with database check
+        - echo "🔧 Generating Prisma client..."
+        - npx prisma generate
+        # Verify database connection during build
+        - echo "🔍 Testing database connection during build..."
+        - 'node -e "console.log(\"DATABASE_URL during build:\", process.env.DATABASE_URL ? \"✅ AVAILABLE\" : \"❌ MISSING\")"'
         # Verify critical environment variables are set
         - echo "✅ Environment variables verified"
         - pnpm build
     postBuild:
       commands:
-        # Optional: Clean up if needed
+        # Final verification after build
+        - echo "🔍 POST-BUILD Environment Variables Check"
+        - 'echo "DATABASE_URL available after build: $(if [ -n "$DATABASE_URL" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
         - echo "Build completed successfully"
   artifacts:
     # For Next.js SSR apps, use .next directory

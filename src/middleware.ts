@@ -4,6 +4,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 console.log('🔍 [MIDDLEWARE] Environment check at load time:', {
   nodeEnv: process.env.NODE_ENV,
   hasClerkSecret: !!process.env.CLERK_SECRET_KEY,
+  db: process.env.DATABASE_URL,
   hasClerkPublishable: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   secretKeyPrefix: process.env.CLERK_SECRET_KEY?.substring(0, 8) || 'NOT_FOUND',
   timestamp: new Date().toISOString(),
@@ -87,7 +88,6 @@ if (finalSecretKey) {
 // protect all routes except the public ones
 export default clerkMiddleware(
   (auth, request) => {
-    // ✅ DEBUG: Log route matching for debugging
     const isPublic = isPublicRoute(request);
 
     if (!isPublic) {
