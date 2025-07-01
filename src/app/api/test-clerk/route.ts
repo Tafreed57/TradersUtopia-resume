@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   // ✅ SECURITY: Production protection
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === 'production') {
     return NextResponse.json(
       {
-        error: "Debug endpoints are disabled in production",
-        environment: "production",
+        error: 'Debug endpoints are disabled in production',
+        environment: 'production',
       },
       {
         status: 403,
         headers: {
-          "X-Security-Note": "Debug endpoint blocked in production",
+          'X-Security-Note': 'Debug endpoint blocked in production',
         },
-      },
+      }
     );
   }
 
@@ -42,24 +42,24 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json(
     {
-      environment: "development",
+      environment: 'development',
       timestamp: new Date().toISOString(),
       clerk_configuration: {
         essential: {
           CLERK_PUBLISHABLE_KEY: hasPublishableKey
-            ? "✅ Configured"
-            : "❌ Missing",
-          CLERK_SECRET_KEY: hasSecretKey ? "✅ Configured" : "❌ Missing",
+            ? '✅ Configured'
+            : '❌ Missing',
+          CLERK_SECRET_KEY: hasSecretKey ? '✅ Configured' : '❌ Missing',
         },
         optional_urls: {
-          SIGN_IN_URL: hasSignInUrl ? "✅ Configured" : "❌ Using default",
-          SIGN_UP_URL: hasSignUpUrl ? "✅ Configured" : "❌ Using default",
+          SIGN_IN_URL: hasSignInUrl ? '✅ Configured' : '❌ Using default',
+          SIGN_UP_URL: hasSignUpUrl ? '✅ Configured' : '❌ Using default',
           AFTER_SIGN_IN_URL: hasAfterSignInUrl
-            ? "✅ Configured"
-            : "❌ Using default",
+            ? '✅ Configured'
+            : '❌ Using default',
           AFTER_SIGN_UP_URL: hasAfterSignUpUrl
-            ? "✅ Configured"
-            : "❌ Using default",
+            ? '✅ Configured'
+            : '❌ Using default',
         },
       },
       status: {
@@ -69,17 +69,17 @@ export async function GET(request: NextRequest) {
       },
       message: isBasicSetup
         ? isFullyConfigured
-          ? "🎉 Clerk is fully configured!"
-          : "✅ Clerk basic setup complete (optional URLs using defaults)"
-        : "❌ Missing essential Clerk environment variables",
-      security_note: "🔒 No sensitive key values are exposed in this endpoint",
+          ? '🎉 Clerk is fully configured!'
+          : '✅ Clerk basic setup complete (optional URLs using defaults)'
+        : '❌ Missing essential Clerk environment variables',
+      security_note: '🔒 No sensitive key values are exposed in this endpoint',
     },
     {
       headers: {
-        "X-Environment": "development",
-        "X-Service-Check": "clerk-authentication",
-        "X-Security-Level": "safe",
+        'X-Environment': 'development',
+        'X-Service-Check': 'clerk-authentication',
+        'X-Security-Level': 'safe',
       },
-    },
+    }
   );
 }

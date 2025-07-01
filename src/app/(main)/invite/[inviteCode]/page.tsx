@@ -1,7 +1,7 @@
-import { prisma } from "@/lib/prismadb";
-import { getCurrentProfile, getServerByInviteCode } from "@/lib/query";
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { prisma } from '@/lib/prismadb';
+import { getCurrentProfile, getServerByInviteCode } from '@/lib/query';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
 export default async function InviteCodePage({
   params,
@@ -13,11 +13,11 @@ export default async function InviteCodePage({
     return auth().redirectToSignIn();
   }
   if (!params.inviteCode) {
-    return redirect("/");
+    return redirect('/');
   }
   const existingServer = await getServerByInviteCode(
     params.inviteCode,
-    profile.id,
+    profile.id
   );
 
   if (existingServer) {

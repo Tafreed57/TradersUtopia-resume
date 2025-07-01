@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 interface CountdownTimerProps {
   initialMinutes?: number;
@@ -18,7 +18,7 @@ export function CountdownTimer({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft(prev => {
         if (prev.minutes === 0 && prev.seconds === 0) {
           // Reset timer when it reaches 0
           return { minutes: initialMinutes, seconds: initialSeconds };
@@ -36,13 +36,13 @@ export function CountdownTimer({
   }, [initialMinutes, initialSeconds]);
 
   const formatTime = (minutes: number, seconds: number) => {
-    const mm = minutes.toString().padStart(2, "0");
-    const ss = seconds.toString().padStart(2, "0");
+    const mm = minutes.toString().padStart(2, '0');
+    const ss = seconds.toString().padStart(2, '0');
     return `${mm}:${ss}`;
   };
 
   return (
-    <div className="text-sm sm:text-lg md:text-xl font-bold text-white font-mono">
+    <div className='text-sm sm:text-lg md:text-xl font-bold text-white font-mono'>
       {formatTime(timeLeft.minutes, timeLeft.seconds)}
     </div>
   );

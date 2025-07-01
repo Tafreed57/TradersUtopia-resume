@@ -1,6 +1,6 @@
-import { getCurrentProfile, getGeneralServer } from "@/lib/query";
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { getCurrentProfile, getGeneralServer } from '@/lib/query';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
 interface ServerIdPageProps {
   params: {
@@ -17,7 +17,7 @@ export default async function ServerIdPage({ params }: ServerIdPageProps) {
 
   if (generalServer) {
     redirect(
-      `/servers/${params.serverId}/channels/${generalServer?.channels?.[0]?.id}`,
+      `/servers/${params.serverId}/channels/${generalServer?.channels?.[0]?.id}`
     );
   }
   if (!generalServer) {

@@ -1,18 +1,18 @@
-import { Channel, ChannelType, Server } from "@prisma/client";
-import { StateCreator } from "zustand";
+import { Channel, ChannelType, Server } from '@prisma/client';
+import { StateCreator } from 'zustand';
 
 export type ModalType =
-  | "createServer"
-  | "invite"
-  | "editServer"
-  | "manageMembers"
-  | "leaveServer"
-  | "deleteServer"
-  | "createChannel"
-  | "editChannel"
-  | "deleteChannel"
-  | "messageFile"
-  | "deleteMessage";
+  | 'createServer'
+  | 'invite'
+  | 'editServer'
+  | 'manageMembers'
+  | 'leaveServer'
+  | 'deleteServer'
+  | 'createChannel'
+  | 'editChannel'
+  | 'deleteChannel'
+  | 'messageFile'
+  | 'deleteMessage';
 
 export interface ModelData {
   server?: Server;
@@ -31,7 +31,7 @@ export interface ModalSlice {
 
 export type SliceCreator<S> = StateCreator<
   S,
-  [["zustand/immer", never], ["zustand/devtools", never]],
+  [['zustand/immer', never], ['zustand/devtools', never]],
   [],
   S
 >;

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -7,9 +7,9 @@ import {
   useEffect,
   ReactNode,
   useCallback,
-} from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { LoadingScreen } from "@/components/ui/loading-screen";
+} from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { LoadingScreen } from '@/components/ui/loading-screen';
 
 interface LoadingContextType {
   isLoading: boolean;
@@ -23,7 +23,7 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 export function useLoading() {
   const context = useContext(LoadingContext);
   if (!context) {
-    throw new Error("useLoading must be used within a LoadingProvider");
+    throw new Error('useLoading must be used within a LoadingProvider');
   }
   return context;
 }
@@ -34,11 +34,11 @@ interface LoadingProviderProps {
 
 export function LoadingProvider({ children }: LoadingProviderProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState<string>("Loading...");
+  const [loadingMessage, setLoadingMessage] = useState<string>('Loading...');
   const pathname = usePathname();
 
   // Memoize functions to prevent infinite loops
-  const setLoading = useCallback((loading: boolean, message = "Loading...") => {
+  const setLoading = useCallback((loading: boolean, message = 'Loading...') => {
     setIsLoading(loading);
     if (message) {
       setLoadingMessage(message);
@@ -46,10 +46,10 @@ export function LoadingProvider({ children }: LoadingProviderProps) {
   }, []);
 
   const startLoading = useCallback(
-    (message = "Loading...") => {
+    (message = 'Loading...') => {
       setLoading(true, message);
     },
-    [setLoading],
+    [setLoading]
   );
 
   const stopLoading = useCallback(() => {

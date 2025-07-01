@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
-import { rateLimitAdmin, trackSuspiciousActivity } from "@/lib/rate-limit";
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { currentUser } from '@clerk/nextjs/server';
+import { rateLimitAdmin, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,15 +10,15 @@ export async function POST(request: NextRequest) {
     // ✅ SECURITY: Rate limiting for profile sync operations (admin level)
     const rateLimitResult = await rateLimitAdmin()(request);
     if (!rateLimitResult.success) {
-      trackSuspiciousActivity(request, "PROFILE_SYNC_RATE_LIMIT_EXCEEDED");
+      trackSuspiciousActivity(request, 'PROFILE_SYNC_RATE_LIMIT_EXCEEDED');
       return rateLimitResult.error;
     }
 
-    console.log("🔗 Starting comprehensive profile sync...\n");
+    console.log('🔗 Starting comprehensive profile sync...\n');
 
     // Find all profiles
     const allProfiles = await db.profile.findMany({
-      orderBy: { email: "asc" },
+      orderBy: { email: 'asc' },
     });
 
     console.log(`📊 Found ${allProfiles.length} total profiles`);
@@ -32,15 +32,15 @@ export async function POST(request: NextRequest) {
         acc[profile.email].push(profile);
         return acc;
       },
-      {} as Record<string, typeof allProfiles>,
+      {} as Record<string, typeof allProfiles>
     );
 
     const duplicateEmails = Object.entries(profilesByEmail).filter(
-      ([email, profiles]) => profiles.length > 1,
+      ([email, profiles]) => profiles.length > 1
     );
 
     console.log(
-      `🔍 Found ${duplicateEmails.length} emails with duplicate profiles:`,
+      `🔍 Found ${duplicateEmails.length} emails with duplicate profiles:`
     );
 
     const syncResults = [];
@@ -51,16 +51,16 @@ export async function POST(request: NextRequest) {
 
       profiles.forEach((profile, index) => {
         console.log(
-          `   Profile ${index + 1}: ${profile.id} (${profile.userId}) - Status: ${profile.subscriptionStatus}`,
+          `   Profile ${index + 1}: ${profile.id} (${profile.userId}) - Status: ${profile.subscriptionStatus}`
         );
       });
 
       // Find ACTIVE profile
       const activeProfile = profiles.find(
-        (p) => p.subscriptionStatus === "ACTIVE",
+        p => p.subscriptionStatus === 'ACTIVE'
       );
       const freeProfiles = profiles.filter(
-        (p) => p.subscriptionStatus === "FREE" && p.id !== activeProfile?.id,
+        p => p.subscriptionStatus === 'FREE' && p.id !== activeProfile?.id
       );
 
       if (activeProfile && freeProfiles.length > 0) {
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
           const updated = await db.profile.update({
             where: { id: freeProfile.id },
             data: {
-              subscriptionStatus: "ACTIVE",
+              subscriptionStatus: 'ACTIVE',
               subscriptionStart: activeProfile.subscriptionStart,
               subscriptionEnd: activeProfile.subscriptionEnd,
               stripeCustomerId: activeProfile.stripeCustomerId,
@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
         console.log(`   ❌ No ACTIVE profile found for ${email}`);
         syncResults.push({
           email,
-          error: "No ACTIVE profile found",
-          profiles: profiles.map((p) => ({
+          error: 'No ACTIVE profile found',
+          profiles: profiles.map(p => ({
             id: p.id,
             status: p.subscriptionStatus,
           })),
@@ -111,35 +111,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("\n🎉 Profile sync completed!");
+    console.log('\n🎉 Profile sync completed!');
     console.log(
-      `📈 Processed ${duplicateEmails.length} duplicate email groups`,
+      `📈 Processed ${duplicateEmails.length} duplicate email groups`
     );
     console.log(
-      `✅ Successfully synced ${syncResults.filter((r) => !r.error).length} groups`,
+      `✅ Successfully synced ${syncResults.filter(r => !r.error).length} groups`
     );
 
     return NextResponse.json({
       success: true,
-      message: "Profile sync completed",
+      message: 'Profile sync completed',
       stats: {
         totalProfiles: allProfiles.length,
         duplicateEmailGroups: duplicateEmails.length,
-        successfulSyncs: syncResults.filter((r) => !r.error).length,
-        errors: syncResults.filter((r) => r.error).length,
+        successfulSyncs: syncResults.filter(r => !r.error).length,
+        errors: syncResults.filter(r => r.error).length,
       },
       results: syncResults,
     });
   } catch (error) {
-    console.error("❌ Error in profile sync:", error);
+    console.error('❌ Error in profile sync:', error);
 
     // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json(
       {
         success: false,
-        message: "Profile sync operation failed. Please try again later.",
+        message: 'Profile sync operation failed. Please try again later.',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -149,26 +149,26 @@ export async function GET(request: NextRequest) {
     // ✅ SECURITY: Rate limiting for profile analysis operations
     const rateLimitResult = await rateLimitAdmin()(request);
     if (!rateLimitResult.success) {
-      trackSuspiciousActivity(request, "PROFILE_ANALYSIS_RATE_LIMIT_EXCEEDED");
+      trackSuspiciousActivity(request, 'PROFILE_ANALYSIS_RATE_LIMIT_EXCEEDED');
       return rateLimitResult.error;
     }
 
     const user = await currentUser();
 
     if (!user) {
-      trackSuspiciousActivity(request, "UNAUTHENTICATED_PROFILE_ANALYSIS");
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      trackSuspiciousActivity(request, 'UNAUTHENTICATED_PROFILE_ANALYSIS');
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const userEmail = user.emailAddresses[0]?.emailAddress;
     if (!userEmail) {
-      return NextResponse.json({ error: "No email found" }, { status: 400 });
+      return NextResponse.json({ error: 'No email found' }, { status: 400 });
     }
 
     // Get all profiles with "FREE" status for analysis
     const freeProfiles = await db.profile.findMany({
       where: {
-        subscriptionStatus: "FREE",
+        subscriptionStatus: 'FREE',
       },
       select: {
         id: true,
@@ -184,21 +184,21 @@ export async function GET(request: NextRequest) {
     console.log(`📊 Found ${freeProfiles.length} profiles with FREE status`);
 
     return NextResponse.json({
-      message: "Profile analysis completed",
+      message: 'Profile analysis completed',
       totalFreeProfiles: freeProfiles.length,
       profiles: freeProfiles.slice(0, 10), // Return first 10 for review
-      note: "This is a read-only analysis. Use POST to perform actual sync.",
+      note: 'This is a read-only analysis. Use POST to perform actual sync.',
     });
   } catch (error) {
-    console.error("❌ Error in profile analysis:", error);
+    console.error('❌ Error in profile analysis:', error);
 
     // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json(
       {
-        error: "Profile analysis failed",
-        message: "Unable to analyze profiles. Please try again later.",
+        error: 'Profile analysis failed',
+        message: 'Unable to analyze profiles. Please try again later.',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useUser } from "@clerk/nextjs";
+import { useUser } from '@clerk/nextjs';
 import {
   ControlBar,
   GridLayout,
@@ -8,12 +8,12 @@ import {
   ParticipantTile,
   RoomAudioRenderer,
   useTracks,
-} from "@livekit/components-react";
-import "@livekit/components-styles";
-import { Track } from "livekit-client";
-import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+} from '@livekit/components-react';
+import '@livekit/components-styles';
+import { Track } from 'livekit-client';
+import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface MediaRoomProps {
   serverId: string;
@@ -25,20 +25,20 @@ interface MediaRoomProps {
 export function MediaRoom({ serverId, chatId, video, audio }: MediaRoomProps) {
   const { user, isLoaded } = useUser();
   const router = useRouter();
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState('');
 
   useEffect(() => {
     const name =
       user?.fullName ||
       user?.firstName ||
       user?.lastName ||
-      user?.primaryEmailAddress?.emailAddress.split("@")[0];
+      user?.primaryEmailAddress?.emailAddress.split('@')[0];
     if (!name) return;
     (async () => {
-      console.log("resp");
+      console.log('resp');
       try {
         const resp = await fetch(
-          `/api/get-participant-token?room=${chatId}&username=${name}`,
+          `/api/get-participant-token?room=${chatId}&username=${name}`
         );
 
         const data = await resp.json();
@@ -55,11 +55,11 @@ export function MediaRoom({ serverId, chatId, video, audio }: MediaRoomProps) {
     user?.primaryEmailAddress?.emailAddress,
   ]);
 
-  if (token === "" || !isLoaded) {
+  if (token === '' || !isLoaded) {
     return (
-      <div className="flex flex-col flex-1 justify-center items-center">
-        <Loader2 className="h-7 w-7 text-zinc-500 animate-spin my-4" />
-        <p className="text-zinc-500 dark:text-zinc-400 text-xs">Loading...</p>
+      <div className='flex flex-col flex-1 justify-center items-center'>
+        <Loader2 className='h-7 w-7 text-zinc-500 animate-spin my-4' />
+        <p className='text-zinc-500 dark:text-zinc-400 text-xs'>Loading...</p>
       </div>
     );
   }
@@ -75,8 +75,8 @@ export function MediaRoom({ serverId, chatId, video, audio }: MediaRoomProps) {
         router.push(`/servers/${serverId}`);
       }}
       // Use the default LiveKit theme for nice styles.
-      data-lk-theme="default"
-      className="flex flex-col flex-1 h-[80%]"
+      data-lk-theme='default'
+      className='flex flex-col flex-1 h-[80%]'
     >
       {/* Your custom component with basic video conferencing functionality. */}
       <MyVideoConference />
@@ -97,7 +97,7 @@ function MyVideoConference() {
       { source: Track.Source.Camera, withPlaceholder: true },
       { source: Track.Source.ScreenShare, withPlaceholder: false },
     ],
-    { onlySubscribed: false },
+    { onlySubscribed: false }
   );
   return (
     <GridLayout tracks={tracks}>

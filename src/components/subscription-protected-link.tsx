@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 interface SubscriptionProtectedLinkProps {
   href: string;
@@ -12,13 +12,13 @@ interface SubscriptionProtectedLinkProps {
   allowedProductIds?: string[];
   className?: string;
   variant?:
-    | "default"
-    | "destructive"
-    | "outline"
-    | "secondary"
-    | "ghost"
-    | "link";
-  size?: "default" | "sm" | "lg" | "icon";
+    | 'default'
+    | 'destructive'
+    | 'outline'
+    | 'secondary'
+    | 'ghost'
+    | 'link';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
   onClick?: () => void;
   disabled?: boolean;
 }
@@ -26,7 +26,7 @@ interface SubscriptionProtectedLinkProps {
 export function SubscriptionProtectedLink({
   href,
   children,
-  allowedProductIds = ["prod_SWIyAf2tfVrJao"], // Default to your current product
+  allowedProductIds = ['prod_SWIyAf2tfVrJao'], // Default to your current product
   className,
   variant,
   size,
@@ -47,8 +47,8 @@ export function SubscriptionProtectedLink({
 
     // If user is not authenticated, redirect to sign-in
     if (!isLoaded || !user) {
-      console.log("🔐 User not authenticated, redirecting to sign-in");
-      router.push("/sign-in");
+      console.log('🔐 User not authenticated, redirecting to sign-in');
+      router.push('/sign-in');
       return;
     }
 
@@ -56,13 +56,13 @@ export function SubscriptionProtectedLink({
     setIsChecking(true);
 
     try {
-      console.log("🔍 Checking subscription for navigation to:", href);
+      console.log('🔍 Checking subscription for navigation to:', href);
 
       // Check subscription status
-      const response = await fetch("/api/check-product-subscription", {
-        method: "POST",
+      const response = await fetch('/api/check-product-subscription', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           allowedProductIds,
@@ -70,26 +70,26 @@ export function SubscriptionProtectedLink({
       });
 
       const result = await response.json();
-      console.log("📊 Subscription check result:", result);
+      console.log('📊 Subscription check result:', result);
 
       if (result.hasAccess) {
-        console.log("✅ Access granted, navigating to:", href);
+        console.log('✅ Access granted, navigating to:', href);
         router.push(href);
       } else {
-        console.log("❌ Access denied, redirecting to pricing page");
-        router.push("/pricing");
+        console.log('❌ Access denied, redirecting to pricing page');
+        router.push('/pricing');
       }
     } catch (error) {
-      console.error("❌ Error checking subscription:", error);
+      console.error('❌ Error checking subscription:', error);
       // On error, redirect to pricing to be safe
-      router.push("/pricing");
+      router.push('/pricing');
     } finally {
       setIsChecking(false);
     }
   };
 
   // If it's a Button component
-  if (className?.includes("Button") || variant || size) {
+  if (className?.includes('Button') || variant || size) {
     return (
       <Button
         onClick={handleClick}
@@ -100,7 +100,7 @@ export function SubscriptionProtectedLink({
       >
         {isChecking ? (
           <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            <Loader2 className='w-4 h-4 mr-2 animate-spin' />
             Checking...
           </>
         ) : (
@@ -114,18 +114,18 @@ export function SubscriptionProtectedLink({
   return (
     <div
       onClick={handleClick}
-      className={`cursor-pointer ${disabled ? "pointer-events-none opacity-50" : ""} ${className || ""}`}
-      role="button"
+      className={`cursor-pointer ${disabled ? 'pointer-events-none opacity-50' : ''} ${className || ''}`}
+      role='button'
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
           handleClick(e as any);
         }
       }}
     >
       {isChecking ? (
-        <div className="flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" />
+        <div className='flex items-center gap-2'>
+          <Loader2 className='w-4 h-4 animate-spin' />
           <span>Checking...</span>
         </div>
       ) : (

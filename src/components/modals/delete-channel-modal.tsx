@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { useStore } from "@/store/store";
-import { secureAxiosDelete } from "@/lib/csrf-client";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import qs from "query-string";
+} from '@/components/ui/dialog';
+import { useStore } from '@/store/store';
+import { secureAxiosDelete } from '@/lib/csrf-client';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import qs from 'query-string';
 
 export function DeleteChannelModal() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export function DeleteChannelModal() {
   const onOpen = useStore.use.onOpen();
   const onClose = useStore.use.onClose();
   const data = useStore.use.data();
-  const isModelOpen = isOpen && type === "deleteChannel";
+  const isModelOpen = isOpen && type === 'deleteChannel';
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDeleteServer = async () => {
@@ -37,7 +37,7 @@ export function DeleteChannelModal() {
       router.refresh();
       router.push(`/servers/${data?.server?.id}`);
     } catch (error: any) {
-      console.log(error, "DELETE CHANNEL ERROR");
+      console.log(error, 'DELETE CHANNEL ERROR');
     } finally {
       setIsLoading(false);
     }
@@ -47,29 +47,29 @@ export function DeleteChannelModal() {
     <Dialog open={isModelOpen} onOpenChange={onClose}>
       <DialogContent
         aria-describedby={undefined}
-        className="bg-white text-black p-0 overflow-hidden"
+        className='bg-white text-black p-0 overflow-hidden'
       >
-        <DialogHeader className="pt-8 px-6">
-          <DialogTitle className="text-2xl text-center font-bold">
+        <DialogHeader className='pt-8 px-6'>
+          <DialogTitle className='text-2xl text-center font-bold'>
             Delete Channel
           </DialogTitle>
-          <DialogDescription className="text-center text-zinc-500">
-            Are you sure you want to Delete{" "}
-            <span className="text-indigo-500 font-semibold">
+          <DialogDescription className='text-center text-zinc-500'>
+            Are you sure you want to Delete{' '}
+            <span className='text-indigo-500 font-semibold'>
               #{data?.channel?.name}
-            </span>{" "}
+            </span>{' '}
             Channel ?
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="px-6 py-4 bg-gray-100">
-          <div className="flex items-center justify-between w-full">
-            <Button disabled={isLoading} onClick={onClose} variant="ghost">
+        <DialogFooter className='px-6 py-4 bg-gray-100'>
+          <div className='flex items-center justify-between w-full'>
+            <Button disabled={isLoading} onClick={onClose} variant='ghost'>
               Cancel
             </Button>
             <Button
               disabled={isLoading}
               onClick={handleDeleteServer}
-              variant="default"
+              variant='default'
             >
               Confirm
             </Button>

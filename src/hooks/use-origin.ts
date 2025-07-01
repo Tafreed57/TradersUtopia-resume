@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 export function useOrigin() {
   const [mounted, setMounted] = useState(false);
@@ -8,7 +8,7 @@ export function useOrigin() {
   }, []);
 
   //? typeof window !== "undefined"  : check if code is running in the browser not in the server
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  if (!mounted) return "";
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  if (!mounted) return '';
   return origin;
 }

@@ -4,7 +4,7 @@ export async function checkUserSubscription() {
   // For UI-only testing, just return that user needs to pay
   return {
     hasAccess: false,
-    status: "FREE" as const,
+    status: 'FREE' as const,
     canStartTrial: true,
   };
 }

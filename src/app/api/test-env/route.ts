@@ -1,20 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   // ✅ SECURITY: Extra protection - Never expose API keys in production
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === 'production') {
     return NextResponse.json(
       {
-        error: "Debug endpoints are disabled in production",
-        environment: "production",
-        security_note: "This endpoint is only available in development mode",
+        error: 'Debug endpoints are disabled in production',
+        environment: 'production',
+        security_note: 'This endpoint is only available in development mode',
       },
       {
         status: 403,
         headers: {
-          "X-Security-Note": "Debug endpoint blocked in production",
+          'X-Security-Note': 'Debug endpoint blocked in production',
         },
-      },
+      }
     );
   }
 
@@ -30,18 +30,18 @@ export async function GET() {
   // ✅ SECURITY: Additional configuration checks
   const configurationCheck = {
     core_services: {
-      STRIPE_SECRET_KEY: hasStripeSecret ? "✅ Configured" : "❌ Missing",
-      STRIPE_WEBHOOK_SECRET: hasWebhookSecret ? "✅ Configured" : "❌ Missing",
-      DATABASE_URL: hasDatabaseUrl ? "✅ Configured" : "❌ Missing",
+      STRIPE_SECRET_KEY: hasStripeSecret ? '✅ Configured' : '❌ Missing',
+      STRIPE_WEBHOOK_SECRET: hasWebhookSecret ? '✅ Configured' : '❌ Missing',
+      DATABASE_URL: hasDatabaseUrl ? '✅ Configured' : '❌ Missing',
     },
     authentication: {
-      CLERK_SECRET_KEY: hasClerkSecret ? "✅ Configured" : "❌ Missing",
+      CLERK_SECRET_KEY: hasClerkSecret ? '✅ Configured' : '❌ Missing',
       CLERK_PUBLISHABLE_KEY: hasClerkPublishable
-        ? "✅ Configured"
-        : "❌ Missing",
+        ? '✅ Configured'
+        : '❌ Missing',
     },
     media_services: {
-      LIVEKIT_KEYS: hasLivekitKeys ? "✅ Configured" : "❌ Missing",
+      LIVEKIT_KEYS: hasLivekitKeys ? '✅ Configured' : '❌ Missing',
     },
   };
 
@@ -60,7 +60,7 @@ export async function GET() {
 
   return NextResponse.json(
     {
-      environment: "development",
+      environment: 'development',
       timestamp: new Date().toISOString(),
       configuration_status: configurationCheck,
       summary: {
@@ -69,13 +69,13 @@ export async function GET() {
         total: totalCount,
         ready_for_production: completeness === 100,
       },
-      security_note: "🔒 No sensitive values are exposed in this endpoint",
+      security_note: '🔒 No sensitive values are exposed in this endpoint',
     },
     {
       headers: {
-        "X-Environment": "development",
-        "X-Security-Level": "safe",
+        'X-Environment': 'development',
+        'X-Security-Level': 'safe',
       },
-    },
+    }
   );
 }

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   Dialog,
@@ -6,7 +6,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,13 +17,13 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { UserAvatar } from "@/components/user/user-avatar";
-import { useStore } from "@/store/store";
-import { ServerWithMembersWithProfiles } from "@/types/server";
-import { MemberRole } from "@prisma/client";
-import { secureAxiosPatch, secureAxiosDelete } from "@/lib/csrf-client";
+} from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { UserAvatar } from '@/components/user/user-avatar';
+import { useStore } from '@/store/store';
+import { ServerWithMembersWithProfiles } from '@/types/server';
+import { MemberRole } from '@prisma/client';
+import { secureAxiosPatch, secureAxiosDelete } from '@/lib/csrf-client';
 import {
   Check,
   Gavel,
@@ -33,24 +33,24 @@ import {
   ShieldAlert,
   ShieldCheck,
   ShieldQuestion,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import qs from "query-string";
-import { useState } from "react";
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import qs from 'query-string';
+import { useState } from 'react';
 
 export function ManageMembersModal() {
   const router = useRouter();
-  const [loadingId, setLoadingId] = useState("");
+  const [loadingId, setLoadingId] = useState('');
   const type = useStore.use.type();
   const isOpen = useStore.use.isOpen();
   const onOpen = useStore.use.onOpen();
   const onClose = useStore.use.onClose();
   const data = useStore.use.data() as { server: ServerWithMembersWithProfiles };
-  const isModelOpen = isOpen && type === "manageMembers";
+  const isModelOpen = isOpen && type === 'manageMembers';
   const roleIconMap = {
-    [MemberRole.ADMIN]: <ShieldAlert className="w-4 text-rose-500 h-4 ml-2" />,
+    [MemberRole.ADMIN]: <ShieldAlert className='w-4 text-rose-500 h-4 ml-2' />,
     [MemberRole.MODERATOR]: (
-      <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400  ml-2" />
+      <ShieldCheck className='w-4 h-4 text-indigo-600 dark:text-indigo-400  ml-2' />
     ),
     [MemberRole.GUEST]: null,
   };
@@ -66,11 +66,11 @@ export function ManageMembersModal() {
       });
       const res = await secureAxiosPatch(url, { role });
       router.refresh();
-      onOpen("manageMembers", { server: res.data });
+      onOpen('manageMembers', { server: res.data });
     } catch (error) {
       console.log(error);
     } finally {
-      setLoadingId("");
+      setLoadingId('');
     }
   };
 
@@ -85,11 +85,11 @@ export function ManageMembersModal() {
       });
       const res = await secureAxiosDelete(url);
       router.refresh();
-      onOpen("manageMembers", { server: res.data });
+      onOpen('manageMembers', { server: res.data });
     } catch (error) {
       console.log(error);
     } finally {
-      setLoadingId("");
+      setLoadingId('');
     }
   };
 
@@ -97,61 +97,61 @@ export function ManageMembersModal() {
     <Dialog open={isModelOpen} onOpenChange={onClose}>
       <DialogContent
         aria-describedby={undefined}
-        className="bg-white text-black overflow-hidden"
+        className='bg-white text-black overflow-hidden'
       >
-        <DialogHeader className="pt-8 px-6">
-          <DialogTitle className="text-2xl text-center font-bold">
+        <DialogHeader className='pt-8 px-6'>
+          <DialogTitle className='text-2xl text-center font-bold'>
             Manage Members
           </DialogTitle>
-          <DialogDescription className="text-center text-sm text-zinc-500 dark:text-neutral-400 px-6 py-2">
+          <DialogDescription className='text-center text-sm text-zinc-500 dark:text-neutral-400 px-6 py-2'>
             {data?.server?.members?.length} members
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="mt-8 max-h-[420px] pr-6">
-          {data?.server?.members?.map((member) => (
-            <div key={member.id} className="flex items-center  gap-x-2 mb-6">
+        <ScrollArea className='mt-8 max-h-[420px] pr-6'>
+          {data?.server?.members?.map(member => (
+            <div key={member.id} className='flex items-center  gap-x-2 mb-6'>
               <UserAvatar src={member?.profile?.imageUrl ?? undefined} />
-              <div className="flex flex-col gap-y-1">
-                <div className="text-sm font-semibold  gap-x-1 flex items-center">
+              <div className='flex flex-col gap-y-1'>
+                <div className='text-sm font-semibold  gap-x-1 flex items-center'>
                   {member.profile?.name}
                   {roleIconMap[member.role]}
                 </div>
-                <p className="text-xs text-zinc-500">{member.profile.email}</p>
+                <p className='text-xs text-zinc-500'>{member.profile.email}</p>
               </div>
               {data?.server?.profileId !== member.profileId &&
                 loadingId !== member.id && (
-                  <div className="ml-auto">
+                  <div className='ml-auto'>
                     <DropdownMenu modal={true}>
                       <DropdownMenuTrigger asChild>
-                        <MoreVertical className="w-4 h-4 text-zinc-500" />
+                        <MoreVertical className='w-4 h-4 text-zinc-500' />
                       </DropdownMenuTrigger>
 
-                      <DropdownMenuContent side="left">
+                      <DropdownMenuContent side='left'>
                         <DropdownMenuSub>
-                          <DropdownMenuSubTrigger className="flex items-center">
-                            <ShieldQuestion className="w-4 h-4 mr-2" />
+                          <DropdownMenuSubTrigger className='flex items-center'>
+                            <ShieldQuestion className='w-4 h-4 mr-2' />
                             <span>Role</span>
                           </DropdownMenuSubTrigger>
                           <DropdownMenuPortal>
                             <DropdownMenuSubContent>
                               <DropdownMenuItem
-                                onClick={() => onRoleChange(member.id, "GUEST")}
+                                onClick={() => onRoleChange(member.id, 'GUEST')}
                               >
-                                <Shield className="mr-2 h-4 w-4" />
+                                <Shield className='mr-2 h-4 w-4' />
                                 Guest
                                 {member.role === MemberRole.GUEST && (
-                                  <Check className="w-4 h-4 ml-auto" />
+                                  <Check className='w-4 h-4 ml-auto' />
                                 )}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
-                                  onRoleChange(member.id, "MODERATOR")
+                                  onRoleChange(member.id, 'MODERATOR')
                                 }
                               >
-                                <ShieldCheck className=" mr-2 h-4 w-4" />
+                                <ShieldCheck className=' mr-2 h-4 w-4' />
                                 Moderator
                                 {member.role === MemberRole.MODERATOR && (
-                                  <Check className="w-4 h-4 ml-auto" />
+                                  <Check className='w-4 h-4 ml-auto' />
                                 )}
                               </DropdownMenuItem>
                             </DropdownMenuSubContent>
@@ -159,7 +159,7 @@ export function ManageMembersModal() {
                         </DropdownMenuSub>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onKick(member.id)}>
-                          <Gavel className="mr-2 h-4 w-4" />
+                          <Gavel className='mr-2 h-4 w-4' />
                           Kick
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -167,7 +167,7 @@ export function ManageMembersModal() {
                   </div>
                 )}
               {loadingId === member.id && (
-                <Loader2 className="animate-spin text-zinc-500 ml-auto w-4 h-4" />
+                <Loader2 className='animate-spin text-zinc-500 ml-auto w-4 h-4' />
               )}
             </div>
           ))}

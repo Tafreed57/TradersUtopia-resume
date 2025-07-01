@@ -5,13 +5,12 @@ import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { strictCSRFValidation } from '@/lib/csrf';
 import Stripe from 'stripe';
 
-
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-05-28.basil',
+});
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
   try {
     // CSRF protection for admin operations
     const csrfValid = await strictCSRFValidation(request);

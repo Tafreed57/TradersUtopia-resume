@@ -14,7 +14,8 @@
     "db:migrate": "npx prisma migrate deploy",
     "db:reset": "npx prisma migrate reset --force",
     "amplify:build": "npm run build",
-    "verify:deployment": "node scripts/verify-deployment.js"
+    "verify:deployment": "node scripts/verify-deployment.js",
+    "pretty": "prettier --write \"src/**/*.{js,jsx,mjs,cjs,ts,tsx,json}\""
   },
   "prisma": {
     "seed": "ts-node --transpile-only  prisma/seed.ts"

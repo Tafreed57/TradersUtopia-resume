@@ -2,7 +2,6 @@ import { ourFileRouter } from '@/app/api/uploadthing/core';
 import '@/app/globals.css';
 import { ModalProvider } from '@/contexts/modal-provider';
 import { QueryProvider } from '@/contexts/query-provider';
-import { SocketProvider } from '@/contexts/socket-provider';
 import { ThemeProvider } from '@/contexts/theme-provider';
 import { LoadingProvider } from '@/contexts/loading-provider';
 import { AuthWrapper } from '@/components/auth-wrapper';
@@ -146,32 +145,30 @@ export default function RootLayout({
             <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
             <ErrorBoundary>
               <LoadingProvider>
-                <SocketProvider>
-                  <QueryProvider>
-                    <AuthWrapper>
-                      <TwoFactorGuard>
-                        <ModalProvider />
-                        <Toaster
-                          position='top-right'
-                          expand={true}
-                          richColors
-                          closeButton
-                          className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
-                          toastOptions={{
-                            className:
-                              'text-sm p-4 min-h-[48px] touch-manipulation',
-                            style: {
-                              minHeight: '48px',
-                              fontSize: '14px',
-                              padding: '16px',
-                            },
-                          }}
-                        />
-                        {children}
-                      </TwoFactorGuard>
-                    </AuthWrapper>
-                  </QueryProvider>
-                </SocketProvider>
+                <QueryProvider>
+                  <AuthWrapper>
+                    <TwoFactorGuard>
+                      <ModalProvider />
+                      <Toaster
+                        position='top-right'
+                        expand={true}
+                        richColors
+                        closeButton
+                        className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
+                        toastOptions={{
+                          className:
+                            'text-sm p-4 min-h-[48px] touch-manipulation',
+                          style: {
+                            minHeight: '48px',
+                            fontSize: '14px',
+                            padding: '16px',
+                          },
+                        }}
+                      />
+                      {children}
+                    </TwoFactorGuard>
+                  </AuthWrapper>
+                </QueryProvider>
               </LoadingProvider>
             </ErrorBoundary>
           </ThemeProvider>
