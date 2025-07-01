@@ -72,7 +72,7 @@ const nextConfig = {
     ];
   },
 
-  // ✅ WEBPACK: Handle server-only modules and fix clientModules error
+  // ✅ WEBPACK: Handle server-only modules
   webpack: (config, { isServer }) => {
     // Exclude server-only modules from client bundle
     if (!isServer) {
@@ -87,22 +87,6 @@ const nextConfig = {
         'web-push': false,
       };
     }
-
-    // ✅ FIX: clientModules error - Optimize module resolution
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        ...config.optimization?.splitChunks,
-        chunks: 'all',
-      },
-    };
-
-    // ✅ FIX: clientModules error - Handle dynamic imports better
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      // Ensure consistent module resolution
-    };
-
     return config;
   },
 
@@ -110,19 +94,6 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['web-push', 'resend'],
   },
-
-  // ✅ FIX: clientModules error - Bundle pages router dependencies
-  bundlePagesRouterDependencies: true,
-
-  // ✅ FIX: clientModules error - Transpile problematic packages
-  transpilePackages: [
-    '@emoji-mart/data',
-    '@emoji-mart/react',
-    '@livekit/components-react',
-    '@livekit/components-styles',
-    'livekit-client',
-    'livekit-server-sdk',
-  ],
 
   images: {
     remotePatterns: [
