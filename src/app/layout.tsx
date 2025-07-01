@@ -2,8 +2,7 @@ import { ourFileRouter } from '@/app/api/uploadthing/core';
 import '@/app/globals.css';
 import { ModalProvider } from '@/contexts/modal-provider';
 import { QueryProvider } from '@/contexts/query-provider';
-import { SocketProvider } from '@/contexts/socket-provider';
-
+import { ThemeProvider } from '@/contexts/theme-provider';
 import { LoadingProvider } from '@/contexts/loading-provider';
 import { AuthWrapper } from '@/components/auth-wrapper';
 import { TwoFactorGuard } from '@/components/2fa-guard';
@@ -24,7 +23,10 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
-  themeColor: '#ffffff',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+  ],
 };
 
 export const metadata: Metadata = {
@@ -33,7 +35,7 @@ export const metadata: Metadata = {
     template: '%s | TradersUtopia',
   },
   description:
-    'Professional Trading Signals & Expert Education Platform - Join 1,047+ successful traders with real-time alerts, expert analysis, and live coaching sessions.',
+    'Professional Trading Signals & Expert Education Platform - Join 2,847+ successful traders with real-time alerts, expert analysis, and live coaching sessions.',
   keywords: [
     'trading signals',
     'forex trading',
@@ -56,7 +58,7 @@ export const metadata: Metadata = {
     type: 'website',
     title: 'TradersUtopia - Professional Trading Platform',
     description:
-      'Join 1,047+ successful traders with real-time alerts, expert analysis, and live coaching sessions.',
+      'Join 2,847+ successful traders with real-time alerts, expert analysis, and live coaching sessions.',
     url: 'https://tradersutopia.com',
     siteName: 'TradersUtopia',
     images: [
@@ -73,7 +75,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'TradersUtopia - Professional Trading Platform',
     description:
-      'Join 1,047+ successful traders with real-time alerts, expert analysis, and live coaching sessions.',
+      'Join 2,847+ successful traders with real-time alerts, expert analysis, and live coaching sessions.',
     images: ['/logo.png'],
     creator: '@tradersutopia',
   },
@@ -114,8 +116,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en' className='dark scroll-smooth'>
-      <body className={cn(open_sans.className, 'bg-background')}>
+    <html lang='en' className='scroll-smooth' suppressHydrationWarning>
+      <body className={cn(open_sans.className, 'bg-white dark:bg-[#313338]')}>
         <ClerkProvider
           appearance={{
             variables: { colorPrimary: '#000000' },
@@ -133,10 +135,16 @@ export default function RootLayout({
             },
           }}
         >
-          <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
-          <ErrorBoundary>
-            <LoadingProvider>
-              <SocketProvider>
+          <ThemeProvider
+            attribute='class'
+            defaultTheme='dark'
+            enableSystem={false}
+            storageKey='traders-utopia-theme'
+            disableTransitionOnChange
+          >
+            <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
+            <ErrorBoundary>
+              <LoadingProvider>
                 <QueryProvider>
                   <AuthWrapper>
                     <TwoFactorGuard>
@@ -161,9 +169,9 @@ export default function RootLayout({
                     </TwoFactorGuard>
                   </AuthWrapper>
                 </QueryProvider>
-              </SocketProvider>
-            </LoadingProvider>
-          </ErrorBoundary>
+              </LoadingProvider>
+            </ErrorBoundary>
+          </ThemeProvider>
         </ClerkProvider>
       </body>
     </html>

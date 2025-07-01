@@ -65,7 +65,7 @@ export function UserDetails() {
 
   return (
     <div className='p-16 rounded-lg border border-[#EDEDED] bg-[#F1F1F2] background relative'>
-      <div className='p-8 rounded-xl bg-gray-800 shadow-[0_5px_15px_rgba(0,0,0,0.3),0_15px_35px_-5px_rgba(25,28,33,0.5)] ring-1 ring-gray-600/30 max-w-[25rem]'>
+      <div className='p-8 rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5 max-w-[25rem]'>
         <div className='flex flex-col items-center gap-2 mb-6'>
           <div className='w-full relative flex justify-center'>
             <img

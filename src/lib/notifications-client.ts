@@ -1,7 +1,7 @@
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
 // Toast notification types
-export type ToastType = "success" | "error" | "info" | "warning";
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 // Toast notification wrapper for client-side use
 export const showToast = {
@@ -23,7 +23,7 @@ export const showToast = {
       loading: string;
       success: string;
       error: string;
-    },
+    }
   ) => {
     return toast.promise(promise, messages);
   },

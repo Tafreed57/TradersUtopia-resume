@@ -1,0 +1,284 @@
+# TRADERSUTOPIA Cursor Rules
+
+# These rules MUST be automatically followed for ALL prompts and development tasks
+
+## 🚫 CRITICAL RESTRICTIONS
+
+### 1. NO GIT OPERATIONS
+
+- NEVER suggest, execute, or perform any git operations (git add, git commit, git push, git pull, git merge, etc.)
+- NEVER create or modify git-related files (.gitignore, .gitattributes)
+- NEVER suggest git workflows or branching strategies
+- Focus solely on code implementation and file modifications
+
+## 🏗️ ARCHITECTURE & STACK
+
+### Core Technologies
+
+- **Framework**: Next.js 14+ (App Router)
+- **Language**: TypeScript (strict mode)
+- **Database**: PostgreSQL with Prisma ORM (Neon hosting)
+- **Authentication**: Clerk
+- **Payments**: Stripe
+- **Deployment**: AWS Amplify
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Package Manager**: pnpm (preferred)
+
+### Key Features
+
+- Real-time chat/messaging system
+- Subscription-based access control
+- Two-factor authentication (2FA)
+- Admin panel with user management
+- Server/channel organization (Discord-like)
+- File uploads with security validation
+- CSRF protection
+- Rate limiting
+- Push notifications
+
+## 📁 PROJECT STRUCTURE
+
+### Directory Organization
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── (auth)/            # Authentication routes
+│   ├── (main)/            # Main application routes
+│   └── api/               # API routes
+├── components/            # React components
+│   ├── ui/               # shadcn/ui components
+│   ├── modals/           # Modal components
+│   ├── chat/             # Chat-related components
+│   └── [feature]/        # Feature-specific components
+├── lib/                   # Utility libraries
+├── hooks/                 # Custom React hooks
+├── contexts/              # React contexts
+├── store/                 # State management (Zustand)
+└── types/                 # TypeScript type definitions
+```
+
+## 🔒 SECURITY REQUIREMENTS
+
+### Must Always Implement
+
+- **Input Validation**: Use Zod schemas for all user inputs
+- **CSRF Protection**: Include CSRF tokens for state-changing operations
+- **Rate Limiting**: Apply to all API endpoints
+- **Authentication**: Verify user sessions before sensitive operations
+- **Authorization**: Check user permissions and subscription status
+- **SQL Injection Prevention**: Use Prisma ORM properly
+- **File Upload Security**: Validate file types and sizes
+- **Environment Variables**: Never expose sensitive keys in client code
+
+### Security Patterns
+
+```typescript
+// Example: Always validate inputs
+const schema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+});
+
+// Example: Always check authentication
+const { userId } = auth();
+if (!userId) {
+  return new NextResponse('Unauthorized', { status: 401 });
+}
+```
+
+## 💳 SUBSCRIPTION SYSTEM
+
+### Access Control Logic
+
+- **Free users**: Limited access to basic features
+- **Trial users**: Full access for limited time
+- **Paid subscribers**: Full access to all features
+- **Admin users**: Management capabilities
+
+### Implementation Pattern
+
+```typescript
+// Always check subscription status for protected features
+const subscription = await getCurrentSubscription(userId);
+if (!subscription?.isActive) {
+  return redirect('/pricing');
+}
+```
+
+## 🎨 UI/UX GUIDELINES
+
+### Component Standards
+
+- Use shadcn/ui components as base
+- Implement responsive design (mobile-first)
+- Follow consistent spacing using Tailwind classes
+- Use proper loading states and error handling
+- Implement accessibility features (ARIA labels, keyboard navigation)
+
+### Styling Conventions
+
+```typescript
+// Example: Consistent button styling
+<Button
+  variant="default"
+  size="sm"
+  className="w-full md:w-auto"
+  disabled={isLoading}
+>
+  {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+  Submit
+</Button>
+```
+
+## 🛠️ DEVELOPMENT PRACTICES
+
+### Code Quality
+
+- **TypeScript**: Use strict typing, avoid `any`
+- **Error Handling**: Implement proper try-catch blocks
+- **Loading States**: Show loading indicators for async operations
+- **Validation**: Client-side validation + server-side validation
+- **Performance**: Optimize with React.memo, useMemo, useCallback when needed
+
+### API Route Standards
+
+```typescript
+// Standard API route structure
+export async function POST(req: Request) {
+  try {
+    // 1. Rate limiting
+    const rateLimitResult = await rateLimit(req);
+    if (!rateLimitResult.success) {
+      return new NextResponse('Rate limit exceeded', { status: 429 });
+    }
+
+    // 2. Authentication
+    const { userId } = auth();
+    if (!userId) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    // 3. Input validation
+    const body = await req.json();
+    const validatedData = schema.parse(body);
+
+    // 4. Business logic
+    const result = await performOperation(validatedData);
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('API Error:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+```
+
+### Database Operations
+
+- Use Prisma transactions for multi-table operations
+- Implement proper error handling
+- Use select statements to limit returned fields
+- Include proper indexes for performance
+
+## 🔄 STATE MANAGEMENT
+
+### Zustand Store Pattern
+
+```typescript
+// Use Zustand for global state
+interface StoreState {
+  data: SomeType[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+interface StoreActions {
+  fetchData: () => Promise<void>;
+  updateData: (data: SomeType) => void;
+  reset: () => void;
+}
+```
+
+## 📱 RESPONSIVE DESIGN
+
+### Breakpoint Strategy
+
+- **Mobile**: Base styles (default)
+- **Tablet**: md: prefix (768px+)
+- **Desktop**: lg: prefix (1024px+)
+- **Large Desktop**: xl: prefix (1280px+)
+
+## 🚀 DEPLOYMENT CONSIDERATIONS
+
+### AWS Amplify Compatibility
+
+- Ensure all environment variables are properly configured
+- Use Next.js static optimization where possible
+- Implement proper error boundaries
+- Test build process locally before deployment
+
+## 📋 TESTING REQUIREMENTS
+
+### When Adding New Features
+
+- Test authentication flows
+- Verify subscription access controls
+- Test responsive design on multiple devices
+- Validate form inputs and error states
+- Check API rate limiting
+
+## 🔧 ENVIRONMENT VARIABLES
+
+### Required Variables (always verify presence)
+
+- `DATABASE_URL`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `STRIPE_API_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `UPLOADTHING_SECRET`
+- `UPLOADTHING_APP_ID`
+
+## 📞 API INTEGRATION PATTERNS
+
+### External Services
+
+- **Clerk**: User authentication and management
+- **Stripe**: Payment processing and subscription management
+- **Neon**: PostgreSQL database hosting
+- **UploadThing**: File upload handling
+
+### Error Handling Pattern
+
+```typescript
+// Consistent error response format
+if (error instanceof z.ZodError) {
+  return new NextResponse('Invalid input', { status: 400 });
+}
+
+if (error instanceof Prisma.PrismaClientKnownRequestError) {
+  return new NextResponse('Database error', { status: 500 });
+}
+
+return new NextResponse('Internal server error', { status: 500 });
+```
+
+---
+
+## 🎯 AUTOMATIC COMPLIANCE
+
+**These rules MUST be automatically followed for ALL prompts. When implementing any feature or fixing any issue:**
+
+1. ✅ NO git operations whatsoever
+2. ✅ Implement proper security measures
+3. ✅ Follow TypeScript best practices
+4. ✅ Use established component patterns
+5. ✅ Include proper error handling
+6. ✅ Verify authentication and authorization
+7. ✅ Test subscription access controls
+8. ✅ Ensure responsive design
+9. ✅ Validate all inputs
+10. ✅ Follow the established project structure
+
+**Remember: These rules apply to EVERY interaction and code modification.**

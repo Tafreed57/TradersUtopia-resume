@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { checkUserSubscription } from "@/lib/subscription";
+import { NextResponse } from 'next/server';
+import { checkUserSubscription } from '@/lib/subscription';
 
 export async function GET() {
   try {
@@ -7,10 +7,10 @@ export async function GET() {
 
     return NextResponse.json(subscriptionData);
   } catch (error) {
-    console.error("Error checking subscription:", error);
+    console.error('Error checking subscription:', error);
     return NextResponse.json(
-      { hasAccess: false, status: "ERROR", canStartTrial: false },
-      { status: 500 },
+      { hasAccess: false, status: 'ERROR', canStartTrial: false },
+      { status: 500 }
     );
   }
 }

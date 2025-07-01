@@ -4,7 +4,6 @@ import { ChatItem } from '@/components/chat/chat-item';
 import { ChatWelcome } from '@/components/chat/chat-welcome';
 import { useChatQuery } from '@/hooks/use-chat-query';
 import { useChatScroll } from '@/hooks/use-chat-scroll';
-import { useChatSocket } from '@/hooks/use-chat-socket';
 import { MessagesWithMemberWithProfile } from '@/types/server';
 import { Member } from '@prisma/client';
 import { format } from 'date-fns';
@@ -52,8 +51,6 @@ export function ChatMessages({
 
   const latestMessageId =
     data?.pages?.[0]?.items?.[data?.pages?.[0]?.items?.length - 1]?.id;
-
-  useChatSocket({ queryKey, addKey, updateKey });
 
   useChatScroll({
     chatRef,

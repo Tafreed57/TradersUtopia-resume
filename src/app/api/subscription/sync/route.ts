@@ -3,11 +3,12 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2025-05-28.basil',
+  });
   try {
     const user = await currentUser();
 

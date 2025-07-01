@@ -50,7 +50,7 @@ export function ManageMembersModal() {
   const roleIconMap = {
     [MemberRole.ADMIN]: <ShieldAlert className='w-4 text-rose-500 h-4 ml-2' />,
     [MemberRole.MODERATOR]: (
-      <ShieldCheck className='w-4 h-4 text-indigo-600 ml-2' />
+      <ShieldCheck className='w-4 h-4 text-indigo-600 dark:text-indigo-400  ml-2' />
     ),
     [MemberRole.GUEST]: null,
   };
@@ -97,22 +97,22 @@ export function ManageMembersModal() {
     <Dialog open={isModelOpen} onOpenChange={onClose}>
       <DialogContent
         aria-describedby={undefined}
-        className='bg-gray-900 text-white overflow-hidden'
+        className='bg-white text-black overflow-hidden'
       >
         <DialogHeader className='pt-8 px-6'>
           <DialogTitle className='text-2xl text-center font-bold'>
             Manage Members
           </DialogTitle>
-          <DialogDescription className='text-center text-sm text-zinc-500 px-6 py-2'>
+          <DialogDescription className='text-center text-sm text-zinc-500 dark:text-neutral-400 px-6 py-2'>
             {data?.server?.members?.length} members
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className='mt-8 max-h-[420px] pr-6'>
           {data?.server?.members?.map(member => (
-            <div key={member.id} className='flex items-center gap-x-2 mb-6'>
+            <div key={member.id} className='flex items-center  gap-x-2 mb-6'>
               <UserAvatar src={member?.profile?.imageUrl ?? undefined} />
               <div className='flex flex-col gap-y-1'>
-                <div className='text-sm font-semibold gap-x-1 flex items-center'>
+                <div className='text-sm font-semibold  gap-x-1 flex items-center'>
                   {member.profile?.name}
                   {roleIconMap[member.role]}
                 </div>

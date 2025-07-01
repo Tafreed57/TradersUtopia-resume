@@ -1,22 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
-import { rateLimitGeneral, trackSuspiciousActivity } from "@/lib/rate-limit";
+import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
     // ✅ SECURITY: Rate limiting for profile access
     const rateLimitResult = await rateLimitGeneral()(request);
     if (!rateLimitResult.success) {
-      trackSuspiciousActivity(request, "USER_PROFILE_RATE_LIMIT_EXCEEDED");
+      trackSuspiciousActivity(request, 'USER_PROFILE_RATE_LIMIT_EXCEEDED');
       return rateLimitResult.error;
     }
 
     const user = await currentUser();
 
     if (!user) {
-      trackSuspiciousActivity(request, "UNAUTHENTICATED_PROFILE_ACCESS");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      trackSuspiciousActivity(request, 'UNAUTHENTICATED_PROFILE_ACCESS');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Find the user's profile in our database
@@ -38,15 +40,15 @@ export async function GET(request: NextRequest) {
     });
 
     if (!profile) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
     return NextResponse.json(profile);
   } catch (error) {
-    console.error("Error fetching profile:", error);
+    console.error('Error fetching profile:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }

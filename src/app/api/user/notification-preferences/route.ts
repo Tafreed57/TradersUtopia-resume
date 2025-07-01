@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
-import { rateLimitGeneral, trackSuspiciousActivity } from "@/lib/rate-limit";
+import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     // Rate limiting
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     // Authentication check
     const user = await currentUser();
     if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     // Get user profile with notification preferences
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!profile) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -52,13 +53,13 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("❌ [PREFERENCES] Get preferences error:", error);
+    console.error('❌ [PREFERENCES] Get preferences error:', error);
     return NextResponse.json(
       {
-        error: "Failed to load preferences",
-        message: "Could not retrieve notification preferences",
+        error: 'Failed to load preferences',
+        message: 'Could not retrieve notification preferences',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     // Authentication check
     const user = await currentUser();
     if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -83,10 +84,10 @@ export async function POST(request: NextRequest) {
     if (!preferences || !preferences.email || !preferences.push) {
       return NextResponse.json(
         {
-          error: "Invalid preferences format",
-          message: "Both email and push preferences are required",
+          error: 'Invalid preferences format',
+          message: 'Both email and push preferences are required',
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -100,23 +101,23 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(
-      `✅ [PREFERENCES] Updated notification preferences for user: ${user.id}`,
+      `✅ [PREFERENCES] Updated notification preferences for user: ${user.id}`
     );
 
     return NextResponse.json({
       success: true,
-      message: "Notification preferences updated successfully",
+      message: 'Notification preferences updated successfully',
     });
   } catch (error) {
-    console.error("❌ [PREFERENCES] Save preferences error:", error);
-    trackSuspiciousActivity(request, "NOTIFICATION_PREFERENCES_SAVE_ERROR");
+    console.error('❌ [PREFERENCES] Save preferences error:', error);
+    trackSuspiciousActivity(request, 'NOTIFICATION_PREFERENCES_SAVE_ERROR');
 
     return NextResponse.json(
       {
-        error: "Failed to save preferences",
-        message: "Could not save notification preferences",
+        error: 'Failed to save preferences',
+        message: 'Could not save notification preferences',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

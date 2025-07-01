@@ -1,11 +1,11 @@
-import { ModalSlice, SliceCreator } from "@/types/store";
+import { ModalSlice, SliceCreator } from '@/types/store';
 
-export const createUserModelSlice: SliceCreator<ModalSlice> = (set) => ({
+export const createUserModelSlice: SliceCreator<ModalSlice> = set => ({
   type: null,
   isOpen: false,
   data: {},
   onOpen: (type, data) =>
-    set((state) => {
+    set(state => {
       state.isOpen = true;
       state.type = type;
       if (data) state.data = data;

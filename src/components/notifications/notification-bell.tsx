@@ -23,7 +23,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell, BellRing, Check, CheckCheck } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 import { formatDistanceToNow } from 'date-fns';
-import { useSocket } from '@/contexts/socket-provider';
 
 interface Notification {
   id: string;
@@ -37,7 +36,6 @@ interface Notification {
 
 export function NotificationBell() {
   const { user } = useUser();
-  const { socket } = useSocket();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -175,7 +173,7 @@ export function NotificationBell() {
 
   // WebSocket event listeners for real-time notifications
   useEffect(() => {
-    if (socket && user) {
+    if (user) {
       const handleNewNotification = (notification: Notification) => {
         setNotifications(prev => [notification, ...prev]);
         setUnreadCount(prev => prev + 1);
@@ -201,20 +199,14 @@ export function NotificationBell() {
       if (process.env.NODE_ENV === 'development') {
         console.log('🔌 [NOTIFICATIONS] Setting up WebSocket listeners');
       }
-      socket.on('notification:new', handleNewNotification);
-      socket.on('notification:read', handleNotificationRead);
-      socket.on('notification:update', handleNotificationUpdate);
 
       return () => {
         if (process.env.NODE_ENV === 'development') {
           console.log('🧹 [NOTIFICATIONS] Cleaning up WebSocket listeners');
         }
-        socket.off('notification:new', handleNewNotification);
-        socket.off('notification:read', handleNotificationRead);
-        socket.off('notification:update', handleNotificationUpdate);
       };
     }
-  }, [socket?.id, user?.id]); // ✅ FIX: Use stable identifiers instead of object references
+  }, [user?.id]); // ✅ FIX: Use stable identifiers instead of object references
 
   useEffect(() => {
     if (isOpen) {

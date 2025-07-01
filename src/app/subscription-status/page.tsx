@@ -205,9 +205,9 @@ export default function SubscriptionStatusPage() {
               {activating ? 'Verifying...' : '🔍 Verify My Payment with Stripe'}
             </Button>
 
-            <div className='mt-4 p-4 bg-blue-50 rounded-lg'>
+            <div className='mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg'>
               <h4 className='font-semibold mb-2'>How This Works:</h4>
-              <ol className='list-decimal list-inside text-sm text-gray-600 space-y-1'>
+              <ol className='list-decimal list-inside text-sm text-gray-600 dark:text-gray-300 space-y-1'>
                 <li>
                   Checks if you exist as a customer in Stripe using your email
                 </li>
@@ -217,7 +217,7 @@ export default function SubscriptionStatusPage() {
                 <li>Creates/updates your profile in our database</li>
                 <li>Grants access only if payment is confirmed in Stripe</li>
               </ol>
-              <p className='text-sm text-gray-600 mt-2 font-medium'>
+              <p className='text-sm text-gray-600 dark:text-gray-300 mt-2 font-medium'>
                 ✅ This ensures only people who actually paid get access!
               </p>
             </div>
@@ -243,7 +243,7 @@ export default function SubscriptionStatusPage() {
                 🔍 Test Clerk Connection (Opens in New Tab)
               </Button>
 
-              <div className='p-3 bg-blue-50 rounded border border-blue-200'>
+              <div className='p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200'>
                 <p className='text-sm text-blue-700'>
                   <strong>Click the button above first!</strong> This will open
                   a new tab showing your raw Clerk user data. If you see an
@@ -275,7 +275,7 @@ export default function SubscriptionStatusPage() {
             </Button>
 
             {emailDebug && (
-              <div className='mt-4 p-4 bg-red-50 rounded-lg border border-red-200'>
+              <div className='mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200'>
                 <h4 className='font-semibold mb-3 text-red-800'>
                   Email Comparison Results:
                 </h4>
@@ -309,7 +309,7 @@ export default function SubscriptionStatusPage() {
                       <summary className='text-xs text-gray-600 cursor-pointer'>
                         Show Raw Debug Data
                       </summary>
-                      <pre className='text-xs bg-gray-800 p-2 rounded mt-1 overflow-x-auto'>
+                      <pre className='text-xs bg-gray-100 p-2 rounded mt-1 overflow-x-auto'>
                         {JSON.stringify(emailDebug, null, 2)}
                       </pre>
                     </details>
@@ -361,7 +361,7 @@ export default function SubscriptionStatusPage() {
                     </div>
                   )}
 
-                  <div className='bg-red-100 p-3 rounded'>
+                  <div className='bg-red-100 dark:bg-red-800/20 p-3 rounded'>
                     <h6 className='font-semibold text-red-800'>Quick Fix:</h6>
                     <p className='text-sm text-red-700'>
                       If you see a Stripe customer above with a different email,
@@ -401,7 +401,7 @@ export default function SubscriptionStatusPage() {
             </Button>
 
             {stripeDebug && (
-              <div className='mt-4 p-4 bg-gray-50 rounded-lg'>
+              <div className='mt-4 p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg'>
                 <h4 className='font-semibold mb-3'>Stripe Account Summary:</h4>
 
                 {stripeDebug.customerExists ? (

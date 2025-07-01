@@ -1,9 +1,9 @@
-"use client";
-import { ActionTooltip } from "@/components/ui/action-tooltip";
-import { useStore } from "@/store/store";
-import { Plus, Lock } from "lucide-react";
-import { useUser } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+'use client';
+import { ActionTooltip } from '@/components/ui/action-tooltip';
+import { useStore } from '@/store/store';
+import { Plus, Lock } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
+import { useEffect, useState } from 'react';
 
 export function SideBarActions() {
   const onOpen = useStore.use.onOpen();
@@ -17,8 +17,8 @@ export function SideBarActions() {
       if (!user) return;
 
       try {
-        const response = await fetch("/api/admin/check-status", {
-          method: "GET",
+        const response = await fetch('/api/admin/check-status', {
+          method: 'GET',
         });
 
         if (response.ok) {
@@ -26,7 +26,7 @@ export function SideBarActions() {
           setIsAdmin(data.isAdmin);
         }
       } catch (error) {
-        console.error("Error checking admin status:", error);
+        console.error('Error checking admin status:', error);
         setIsAdmin(false);
       } finally {
         setCheckingPermissions(false);
@@ -39,22 +39,23 @@ export function SideBarActions() {
   const handleServerCreation = () => {
     if (!isAdmin) {
       alert(
-        "❌ Admin access required to create servers. Visit the dashboard to request admin access.",
+        '❌ Admin access required to create servers. Visit the dashboard to request admin access.'
       );
       return;
     }
-    onOpen("createServer");
+    onOpen('createServer');
   };
 
   if (checkingPermissions) {
     return (
       <div>
-        <ActionTooltip align="center" side="right" label="Loading...">
+        <ActionTooltip align='center' side='right' label='Loading...'>
           <button
-            disabled className="group flex items-center cursor-not-allowed"
+            disabled
+            className='group flex items-center cursor-not-allowed'
           >
-            <div className="flex mx-3 h-[48px] w-[48px] rounded-[24px] transition-all overflow-hidden items-center justify-center bg-background opacity-50">
-              <Plus size={25} className="text-gray-400" />
+            <div className='flex mx-3 h-[48px] w-[48px] rounded-[24px] transition-all overflow-hidden items-center justify-center bg-background dark:bg-neutral-700 opacity-50'>
+              <Plus size={25} className='text-gray-400' />
             </div>
           </button>
         </ActionTooltip>
@@ -65,28 +66,30 @@ export function SideBarActions() {
   return (
     <div>
       <ActionTooltip
-        align="center"
-        side="right"
-        label={isAdmin ? "Add a server" : "Admin access required"}
+        align='center'
+        side='right'
+        label={isAdmin ? 'Add a server' : 'Admin access required'}
       >
         <button
           onClick={handleServerCreation}
-          className={`group flex items-center ${!isAdmin ? "cursor-not-allowed" : ""}`}
+          className={`group flex items-center ${!isAdmin ? 'cursor-not-allowed' : ''}`}
         >
           <div
-            className={`flex mx-3 h-[48px] w-[48px] rounded-[24px] group-hover:rounded-[16px] transition-all overflow-hidden items-center justify-center bg-background ${
+            className={`flex mx-3 h-[48px] w-[48px] rounded-[24px] group-hover:rounded-[16px] transition-all overflow-hidden items-center justify-center bg-background dark:bg-neutral-700 ${
               isAdmin
-                ? "group-hover:bg-emerald-500"
-                : "group-hover:bg-red-500 opacity-60"
+                ? 'group-hover:bg-emerald-500'
+                : 'group-hover:bg-red-500 opacity-60'
             }`}
           >
             {isAdmin ? (
               <Plus
-                size={25} className="group-hover:text-white transition text-emerald-500"
+                size={25}
+                className='group-hover:text-white transition text-emerald-500'
               />
             ) : (
               <Lock
-                size={25} className="group-hover:text-white transition text-red-500"
+                size={25}
+                className='group-hover:text-white transition text-red-500'
               />
             )}
           </div>

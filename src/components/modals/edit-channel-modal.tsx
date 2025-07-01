@@ -96,7 +96,7 @@ export function EditChannelModal() {
   };
   return (
     <Dialog open={isModelOpen} onOpenChange={handleClose}>
-      <DialogContent className='bg-gray-900 text-white p-0 overflow-hidden'>
+      <DialogContent className='bg-white text-black p-0 overflow-hidden'>
         <DialogHeader className='pt-8 px-6'>
           <DialogTitle className='text-2xl text-center font-bold'>
             Edit Channel
@@ -110,7 +110,7 @@ export function EditChannelModal() {
                 name='name'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className='uppercase text-xs font-bold text-zinc-500'>
+                    <FormLabel className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
                       Chanel name
                     </FormLabel>
 
@@ -138,7 +138,7 @@ export function EditChannelModal() {
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className='bg-zinc-300/50 border-0 focus:ring-0 text-black ring-offset-0 focus:ring-offset-0 capitalize outline-none'>
+                        <SelectTrigger className='bg-zinc-300/50 border-0 focus:ring-0 text-black  ring-offset-0 focus:ring-offset-0 capitalize outline-none'>
                           <SelectValue placeholder='Select a channel type' />
                         </SelectTrigger>
                       </FormControl>
@@ -159,7 +159,7 @@ export function EditChannelModal() {
                 )}
               />
             </div>
-            <DialogFooter className='bg-gray-800 px-6 py-4'>
+            <DialogFooter className='bg-gray-100 px-6 py-4'>
               <Button
                 type='submit'
                 variant='default'

@@ -5,12 +5,16 @@ import { db } from '@/lib/db';
 let vapidSubject: string;
 
 if (process.env.NODE_ENV === 'production') {
-  // In production, use HTTPS URL
-  vapidSubject =
-    process.env.NEXT_PUBLIC_APP_URL || 'mailto:notifications@tradersutopia.com';
+  // In production, use HTTPS URL or fallback to mailto
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (appUrl && appUrl.startsWith('https://')) {
+    vapidSubject = appUrl;
+  } else {
+    vapidSubject = 'mailto:notifications@tradersutopia.com';
+  }
 } else {
-  // In development, use a simple mailto format that web-push accepts
-  vapidSubject = 'mailto:admin@example.com';
+  // In development, always use mailto format (VAPID doesn't accept http://)
+  vapidSubject = 'mailto:admin@tradersutopia.dev';
 }
 
 // Only configure if we have the required keys

@@ -1,18 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
-import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
+import { db } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const user = await currentUser();
     console.log(
-      "🔍 [2FA-STATUS] Checking 2FA status for user:",
-      user?.id || "none",
+      '🔍 [2FA-STATUS] Checking 2FA status for user:',
+      user?.id || 'none'
     );
 
     if (!user) {
-      console.log("❌ [2FA-STATUS] No authenticated user");
+      console.log('❌ [2FA-STATUS] No authenticated user');
       return NextResponse.json({
         authenticated: false,
         requires2FA: false,
@@ -32,24 +33,24 @@ export async function GET(request: NextRequest) {
     });
 
     if (!profile) {
-      console.log("❌ [2FA-STATUS] Profile not found for user:", user.id);
+      console.log('❌ [2FA-STATUS] Profile not found for user:', user.id);
       return NextResponse.json({
         authenticated: true,
         requires2FA: false,
         verified: true,
-        error: "Profile not found",
+        error: 'Profile not found',
       });
     }
 
     console.log(
-      "👤 [2FA-STATUS] Profile found - 2FA enabled:",
+      '👤 [2FA-STATUS] Profile found - 2FA enabled:',
       profile.twoFactorEnabled,
-      "for user:",
-      profile.email,
+      'for user:',
+      profile.email
     );
 
     if (!profile.twoFactorEnabled) {
-      console.log("ℹ️ [2FA-STATUS] 2FA not enabled, allowing access");
+      console.log('ℹ️ [2FA-STATUS] 2FA not enabled, allowing access');
       return NextResponse.json({
         authenticated: true,
         requires2FA: false,
@@ -59,20 +60,20 @@ export async function GET(request: NextRequest) {
 
     // Check if 2FA verification cookie exists (server-side only)
     const cookieStore = cookies();
-    const verificationCookie = cookieStore.get("2fa-verified");
-    const isVerified = verificationCookie?.value === "true";
+    const verificationCookie = cookieStore.get('2fa-verified');
+    const isVerified = verificationCookie?.value === 'true';
 
     console.log(
-      "🍪 [2FA-STATUS] Cookie check - exists:",
+      '🍪 [2FA-STATUS] Cookie check - exists:',
       !!verificationCookie,
-      "value:",
+      'value:',
       verificationCookie?.value,
-      "verified:",
-      isVerified,
+      'verified:',
+      isVerified
     );
     console.log(
-      "📍 [2FA-STATUS] IP:",
-      request.headers.get("x-forwarded-for") || "unknown",
+      '📍 [2FA-STATUS] IP:',
+      request.headers.get('x-forwarded-for') || 'unknown'
     );
 
     const result = {
@@ -81,19 +82,19 @@ export async function GET(request: NextRequest) {
       verified: isVerified,
     };
 
-    console.log("📊 [2FA-STATUS] Final result:", result);
+    console.log('📊 [2FA-STATUS] Final result:', result);
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("❌ [2FA-STATUS] 2FA status check error:", error);
+    console.error('❌ [2FA-STATUS] 2FA status check error:', error);
     return NextResponse.json(
       {
         authenticated: false,
         requires2FA: false,
         verified: false,
-        error: "Internal server error",
+        error: 'Internal server error',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

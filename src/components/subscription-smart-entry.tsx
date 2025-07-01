@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { LogIn, Loader2, ChevronRight } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { LogIn, Loader2, ChevronRight } from 'lucide-react';
 
 interface SubscriptionSmartEntryProps {
   customContent?: string;
@@ -30,13 +30,13 @@ export function SubscriptionSmartEntry({
     setHasChecked(true); // Mark as checked immediately to prevent re-runs
 
     try {
-      const response = await fetch("/api/check-product-subscription", {
-        method: "POST",
+      const response = await fetch('/api/check-product-subscription', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          allowedProductIds: ["prod_SWIyAf2tfVrJao"],
+          allowedProductIds: ['prod_SWIyAf2tfVrJao'],
         }),
       });
 
@@ -44,17 +44,17 @@ export function SubscriptionSmartEntry({
         const result = await response.json();
         setHasSubscription(result.hasAccess);
         console.log(
-          "✅ Subscription check result:",
+          '✅ Subscription check result:',
           result.hasAccess
-            ? "Active subscription found"
-            : "No active subscription",
+            ? 'Active subscription found'
+            : 'No active subscription'
         );
       } else {
         setHasSubscription(false);
-        console.log("❌ Subscription check failed");
+        console.log('❌ Subscription check failed');
       }
     } catch (error) {
-      console.error("❌ Error checking subscription:", error);
+      console.error('❌ Error checking subscription:', error);
       setHasSubscription(false);
     }
   };
@@ -67,39 +67,39 @@ export function SubscriptionSmartEntry({
     try {
       if (!isSignedIn) {
         // Not signed in - redirect to sign up
-        console.log("📍 Redirecting to sign-up...");
-        router.push("/sign-up");
+        console.log('📍 Redirecting to sign-up...');
+        router.push('/sign-up');
         return;
       }
 
       // User is signed in - route based on subscription
       if (hasSubscription) {
         // Has subscription - go to server
-        console.log("🔍 User has subscription, accessing server...");
+        console.log('🔍 User has subscription, accessing server...');
 
-        const serverResponse = await fetch("/api/servers/ensure-default", {
-          method: "POST",
+        const serverResponse = await fetch('/api/servers/ensure-default', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
         });
 
         if (serverResponse.ok) {
           const serverResult = await serverResponse.json();
-          console.log("✅ Server access ensured, redirecting to server");
+          console.log('✅ Server access ensured, redirecting to server');
           router.push(`/servers/${serverResult.server.id}`);
         } else {
-          console.log("❌ Server access failed");
-          router.push("/pricing");
+          console.log('❌ Server access failed');
+          router.push('/pricing');
         }
       } else {
         // No subscription - go to pricing
-        console.log("📍 No subscription found, redirecting to pricing...");
-        router.push("/pricing");
+        console.log('📍 No subscription found, redirecting to pricing...');
+        router.push('/pricing');
       }
     } catch (error) {
-      console.error("❌ Error in handleClick:", error);
-      router.push("/pricing");
+      console.error('❌ Error in handleClick:', error);
+      router.push('/pricing');
     } finally {
       setTimeout(() => {
         setIsProcessing(false);
@@ -110,12 +110,13 @@ export function SubscriptionSmartEntry({
   if (!isLoaded || (!hasChecked && isSignedIn)) {
     return (
       <Button
-        size="lg"
-        disabled className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-6 sm:px-8 md:px-12 py-4 sm:py-6 text-lg sm:text-xl font-bold rounded-lg opacity-50 border border-yellow-400/50 w-full sm:w-auto"
+        size='lg'
+        disabled
+        className='bg-gradient-to-r from-yellow-500 to-yellow-600 text-black px-6 sm:px-8 md:px-12 py-4 sm:py-6 text-lg sm:text-xl font-bold rounded-lg opacity-50 border border-yellow-400/50 w-full sm:w-auto'
       >
-        <Loader2 className="h-4 h-4 sm:h-5 sm:w-5 animate-spin mr-2" />
-        <span className="hidden xs:inline">Checking access...</span>
-        <span className="xs:hidden">Loading...</span>
+        <Loader2 className='h-4 h-4 sm:h-5 sm:w-5 animate-spin mr-2' />
+        <span className='hidden xs:inline'>Checking access...</span>
+        <span className='xs:hidden'>Loading...</span>
       </Button>
     );
   }
@@ -123,50 +124,50 @@ export function SubscriptionSmartEntry({
   const buttonText =
     customContent ||
     (!isSignedIn
-      ? "Access Trading Platform"
+      ? 'Access Trading Platform'
       : hasSubscription
-        ? "Access Trading Platform"
-        : "Get Access - View Pricing");
+        ? 'Access Trading Platform'
+        : 'Get Access - View Pricing');
 
   const buttonClass = !isSignedIn
-    ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black border border-yellow-400/50"
+    ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black border border-yellow-400/50'
     : hasSubscription
-      ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border border-green-500/50"
-      : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border border-blue-500/50";
+      ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border border-green-500/50'
+      : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border border-blue-500/50';
 
   return (
     <Button
-      size="lg"
+      size='lg'
       onClick={handleClick}
       disabled={isProcessing}
       className={`${buttonClass} px-6 sm:px-8 md:px-12 py-4 sm:py-6 text-lg sm:text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none w-full sm:w-auto`}
     >
       {isProcessing ? (
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-4 h-4 sm:h-5 sm:w-5 animate-spin" />
-          <span className="hidden sm:inline">
+        <div className='flex items-center gap-2'>
+          <Loader2 className='h-4 h-4 sm:h-5 sm:w-5 animate-spin' />
+          <span className='hidden sm:inline'>
             {!isSignedIn
-              ? "Redirecting..."
+              ? 'Redirecting...'
               : hasSubscription
-                ? "Accessing Trading Platform..."
-                : "Loading Pricing..."}
+                ? 'Accessing Trading Platform...'
+                : 'Loading Pricing...'}
           </span>
-          <span className="sm:hidden">Loading...</span>
+          <span className='sm:hidden'>Loading...</span>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className='flex items-center gap-2'>
           {!isSignedIn ? (
-            <LogIn className="h-4 h-4 sm:h-5 sm:w-5" />
+            <LogIn className='h-4 h-4 sm:h-5 sm:w-5' />
           ) : (
-            <ChevronRight className="h-4 h-4 sm:h-5 sm:w-5" />
+            <ChevronRight className='h-4 h-4 sm:h-5 sm:w-5' />
           )}
-          <span className="hidden sm:inline">{buttonText}</span>
-          <span className="sm:hidden">
+          <span className='hidden sm:inline'>{buttonText}</span>
+          <span className='sm:hidden'>
             {!isSignedIn
-              ? "Access Platform"
+              ? 'Access Platform'
               : hasSubscription
-                ? "Access Platform"
-                : "View Pricing"}
+                ? 'Access Platform'
+                : 'View Pricing'}
           </span>
         </div>
       )}

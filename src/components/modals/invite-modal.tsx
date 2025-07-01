@@ -55,7 +55,7 @@ export function InviteModal() {
     <Dialog open={isModelOpen} onOpenChange={onClose}>
       <DialogContent
         aria-describedby={undefined}
-        className='bg-gray-900 text-white p-0 overflow-hidden'
+        className='bg-white text-black p-0 overflow-hidden'
       >
         <DialogHeader className='pt-8 px-6'>
           <DialogTitle className='text-2xl text-center font-bold'>
@@ -63,7 +63,7 @@ export function InviteModal() {
           </DialogTitle>
         </DialogHeader>
         <div className='p-6'>
-          <Label className='uppercase text-xs font-bold text-zinc-500'>
+          <Label className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
             Server invite link
           </Label>
           <div className='flex items-center mt-2 gap-x-2'>

@@ -5,12 +5,12 @@ import { clerkClient } from '@clerk/nextjs/server';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import Stripe from 'stripe';
 
+// Cache for product data to avoid repeated API calls
+const productCache = new Map<string, string>();
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
 });
-
-// Cache for product data to avoid repeated API calls
-const productCache = new Map<string, string>();
 
 // Helper function to get subscription with product name
 async function getSubscriptionWithName(profile: any) {

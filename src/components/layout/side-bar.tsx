@@ -1,7 +1,7 @@
 import { getCurrentProfile, getAllServers } from '@/lib/query';
 import { SideBarActions } from '@/components/layout/side-bar-actions';
 import { SideBarItem } from '@/components/layout/side-bar-item';
-
+import { ModeToggle } from '@/components/mode-toggler';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -21,7 +21,7 @@ export async function SideBar() {
   const servers = await getAllServers(profile.id);
 
   return (
-    <div className='flex flex-col space-y-4 items-center h-full text-primary w-full bg-[#2B2D31] py-3'>
+    <div className='flex flex-col space-y-4 items-center h-full text-primary w-full bg-[#E3E5E8] dark:bg-[#1E1F22] py-3'>
       {/* Dashboard Link */}
       <SubscriptionProtectedLink
         href='/dashboard'
@@ -29,11 +29,11 @@ export async function SideBar() {
         size='icon'
         variant='ghost'
       >
-        <LayoutDashboard className='h-5 w-5 text-white group-hover:text-yellow-400 transition-colors' />
+        <LayoutDashboard className='h-5 w-5 text-primary group-hover:text-white transition-colors' />
       </SubscriptionProtectedLink>
 
       <SideBarActions />
-      <Separator className='h-[2px] bg-zinc-700 rounded-md w-10 mx-auto' />
+      <Separator className='h-[2px] bg-zinc-300 dark:bg-zinc-700 rounded-md w-10 mx-auto' />
       <ScrollArea className='flex-1 w-full'>
         {servers?.map(server => (
           <div key={server.id} className='mb-4'>
@@ -47,6 +47,7 @@ export async function SideBar() {
       </ScrollArea>
       <div className='pb-3 mt-auto flex items-center flex-col gap-y-4'>
         <NotificationBell />
+        <ModeToggle />
         <UserButton
           afterSignOutUrl='/'
           appearance={{

@@ -1,13 +1,10 @@
-import qs from "query-string";
-
-import { useSocket } from "@/contexts/socket-provider";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import qs from 'query-string';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 interface UseChatQueryProps {
   queryKey: string;
   apiUrl: string;
-  paramKey: "channelId" | "conversationId";
+  paramKey: 'channelId' | 'conversationId';
   paramValue: string;
 }
 
@@ -17,8 +14,6 @@ export function useChatQuery({
   paramValue,
   queryKey,
 }: UseChatQueryProps) {
-  const { isConnected } = useSocket();
-
   const fetchMessages = async ({ pageParam = undefined }) => {
     const url = qs.stringifyUrl(
       {
@@ -28,18 +23,20 @@ export function useChatQuery({
           cursor: pageParam,
         },
       },
-      { skipNull: true },
+      { skipNull: true }
     );
     const res = await fetch(url);
     return res.json();
   };
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
     useInfiniteQuery({
       initialPageParam: undefined,
       queryKey: [queryKey],
       queryFn: fetchMessages,
-      getNextPageParam: (lastPage) => lastPage?.nextCursor,
-      refetchInterval: false, // Disabled polling since we use WebSocket for real-time updates
+      getNextPageParam: lastPage => lastPage?.nextCursor,
+      refetchInterval: 5000, // Poll every 5 seconds for updates
+      staleTime: 1000, // Consider data stale after 1 second
     });
 
   return {

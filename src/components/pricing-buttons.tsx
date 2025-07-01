@@ -61,7 +61,7 @@ export function PricingButtons() {
       <div className='space-y-4'>
         <Button
           size='lg'
-          className='w-full bg-gray-800 text-white py-4 text-lg font-semibold rounded-full'
+          className='w-full bg-gray-600 text-white py-4 text-lg font-semibold rounded-full'
           disabled
         >
           Checking status...

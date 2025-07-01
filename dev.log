@@ -1,0 +1,109 @@
+
+> nextjs-discord-clone@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.30
+  - Local:        http://localhost:3000
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 1704ms
+ ✓ Compiled /src/middleware in 341ms (182 modules)
+🔍 [MIDDLEWARE] Environment check at load time: {
+  nodeEnv: 'development',
+  hasClerkSecret: true,
+  hasClerkPublishable: true,
+  secretKeyPrefix: 'sk_test_',
+  timestamp: '2025-06-30T22:58:44.764Z'
+}
+✅ [MIDDLEWARE] Forced CLERK_SECRET_KEY to be set
+🔍 [MIDDLEWARE] /api/debug-runtime-env - Public: true
+Clerk: Missing `CLERK_ENCRYPTION_KEY`. Required for propagating `secretKey` middleware option. See docs: https://clerk.com/docs/references/nextjs/clerk-middleware#dynamic-keys
+[clerk debug start: clerkMiddleware]
+  options, {
+    "publishableKey": "pk_test_d2l0dHktc2hpbmVyLTE1LmNsZXJrLmFjY291bnRzLmRldiQ",
+    "secretKey": "sk_test_*********pAG",
+    "signInUrl": "/sign-in",
+    "signUpUrl": "/sign-up",
+    "debug": true
+  }
+  url, {
+    "url": "http://localhost:3000/api/debug-runtime-env",
+    "method": "GET",
+    "headers": "{\"accept\":\"*/*\",\"host\":\"localhost:3000\",\"user-agent\":\"curl/8.7.1\",\"x-forwarded-for\":\"::1\",\"x-forwarded-host\":\"localhost:3000\",\"x-forwarded-port\":\"3000\",\"x-forwarded-proto\":\"http\"}",
+    "clerkUrl": "http://localhost:3000/api/debug-runtime-env",
+    "cookies": "{}"
+  }
+  requestState, {
+    "status": "signed-out",
+    "headers": "{\"x-clerk-auth-reason\":\"dev-browser-missing\",\"x-clerk-auth-status\":\"signed-out\"}",
+    "reason": "dev-browser-missing"
+  }
+  auth, {
+    "auth": {
+      "sessionClaims": null,
+      "sessionId": null,
+      "userId": null,
+      "actor": null,
+      "orgId": null,
+      "orgRole": null,
+      "orgSlug": null,
+      "orgPermissions": null,
+      "__experimental_factorVerificationAge": null
+    },
+    "debug": {
+      "cookieSuffix": "Zs9MQlvI",
+      "clerkRequest": {
+        "url": "http://localhost:3000/api/debug-runtime-env",
+        "method": "GET",
+        "headers": "{\"accept\":\"*/*\",\"host\":\"localhost:3000\",\"user-agent\":\"curl/8.7.1\",\"x-forwarded-for\":\"::1\",\"x-forwarded-host\":\"localhost:3000\",\"x-forwarded-port\":\"3000\",\"x-forwarded-proto\":\"http\"}",
+        "clerkUrl": "http://localhost:3000/api/debug-runtime-env",
+        "cookies": "{}"
+      },
+      "publishableKey": "pk_test_d2l0dHktc2hpbmVyLTE1LmNsZXJrLmFjY291bnRzLmRldiQ",
+      "instanceType": "development",
+      "frontendApi": "witty-shiner-15.clerk.accounts.dev",
+      "host": "localhost:3000",
+      "forwardedHost": "localhost:3000",
+      "forwardedProto": "http",
+      "userAgent": "curl/8.7.1",
+      "accept": "*/*",
+      "suffixedCookies": false,
+      "clientUat": 0,
+      "handshakeRedirectLoopCounter": 0,
+      "secretKey": "sk_test",
+      "signInUrl": "/sign-in",
+      "signUpUrl": "/sign-up",
+      "debug": true,
+      "proxyUrl": "",
+      "isSatellite": false,
+      "domain": "",
+      "jwtKey": "",
+      "apiUrl": "https://api.clerk.com",
+      "apiVersion": "v1",
+      "audience": "",
+      "apiClient": {
+        "allowlistIdentifiers": {},
+        "clients": {},
+        "emailAddresses": {},
+        "invitations": {},
+        "organizations": {},
+        "phoneNumbers": {},
+        "redirectUrls": {},
+        "sessions": {},
+        "signInTokens": {},
+        "users": {},
+        "domains": {},
+        "samlConnections": {},
+        "testingTokens": {}
+      },
+      "clerkUrl": "http://localhost:3000/api/debug-runtime-env",
+      "status": "signed-out",
+      "reason": "dev-browser-missing",
+      "message": ""
+    }
+  }
+[clerk debug end: clerkMiddleware] (@clerk/nextjs=5.7.5,next=14.2.30)
+ ✓ Compiled /api/debug-runtime-env in 431ms (56 modules)
+ GET /api/debug-runtime-env 200 in 473ms
+[?25h
