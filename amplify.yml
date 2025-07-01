@@ -10,24 +10,7 @@ frontend:
     build:
       commands:
         - echo "Building for production..."
-        # Debug: Check critical environment variables at BUILD TIME
-        - echo "🔍 BUILD-TIME Environment Variables Check"
-        - 'echo "DATABASE_URL is set: $(if [ -n "$DATABASE_URL" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        - 'echo "DATABASE_URL starts with: $(echo $DATABASE_URL | cut -c1-30)..." || echo "❌ DATABASE_URL not accessible"'
-        - 'echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is set: $(if [ -n "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        - 'echo "CLERK_SECRET_KEY is set: $(if [ -n "$CLERK_SECRET_KEY" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        - 'echo "STRIPE_SECRET_KEY is set: $(if [ -n "$STRIPE_API_KEY" ]; then echo "✅ YES"; else echo "❌ NO"; fi)"'
-        # List all environment variables starting with DATABASE, CLERK, STRIPE for debugging
-        - echo "🔍 All DATABASE/CLERK/STRIPE related environment variables:"
-        - env | grep -E "(DATABASE|CLERK|STRIPE)" || echo "❌ No DATABASE/CLERK/STRIPE env vars found"
-        # Generate Prisma client with database check
-        - echo "🔧 Generating Prisma client..."
-        - npx prisma generate
-        # Verify database connection during build
-        - echo "🔍 Testing database connection during build..."
-        - 'node -e "console.log(\"DATABASE_URL during build:\", process.env.DATABASE_URL ? \"✅ AVAILABLE\" : \"❌ MISSING\")"'
-        # Verify critical environment variables are set
-        - echo "✅ Environment variables verified"
+        env | grep -e DATABASE_URL >> .env.production
         - pnpm build
     postBuild:
       commands:
