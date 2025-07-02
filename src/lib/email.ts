@@ -254,7 +254,7 @@ export async function sendWelcomeEmail(
     type: 'SYSTEM',
     title: 'Welcome to TradersUtopia!',
     message:
-      'Your account has been successfully created. Explore the dashboard to set up two-factor authentication and customize your experience.',
+      'Your account has been successfully created. Explore the dashboard to customize your experience and start your trading journey.',
     actionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?tab=security`,
   });
 }

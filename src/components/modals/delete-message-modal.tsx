@@ -45,17 +45,17 @@ export function DeleteMessageModal() {
     <Dialog open={isModelOpen} onOpenChange={onClose}>
       <DialogContent
         aria-describedby={undefined}
-        className='bg-white dark:bg-gray-800 text-black dark:text-white p-0 overflow-hidden w-[90vw] max-w-md mx-auto'
+        className='bg-gray-900 text-white p-0 overflow-hidden w-[90vw] max-w-md mx-auto'
       >
         <DialogHeader className='pt-6 sm:pt-8 px-4 sm:px-6'>
           <DialogTitle className='text-xl sm:text-2xl text-center font-bold'>
             Delete Message
           </DialogTitle>
-          <DialogDescription className='text-center text-zinc-500 dark:text-zinc-400 text-sm sm:text-base'>
+          <DialogDescription className='text-center text-zinc-500 text-sm sm:text-base'>
             The Message will be permanently deleted!
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className='px-4 sm:px-6 py-4 bg-gray-100 dark:bg-gray-700'>
+        <DialogFooter className='px-4 sm:px-6 py-4 bg-gray-800'>
           <div className='flex flex-col sm:flex-row items-center gap-3 sm:justify-between w-full'>
             <Button
               disabled={isLoading}

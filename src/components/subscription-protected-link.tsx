@@ -69,6 +69,14 @@ export function SubscriptionProtectedLink({
         }),
       });
 
+      if (response.status === 429) {
+        console.warn('⚠️ Rate limited, please wait a moment');
+        alert(
+          'Please wait a moment before trying again. The system is protecting against too many requests.'
+        );
+        return;
+      }
+
       const result = await response.json();
       console.log('📊 Subscription check result:', result);
 

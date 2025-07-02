@@ -26,19 +26,6 @@ export default function PricingPage() {
       </div>
 
       <div className='relative z-10'>
-        {/* Enhanced Promotional Banner - Mobile-Optimized */}
-        <div className='bg-gradient-to-r from-purple-600/20 via-indigo-600/20 to-purple-700/20 backdrop-blur-xl border-b border-purple-400/20 text-white text-center py-3 sm:py-4 px-4'>
-          <div className='flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm md:text-base font-semibold'>
-            <div className='w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center animate-pulse'>
-              <Sparkles className='w-3 h-3 sm:w-4 sm:h-4 text-black' />
-            </div>
-            <span className='bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent font-bold text-center'>
-              PRICE INCREASING AGAIN
-            </span>
-            <span className='text-yellow-300 animate-pulse'>Time's up!</span>
-          </div>
-        </div>
-
         {/* Hero Banner */}
         <HeroBanner />
 
@@ -70,7 +57,7 @@ export default function PricingPage() {
             <div className='flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8 text-gray-400 text-xs sm:text-sm px-4'>
               <div className='flex items-center gap-1 sm:gap-2'>
                 <Users className='w-3 h-3 sm:w-4 sm:h-4' />
-                <span>5000+ Active Traders</span>
+                <span>1000+ Active Traders</span>
               </div>
               <div className='flex items-center gap-1 sm:gap-2'>
                 <Shield className='w-3 h-3 sm:w-4 sm:h-4' />

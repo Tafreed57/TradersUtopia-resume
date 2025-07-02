@@ -224,8 +224,7 @@ export function NotificationBell() {
       <DropdownMenuTrigger asChild>
         <Button
           variant='ghost'
-          size='sm'
-          className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation'
+          size='sm' className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation'
         >
           {unreadCount > 0 ? (
             <BellRing className='h-5 w-5 sm:h-6 sm:w-6' />
@@ -234,8 +233,7 @@ export function NotificationBell() {
           )}
           {unreadCount > 0 && (
             <Badge
-              variant='destructive'
-              className='absolute -top-1 -right-1 h-5 w-5 sm:h-6 sm:w-6 rounded-full p-0 flex items-center justify-center text-xs'
+              variant='destructive' className='absolute -top-1 -right-1 h-5 w-5 sm:h-6 sm:w-6 rounded-full p-0 flex items-center justify-center text-xs'
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
@@ -244,8 +242,7 @@ export function NotificationBell() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        align='end'
-        className='w-72 sm:w-80 max-h-80 sm:max-h-96 mr-2 sm:mr-0'
+        align='end' className='w-72 sm:w-80 max-h-80 sm:max-h-96 mr-2 sm:mr-0'
         sideOffset={5}
       >
         <DropdownMenuLabel className='flex items-center justify-between p-3 sm:p-4'>
@@ -257,8 +254,7 @@ export function NotificationBell() {
               variant='ghost'
               size='sm'
               onClick={markAllAsRead}
-              disabled={isLoading}
-              className='h-auto p-1 sm:p-2 text-xs touch-manipulation'
+              disabled={isLoading} className='h-auto p-1 sm:p-2 text-xs touch-manipulation'
             >
               <CheckCheck className='h-3 w-3 sm:h-4 sm:w-4 mr-1' />
               <span className='hidden sm:inline'>Mark all read</span>
@@ -286,7 +282,7 @@ export function NotificationBell() {
                   className={`w-full border-0 shadow-none ${
                     notification.read
                       ? 'opacity-60'
-                      : 'bg-blue-50 dark:bg-blue-900/20'
+                      : 'bg-blue-50'
                   }`}
                 >
                   <CardContent className='p-3'>
@@ -303,7 +299,7 @@ export function NotificationBell() {
                             <div className='h-2 w-2 bg-blue-500 rounded-full flex-shrink-0' />
                           )}
                         </div>
-                        <p className='text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2'>
+                        <p className='text-xs text-gray-600 mt-1 line-clamp-2'>
                           {notification.message}
                         </p>
                         <p className='text-xs text-gray-400 mt-1'>
@@ -316,8 +312,7 @@ export function NotificationBell() {
                       {!notification.read && (
                         <Button
                           variant='ghost'
-                          size='sm'
-                          className='h-auto p-1'
+                          size='sm' className='h-auto p-1'
                           onClick={e => {
                             e.stopPropagation();
                             markAsRead(notification.id);

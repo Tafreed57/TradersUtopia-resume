@@ -498,32 +498,6 @@ export function DiscordProfile() {
               </div>
             ))}
 
-            {/* Enhanced Two-Factor Authentication - Mobile Responsive */}
-            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300'>
-              <div className='flex items-center space-x-3 sm:space-x-4'>
-                <Shield className='h-4 w-4 sm:h-5 sm:w-5 text-green-400' />
-                <span className='text-sm text-gray-300 font-medium'>
-                  Two-Factor Authentication
-                </span>
-              </div>
-              {isLoadingProfile ? (
-                <Badge variant='outline'>Loading...</Badge>
-              ) : (
-                <Badge
-                  variant={
-                    profileData?.twoFactorEnabled ? 'default' : 'outline'
-                  }
-                  className={
-                    profileData?.twoFactorEnabled
-                      ? 'bg-gradient-to-r from-green-600 to-green-700 border-green-500'
-                      : ''
-                  }
-                >
-                  {profileData?.twoFactorEnabled ? 'Enabled' : 'Disabled'}
-                </Badge>
-              )}
-            </div>
-
             {/* Enhanced Email Verification - Mobile Responsive */}
             <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-gradient-to-r from-gray-800/40 to-gray-900/40 rounded-xl border border-gray-600/30 hover:border-green-400/50 transition-all duration-300'>
               <div className='flex items-center space-x-3 sm:space-x-4'>
@@ -567,6 +541,30 @@ export function DiscordProfile() {
           )}
         </CardContent>
       </Card>
+
+      {/* Enhanced Account Security - Mobile Responsive */}
+      <div className='bg-gray-800/30 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+          <div className='space-y-2'>
+            <div className='flex items-center gap-3'>
+              <div className='w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center'>
+                <Shield className='h-4 w-4 text-green-400' />
+              </div>
+              <div>
+                <h3 className='text-lg font-semibold text-white'>
+                  Account Security
+                </h3>
+                <p className='text-gray-400 text-sm'>
+                  Your account is protected
+                </p>
+              </div>
+            </div>
+          </div>
+          <Badge variant='default' className='self-start sm:self-center'>
+            Secure
+          </Badge>
+        </div>
+      </div>
     </div>
   );
 }

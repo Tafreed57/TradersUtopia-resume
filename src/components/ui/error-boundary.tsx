@@ -88,11 +88,11 @@ export class ErrorBoundary extends React.Component<
 
       // Default error UI
       return (
-        <div className='min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900'>
+        <div className='min-h-screen flex items-center justify-center p-4 bg-gray-900'>
           <Card className='w-full max-w-md'>
             <CardHeader className='text-center'>
-              <div className='mx-auto mb-4 w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center'>
-                <AlertTriangle className='w-6 h-6 text-red-600 dark:text-red-400' />
+              <div className='mx-auto mb-4 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center'>
+                <AlertTriangle className='w-6 h-6 text-red-600' />
               </div>
               <CardTitle className='text-xl'>Something went wrong</CardTitle>
               <CardDescription>
@@ -102,16 +102,16 @@ export class ErrorBoundary extends React.Component<
             </CardHeader>
             <CardContent className='space-y-4'>
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className='p-3 bg-gray-100 dark:bg-gray-800 rounded-lg'>
-                  <p className='text-sm font-mono text-red-600 dark:text-red-400'>
+                <div className='p-3 bg-gray-800 rounded-lg'>
+                  <p className='text-sm font-mono text-red-600'>
                     {this.state.error.message}
                   </p>
                   {this.state.error.stack && (
                     <details className='mt-2'>
-                      <summary className='text-xs text-gray-600 dark:text-gray-400 cursor-pointer'>
+                      <summary className='text-xs text-gray-600 cursor-pointer'>
                         Show stack trace
                       </summary>
-                      <pre className='text-xs mt-1 text-gray-600 dark:text-gray-400 whitespace-pre-wrap'>
+                      <pre className='text-xs mt-1 text-gray-600 whitespace-pre-wrap'>
                         {this.state.error.stack}
                       </pre>
                     </details>
@@ -138,7 +138,7 @@ export class ErrorBoundary extends React.Component<
                 </Button>
               </div>
 
-              <p className='text-xs text-center text-gray-500 dark:text-gray-400'>
+              <p className='text-xs text-center text-gray-500'>
                 If this problem persists, please contact support.
               </p>
             </CardContent>

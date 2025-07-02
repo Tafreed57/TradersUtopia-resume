@@ -1,7 +1,6 @@
 import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
 import { DiscordProfile } from '@/components/user/discord-profile';
-import { ModeToggle } from '@/components/mode-toggler';
-import { TwoFactorAuth } from '@/components/security/two-factor-auth';
+
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { NotificationSettings } from '@/components/notifications/notification-settings';
 import { SubscriptionManager } from '@/components/subscription/subscription-manager';
@@ -31,12 +30,16 @@ import {
   Home,
   Bell,
   UserCog,
+  CheckCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AdminButton } from '@/components/admin-button';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
 import { UserManagement } from '@/components/admin/user-management';
+import { UserDetails } from '@/components/user/user-details';
+import { PasswordManager } from '@/components/user/password-manager';
+import { Badge } from '@/components/ui/badge';
 
 export default async function Dashboard() {
   const profile = await initProfile();
@@ -122,9 +125,6 @@ export default async function Dashboard() {
                       </p>
                     </div>
                   </div>
-                  <div className='hidden lg:block flex-shrink-0'>
-                    <ModeToggle />
-                  </div>
                 </div>
                 <div className='flex items-center gap-2 lg:gap-4 flex-shrink-0'>
                   <Link href='/'>
@@ -151,9 +151,6 @@ export default async function Dashboard() {
                       },
                     }}
                   />
-                  <div className='lg:hidden'>
-                    <ModeToggle />
-                  </div>
                 </div>
               </div>
             </header>
@@ -207,7 +204,7 @@ export default async function Dashboard() {
                         Security
                       </p>
                       <p className='text-lg sm:text-xl font-bold text-white'>
-                        {profile.twoFactorEnabled ? 'Secure' : 'Basic'}
+                        Secure
                       </p>
                     </div>
                     <div className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-purple-500/20 rounded-lg sm:rounded-xl flex items-center justify-center self-end sm:self-auto'>
@@ -395,7 +392,7 @@ export default async function Dashboard() {
                         </div>
                       </div>
                       <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
-                        <DiscordProfile />
+                        <UserDetails />
                       </div>
                     </div>
                   </div>
@@ -419,9 +416,7 @@ export default async function Dashboard() {
                         </div>
                       </div>
                       <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
-                        <TwoFactorAuth
-                          initialTwoFactorEnabled={profile.twoFactorEnabled}
-                        />
+                        <PasswordManager />
                       </div>
                     </div>
                   </div>
@@ -503,9 +498,6 @@ export default async function Dashboard() {
                                     Switch between light and dark mode
                                   </p>
                                 </div>
-                              </div>
-                              <div className='self-start sm:self-auto'>
-                                <ModeToggle />
                               </div>
                             </div>
                           </div>

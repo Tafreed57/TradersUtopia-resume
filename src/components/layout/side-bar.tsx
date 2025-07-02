@@ -1,16 +1,14 @@
 import { getCurrentProfile, getAllServers } from '@/lib/query';
 import { SideBarActions } from '@/components/layout/side-bar-actions';
 import { SideBarItem } from '@/components/layout/side-bar-item';
-import { ModeToggle } from '@/components/mode-toggler';
+// import { ModeToggle } from '@/components/mobile-toggle';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
 import { UserButton } from '@clerk/nextjs';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { redirect } from 'next/navigation';
 import { LayoutDashboard } from 'lucide-react';
-import Link from 'next/link';
 
 export async function SideBar() {
   const profile = await getCurrentProfile();
@@ -47,7 +45,7 @@ export async function SideBar() {
       </ScrollArea>
       <div className='pb-3 mt-auto flex items-center flex-col gap-y-4'>
         <NotificationBell />
-        <ModeToggle />
+        {/* <ModeToggle /> */}
         <UserButton
           afterSignOutUrl='/'
           appearance={{

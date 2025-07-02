@@ -57,12 +57,12 @@ export const RATE_LIMITS = {
     message: 'Too many file uploads. Please wait before uploading more files.',
   },
 
-  // Subscription operations - Moderate
+  // Subscription operations - More generous for legitimate usage
   SUBSCRIPTION_OPERATIONS: {
-    maxRequests: 10,
-    windowMs: 30 * 60 * 1000, // 30 minutes
+    maxRequests: 50, // Increased from 10 to 50
+    windowMs: 15 * 60 * 1000, // 15 minutes (reduced window)
     message:
-      'Too many subscription operations. Please wait 30 minutes before trying again.',
+      'Too many subscription operations. Please wait 15 minutes before trying again.',
   },
 
   // API calls - Generous but still limited
@@ -364,6 +364,7 @@ export const clearAllRateLimits = () => {
   return true;
 };
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default {
   rateLimit,
   rateLimitAdmin,
@@ -382,7 +383,7 @@ export default {
   trackSuspiciousActivity,
   getRateLimitInfo,
   clearRateLimit,
-  getRateLimitStats,
   clearAllRateLimits,
+  getRateLimitStats,
   RATE_LIMITS,
 };

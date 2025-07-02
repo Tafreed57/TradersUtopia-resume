@@ -3,8 +3,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { strictCSRFValidation } from '@/lib/csrf';
-
-export const dynamic = 'force-dynamic';
+import { safeGrantAdmin } from '@/lib/safe-profile-operations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,14 +79,28 @@ export async function POST(request: NextRequest) {
       `👑 [ADMIN] Admin ${adminProfile.email} is ${action} admin privileges ${grantAdmin ? 'to' : 'from'} ${targetProfile.email} (${userId})`
     );
 
-    // Update admin status in database
-    await db.profile.update({
-      where: { userId },
-      data: {
-        isAdmin: grantAdmin,
-        updatedAt: new Date(),
-      },
-    });
+    // Use safe admin granting to handle potential duplicates
+    if (grantAdmin) {
+      const success = await safeGrantAdmin(userId);
+      if (!success) {
+        return NextResponse.json(
+          {
+            error: 'Failed to grant admin access',
+            message: 'Unable to update user profiles. Please try again.',
+          },
+          { status: 500 }
+        );
+      }
+    } else {
+      // For revoking, update all profiles for this user
+      await db.profile.updateMany({
+        where: { userId },
+        data: {
+          isAdmin: false,
+          updatedAt: new Date(),
+        },
+      });
+    }
 
     console.log(
       `🗄️ [ADMIN] Updated admin status for user ${userId} to ${grantAdmin}`

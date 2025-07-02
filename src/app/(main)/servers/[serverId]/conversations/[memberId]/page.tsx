@@ -56,7 +56,7 @@ export default async function MemberIdPage({
     memberOne.profileId === profile?.id ? memberTwo : memberOne;
 
   return (
-    <div className='bg-white dark:bg-[#313338] flex flex-col h-full'>
+    <div className='bg-[#313338] flex flex-col h-full'>
       {await ChatHeader({
         name: otherMember.profile.name,
         serverId: params?.serverId,

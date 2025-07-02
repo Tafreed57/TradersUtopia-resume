@@ -8,8 +8,6 @@ import {
   secureTextInput,
 } from '@/lib/validation';
 
-export const dynamic = 'force-dynamic';
-
 export async function POST(request: NextRequest) {
   try {
     // ✅ SECURITY: Rate limiting for admin operations
@@ -36,7 +34,7 @@ export async function POST(request: NextRequest) {
     const { reason } = validationResult.data;
 
     // ✅ SECURITY: Sanitize reason input
-    const reasonCheck = secureTextInput(reason);
+    const reasonCheck = secureTextInput(reason || '');
     if (reasonCheck.threats.length) {
       console.warn(
         `🚨 [SECURITY] Suspicious revoke reason: ${reasonCheck.threats.join(', ')}`

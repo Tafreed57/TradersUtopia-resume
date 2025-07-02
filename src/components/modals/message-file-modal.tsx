@@ -71,7 +71,7 @@ export function MessageFileModal() {
   };
   return (
     <Dialog open={isModalOpen} onOpenChange={handleClose}>
-      <DialogContent className='bg-white text-black p-0 overflow-hidden'>
+      <DialogContent className='bg-gray-900 text-white p-0 overflow-hidden'>
         <DialogHeader className='pt-8 px-6'>
           <DialogTitle className='text-2xl text-center font-bold'>
             Add an Attachment
@@ -103,11 +103,11 @@ export function MessageFileModal() {
                             <Button
                               onClick={() => field.onChange('')}
                               type='button'
-                              className='w-7 h-7  p-[.35rem] absolute bg-rose-500 hover:bg-rose-800 text-white top-0 right-0 rounded-full shadow-sm'
+                              className='w-7 h-7 p-[.35rem] absolute bg-rose-500 hover:bg-rose-800 text-white top-0 right-0 rounded-full shadow-sm'
                             >
                               <svg
                                 xmlns='http://www.w3.org/2000/svg'
-                                className='h-6 w-6 '
+                                className='h-6 w-6'
                                 fill='none'
                                 viewBox='0 0 24 24'
                                 stroke='currentColor'
@@ -138,18 +138,18 @@ export function MessageFileModal() {
                               href={field?.value}
                               target='_blank'
                               rel='noopener noreferrer'
-                              className='ml-2 text-sm text-indigo-500 dark:text-indigo-400 hover:underline'
+                              className='ml-2 text-sm text-indigo-500 hover:underline'
                             >
                               {field?.value}
                             </a>
                             <Button
                               onClick={() => field.onChange('')}
                               type='button'
-                              className='w-7 h-7  p-[.35rem] absolute bg-rose-500 hover:bg-rose-800 text-white -top-2 -right-2 rounded-full shadow-sm'
+                              className='w-7 h-7 p-[.35rem] absolute bg-rose-500 hover:bg-rose-800 text-white -top-2 -right-2 rounded-full shadow-sm'
                             >
                               <svg
                                 xmlns='http://www.w3.org/2000/svg'
-                                className='h-6 w-6 '
+                                className='h-6 w-6'
                                 fill='none'
                                 viewBox='0 0 24 24'
                                 stroke='currentColor'
@@ -171,7 +171,7 @@ export function MessageFileModal() {
                 />
               </div>
             </div>
-            <DialogFooter className='bg-gray-100  px-6 py-4'>
+            <DialogFooter className='bg-gray-800 px-6 py-4'>
               <Button
                 type='submit'
                 variant='default'

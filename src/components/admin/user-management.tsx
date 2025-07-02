@@ -44,7 +44,6 @@ interface UserData {
   email: string;
   imageUrl?: string;
   isAdmin: boolean;
-  twoFactorEnabled: boolean;
   createdAt: string;
   updatedAt: string;
   lastActiveAt?: string;
@@ -399,14 +398,6 @@ export function UserManagement() {
                 <div className='text-xs text-gray-400'>Admins</div>
               </CardContent>
             </Card>
-            <Card className='bg-gray-800/50 border-gray-600'>
-              <CardContent className='p-3 sm:p-4'>
-                <div className='text-lg sm:text-2xl font-bold text-purple-400'>
-                  {users.filter(u => u.twoFactorEnabled).length}
-                </div>
-                <div className='text-xs text-gray-400'>2FA On</div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Mobile-First Users List */}
@@ -742,23 +733,6 @@ export function UserManagement() {
                                 {selectedUser.isAdmin
                                   ? 'Admin User'
                                   : 'Regular User'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
-                            <label className='text-sm font-semibold text-gray-300 mb-2 block'>
-                              2FA Security
-                            </label>
-                            <div className='flex items-center gap-2'>
-                              {selectedUser.twoFactorEnabled ? (
-                                <CheckCircle className='w-4 h-4 text-green-400' />
-                              ) : (
-                                <XCircle className='w-4 h-4 text-red-400' />
-                              )}
-                              <p className='text-white text-sm'>
-                                {selectedUser.twoFactorEnabled
-                                  ? 'Enabled'
-                                  : 'Disabled'}
                               </p>
                             </div>
                           </div>

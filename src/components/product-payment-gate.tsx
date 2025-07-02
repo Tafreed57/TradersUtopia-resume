@@ -55,6 +55,10 @@ export function ProductPaymentGate({
 
     try {
       setLoading(true);
+
+      // Add some delay to prevent immediate duplicate calls
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const response = await fetch('/api/check-product-subscription', {
         method: 'POST',
         headers: {
@@ -64,6 +68,36 @@ export function ProductPaymentGate({
           allowedProductIds,
         }),
       });
+
+      if (response.status === 429) {
+        // Rate limited - wait and retry once
+        console.warn('Rate limited, waiting before retry...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const retryResponse = await fetch('/api/check-product-subscription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            allowedProductIds,
+          }),
+        });
+
+        if (retryResponse.status === 429) {
+          // Still rate limited, use fallback
+          setAccessStatus({
+            hasAccess: false,
+            reason:
+              'Rate limit exceeded. Please wait a moment and refresh the page.',
+          });
+          return;
+        }
+
+        const data = await retryResponse.json();
+        setAccessStatus(data);
+        return;
+      }
 
       const data = await response.json();
       setAccessStatus(data);
@@ -135,11 +169,11 @@ export function ProductPaymentGate({
 
   if (!accessStatus?.hasAccess) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4'>
+      <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4'>
         <Card className='w-full max-w-2xl'>
           <CardHeader className='text-center'>
-            <div className='mx-auto mb-4 p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full w-fit'>
-              <Shield className='h-8 w-8 text-blue-600 dark:text-blue-400' />
+            <div className='mx-auto mb-4 p-3 bg-blue-100 rounded-full w-fit'>
+              <Shield className='h-8 w-8 text-blue-600' />
             </div>
             <CardTitle className='text-2xl mb-2'>
               🔒 {productName} Access Required
@@ -165,7 +199,7 @@ export function ProductPaymentGate({
               )}
             </div>
 
-            <div className='bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-6 rounded-lg border'>
+            <div className='bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border'>
               <h3 className='font-semibold mb-3 flex items-center gap-2'>
                 <Star className='h-5 w-5 text-yellow-500' />
                 What You Get With {productName}:

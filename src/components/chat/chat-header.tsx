@@ -16,11 +16,11 @@ export async function ChatHeader({
   serverId,
 }: ChatHeaderProps) {
   return (
-    <div className='text-sm sm:text-md font-semibold px-3 sm:px-4 flex items-center h-14 sm:h-16 border-neutral-200 dark:border-neutral-800 border-b-2 bg-white/95 dark:bg-[#313338]/95 backdrop-blur-sm touch-manipulation'>
+    <div className='text-sm sm:text-md font-semibold px-3 sm:px-4 flex items-center h-14 sm:h-16 border-neutral-200 border-b-2 bg-[#313338]/95 backdrop-blur-sm touch-manipulation'>
       <div className='flex items-center gap-2 sm:gap-3 flex-1 min-w-0'>
         {await MobileToggle({ serverId })}
         {type === 'channel' && (
-          <Hash className='w-4 h-4 sm:w-5 sm:h-5 text-zinc-500 dark:text-zinc-400 flex-shrink-0' />
+          <Hash className='w-4 h-4 sm:w-5 sm:h-5 text-zinc-500 flex-shrink-0' />
         )}
         {type === 'conversation' && (
           <UserAvatar
@@ -28,7 +28,7 @@ export async function ChatHeader({
             className='h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0'
           />
         )}
-        <p className='text-sm sm:text-md font-semibold text-black dark:text-white truncate'>
+        <p className='text-sm sm:text-md font-semibold text-black truncate'>
           {type === 'channel' ? `#${name}` : name}
         </p>
       </div>

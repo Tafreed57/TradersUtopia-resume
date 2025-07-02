@@ -409,15 +409,13 @@ export default function FreeVideosPage() {
               <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
                 {section.videos.map(video => (
                   <div
-                    key={video.id}
-                    className='group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl overflow-hidden border border-gray-700/50 hover:border-yellow-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-yellow-400/10 backdrop-blur-sm'
+                    key={video.id} className='group bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl overflow-hidden border border-gray-700/50 hover:border-yellow-400/50 transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-yellow-400/10 backdrop-blur-sm'
                   >
                     {/* YouTube Video Embed */}
                     <div className='relative aspect-video bg-gradient-to-br from-gray-900 to-black overflow-hidden'>
                       <iframe
                         src={`${video.embedUrl}?rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent&controls=1&autohide=1`}
-                        title={video.title}
-                        className='w-full h-full'
+                        title={video.title} className='w-full h-full'
                         allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
                         allowFullScreen
                         loading='lazy'
@@ -447,8 +445,7 @@ export default function FreeVideosPage() {
                       <a
                         href={`https://www.youtube.com/watch?v=${video.youtubeId}`}
                         target='_blank'
-                        rel='noopener noreferrer'
-                        className='w-full inline-flex items-center justify-center bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-400/30 text-yellow-400 hover:bg-gradient-to-r hover:from-yellow-500 hover:to-yellow-600 hover:text-black transition-all duration-300 rounded-md px-4 py-2 text-sm font-medium'
+                        rel='noopener noreferrer' className='w-full inline-flex items-center justify-center bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border border-yellow-400/30 text-yellow-400 hover:bg-gradient-to-r hover:from-yellow-500 hover:to-yellow-600 hover:text-black transition-all duration-300 rounded-md px-4 py-2 text-sm font-medium'
                       >
                         <Play className='w-4 h-4 mr-2' />
                         Watch on YouTube
@@ -510,8 +507,7 @@ export default function FreeVideosPage() {
                   Home
                 </Link>
                 <Link
-                  href='/pricing'
-                  className='text-gray-400 hover:text-white'
+                  href='/pricing' className='text-gray-400 hover:text-white'
                 >
                   Pricing
                 </Link>

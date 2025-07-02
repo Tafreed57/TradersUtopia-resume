@@ -211,7 +211,6 @@ export async function GET(request: NextRequest) {
             email: profile.email,
             imageUrl: profile.imageUrl,
             isAdmin: profile.isAdmin,
-            twoFactorEnabled: profile.twoFactorEnabled,
             createdAt: profile.createdAt.toISOString(),
             updatedAt: profile.updatedAt.toISOString(),
             lastActiveAt: undefined, // lastActiveAt field doesn't exist in this schema
@@ -232,7 +231,6 @@ export async function GET(request: NextRequest) {
             email: profile.email,
             imageUrl: profile.imageUrl,
             isAdmin: profile.isAdmin,
-            twoFactorEnabled: profile.twoFactorEnabled,
             createdAt: profile.createdAt.toISOString(),
             updatedAt: profile.updatedAt.toISOString(),
             lastActiveAt: undefined, // lastActiveAt field doesn't exist in this schema
