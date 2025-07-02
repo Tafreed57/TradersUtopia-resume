@@ -14,6 +14,10 @@ frontend:
     build:
       commands:
         - echo "Building for production..."
+        - env | grep -e DATABASE_URL >> .env.production
+        - env | grep -e STRIPE_SECRET_KEY >> .env.production
+        - env | grep -e CLERK_SECRET_KEY >> .env.production
+        - env | grep -e STRIPE_WEBHOOK_SECRET >> .env.production
         - pnpm build
   artifacts:
     # For Next.js SSR apps, use .next directory
