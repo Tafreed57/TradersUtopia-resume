@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return rateLimitResult.error;
     }
 
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       trackSuspiciousActivity(request, 'UNAUTHENTICATED_PROFILE_ACCESS');

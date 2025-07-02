@@ -5,12 +5,12 @@ import { passwordChangeSchema } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const clerk = await clerkClient()
+    const clerk = await clerkClient();
     const user = await clerk.users.getUser(userId);
     const hasPassword = user.passwordEnabled;
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
     const validatedData = passwordChangeSchema.parse(body);
     const { currentPassword, newPassword } = validatedData;
 
-    const user = await clerkClient.users.getUser(userId);
+    // Get clerk client instance
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
 
     if (!user.passwordEnabled) {
       return NextResponse.json(
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update password using Clerk
-    await clerkClient.users.updateUser(userId, {
+    await clerk.users.updateUser(userId, {
       password: newPassword,
     });
 
