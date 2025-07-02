@@ -11,8 +11,6 @@ frontend:
         - corepack enable
         # Install dependencies
         - pnpm i
-        # Generate Prisma client for Discord function
-        - cd amplify/functions/discord-collector && npx prisma generate && cd ../../..
     build:
       commands:
         - echo "Building for production..."

@@ -11,7 +11,8 @@
     "amplify:sandbox": "npx ampx sandbox",
     "amplify:deploy": "npx ampx pipeline-deploy --branch main",
     "amplify:generate": "npx ampx generate",
-    "discord:build": "cd amplify/discord-collector && npx prisma generate"
+    "discord:build": "cd amplify/discord-collector && npx prisma generate",
+    "postinstall": "npx prisma generate"
   },
   "dependencies": {
     "@aws-amplify/backend": "^1.16.1",
