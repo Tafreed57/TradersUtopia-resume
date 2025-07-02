@@ -1,14 +1,14 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 // ✅ DEBUG: Log environment variable status at module load time
-// console.log('🔍 [MIDDLEWARE] Environment check at load time:', {
-//   nodeEnv: process.env.NODE_ENV,
-//   hasClerkSecret: process.env.CLERK_SECRET_KEY,
-//   db: process.env.DATABASE_URL,
-//   hasClerkPublishable: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-//   secretKeyPrefix: process.env.CLERK_SECRET_KEY?.substring(0, 8) || 'NOT_FOUND',
-//   timestamp: new Date().toISOString(),
-// });
+console.log('🔍 [MIDDLEWARE] Environment check at load time:', {
+  nodeEnv: process.env.NODE_ENV,
+  hasClerkSecret: process.env.CLERK_SECRET_KEY,
+  db: process.env.DATABASE_URL,
+  hasClerkPublishable: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  secretKeyPrefix: process.env.CLERK_SECRET_KEY?.substring(0, 8) || 'NOT_FOUND',
+  timestamp: new Date().toISOString(),
+});
 
 // ✅ WORKAROUND: Check for alternative environment variable names
 // const clerkSecretKey =
