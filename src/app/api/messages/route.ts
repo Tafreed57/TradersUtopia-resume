@@ -3,8 +3,13 @@ import { getCurrentProfile } from '@/lib/query';
 import { Message } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitMessaging, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { currentUser } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
 
 const MESSAGE_BATCH = 10;
+
+// Force dynamic rendering due to rate limiting using request.headers
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {

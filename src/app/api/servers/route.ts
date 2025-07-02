@@ -5,6 +5,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { validateInput, serverCreationSchema } from '@/lib/validation';
+import { currentUser } from '@clerk/nextjs/server';
+
+// Force dynamic rendering due to rate limiting using request.headers
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {

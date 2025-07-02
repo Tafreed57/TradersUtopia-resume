@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
+// Force dynamic rendering due to rate limiting using request.headers
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // ✅ SECURITY: Rate limiting for profile access

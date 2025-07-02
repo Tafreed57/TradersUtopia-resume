@@ -4,6 +4,11 @@ import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { currentUser } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+
+// Force dynamic rendering due to rate limiting using request.headers
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {

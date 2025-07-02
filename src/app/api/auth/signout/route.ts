@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { rateLimitAuth, trackSuspiciousActivity } from '@/lib/rate-limit';
 
+// Force dynamic rendering due to cookies and request.headers usage
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // ✅ SECURITY: Rate limiting for authentication operations

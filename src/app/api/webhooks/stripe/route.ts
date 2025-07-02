@@ -3,6 +3,9 @@ import Stripe from 'stripe';
 import { db } from '@/lib/db';
 import { rateLimitWebhook, trackSuspiciousActivity } from '@/lib/rate-limit';
 
+// Force dynamic rendering due to rate limiting using request.headers
+export const dynamic = 'force-dynamic';
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
