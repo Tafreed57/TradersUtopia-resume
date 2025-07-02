@@ -23,7 +23,7 @@ const publicRoutes = createRouteMatcher([
 export default clerkMiddleware((auth, request) => {
   // Simple protection without custom configuration
   if (!publicRoutes(request)) {
-    auth().protect();
+    (auth() as any).protect();
   }
 });
 

@@ -7,9 +7,7 @@ import { strictCSRFValidation } from '@/lib/csrf';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2025-05-28.basil',
-  });
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   try {
     // CSRF protection for admin operations
     const csrfValid = await strictCSRFValidation(request);
@@ -119,7 +117,8 @@ export async function POST(request: NextRequest) {
 
     // Delete from Clerk
     try {
-      await clerkClient.users.deleteUser(userId);
+      const clerk = await clerkClient();
+      await clerk.users.deleteUser(userId);
       console.log(`👤 [ADMIN] Deleted Clerk user ${userId}`);
     } catch (clerkError) {
       console.warn(`Failed to delete Clerk user ${userId}:`, clerkError);

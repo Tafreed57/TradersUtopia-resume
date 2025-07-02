@@ -2,14 +2,8 @@ import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatMessages } from '@/components/chat/chat-messages';
 import { MediaRoom } from '@/components/media-room';
-import {
-  getChannel,
-  getCurrentProfile,
-  getGeneralServer,
-  getMember,
-} from '@/lib/query';
+import { getChannel, getCurrentProfile, getMember } from '@/lib/query';
 import { cn } from '@/lib/utils';
-import { auth } from '@clerk/nextjs/server';
 import { ChannelType } from '@prisma/client';
 import { redirect } from 'next/navigation';
 
@@ -23,7 +17,7 @@ interface ChannelIdPageProps {
 export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
   const profile = await getCurrentProfile();
   if (!profile) {
-    return auth().redirectToSignIn();
+    return redirect('/sign-in');
   }
 
   const channel = await getChannel(params.channelId);

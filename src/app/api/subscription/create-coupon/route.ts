@@ -17,9 +17,7 @@ const createCouponSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2025-05-28.basil',
-  });
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   console.log('🎯 [CREATE-COUPON] Starting coupon creation process...');
 
   try {

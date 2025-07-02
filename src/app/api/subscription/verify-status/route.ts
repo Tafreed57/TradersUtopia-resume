@@ -6,11 +6,9 @@ import Stripe from 'stripe';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2025-05-28.basil',
-  });
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -125,7 +125,7 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
     } finally {
       isCheckingRef.current = false;
     }
-  }, [user?.id, pathname, router]);
+  }, [user?.id, pathname, router, lastCheckedUserId]);
 
   // Reset check state when user changes
   useEffect(() => {
@@ -178,6 +178,7 @@ export function TwoFactorGuard({ children }: TwoFactorGuardProps) {
     if (!is2FAChecked && !isCheckingRef.current) {
       check2FA();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, user?.id, pathname, shouldSkip, is2FAChecked, check2FA]);
 
   // Listen for force recheck events

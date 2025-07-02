@@ -77,7 +77,10 @@ export async function initProfile() {
   noStore();
   const user = await currentUser();
 
-  if (!user) return auth().redirectToSignIn();
+  if (!user) {
+    const { redirectToSignIn } = await auth();
+    return redirectToSignIn();
+  }
 
   const userEmail = user.primaryEmailAddress?.emailAddress;
 
@@ -152,7 +155,10 @@ export async function initProfile() {
 
 export async function getCurrentProfile() {
   const user = await currentUser();
-  if (!user) return auth().redirectToSignIn();
+  if (!user) {
+    const { redirectToSignIn } = await auth();
+    return redirectToSignIn();
+  }
 
   const profile = await prisma.profile.findUnique({
     where: {
@@ -200,7 +206,10 @@ export async function getCurrentProfile() {
 
 export async function getCurrentProfilePage(req: NextApiRequest) {
   const authInfo = await getAuth(req);
-  if (!authInfo.sessionId) return auth().redirectToSignIn();
+  if (!authInfo.sessionId) {
+    const { redirectToSignIn } = await auth();
+    return redirectToSignIn();
+  }
 
   const profile = await prisma.profile.findUnique({
     where: {

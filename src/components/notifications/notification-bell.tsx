@@ -64,6 +64,7 @@ export function NotificationBell() {
         console.error('Failed to fetch notifications:', error);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user?.id]
   ); // ✅ FIX: Remove lastFetched from deps to prevent infinite recreations
 
@@ -169,6 +170,7 @@ export function NotificationBell() {
         }
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]); // ✅ FIX: Only depend on user.id to prevent frequent re-creation
 
   // WebSocket event listeners for real-time notifications
@@ -206,6 +208,7 @@ export function NotificationBell() {
         }
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]); // ✅ FIX: Use stable identifiers instead of object references
 
   useEffect(() => {

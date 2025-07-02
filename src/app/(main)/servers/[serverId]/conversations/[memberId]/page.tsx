@@ -36,7 +36,8 @@ export default async function MemberIdPage({
 }: MemberIdPageProps) {
   const profile = await getCurrentProfile();
   if (!profile) {
-    return auth().redirectToSignIn();
+    const { redirectToSignIn } = await auth();
+    return redirectToSignIn();
   }
 
   const currentMember = await getCurrentMember(params?.serverId, profile?.id);

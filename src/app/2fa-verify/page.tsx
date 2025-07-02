@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Shield, AlertCircle } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 
-export default function TwoFactorVerifyPage() {
+export const dynamic = 'force-dynamic';
+
+function TwoFactorVerifyForm() {
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
   const router = useRouter();
@@ -185,5 +187,21 @@ export default function TwoFactorVerifyPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className='flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900'>
+      <div className='text-gray-500'>Loading...</div>
+    </div>
+  );
+}
+
+export default function TwoFactorVerifyPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <TwoFactorVerifyForm />
+    </Suspense>
   );
 }

@@ -10,7 +10,7 @@ export default async function InviteCodePage({
 }) {
   const profile = await getCurrentProfile();
   if (!profile) {
-    return auth().redirectToSignIn();
+    return redirect('/sign-in');
   }
   if (!params.inviteCode) {
     return redirect('/');

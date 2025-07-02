@@ -194,3 +194,34 @@ enum NotificationType {
   PAYMENT
   SECURITY
 }
+
+// Discord Messages Table
+model DiscordMessage {
+  id           Int      @id @default(autoincrement())
+  msgId        String   @map("msg_id")
+  channelName  String   @map("channel_name")
+  content      String?
+  attachments  Json?
+  referenceMsg Json?    @map("reference_msg")
+  imageUrl     Json?    @map("image_url")
+  timestamp    DateTime?
+  relayed      Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  @@unique([msgId, channelName])
+  @@index([channelName, relayed])
+  @@index([timestamp])
+  @@map("discord_messages")
+}
+
+// Channel Metadata Table
+model ChannelMetadata {
+  id              Int      @id @default(autoincrement())
+  channelName     String   @unique @map("channel_name")
+  channelId       String   @map("channel_id")
+  lastProcessedAt DateTime? @map("last_processed_at")
+  messageCount    Int      @default(0) @map("message_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@map("channel_metadata")
+} 

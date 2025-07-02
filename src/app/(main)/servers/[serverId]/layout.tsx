@@ -12,7 +12,8 @@ export default async function ServerIdLayout({
 }) {
   const profile = await getCurrentProfile();
   if (!profile) {
-    return auth().redirectToSignIn();
+    const { redirectToSignIn } = await auth();
+    return redirectToSignIn();
   }
   const server = await getServer(params.serverId, profile.id);
   if (!server) {

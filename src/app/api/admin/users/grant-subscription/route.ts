@@ -5,9 +5,7 @@ import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { strictCSRFValidation } from '@/lib/csrf';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {

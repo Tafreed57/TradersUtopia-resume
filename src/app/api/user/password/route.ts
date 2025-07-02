@@ -16,7 +16,8 @@ async function verifyCurrentPassword(
   currentPassword: string
 ): Promise<boolean> {
   try {
-    const verification = await clerkClient.users.verifyPassword({
+    const clerk = await clerkClient();
+    const verification = await clerk.users.verifyPassword({
       userId: userId,
       password: currentPassword,
     });
@@ -211,7 +212,8 @@ export async function POST(request: NextRequest) {
 
     // ✅ SECURITY: Update password using Clerk
     try {
-      await clerkClient.users.updateUser(user.id, {
+      const clerk = await clerkClient();
+      await clerk.users.updateUser(user.id, {
         password: newPassword,
       });
 

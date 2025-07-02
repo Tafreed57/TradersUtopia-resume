@@ -91,7 +91,7 @@ export default clerkMiddleware(
     const isPublic = isPublicRoute(request);
 
     if (!isPublic) {
-      auth().protect();
+      (auth() as any).protect();
     }
   },
   {

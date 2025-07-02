@@ -29,9 +29,7 @@ export function getStripeInstance(): Stripe | null {
   }
 
   try {
-    stripe = new Stripe(secretKey, {
-      apiVersion: '2025-05-28.basil',
-    });
+    stripe = new Stripe(secretKey);
 
     console.log('✅ [STRIPE] Stripe SDK initialized successfully');
     return stripe;

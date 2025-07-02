@@ -8,9 +8,8 @@ import Stripe from 'stripe';
 // Cache for product data to avoid repeated API calls
 const productCache = new Map<string, string>();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+export const dynamic = 'force-dynamic';
 
 // Helper function to get subscription with product name
 async function getSubscriptionWithName(profile: any) {
@@ -134,7 +133,8 @@ export async function GET(request: NextRequest) {
           // Get Clerk user data
           let clerkData = null;
           try {
-            const clerkUser = await clerkClient.users.getUser(profile.userId);
+            const clerk = await clerkClient();
+            const clerkUser = await clerk.users.getUser(profile.userId);
             clerkData = {
               id: clerkUser.id,
               username: clerkUser.username,

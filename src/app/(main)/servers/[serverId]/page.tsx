@@ -11,7 +11,8 @@ interface ServerIdPageProps {
 export default async function ServerIdPage({ params }: ServerIdPageProps) {
   const profile = await getCurrentProfile();
   if (!profile) {
-    return auth().redirectToSignIn();
+    const { redirectToSignIn } = await auth();
+    return redirectToSignIn();
   }
   const generalServer = await getGeneralServer(params.serverId, profile.id);
 
@@ -21,7 +22,8 @@ export default async function ServerIdPage({ params }: ServerIdPageProps) {
     );
   }
   if (!generalServer) {
-    return auth().redirectToSignIn();
+    const { redirectToSignIn } = await auth();
+    return redirectToSignIn();
   }
   return <div>New server</div>;
 }
