@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
-
-export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,9 +12,9 @@ export async function GET(request: NextRequest) {
       return rateLimitResult.error;
     }
 
-    const user = await currentUser();
+    const { userId } = auth();
 
-    if (!user) {
+    if (!userId) {
       trackSuspiciousActivity(request, 'UNAUTHENTICATED_PROFILE_ACCESS');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -24,18 +22,18 @@ export async function GET(request: NextRequest) {
     // Find the user's profile in our database
     const profile = await db.profile.findUnique({
       where: {
-        userId: user.id,
+        userId: userId,
       },
       select: {
         id: true,
+        userId: true,
         name: true,
         email: true,
         imageUrl: true,
-        twoFactorEnabled: true,
-        isAdmin: true,
-        subscriptionStatus: true,
         createdAt: true,
         updatedAt: true,
+        subscriptionStatus: true,
+        isAdmin: true,
       },
     });
 
@@ -45,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(profile);
   } catch (error) {
-    console.error('Error fetching profile:', error);
+    console.error('[USER_PROFILE_GET]', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

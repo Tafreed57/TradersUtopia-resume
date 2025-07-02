@@ -5,7 +5,6 @@ import { QueryProvider } from '@/contexts/query-provider';
 import { ThemeProvider } from '@/contexts/theme-provider';
 import { LoadingProvider } from '@/contexts/loading-provider';
 import { AuthWrapper } from '@/components/auth-wrapper';
-import { TwoFactorGuard } from '@/components/2fa-guard';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
 import { ClerkProvider } from '@clerk/nextjs';
@@ -147,26 +146,24 @@ export default function RootLayout({
               <LoadingProvider>
                 <QueryProvider>
                   <AuthWrapper>
-                    <TwoFactorGuard>
-                      <ModalProvider />
-                      <Toaster
-                        position='top-right'
-                        expand={true}
-                        richColors
-                        closeButton
-                        className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
-                        toastOptions={{
-                          className:
-                            'text-sm p-4 min-h-[48px] touch-manipulation',
-                          style: {
-                            minHeight: '48px',
-                            fontSize: '14px',
-                            padding: '16px',
-                          },
-                        }}
-                      />
-                      {children}
-                    </TwoFactorGuard>
+                    <ModalProvider />
+                    <Toaster
+                      position='top-right'
+                      expand={true}
+                      richColors
+                      closeButton
+                      className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
+                      toastOptions={{
+                        className:
+                          'text-sm p-4 min-h-[48px] touch-manipulation',
+                        style: {
+                          minHeight: '48px',
+                          fontSize: '14px',
+                          padding: '16px',
+                        },
+                      }}
+                    />
+                    {children}
                   </AuthWrapper>
                 </QueryProvider>
               </LoadingProvider>

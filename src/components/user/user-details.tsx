@@ -1,171 +1,254 @@
 'use client';
 
-import { useOrganization, useSession, useUser } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  User,
+  Mail,
+  Calendar,
+  Shield,
+  Activity,
+  Settings,
+  ExternalLink,
+} from 'lucide-react';
 
-function Row({
-  desc,
+function ProfileRow({
+  icon: Icon,
+  label,
   value,
-  children,
+  badge,
 }: {
-  desc: string;
+  icon: any;
+  label: string;
   value: string;
-  children: React.ReactNode;
+  badge?: string;
 }) {
   return (
-    <div className='h-[2.125rem] grid grid-cols-2 items-center relative'>
-      <span className='text-xs font-semibold block flex-shrink-0'>{desc}</span>
-      <span className='text-xs text-[#7D7D7E] font-mono block relative'>
-        <span className='block truncate w-full'>{value}</span>
-        {children}
-      </span>
-    </div>
-  );
-}
-
-function PointerC({ label }: { label: string }) {
-  return (
-    <div className='absolute w-fit flex items-center gap-5 top-1/2 -translate-y-1/2 left-full'>
-      <div className='relative'>
-        <div className='h-px bg-[#BFBFC4] w-[6.5rem]' />
-        <div className='size-1 bg-[#BFBFC4] rotate-45 absolute right-0 top-1/2 -translate-y-1/2' />
+    <div className='flex items-center justify-between py-3 px-4 hover:bg-gray-700/30 rounded-lg transition-colors'>
+      <div className='flex items-center gap-3'>
+        <div className='w-8 h-8 bg-gray-700/50 rounded-lg flex items-center justify-center'>
+          <Icon className='h-4 w-4 text-gray-300' />
+        </div>
+        <div>
+          <p className='text-sm font-medium text-white'>{label}</p>
+          <p className='text-xs text-gray-400'>{value}</p>
+        </div>
       </div>
-      <div className='font-mono text-xs bg-black px-1.5 py-1 rounded-md text-white'>
-        {label}
-      </div>
+      {badge && (
+        <Badge
+          variant='secondary'
+          className='bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+        >
+          {badge}
+        </Badge>
+      )}
     </div>
   );
 }
 
 function formatDate(date: Date) {
   return date.toLocaleDateString('en-US', {
-    month: 'short',
+    month: 'long',
     day: 'numeric',
     year: 'numeric',
-  });
-}
-
-function formatDateWithNumbers(date: Date): string {
-  return date.toLocaleString('en-US', {
-    month: 'numeric',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
   });
 }
 
 export function UserDetails() {
   const { user } = useUser();
-  const { session } = useSession();
-  const { organization } = useOrganization();
 
-  if (!user || !session) return null;
+  if (!user) {
+    return (
+      <div className='flex items-center justify-center p-8'>
+        <div className='text-center'>
+          <User className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+          <p className='text-gray-400'>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Function to navigate to Security tab
+  const handleSecuritySettings = () => {
+    // Find the Security tab button and click it
+    const securityTab = document.querySelector(
+      '[value="security"]'
+    ) as HTMLButtonElement;
+    if (securityTab) {
+      securityTab.click();
+    }
+  };
+
+  // Function to open Clerk user profile for email updates
+  const handleUpdateEmail = () => {
+    // Open Clerk's user profile page
+    window.open('/user-profile', '_blank');
+  };
 
   return (
-    <div className='p-16 rounded-lg border border-[#EDEDED] bg-[#F1F1F2] background relative'>
-      <div className='p-8 rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5 max-w-[25rem]'>
-        <div className='flex flex-col items-center gap-2 mb-6'>
-          <div className='w-full relative flex justify-center'>
-            <img
-              src={user.imageUrl}
-              alt={`${user.firstName} ${user.lastName} profile picture`}
-              className='size-20 rounded-full'
-            />
-            <div className='absolute w-fit flex items-center gap-5 top-1/2 -translate-x-2.5 -translate-y-1/2 left-full'>
-              <div className='relative'>
-                <div className='h-px bg-[#BFBFC4] w-[6.5rem]' />
-                <div className='size-1 bg-[#BFBFC4] rotate-45 absolute right-0 top-1/2 -translate-y-1/2' />
+    <div className='space-y-6'>
+      {/* Profile Header */}
+      <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-600/30 backdrop-blur-md'>
+        <CardContent className='p-6'>
+          <div className='flex items-center gap-6'>
+            <div className='relative'>
+              <img
+                src={user.imageUrl}
+                alt={`${user.firstName} ${user.lastName} profile picture`}
+                className='w-20 h-20 rounded-full border-3 border-yellow-400/50 shadow-lg'
+              />
+              <div className='absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-gray-800 flex items-center justify-center'>
+                <Activity className='h-3 w-3 text-white' />
               </div>
-              <div className='font-mono text-xs bg-black px-1.5 py-1 rounded-md text-white'>
-                user.imageUrl
+            </div>
+            <div className='flex-1'>
+              <h2 className='text-2xl font-bold text-white mb-1'>
+                {user.firstName} {user.lastName}
+              </h2>
+              <p className='text-gray-300 mb-3'>
+                {user.emailAddresses[0]?.emailAddress}
+              </p>
+              <div className='flex items-center gap-2'>
+                <Badge
+                  variant='secondary'
+                  className='bg-green-500/20 text-green-300 border-green-500/30'
+                >
+                  Active Account
+                </Badge>
+                <Badge
+                  variant='secondary'
+                  className='bg-blue-500/20 text-blue-300 border-blue-500/30'
+                >
+                  Premium Member
+                </Badge>
               </div>
             </div>
           </div>
-          {user.firstName && user.lastName ? (
-            <h1 className='text-[1.0625rem] font-semibold relative w-full text-center'>
-              {user.firstName} {user.lastName}
-              <div className='absolute w-fit flex items-center gap-5 top-1/2 -translate-x-2.5 -translate-y-1/2 left-full'>
-                <div className='relative'>
-                  <div className='h-px bg-[#BFBFC4] w-[6.5rem]' />
-                  <div className='size-1 bg-[#BFBFC4] rotate-45 absolute right-0 top-1/2 -translate-y-1/2' />
-                </div>
-                <div className='font-mono text-xs bg-black px-1.5 py-1 rounded-md text-white'>
-                  user.firstName
-                </div>
-                <div className='font-mono text-xs bg-black px-1.5 py-1 rounded-md text-white -translate-x-3'>
-                  user.lastName
+        </CardContent>
+      </Card>
+
+      {/* Account Information */}
+      <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-600/30 backdrop-blur-md'>
+        <CardHeader>
+          <CardTitle className='flex items-center gap-3 text-white'>
+            <User className='h-5 w-5' />
+            Account Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-2'>
+          <ProfileRow
+            icon={Mail}
+            label='Email Address'
+            value={user.emailAddresses[0]?.emailAddress || 'Not available'}
+            badge='Verified'
+          />
+          <ProfileRow
+            icon={Calendar}
+            label='Member Since'
+            value={formatDate(user.createdAt!)}
+          />
+          <ProfileRow
+            icon={Activity}
+            label='Last Sign In'
+            value={formatDate(user.lastSignInAt!)}
+          />
+          <ProfileRow
+            icon={Shield}
+            label='Account Security'
+            value='Secured with OAuth'
+            badge='Protected'
+          />
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-600/30 backdrop-blur-md'>
+        <CardHeader>
+          <CardTitle className='flex items-center gap-3 text-white'>
+            <Settings className='h-5 w-5' />
+            Quick Actions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+            <button
+              onClick={handleUpdateEmail}
+              className='p-4 rounded-lg bg-blue-500/20 border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-left group'
+            >
+              <div className='flex items-center justify-between mb-2'>
+                <Mail className='h-5 w-5 text-blue-400 group-hover:scale-110 transition-transform' />
+                <ExternalLink className='h-4 w-4 text-blue-400/60' />
+              </div>
+              <p className='text-sm font-medium text-white'>Update Email</p>
+              <p className='text-xs text-gray-400'>Change your email address</p>
+            </button>
+
+            <button
+              onClick={handleSecuritySettings}
+              className='p-4 rounded-lg bg-green-500/20 border border-green-500/30 hover:bg-green-500/30 transition-colors text-left group'
+            >
+              <div className='flex items-center justify-between mb-2'>
+                <Shield className='h-5 w-5 text-green-400 group-hover:scale-110 transition-transform' />
+                <div className='w-2 h-2 bg-green-400 rounded-full animate-pulse' />
+              </div>
+              <p className='text-sm font-medium text-white'>
+                Security Settings
+              </p>
+              <p className='text-xs text-gray-400'>Manage account security</p>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Additional Actions */}
+      <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-600/30 backdrop-blur-md'>
+        <CardHeader>
+          <CardTitle className='flex items-center gap-3 text-white'>
+            <Activity className='h-5 w-5' />
+            Profile Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className='space-y-3'>
+            <button
+              onClick={() => window.open('/user-profile', '_blank')}
+              className='w-full p-3 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition-colors text-left group flex items-center justify-between'
+            >
+              <div className='flex items-center gap-3'>
+                <User className='h-4 w-4 text-purple-400' />
+                <div>
+                  <p className='text-sm font-medium text-white'>
+                    Full Profile Settings
+                  </p>
+                  <p className='text-xs text-gray-400'>
+                    Access complete Clerk profile
+                  </p>
                 </div>
               </div>
-            </h1>
-          ) : (
-            <div className='h-4' />
-          )}
-        </div>
+              <ExternalLink className='h-4 w-4 text-purple-400/60' />
+            </button>
 
-        <div className='px-2.5 bg-[#FAFAFB] rounded-lg divide-y divide-[#EEEEF0]'>
-          <Row desc='Email' value={user.emailAddresses[0].emailAddress}>
-            <PointerC label='user.emailAddresses[0].emailAddress' />
-          </Row>
-          <Row desc='Last signed in' value={formatDate(user.lastSignInAt!)}>
-            <PointerC label='user.lastSignInAt' />
-          </Row>
-          <Row desc='Joined on' value={formatDate(user.createdAt!)}>
-            <PointerC label='user.createdAt' />
-          </Row>
-          <Row desc='User ID' value={user.id}>
-            <PointerC label='user.user.id' />
-          </Row>
-        </div>
-        <h2 className='mt-6 mb-4 text-[0.9375rem] font-semibold'>
-          Session details
-        </h2>
-        <div className='px-2.5 bg-[#FAFAFB] rounded-lg divide-y divide-[#EEEEF0]'>
-          <Row desc='Session ID' value={session.id}>
-            <PointerC label='session.id' />
-          </Row>
-          <Row desc='Status' value={session.status}>
-            <PointerC label='session.status' />
-          </Row>
-          <Row
-            desc='Last active'
-            value={formatDateWithNumbers(session.lastActiveAt)}
-          >
-            <PointerC label='session.lastActiveAt' />
-          </Row>
-          <Row
-            desc='Session expiration'
-            value={formatDateWithNumbers(session.expireAt)}
-          >
-            <PointerC label='session.expireAt' />
-          </Row>
-        </div>
-        {organization ? (
-          <>
-            <h2 className='mt-6 mb-4 text-[0.9375rem] font-semibold'>
-              Organization detail
-            </h2>
-            <div className='px-2.5 bg-[#FAFAFB] rounded-lg divide-y divide-[#EEEEF0]'>
-              <Row desc='Organization ID' value={organization.id}>
-                <PointerC label='organization.id' />
-              </Row>
-              <Row desc='Name' value={organization.name}>
-                <PointerC label='organization.name' />
-              </Row>
-              <Row desc='Members' value={String(organization.membersCount)}>
-                <PointerC label='organization.membersCount' />
-              </Row>
-              <Row
-                desc='Pending invitations'
-                value={String(organization.pendingInvitationsCount)}
-              >
-                <PointerC label='organization.pendingInvitationsCount' />
-              </Row>
-            </div>
-          </>
-        ) : null}
-      </div>
+            <button
+              onClick={handleSecuritySettings}
+              className='w-full p-3 rounded-lg bg-yellow-500/20 border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors text-left group flex items-center justify-between'
+            >
+              <div className='flex items-center gap-3'>
+                <Shield className='h-4 w-4 text-yellow-400' />
+                <div>
+                  <p className='text-sm font-medium text-white'>
+                    Password & Security
+                  </p>
+                  <p className='text-xs text-gray-400'>
+                    Update password and 2FA settings
+                  </p>
+                </div>
+              </div>
+              <div className='w-2 h-2 bg-yellow-400 rounded-full' />
+            </button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

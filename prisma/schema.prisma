@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,54 +8,40 @@ datasource db {
 }
 
 model Profile {
-  id       String    @id @default(cuid())
-  userId   String    @unique
-  name     String
-  email    String    @db.Text
-  imageUrl String?   @db.Text
-  servers  Server[]
-  members  Member[]
-  channels Channel[]
-
-  // Payment fields
-  subscriptionStatus SubscriptionStatus @default(FREE)
-  subscriptionStart  DateTime?
-  subscriptionEnd    DateTime?
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  name               String
+  email              String
+  imageUrl           String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
   stripeCustomerId   String?
   stripeSessionId    String?
+  subscriptionEnd    DateTime?
+  subscriptionStart  DateTime?
+  subscriptionStatus SubscriptionStatus @default(FREE)
   stripeProductId    String?
-
-  // Two-Factor Authentication
-  twoFactorEnabled  Boolean   @default(false)
-  twoFactorSecret   String?
-  backupCodes       String[]
-
-  // Admin Role
-  isAdmin           Boolean   @default(false)
-
-  // Notification Preferences
-  emailNotifications Json? @default("{\"system\":true,\"security\":true,\"payment\":true,\"messages\":true,\"mentions\":true,\"serverUpdates\":false}")
-  pushNotifications  Json? @default("{\"system\":true,\"security\":true,\"payment\":true,\"messages\":true,\"mentions\":true,\"serverUpdates\":false}")
-  
-  // Push Subscription Data
-  pushSubscriptions Json[] @default([])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  backupCodes        String[]
+  isAdmin            Boolean            @default(false)
+  emailNotifications Json?              @default("{\"system\": true, \"payment\": true, \"mentions\": true, \"messages\": true, \"security\": true, \"serverUpdates\": false}")
+  pushNotifications  Json?              @default("{\"system\": true, \"payment\": true, \"mentions\": true, \"messages\": true, \"security\": true, \"serverUpdates\": false}")
+  pushSubscriptions  Json[]             @default([])
+  channels           Channel[]
+  members            Member[]
+  servers            Server[]
 }
 
 model Notification {
-  id          String            @id @default(cuid())
-  userId      String
-  type        NotificationType
-  title       String
-  message     String           @db.Text
-  read        Boolean          @default(false)
-  actionUrl   String?          @db.Text
-  
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  actionUrl String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
   @@index([userId])
   @@index([read])
 }
@@ -69,32 +49,31 @@ model Notification {
 model Server {
   id         String    @id @default(cuid())
   name       String
-  imageUrl   String?   @db.Text
+  imageUrl   String?
   inviteCode String    @unique
   profileId  String
-  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  members    Member[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   channels   Channel[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  members    Member[]
+  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
 }
 
 model Member {
-  id        String     @id @default(cuid())
-  role      MemberRole @default(GUEST)
-  profileId String
-  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  serverId  String
-  server    Server     @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  messages  Message[]
-  conversationsInitiated Conversation[] @relation("memberOne")
-  conversationsReceived Conversation[] @relation("memberTwo")
-  directMessages DirectMessage[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                     String          @id @default(cuid())
+  role                   MemberRole      @default(GUEST)
+  profileId              String
+  serverId               String
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+  conversationsInitiated Conversation[]  @relation("memberOne")
+  conversationsReceived  Conversation[]  @relation("memberTwo")
+  directMessages         DirectMessage[]
+  profile                Profile         @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  server                 Server          @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  messages               Message[]
 
   @@index([profileId])
   @@index([serverId])
@@ -105,62 +84,58 @@ model Channel {
   name      String
   type      ChannelType @default(TEXT)
   profileId String
-  profile   Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
   serverId  String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  profile   Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
   server    Server      @relation(fields: [serverId], references: [id], onDelete: Cascade)
   messages  Message[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([profileId])
   @@index([serverId])
 }
 
 model Message {
-  id        String  @id @default(cuid())
-  content   String @db.Text
-  fileUrl   String? @db.Text
-  deleted   Boolean @default(false)
-  memberId  String
-  member    Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  content   String
   channelId String
-  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deleted   Boolean  @default(false)
+  fileUrl   String?
+  memberId  String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([channelId])
   @@index([memberId])
 }
 
 model Conversation {
-  id        String   @id @default(cuid())
-  memberOneId String
-  memberOne   Member @relation("memberOne",fields: [memberOneId], references: [id], onDelete: Cascade)
-  memberTwoId String
-  memberTwo   Member @relation("memberTwo",fields: [memberTwoId], references: [id], onDelete: Cascade)
-  directMessages   DirectMessage[]
-  @@index([memberTwoId])
-  @@unique([memberOneId, memberTwoId])
+  id             String          @id @default(cuid())
+  memberOneId    String
+  memberTwoId    String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  memberOne      Member          @relation("memberOne", fields: [memberOneId], references: [id], onDelete: Cascade)
+  memberTwo      Member          @relation("memberTwo", fields: [memberTwoId], references: [id], onDelete: Cascade)
+  directMessages DirectMessage[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@unique([memberOneId, memberTwoId])
+  @@index([memberTwoId])
 }
 
 model DirectMessage {
-  id        String  @id @default(cuid())
-  content   String @db.Text
-  fileUrl   String? @db.Text
-  deleted   Boolean @default(false)
-  
-  memberId  String
-  member    Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  content        String
+  fileUrl        String?
+  deleted        Boolean      @default(false)
+  memberId       String
   conversationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  member         Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([memberId])

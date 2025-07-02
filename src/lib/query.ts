@@ -4,6 +4,10 @@ import { NextApiRequest } from 'next';
 import { unstable_noStore as noStore } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createNotification } from '@/lib/notifications';
+import {
+  findOrCreateProfile,
+  detectAndLogDuplicates,
+} from '@/lib/safe-profile-operations';
 
 // Login-triggered auto sync function
 async function performLoginSync(userEmail: string) {
@@ -81,73 +85,84 @@ export async function initProfile() {
 
   const userEmail = user.primaryEmailAddress?.emailAddress;
 
-  const profile = await prisma.profile.findUnique({
-    where: {
-      userId: user.id,
-    },
-  });
-
-  // If profile exists, trigger login sync in the background
-  if (profile && userEmail) {
-    // Run sync asynchronously without blocking login
-    Promise.resolve()
-      .then(() => {
-        performLoginSync(userEmail);
-      })
-      .catch(error => {
-        console.error(
-          `❌ [Login Sync] Background sync failed for ${userEmail}:`,
-          error
-        );
-      });
-    return profile;
-  }
-
-  const name =
-    user?.fullName ||
-    user?.firstName ||
-    user?.lastName ||
-    user.primaryEmailAddress?.emailAddress.split('@')[0] ||
-    'unknown';
-
-  const newProfile = await prisma.profile.create({
-    data: {
-      userId: user.id,
-      email: user.primaryEmailAddress?.emailAddress as string,
-      name: name,
-      imageUrl: user?.imageUrl,
-    },
-  });
-
-  // For new profiles, also trigger sync in case there are other profiles with same email
-  if (userEmail) {
-    Promise.resolve()
-      .then(() => {
-        performLoginSync(userEmail);
-      })
-      .catch(error => {
-        console.error(
-          `❌ [Login Sync] Background sync failed for ${userEmail}:`,
-          error
-        );
-      });
-  }
-
-  // Create welcome notification for new users
+  // Use safe profile finding/creation to prevent duplicates
   try {
-    await createNotification({
-      userId: user.id,
-      type: 'SYSTEM',
-      title: 'Welcome to TradersUtopia! 🎉',
-      message:
-        'Your account has been successfully created. Explore the dashboard to set up two-factor authentication and customize your experience.',
-      actionUrl: '/dashboard?tab=security',
-    });
-  } catch (error) {
-    console.error('Failed to create welcome notification:', error);
-  }
+    const profile = await findOrCreateProfile();
 
-  return newProfile;
+    // Trigger background sync and duplicate detection
+    if (userEmail) {
+      Promise.resolve()
+        .then(async () => {
+          await performLoginSync(userEmail);
+          await detectAndLogDuplicates();
+        })
+        .catch(error => {
+          console.error(
+            `❌ [Login Sync] Background operations failed for ${userEmail}:`,
+            error
+          );
+        });
+    }
+
+    return profile;
+  } catch (error) {
+    console.error(`❌ [INIT_PROFILE] Error initializing profile:`, error);
+
+    // Fallback to original logic if safe operations fail
+    const profile = await prisma.profile.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (profile) return profile;
+
+    // Create new profile as last resort
+    const name =
+      user?.fullName ||
+      user?.firstName ||
+      user?.lastName ||
+      user.primaryEmailAddress?.emailAddress.split('@')[0] ||
+      'unknown';
+
+    const newProfile = await prisma.profile.create({
+      data: {
+        userId: user.id,
+        email: user.primaryEmailAddress?.emailAddress as string,
+        name: name,
+        imageUrl: user?.imageUrl,
+      },
+    });
+
+    // Create welcome notification for new users
+    try {
+      const welcomeMessage = `
+🎉 **Welcome to Traders Utopia, ${newProfile.name}!** 
+
+Your account has been successfully created. Explore the dashboard to customize your experience and start your trading journey.
+
+**Get Started:**
+• Set up your profile and preferences
+• Join trading discussions and channels  
+• Access premium trading signals and analysis
+• Connect with our community of traders
+
+**Need Help?** Use our support channels or check out our getting started guide.
+
+Happy Trading! 📈
+      `.trim();
+
+      await createNotification({
+        userId: user.id,
+        type: 'SYSTEM',
+        title: 'Welcome to TradersUtopia! 🎉',
+        message: welcomeMessage,
+        actionUrl: '/dashboard?tab=security',
+      });
+    } catch (error) {
+      console.error('Failed to create welcome notification:', error);
+    }
+
+    return newProfile;
+  }
 }
 
 export async function getCurrentProfile() {

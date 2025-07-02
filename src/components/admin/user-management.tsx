@@ -44,7 +44,6 @@ interface UserData {
   email: string;
   imageUrl?: string;
   isAdmin: boolean;
-  twoFactorEnabled: boolean;
   createdAt: string;
   updatedAt: string;
   lastActiveAt?: string;
@@ -345,7 +344,8 @@ export function UserManagement() {
         <Button
           onClick={fetchUsers}
           disabled={loading}
-          size='sm' className='bg-blue-600 hover:bg-blue-700 w-full sm:w-auto'
+          size='sm'
+          className='bg-blue-600 hover:bg-blue-700 w-full sm:w-auto'
         >
           {loading ? (
             <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
@@ -364,7 +364,8 @@ export function UserManagement() {
             <Input
               placeholder='Search by name, email, or user ID...'
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)} className='pl-10 bg-gray-800/50 border-gray-600 text-white h-10 sm:h-auto'
+              onChange={e => setSearchTerm(e.target.value)}
+              className='pl-10 bg-gray-800/50 border-gray-600 text-white h-10 sm:h-auto'
             />
           </div>
 
@@ -397,14 +398,6 @@ export function UserManagement() {
                 <div className='text-xs text-gray-400'>Admins</div>
               </CardContent>
             </Card>
-            <Card className='bg-gray-800/50 border-gray-600'>
-              <CardContent className='p-3 sm:p-4'>
-                <div className='text-lg sm:text-2xl font-bold text-purple-400'>
-                  {users.filter(u => u.twoFactorEnabled).length}
-                </div>
-                <div className='text-xs text-gray-400'>2FA On</div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Mobile-First Users List */}
@@ -420,7 +413,8 @@ export function UserManagement() {
                 <div className='space-y-2 sm:space-y-3'>
                   {filteredUsers.map(userData => (
                     <Card
-                      key={userData.id} className='bg-gray-900/50 border-gray-600 hover:border-gray-500 transition-colors'
+                      key={userData.id}
+                      className='bg-gray-900/50 border-gray-600 hover:border-gray-500 transition-colors'
                     >
                       <CardContent className='p-3 sm:p-4'>
                         {/* Mobile-First Layout */}
@@ -430,7 +424,8 @@ export function UserManagement() {
                             {userData.imageUrl ? (
                               <img
                                 src={userData.imageUrl}
-                                alt={userData.name} className='w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0'
+                                alt={userData.name}
+                                className='w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0'
                               />
                             ) : (
                               <div className='w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0'>
@@ -476,7 +471,8 @@ export function UserManagement() {
                               onClick={() => {
                                 setSelectedUser(userData);
                                 setShowDetailedView(true);
-                              }} className='border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto order-1 sm:order-none'
+                              }}
+                              className='border-gray-600 text-gray-300 hover:bg-gray-700 w-full sm:w-auto order-1 sm:order-none'
                             >
                               <Eye className='w-4 h-4 mr-2' />
                               View Details
@@ -495,7 +491,8 @@ export function UserManagement() {
                                   disabled={
                                     actionLoading ===
                                     `subscription-${userData.userId}`
-                                  } className='bg-orange-600 hover:bg-orange-700 min-w-0'
+                                  }
+                                  className='bg-orange-600 hover:bg-orange-700 min-w-0'
                                   title='Cancel Subscription'
                                 >
                                   {actionLoading ===
@@ -516,7 +513,8 @@ export function UserManagement() {
                                   }
                                   disabled={
                                     actionLoading === `grant-${userData.userId}`
-                                  } className='bg-green-600 hover:bg-green-700 min-w-0'
+                                  }
+                                  className='bg-green-600 hover:bg-green-700 min-w-0'
                                   title='Grant Subscription'
                                 >
                                   {actionLoading ===
@@ -619,7 +617,8 @@ export function UserManagement() {
                   {selectedUser.imageUrl ? (
                     <img
                       src={selectedUser.imageUrl}
-                      alt={selectedUser.name} className='w-12 h-12 sm:w-14 sm:h-14 rounded-full flex-shrink-0 border-2 border-blue-500/30'
+                      alt={selectedUser.name}
+                      className='w-12 h-12 sm:w-14 sm:h-14 rounded-full flex-shrink-0 border-2 border-blue-500/30'
                     />
                   ) : (
                     <div className='w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-xl flex-shrink-0 border-2 border-blue-500/30'>
@@ -641,7 +640,8 @@ export function UserManagement() {
                 <Button
                   variant='ghost'
                   size='sm'
-                  onClick={() => setShowDetailedView(false)} className='flex-shrink-0 hover:bg-gray-700/50'
+                  onClick={() => setShowDetailedView(false)}
+                  className='flex-shrink-0 hover:bg-gray-700/50'
                 >
                   <EyeOff className='w-4 h-4' />
                   <span className='ml-2 text-sm'>Close</span>
@@ -652,31 +652,36 @@ export function UserManagement() {
             {/* Enhanced Content Area */}
             <CardContent className='flex-1 overflow-hidden p-0'>
               <Tabs
-                defaultValue='profile' className='w-full h-full flex flex-col'
+                defaultValue='profile'
+                className='w-full h-full flex flex-col'
               >
                 {/* Enhanced Tab Navigation - Mobile Optimized */}
                 <div className='flex-shrink-0 border-b border-gray-700/30 bg-gray-800/20'>
                   <TabsList className='grid grid-cols-4 w-full h-auto bg-transparent rounded-none p-0'>
                     <TabsTrigger
-                      value='profile' className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
+                      value='profile'
+                      className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
                     >
                       <UserCog className='w-4 h-4 mb-1' />
                       <span className='text-xs font-medium'>Profile</span>
                     </TabsTrigger>
                     <TabsTrigger
-                      value='subscription' className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
+                      value='subscription'
+                      className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
                     >
                       <CreditCard className='w-4 h-4 mb-1' />
                       <span className='text-xs font-medium'>Sub</span>
                     </TabsTrigger>
                     <TabsTrigger
-                      value='stripe' className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
+                      value='stripe'
+                      className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
                     >
                       <CreditCard className='w-4 h-4 mb-1' />
                       <span className='text-xs font-medium'>Stripe</span>
                     </TabsTrigger>
                     <TabsTrigger
-                      value='clerk' className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
+                      value='clerk'
+                      className='flex flex-col items-center justify-center py-3 px-2 text-gray-300 rounded-none border-b-2 border-transparent data-[state=active]:border-orange-500 data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-400 hover:bg-gray-700/30 transition-all duration-200 min-h-[60px]'
                     >
                       <Users className='w-4 h-4 mb-1' />
                       <span className='text-xs font-medium'>Clerk</span>
@@ -733,23 +738,6 @@ export function UserManagement() {
                           </div>
                           <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
                             <label className='text-sm font-semibold text-gray-300 mb-2 block'>
-                              2FA Security
-                            </label>
-                            <div className='flex items-center gap-2'>
-                              {selectedUser.twoFactorEnabled ? (
-                                <CheckCircle className='w-4 h-4 text-green-400' />
-                              ) : (
-                                <XCircle className='w-4 h-4 text-red-400' />
-                              )}
-                              <p className='text-white text-sm'>
-                                {selectedUser.twoFactorEnabled
-                                  ? 'Enabled'
-                                  : 'Disabled'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className='bg-gray-800/30 rounded-lg p-4 border border-gray-700/30'>
-                            <label className='text-sm font-semibold text-gray-300 mb-2 block'>
                               Account Created
                             </label>
                             <p className='text-white text-sm'>
@@ -778,7 +766,8 @@ export function UserManagement() {
                       </TabsContent>
 
                       <TabsContent
-                        value='subscription' className='mt-0 space-y-6'
+                        value='subscription'
+                        className='mt-0 space-y-6'
                       >
                         {selectedUser.subscription ? (
                           <div className='space-y-6'>

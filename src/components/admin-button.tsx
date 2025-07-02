@@ -53,9 +53,19 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
           // Don't show error to user - the main admin grant succeeded
         }
 
-        // Refresh the page to update the UI
+        // Force a comprehensive refresh to update the UI
         setTimeout(() => {
+          // Clear any cached admin status
+          sessionStorage.removeItem('adminStatus');
+          localStorage.removeItem('adminStatus');
+
+          // Force router refresh
           router.refresh();
+
+          // Also force window reload to ensure UI updates
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
         }, 1000);
       } else {
         showToast.error('❌ Failed to Grant Admin Access', data.error);
@@ -106,9 +116,19 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
           // Don't show error to user - the main admin revoke succeeded
         }
 
-        // Refresh the page to update the UI
+        // Force a comprehensive refresh to update the UI
         setTimeout(() => {
+          // Clear any cached admin status
+          sessionStorage.removeItem('adminStatus');
+          localStorage.removeItem('adminStatus');
+
+          // Force router refresh
           router.refresh();
+
+          // Also force window reload to ensure UI updates
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
         }, 1000);
       } else {
         showToast.error('❌ Failed to Revoke Admin Access', data.error);
@@ -127,7 +147,7 @@ export function AdminButton({ isAdmin }: AdminButtonProps) {
         onClick={handleRevokeAdmin}
         disabled={isLoading}
         variant='outline'
-        className='border-red-200 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:hover:bg-red-900/20 dark:hover:border-red-700'
+        className='border-red-200 hover:bg-red-50 hover:border-red-300'
       >
         {isLoading ? (
           <>
