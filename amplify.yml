@@ -15,8 +15,6 @@ frontend:
         - pnpm config set store-dir /tmp/pnpm-store
         - pnpm config set node-linker hoisted
         - pnpm config set shamefully-hoist true
-        # Install dependencies with memory optimization
-        - pnpm i --frozen-lockfile --prefer-offline
     build:
       commands:
         - echo "Building for production with pnpm..."
