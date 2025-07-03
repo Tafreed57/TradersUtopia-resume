@@ -1,6 +1,24 @@
 {
+  "name": "amplify-backend",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "npx prisma generate"
+    "build": "npx ampx generate",
+    "deploy": "npx ampx pipeline-deploy",
+    "sandbox": "npx ampx sandbox"
+  },
+  "dependencies": {
+    "@aws-amplify/backend": "^1.16.1",
+    "@aws-amplify/backend-cli": "^1.8.0",
+    "@aws-sdk/client-secrets-manager": "^3.840.0",
+    "aws-cdk-lib": "^2.203.0",
+    "constructs": "^10.4.2",
+    "@prisma/client": "^6.11.0",
+    "prisma": "^6.11.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.150",
+    "@types/node": "^20.19.4",
+    "typescript": "^5.8.3"
   }
 }

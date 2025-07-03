@@ -1,16 +1,32 @@
 version: 1
 backend:
   phases:
+    preBuild:
+      commands:
+        - nvm use 20
+        - corepack enable
+        - cd amplify
+        - pnpm install
     build:
       commands:
+        - npx ampx generate --branch $AWS_BRANCH --app-id $AWS_APP_ID
 frontend:
   phases:
     preBuild:
       commands:
         - nvm use 20
         - corepack enable
-        # Install dependencies
-        - pnpm i
+        # Optimize Node.js memory settings
+        - export NODE_OPTIONS="--max-old-space-size=14000"
+        # Clear any existing cache to free up memory
+        - rm -rf node_modules/.cache || true
+        - rm -rf .next || true
+        - rm -rf .turbo || true
+        # Configure pnpm for optimal performance
+        - pnpm config set store-dir /tmp/pnpm-store
+        - pnpm config set node-linker hoisted
+        - pnpm config set shamefully-hoist true
+        - pnpm install
     build:
       commands:
         - echo "Building for production..."
