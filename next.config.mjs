@@ -1,5 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ✅ MEMORY: Optimize build performance and memory usage
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  // ✅ MEMORY: Optimize output and reduce memory footprint
+  output: 'standalone',
+  generateEtags: false,
+  trailingSlash: false,
+
+  // ✅ MEMORY: Reduce bundle analyzer overhead
+  productionBrowserSourceMaps: false,
+
   // ✅ SECURITY: Comprehensive security headers
   async headers() {
     return [
@@ -72,8 +86,45 @@ const nextConfig = {
     ];
   },
 
-  // ✅ WEBPACK: Handle server-only modules
-  webpack: (config, { isServer }) => {
+  // ✅ WEBPACK: Handle server-only modules and optimize memory
+  webpack: (config, { isServer, dev }) => {
+    // ✅ MEMORY: Optimize webpack for memory usage
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Bundle vendor libraries separately to reduce memory pressure
+            vendor: {
+              chunks: 'all',
+              test: /node_modules/,
+              name: 'vendors',
+              enforce: true,
+            },
+            // Bundle common code separately
+            common: {
+              chunks: 'all',
+              minChunks: 2,
+              name: 'common',
+              enforce: true,
+            },
+          },
+        },
+        // ✅ MEMORY: Minimize memory usage during compilation
+        minimize: true,
+        concatenateModules: true,
+      };
+
+      // ✅ MEMORY: Reduce memory usage with smaller stats
+      config.stats = 'errors-warnings';
+    }
+
+    // ✅ MEMORY: Optimize resolve for faster builds
+    config.resolve.modules = ['node_modules', '.'];
+
     // Exclude server-only modules from client bundle
     if (!isServer) {
       config.resolve.fallback = {
@@ -87,12 +138,25 @@ const nextConfig = {
         'web-push': false,
       };
     }
+
+    // ✅ MEMORY: Optimize module resolution cache
+    config.cache = {
+      type: 'filesystem',
+      buildDependencies: {
+        config: [__filename],
+      },
+    };
+
     return config;
   },
 
   // ✅ EXPERIMENTAL: Server components external packages
   experimental: {
     serverComponentsExternalPackages: ['web-push', 'resend'],
+    // ✅ MEMORY: Enable modern builds for smaller bundles
+    modern: true,
+    // ✅ MEMORY: Optimize CSS handling
+    optimizeCss: true,
   },
 
   images: {

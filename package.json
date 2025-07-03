@@ -12,7 +12,9 @@
     "amplify:deploy": "npx ampx pipeline-deploy --branch main",
     "amplify:generate": "npx ampx generate",
     "discord:build": "cd amplify/discord-collector && npx prisma generate",
-    "postinstall": "npx prisma generate"
+    "postinstall": "npx prisma generate",
+    "clean": "rm -rf .next && rm -rf node_modules/.cache",
+    "prebuild": "npm run clean"
   },
   "dependencies": {
     "@aws-amplify/backend": "^1.16.1",
