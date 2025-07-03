@@ -3,6 +3,8 @@ backend:
   phases:
     build:
       commands:
+        - nvm use 20
+        - corepack enable
         - pnpm install --frozen-lockfile --prefer-offline
 frontend:
   phases:
