@@ -10,16 +10,25 @@ frontend:
         # Clear any existing cache to free up memory
         - rm -rf node_modules/.cache || true
         - rm -rf .next || true
-        # Install dependencies with memory optimization
+        - rm -rf .turbo || true
+        # Configure pnpm for optimal performance
         - pnpm config set store-dir /tmp/pnpm-store
+        - pnpm config set node-linker hoisted
+        - pnpm config set shamefully-hoist true
+        # Install dependencies with memory optimization
         - pnpm i --frozen-lockfile --prefer-offline
     build:
       commands:
-        - echo "Building for production..."
-        - env | grep -e DATABASE_URL >> .env.production
-        - env | grep -e STRIPE_SECRET_KEY >> .env.production
-        - env | grep -e CLERK_SECRET_KEY >> .env.production
-        - env | grep -e STRIPE_WEBHOOK_SECRET >> .env.production
+        - echo "Building for production with pnpm..."
+        # Set memory-efficient environment variables
+        - export NODE_OPTIONS="--max-old-space-size=14000"
+        - export NEXT_TELEMETRY_DISABLED=1
+        # Create optimized .env.production
+        - echo "DATABASE_URL=$DATABASE_URL" > .env.production
+        - echo "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" >> .env.production
+        - echo "CLERK_SECRET_KEY=$CLERK_SECRET_KEY" >> .env.production
+        - echo "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" >> .env.production
+        # Build with pnpm
         - pnpm build
   artifacts:
     # For Next.js SSR apps, use .next directory
@@ -32,7 +41,9 @@ frontend:
       - .git/**/*
       - '*.log'
       - docs/**/*
+      - '.env*'
   cache:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
+      - /tmp/pnpm-store/**/*

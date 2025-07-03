@@ -13,8 +13,8 @@
     "amplify:generate": "npx ampx generate",
     "discord:build": "cd amplify/discord-collector && npx prisma generate",
     "postinstall": "npx prisma generate",
-    "clean": "rm -rf .next && rm -rf node_modules/.cache",
-    "prebuild": "npm run clean"
+    "clean": "rm -rf .next && rm -rf node_modules/.cache && rm -rf .turbo",
+    "prebuild": "pnpm run clean"
   },
   "dependencies": {
     "@aws-amplify/backend": "^1.16.1",
@@ -90,5 +90,6 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3"
-  }
+  },
+  "packageManager": "pnpm@8.15.6"
 }
