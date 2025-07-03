@@ -5,7 +5,7 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { NotificationSettings } from '@/components/notifications/notification-settings';
 import { SubscriptionManager } from '@/components/subscription/subscription-manager';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
-import { initProfile, getAllServers } from '@/lib/query';
+import { getCurrentProfileWithSync, getAllServers } from '@/lib/query';
 import { redirect } from 'next/navigation';
 import { ProductPaymentGate } from '@/components/product-payment-gate';
 import {
@@ -42,7 +42,7 @@ import { PasswordManager } from '@/components/user/password-manager';
 import { Badge } from '@/components/ui/badge';
 
 export default async function Dashboard() {
-  const profile = await initProfile();
+  const profile = await getCurrentProfileWithSync();
   console.log(profile);
 
   // Get user's servers but don't redirect - let them choose what to do

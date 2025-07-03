@@ -28,6 +28,45 @@ interface ProductAccessStatus {
   subscriptionEnd?: string;
 }
 
+// ✅ PERFORMANCE: Simple in-memory cache to avoid redundant API calls
+const accessCache = new Map<
+  string,
+  { status: ProductAccessStatus; timestamp: number }
+>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+function getCacheKey(userId: string, productIds: string[]): string {
+  return `${userId}:${productIds.sort().join(',')}`;
+}
+
+function getCachedAccess(
+  userId: string,
+  productIds: string[]
+): ProductAccessStatus | null {
+  const key = getCacheKey(userId, productIds);
+  const cached = accessCache.get(key);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.status;
+  }
+
+  // Clean up expired cache entries
+  if (cached) {
+    accessCache.delete(key);
+  }
+
+  return null;
+}
+
+function setCachedAccess(
+  userId: string,
+  productIds: string[],
+  status: ProductAccessStatus
+): void {
+  const key = getCacheKey(userId, productIds);
+  accessCache.set(key, { status, timestamp: Date.now() });
+}
+
 export function ProductPaymentGate({
   children,
   allowedProductIds,
@@ -56,7 +95,15 @@ export function ProductPaymentGate({
     try {
       setLoading(true);
 
-      // Add some delay to prevent immediate duplicate calls
+      // ✅ PERFORMANCE: Check cache first
+      const cachedStatus = getCachedAccess(user.id, allowedProductIds);
+      if (cachedStatus) {
+        setAccessStatus(cachedStatus);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ PERFORMANCE: Debounce multiple rapid calls
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const response = await fetch('/api/check-product-subscription', {
@@ -86,29 +133,37 @@ export function ProductPaymentGate({
 
         if (retryResponse.status === 429) {
           // Still rate limited, use fallback
-          setAccessStatus({
+          const fallbackStatus = {
             hasAccess: false,
             reason:
               'Rate limit exceeded. Please wait a moment and refresh the page.',
-          });
+          };
+          setAccessStatus(fallbackStatus);
           return;
         }
 
         const data = await retryResponse.json();
         setAccessStatus(data);
+        setCachedAccess(user.id, allowedProductIds, data);
         return;
       }
 
       const data = await response.json();
       setAccessStatus(data);
 
-      console.log('Product access check:', data);
+      // ✅ PERFORMANCE: Cache successful responses
+      setCachedAccess(user.id, allowedProductIds, data);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Product access check:', data);
+      }
     } catch (error) {
       console.error('Error checking product access:', error);
-      setAccessStatus({
+      const errorStatus = {
         hasAccess: false,
         reason: 'Error checking subscription status',
-      });
+      };
+      setAccessStatus(errorStatus);
     } finally {
       setLoading(false);
     }
@@ -117,6 +172,12 @@ export function ProductPaymentGate({
   const verifyStripePayment = async () => {
     setVerifying(true);
     try {
+      // ✅ PERFORMANCE: Clear cache on manual verification
+      if (user) {
+        const key = getCacheKey(user.id, allowedProductIds);
+        accessCache.delete(key);
+      }
+
       const response = await fetch('/api/verify-stripe-payment', {
         method: 'POST',
         headers: {
@@ -141,8 +202,9 @@ export function ProductPaymentGate({
   };
 
   useEffect(() => {
+    // ✅ PERFORMANCE: Only check once on mount, rely on cache for subsequent renders
     checkProductAccess();
-  }, [isLoaded, user, checkProductAccess]);
+  }, [isLoaded, user?.id]); // Removed checkProductAccess from deps to prevent loops
 
   useEffect(() => {
     if (!isLoaded || !user) {

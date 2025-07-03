@@ -1,29 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { getCurrentProfileForAuth } from '@/lib/query';
 import { db } from '@/lib/db';
+import { rateLimitAdmin, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await currentUser();
+    // ✅ SECURITY: Rate limiting for admin status checks
+    const rateLimitResult = await rateLimitAdmin()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'ADMIN_STATUS_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
 
-    if (!user) {
+    // ✅ PERFORMANCE: Use lightweight auth for frequent admin checks
+    const profile = await getCurrentProfileForAuth();
+    if (!profile) {
+      trackSuspiciousActivity(request, 'UNAUTHENTICATED_ADMIN_CHECK');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Find the user's profile
-    const profile = await db.profile.findFirst({
-      where: { userId: user.id },
-    });
-
-    if (!profile) {
-      return NextResponse.json({
-        isAdmin: false,
-        message: 'Profile not found',
-      });
-    }
-
+    // Profile already contains all needed data including isAdmin
     return NextResponse.json({
       isAdmin: profile.isAdmin,
       profile: {
@@ -33,12 +31,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error checking admin status:', error);
+    console.error('❌ [ADMIN_CHECK] Admin status check error:', error);
     return NextResponse.json(
-      {
-        isAdmin: false,
-        error: 'Failed to check admin status',
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

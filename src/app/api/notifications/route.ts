@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import { getCurrentProfileForAuth } from '@/lib/query';
 import {
   getUnreadNotifications,
   markNotificationAsRead,
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ✅ SECURITY: Authentication check
-    const user = await currentUser();
+    const user = await getCurrentProfileForAuth();
     if (!user) {
       trackSuspiciousActivity(request, 'UNAUTHENTICATED_NOTIFICATIONS_ACCESS');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ SECURITY: Authentication check
-    const user = await currentUser();
+    const user = await getCurrentProfileForAuth();
     if (!user) {
       trackSuspiciousActivity(request, 'UNAUTHENTICATED_NOTIFICATIONS_ACTION');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

@@ -197,6 +197,125 @@ Happy Trading! 📈
   }
 }
 
+// ✅ PERFORMANCE: Lightweight auth function for frequent API calls (NO login sync)
+export async function getCurrentProfileForAuth() {
+  try {
+    const user = await currentUser();
+    if (!user) return null;
+
+    // Simple profile lookup without any sync operations
+    const profile = await prisma.profile.findUnique({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        email: true,
+        imageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        stripeCustomerId: true,
+        stripeSessionId: true,
+        subscriptionEnd: true,
+        subscriptionStart: true,
+        subscriptionStatus: true,
+        stripeProductId: true,
+        backupCodes: true,
+        isAdmin: true,
+        pushNotifications: true,
+        pushSubscriptions: true,
+      },
+    });
+
+    return profile;
+  } catch (error) {
+    console.error('❌ [getCurrentProfileForAuth] Error:', error);
+    return null;
+  }
+}
+
+// ✅ PERFORMANCE: Use this for dashboard/server access that might need login sync
+export async function getCurrentProfileWithSync() {
+  try {
+    const user = await currentUser();
+    if (!user) return auth().redirectToSignIn();
+
+    const userEmail = user.primaryEmailAddress?.emailAddress;
+    const name =
+      user?.fullName ||
+      user?.firstName ||
+      user?.lastName ||
+      user.primaryEmailAddress?.emailAddress.split('@')[0] ||
+      'unknown';
+
+    // First check if profile exists
+    const existingProfile = await prisma.profile.findUnique({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        email: true,
+        imageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        stripeCustomerId: true,
+        stripeSessionId: true,
+        subscriptionEnd: true,
+        subscriptionStart: true,
+        subscriptionStatus: true,
+        stripeProductId: true,
+        backupCodes: true,
+        isAdmin: true,
+        pushNotifications: true,
+        pushSubscriptions: true,
+      },
+    });
+
+    if (existingProfile) {
+      // Profile exists, only sync if it's the first access in a while (session-based)
+      const lastSync = new Date(existingProfile.updatedAt);
+      const timeSinceLastUpdate = Date.now() - lastSync.getTime();
+      const shouldSync = timeSinceLastUpdate > 24 * 60 * 60 * 1000; // 24 hours
+
+      if (userEmail && shouldSync) {
+        // Background sync for periodic cleanup
+        Promise.resolve()
+          .then(() => performLoginSync(userEmail))
+          .catch(error => {
+            console.error(`❌ [Login Sync] Background sync failed:`, error);
+          });
+      }
+
+      return existingProfile;
+    }
+
+    // Profile doesn't exist, create it and run sync
+    const profile = await prisma.profile.create({
+      data: {
+        userId: user.id,
+        email: userEmail as string,
+        name: name,
+        imageUrl: user?.imageUrl,
+      },
+    });
+
+    if (userEmail) {
+      // Run sync for new profiles
+      Promise.resolve()
+        .then(() => performLoginSync(userEmail))
+        .catch(error => {
+          console.error(`❌ [Login Sync] New profile sync failed:`, error);
+        });
+    }
+
+    return profile;
+  } catch (error) {
+    console.error('❌ [getCurrentProfileWithSync] Error:', error);
+    return auth().redirectToSignIn();
+  }
+}
+
 export async function getCurrentProfile() {
   try {
     const user = await currentUser();
@@ -231,8 +350,15 @@ export async function getCurrentProfile() {
       },
     });
 
-    // Trigger sync in case there are other profiles with same email (only for new profiles)
-    if (userEmail && profile) {
+    // ✅ PERFORMANCE: Only trigger login sync on actual profile creation (not updates)
+    // Check if this was a new profile creation by looking for default values
+    const isNewProfile =
+      profile.stripeCustomerId === null &&
+      profile.subscriptionStatus === 'FREE' &&
+      profile.createdAt.getTime() > Date.now() - 10000; // Created within last 10 seconds
+
+    if (userEmail && isNewProfile) {
+      // Only run sync for genuinely new profiles
       Promise.resolve()
         .then(() => {
           performLoginSync(userEmail);

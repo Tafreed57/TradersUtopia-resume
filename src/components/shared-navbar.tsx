@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
 import NextImage from 'next/image';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs';
 import { AuthHeader } from '@/components/auth-header';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
+import { useEffect, useState } from 'react';
 import {
   Home,
   Crown,
@@ -25,6 +26,14 @@ interface SharedNavbarProps {
 }
 
 export function SharedNavbar({ currentPage }: SharedNavbarProps) {
+  const { isLoaded } = useUser();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // ✅ FIX: Prevent hydration mismatch by waiting for client-side mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <div className='w-full px-4 sm:px-6 pt-4 sm:pt-6'>
       <header className='flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-gray-700/30 shadow-2xl min-h-[72px]'>
@@ -185,18 +194,24 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
 
         {/* Right Side Actions */}
         <div className='flex items-center gap-2 sm:gap-4 h-full'>
-          {/* Mobile Auth */}
-          <SignedIn>
+          {/* Mobile Auth - ✅ FIX: Add hydration protection */}
+          {isMounted && isLoaded ? (
+            <SignedIn>
+              <div className='md:hidden flex items-center'>
+                <UserButton
+                  appearance={{
+                    elements: {
+                      avatarBox: 'w-10 h-10',
+                    },
+                  }}
+                />
+              </div>
+            </SignedIn>
+          ) : (
             <div className='md:hidden flex items-center'>
-              <UserButton
-                appearance={{
-                  elements: {
-                    avatarBox: 'w-10 h-10',
-                  },
-                }}
-              />
+              <div className='w-10 h-10 bg-white/10 rounded-full animate-pulse'></div>
             </div>
-          </SignedIn>
+          )}
 
           {/* Mobile Menu */}
           <div className='md:hidden flex items-center'>

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prismadb';
-import { getCurrentProfile } from '@/lib/query';
+import { getCurrentProfileForAuth } from '@/lib/query';
 import { DirectMessage } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitMessaging, trackSuspiciousActivity } from '@/lib/rate-limit';
@@ -10,7 +10,7 @@ const MESSAGE_BATCH = 10;
 
 // Schema for direct message creation
 const directMessageSchema = z.object({
-  content: z.string().min(1).max(2000),
+  content: z.string().min(1).max(10000),
   fileUrl: z.string().url().optional(),
 });
 
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       return rateLimitResult.error;
     }
 
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfileForAuth();
     if (!profile) {
       trackSuspiciousActivity(req, 'UNAUTHENTICATED_DIRECT_MESSAGE_ACCESS');
       return new NextResponse('Unauthorized', { status: 401 });
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
       return rateLimitResult.error;
     }
 
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfileForAuth();
     if (!profile) {
       trackSuspiciousActivity(req, 'UNAUTHENTICATED_DIRECT_MESSAGE_CREATION');
       return new NextResponse('Unauthorized', { status: 401 });

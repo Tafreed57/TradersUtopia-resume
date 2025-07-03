@@ -17,9 +17,17 @@ export async function ChatHeader({
   serverId,
 }: ChatHeaderProps) {
   return (
-    <div className='text-sm sm:text-md font-semibold px-3 sm:px-6 flex items-center h-16 sm:h-18 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/90 via-gray-700/80 to-gray-800/90 backdrop-blur-xl touch-manipulation relative overflow-hidden'>
-      {/* Background gradient overlay */}
-      <div className='absolute inset-0 bg-gradient-to-r from-blue-900/10 via-transparent to-purple-900/10 pointer-events-none' />
+    <div
+      className='text-sm sm:text-md font-semibold px-3 sm:px-6 flex items-center h-16 sm:h-18 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/95 via-gray-700/90 to-gray-800/95 backdrop-blur-xl touch-manipulation relative overflow-hidden sticky top-0 z-50 md:relative md:top-auto md:z-auto shadow-lg md:shadow-none'
+      style={{
+        paddingTop: 'max(0px, env(safe-area-inset-top))',
+      }}
+    >
+      {/* Enhanced background for mobile sticky behavior */}
+      <div className='absolute inset-0 bg-gradient-to-r from-blue-900/10 via-transparent to-purple-900/10 pointer-events-none md:bg-gradient-to-r md:from-blue-900/10 md:via-transparent md:to-purple-900/10' />
+
+      {/* Extra backdrop blur for mobile */}
+      <div className='absolute inset-0 backdrop-blur-sm md:backdrop-blur-0 pointer-events-none' />
 
       <div className='flex items-center gap-3 sm:gap-4 flex-1 min-w-0 relative z-10'>
         {await MobileToggle({ serverId })}

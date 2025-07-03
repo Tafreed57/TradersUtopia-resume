@@ -3,7 +3,7 @@
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/user/user-avatar';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store/store';
@@ -170,7 +170,7 @@ export function ChatItem({
           {!fileUrl && !isEditing && (
             <div
               className={cn(
-                'text-sm sm:text-base text-gray-200 break-words',
+                'text-sm sm:text-base text-gray-200 break-words whitespace-pre-wrap',
                 deleted && 'italic text-gray-400 text-xs sm:text-sm mt-1'
               )}
             >
@@ -195,14 +195,30 @@ export function ChatItem({
                     <FormItem className='flex-1'>
                       <FormControl>
                         <div className='relative w-full'>
-                          <Input
+                          <Textarea
                             disabled={isLoading}
-                            className='p-2 sm:p-3 bg-zinc-200/90 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-800 text-sm sm:text-base min-h-[44px] touch-manipulation'
+                            className='p-2 sm:p-3 bg-zinc-200/90 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-800 text-sm sm:text-base min-h-[44px] touch-manipulation resize-none'
                             placeholder='Edited Message'
                             autoComplete='off'
-                            spellCheck={false}
-                            autoCorrect='off'
-                            autoCapitalize='off'
+                            spellCheck={true}
+                            autoCorrect='on'
+                            autoCapitalize='sentences'
+                            rows={1}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                form.handleSubmit(onSubmit)();
+                              }
+                              if (e.key === 'Escape') {
+                                setIsEditing(false);
+                              }
+                            }}
+                            onInput={e => {
+                              // Auto-resize functionality
+                              const target = e.target as HTMLTextAreaElement;
+                              target.style.height = 'auto';
+                              target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
+                            }}
                             {...field}
                           />
                         </div>
@@ -220,7 +236,8 @@ export function ChatItem({
                 </Button>
               </form>
               <div className='mt-1 text-[10px] sm:text-xs text-gray-400'>
-                Press escape to cancel, enter to save
+                Press escape to cancel • Enter to save • Shift+Enter for new
+                line
               </div>
             </Form>
           )}

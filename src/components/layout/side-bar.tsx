@@ -1,4 +1,4 @@
-import { getCurrentProfile, getAllServers } from '@/lib/query';
+import { getCurrentProfileForAuth, getAllServers } from '@/lib/query';
 import { SideBarActions } from '@/components/layout/side-bar-actions';
 import { SideBarItem } from '@/components/layout/side-bar-item';
 // import { ModeToggle } from '@/components/mobile-toggle';
@@ -11,7 +11,7 @@ import { redirect } from 'next/navigation';
 import { LayoutDashboard } from 'lucide-react';
 
 export async function SideBar() {
-  const profile = await getCurrentProfile();
+  const profile = await getCurrentProfileForAuth();
   if (!profile) {
     return redirect('/');
   }

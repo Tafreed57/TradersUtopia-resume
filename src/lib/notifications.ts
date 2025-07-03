@@ -73,12 +73,7 @@ export async function createNotification({
 
     // Send push notification if enabled
     if (pushPrefs[prefKey]) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(
-          `📱 [NOTIFICATION] Sending push notification for ${type} to user: ${userId}`
-        );
-      }
-
+      // ✅ PERFORMANCE: Sending push notification (no console output for performance)
       sendPushNotification({
         userId,
         title,
@@ -90,11 +85,7 @@ export async function createNotification({
       });
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(
-        `✅ [NOTIFICATION] Created ${type} notification for user: ${userId}`
-      );
-    }
+    // ✅ PERFORMANCE: Created notification (no console output for performance)
     return notification;
   } catch (error) {
     console.error('❌ [NOTIFICATION] Failed to create notification:', error);

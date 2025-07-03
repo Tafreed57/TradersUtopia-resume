@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSmartRouting } from '@/lib/smart-routing';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs';
 import NextImage from 'next/image';
 
 interface GlobalMobileMenuProps {
@@ -28,16 +28,25 @@ interface GlobalMobileMenuProps {
 export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isNavProcessing, setIsNavProcessing] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
+  const { isLoaded } = useUser();
+
+  // ✅ FIX: Prevent hydration mismatch by waiting for client-side mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Smart routing for trial button
-  const { handleSmartNavigation: handleNavSmartRouting, isLoaded } =
-    useSmartRouting({
-      loadingCallback: setIsNavProcessing,
-      onError: error => {
-        console.error('Mobile menu smart routing error:', error);
-      },
-    });
+  const {
+    handleSmartNavigation: handleNavSmartRouting,
+    isLoaded: isSmartRoutingLoaded,
+  } = useSmartRouting({
+    loadingCallback: setIsNavProcessing,
+    onError: error => {
+      console.error('Mobile menu smart routing error:', error);
+    },
+  });
 
   const handleNavigation = async (
     path: string,
@@ -191,13 +200,15 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
       <SheetTrigger asChild className='md:hidden'>
         <Button
           variant='ghost'
-          size='icon' className='h-10 w-10 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200'
+          size='icon'
+          className='h-10 w-10 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200'
         >
           <Menu className='h-5 w-5' />
         </Button>
       </SheetTrigger>
       <SheetContent
-        side='right' className='w-[280px] bg-gradient-to-b from-gray-900 via-gray-900/95 to-black border-l border-gray-700/50 backdrop-blur-xl'
+        side='right'
+        className='w-[280px] bg-gradient-to-b from-gray-900 via-gray-900/95 to-black border-l border-gray-700/50 backdrop-blur-xl'
       >
         <div className='flex flex-col h-full pt-6'>
           {/* Logo */}
@@ -220,7 +231,8 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
               return (
                 <Button
                   key={item.id}
-                  variant='ghost' className='w-full justify-start text-white hover:bg-white/10 hover:text-yellow-400 transition-all duration-200 py-3 px-4'
+                  variant='ghost'
+                  className='w-full justify-start text-white hover:bg-white/10 hover:text-yellow-400 transition-all duration-200 py-3 px-4'
                   onClick={() =>
                     handleNavigation(
                       item.path,
@@ -236,43 +248,54 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
             })}
           </nav>
 
-          {/* Auth Section */}
+          {/* Auth Section - ✅ FIX: Add hydration protection */}
           <div className='border-t border-gray-700/50 pt-6 space-y-3'>
-            <SignedOut>
-              <Button
-                variant='ghost' className='w-full justify-start text-white hover:bg-white/10 transition-all duration-200'
-                onClick={() => handleNavigation('/sign-in')}
-              >
-                <LogIn className='w-4 h-4 mr-3' />
-                Sign In
-              </Button>
-              <Button
-                onClick={handleStartTrialClick}
-                disabled={!isLoaded || isNavProcessing} className='w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-lg'
-              >
-                {isNavProcessing ? (
-                  <div className='flex items-center gap-2'>
-                    <div className='w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin'></div>
-                    <span>Loading...</span>
-                  </div>
-                ) : (
-                  'Get Access Now'
-                )}
-              </Button>
-            </SignedOut>
+            {isMounted && isLoaded ? (
+              <>
+                <SignedOut>
+                  <Button
+                    variant='ghost'
+                    className='w-full justify-start text-white hover:bg-white/10 transition-all duration-200'
+                    onClick={() => handleNavigation('/sign-in')}
+                  >
+                    <LogIn className='w-4 h-4 mr-3' />
+                    Sign In
+                  </Button>
+                  <Button
+                    onClick={handleStartTrialClick}
+                    disabled={!isSmartRoutingLoaded || isNavProcessing}
+                    className='w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-lg'
+                  >
+                    {isNavProcessing ? (
+                      <div className='flex items-center gap-2'>
+                        <div className='w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin'></div>
+                        <span>Loading...</span>
+                      </div>
+                    ) : (
+                      'Get Access Now'
+                    )}
+                  </Button>
+                </SignedOut>
 
-            <SignedIn>
-              <div className='flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/30'>
-                <UserButton
-                  appearance={{
-                    elements: {
-                      avatarBox: 'w-8 h-8',
-                    },
-                  }}
-                />
-                <span className='text-gray-300 text-sm'>Signed in</span>
+                <SignedIn>
+                  <div className='flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/30'>
+                    <UserButton
+                      appearance={{
+                        elements: {
+                          avatarBox: 'w-8 h-8',
+                        },
+                      }}
+                    />
+                    <span className='text-gray-300 text-sm'>Signed in</span>
+                  </div>
+                </SignedIn>
+              </>
+            ) : (
+              <div className='space-y-3'>
+                <div className='w-full h-10 bg-white/10 rounded animate-pulse'></div>
+                <div className='w-full h-10 bg-white/10 rounded animate-pulse'></div>
               </div>
-            </SignedIn>
+            )}
           </div>
         </div>
       </SheetContent>

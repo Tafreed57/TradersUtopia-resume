@@ -26,9 +26,7 @@ if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
       process.env.VAPID_PRIVATE_KEY
     );
     // ✅ PERFORMANCE: Only log VAPID setup once, not on every import
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ [PUSH] VAPID configured');
-    }
+    // Note: VAPID configured successfully (no console output for performance)
   } catch (error) {
     console.error('❌ [PUSH] Failed to configure VAPID details:', error);
   }
@@ -83,9 +81,7 @@ export async function sendPushNotification(
       !profile.pushSubscriptions ||
       profile.pushSubscriptions.length === 0
     ) {
-      console.log(
-        `ℹ️ [PUSH] No push subscriptions found for user: ${data.userId}`
-      );
+      // ✅ PERFORMANCE: Skip logging for better performance
       return false;
     }
 
@@ -129,9 +125,7 @@ export async function sendPushNotification(
             urgency: data.type === 'SECURITY' ? 'high' : 'normal',
           });
 
-          console.log(
-            `✅ [PUSH] Notification sent to subscription ${index + 1} for user: ${data.userId}`
-          );
+          // ✅ PERFORMANCE: Notification sent (no console output for performance)
           successCount++;
           return true;
         } catch (error: any) {
@@ -164,9 +158,7 @@ export async function sendPushNotification(
 
     await Promise.all(sendPromises);
 
-    console.log(
-      `📊 [PUSH] Results for user ${data.userId}: ${successCount} success, ${failureCount} failures`
-    );
+    // ✅ PERFORMANCE: Push notification results (no console output for performance)
     return successCount > 0;
   } catch (error) {
     console.error('❌ [PUSH] Error sending push notification:', error);

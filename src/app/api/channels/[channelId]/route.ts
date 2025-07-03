@@ -1,11 +1,12 @@
 import { prisma } from '@/lib/prismadb';
-import { getCurrentProfile } from '@/lib/query';
+import { getCurrentProfileForAuth } from '@/lib/query';
 import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { revalidatePath } from 'next/cache';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { validateInput, channelSchema, cuidSchema } from '@/lib/validation';
+import { z } from 'zod';
 
 export async function PATCH(
   req: NextRequest,
@@ -30,7 +31,7 @@ export async function PATCH(
       );
     }
 
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfileForAuth();
     const { searchParams } = new URL(req.url);
     const serverId = searchParams.get('serverId');
 
@@ -159,7 +160,7 @@ export async function DELETE(
       );
     }
 
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfileForAuth();
     const { searchParams } = new URL(req.url);
     const serverId = searchParams.get('serverId');
 

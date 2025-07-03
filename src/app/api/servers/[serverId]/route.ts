@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prismadb';
-import { getCurrentProfile } from '@/lib/query';
+import { getCurrentProfileForAuth } from '@/lib/query';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { revalidatePath } from 'next/cache';
@@ -9,6 +9,7 @@ import {
   serverUpdateSchema,
   cuidSchema,
 } from '@/lib/validation';
+import { z } from 'zod';
 
 export async function PATCH(
   req: NextRequest,
@@ -33,7 +34,7 @@ export async function PATCH(
       );
     }
 
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfileForAuth();
     if (!profile) {
       trackSuspiciousActivity(req, 'UNAUTHENTICATED_SERVER_UPDATE');
       return new NextResponse('Unauthorized', { status: 401 });
@@ -139,7 +140,7 @@ export async function DELETE(
       );
     }
 
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfileForAuth();
     if (!profile) {
       trackSuspiciousActivity(req, 'UNAUTHENTICATED_SERVER_DELETE');
       return new NextResponse('Unauthorized', { status: 401 });
