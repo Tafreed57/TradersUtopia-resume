@@ -17,18 +17,17 @@ import { showToast } from '@/lib/notifications-client';
 import {
   Bell,
   BellRing,
-  Settings,
-  MessageSquare,
-  Shield,
-  CreditCard,
-  Users,
-  Gauge,
-  X,
   ChevronDown,
   ChevronUp,
-  Mail,
-  Smartphone,
+  CreditCard,
+  Gauge,
+  MessageSquare,
   Monitor,
+  Settings,
+  Shield,
+  Smartphone,
+  Users,
+  X,
 } from 'lucide-react';
 
 interface NotificationPreferences {
@@ -41,7 +40,6 @@ interface NotificationPreferences {
 }
 
 interface NotificationSettings {
-  email: NotificationPreferences;
   push: NotificationPreferences;
 }
 
@@ -55,14 +53,6 @@ export function NotificationSettings() {
     useState<NotificationPermission>('default');
 
   const [settings, setSettings] = useState<NotificationSettings>({
-    email: {
-      system: true,
-      security: true,
-      payment: true,
-      messages: true,
-      mentions: true,
-      serverUpdates: false,
-    },
     push: {
       system: true,
       security: true,
@@ -131,7 +121,7 @@ export function NotificationSettings() {
   };
 
   const togglePreference = (
-    category: 'email' | 'push',
+    category: 'push',
     key: keyof NotificationPreferences
   ) => {
     setSettings(prev => ({
@@ -226,32 +216,6 @@ export function NotificationSettings() {
     }
   };
 
-  const testEmailNotification = async () => {
-    try {
-      setIsSaving(true);
-      const response = await fetch('/api/test-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        showToast.success(
-          'Test email sent!',
-          'Check your inbox for the test notification email'
-        );
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send test email');
-      }
-    } catch (error) {
-      console.error('Failed to send test email:', error);
-      showToast.error('Error', 'Failed to send test email');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const notificationTypes = [
     {
       key: 'system' as const,
@@ -302,7 +266,8 @@ export function NotificationSettings() {
       <Button
         variant='outline'
         size='sm'
-        onClick={() => setIsExpanded(true)} className='flex items-center gap-2 border-yellow-400/30 text-yellow-300 hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all duration-300'
+        onClick={() => setIsExpanded(true)}
+        className='flex items-center gap-2 border-yellow-400/30 text-yellow-300 hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all duration-300'
       >
         <Settings className='h-4 w-4' />
         View Settings
@@ -327,7 +292,8 @@ export function NotificationSettings() {
             <Button
               variant='ghost'
               size='sm'
-              onClick={() => setIsExpanded(false)} className='h-8 w-8 p-0 text-gray-400 hover:text-white'
+              onClick={() => setIsExpanded(false)}
+              className='h-8 w-8 p-0 text-gray-400 hover:text-white'
             >
               <X className='h-4 w-4' />
             </Button>
@@ -348,70 +314,6 @@ export function NotificationSettings() {
             </div>
           ) : (
             <>
-              {/* Email Notifications Section */}
-              <div>
-                <div className='flex items-center justify-between mb-6'>
-                  <div className='flex items-center gap-3'>
-                    <div className='w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center'>
-                      <Mail className='h-5 w-5 text-blue-400' />
-                    </div>
-                    <div>
-                      <h3 className='font-semibold text-lg text-white'>
-                        Email Notifications
-                      </h3>
-                      <Badge
-                        variant='outline' className='text-xs mt-1 border-blue-400/30 text-blue-300'
-                      >
-                        {Object.values(settings.email).filter(Boolean).length}{' '}
-                        enabled
-                      </Badge>
-                    </div>
-                  </div>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={testEmailNotification}
-                    disabled={isSaving} className='text-xs px-3 py-2 h-8 border-blue-400/30 text-blue-300 hover:bg-blue-500/20'
-                  >
-                    Test Email
-                  </Button>
-                </div>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  {notificationTypes.map(type => {
-                    const IconComponent = type.icon;
-                    return (
-                      <div
-                        key={`email-${type.key}`} className='flex items-center justify-between p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300'
-                      >
-                        <div className='flex items-center gap-3'>
-                          <div
-                            className={`p-2 rounded-lg ${type.color} bg-opacity-10`}
-                          >
-                            <IconComponent className='h-4 w-4' />
-                          </div>
-                          <div className='flex-1'>
-                            <h4 className='font-medium text-sm text-white'>
-                              {type.title}
-                            </h4>
-                            <p className='text-xs text-gray-400 mt-0.5'>
-                              {type.description}
-                            </p>
-                          </div>
-                        </div>
-                        <Switch
-                          checked={settings.email[type.key]}
-                          onCheckedChange={() =>
-                            togglePreference('email', type.key)
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <Separator className='bg-gray-600/30' />
-
               {/* Push Notifications Section */}
               <div>
                 <div className='flex items-center gap-3 mb-6'>
@@ -448,7 +350,8 @@ export function NotificationSettings() {
                       </div>
                       <Button
                         size='sm'
-                        onClick={enablePushNotifications} className='bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg'
+                        onClick={enablePushNotifications}
+                        className='bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg'
                       >
                         Enable
                       </Button>
@@ -500,13 +403,6 @@ export function NotificationSettings() {
                 <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
                   <div className='text-sm text-gray-300 space-y-2'>
                     <p className='flex items-center gap-2'>
-                      <span className='w-2 h-2 bg-blue-400 rounded-full'></span>
-                      Email:{' '}
-                      {
-                        Object.values(settings.email).filter(Boolean).length
-                      } of {notificationTypes.length} enabled
-                    </p>
-                    <p className='flex items-center gap-2'>
                       <span className='w-2 h-2 bg-green-400 rounded-full'></span>
                       Push:{' '}
                       {Object.values(settings.push).filter(Boolean).length} of{' '}
@@ -517,7 +413,8 @@ export function NotificationSettings() {
                     <Button
                       variant='outline'
                       size='sm'
-                      onClick={() => setIsExpanded(false)} className='border-gray-600/50 text-gray-300 hover:bg-gray-700/50 h-10 sm:h-8 touch-manipulation w-full sm:w-auto'
+                      onClick={() => setIsExpanded(false)}
+                      className='border-gray-600/50 text-gray-300 hover:bg-gray-700/50 h-10 sm:h-8 touch-manipulation w-full sm:w-auto'
                     >
                       <ChevronUp className='h-4 w-4 mr-2' />
                       Collapse
@@ -525,7 +422,8 @@ export function NotificationSettings() {
                     <Button
                       size='sm'
                       onClick={savePreferences}
-                      disabled={isSaving} className='bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg h-10 sm:h-8 touch-manipulation font-semibold w-full sm:w-auto min-w-[120px]'
+                      disabled={isSaving}
+                      className='bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg h-10 sm:h-8 touch-manipulation font-semibold w-full sm:w-auto min-w-[120px]'
                     >
                       {isSaving ? (
                         <div className='flex items-center gap-2'>

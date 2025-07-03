@@ -46,6 +46,7 @@ const alwaysPublicRoutes = [
   '/pricing',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/forgot-password',
   '/2fa-verify',
   '/api/uploadthing',
   '/api/health', // Health check endpoint for monitoring

@@ -71,18 +71,26 @@ export async function PATCH(
       return new NextResponse('Channel not found', { status: 404 });
     }
 
-    const server = await prisma.server.update({
+    // Check permissions: server member with admin/moderator role OR global admin
+    const serverMember = await prisma.member.findFirst({
       where: {
-        id: serverId,
-        members: {
-          some: {
-            profileId: profile.id,
-            role: {
-              in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-            },
-          },
+        serverId: serverId,
+        profileId: profile.id,
+        role: {
+          in: [MemberRole.ADMIN, MemberRole.MODERATOR],
         },
       },
+    });
+
+    if (!serverMember && !profile.isAdmin) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to update this channel' },
+        { status: 403 }
+      );
+    }
+
+    const server = await prisma.server.update({
+      where: { id: serverId },
       data: {
         channels: {
           update: {
@@ -183,18 +191,26 @@ export async function DELETE(
       return new NextResponse('Channel not found', { status: 404 });
     }
 
-    const server = await prisma.server.update({
+    // Check permissions: server member with admin/moderator role OR global admin
+    const serverMember = await prisma.member.findFirst({
       where: {
-        id: serverId,
-        members: {
-          some: {
-            profileId: profile.id,
-            role: {
-              in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-            },
-          },
+        serverId: serverId,
+        profileId: profile.id,
+        role: {
+          in: [MemberRole.ADMIN, MemberRole.MODERATOR],
         },
       },
+    });
+
+    if (!serverMember && !profile.isAdmin) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to delete this channel' },
+        { status: 403 }
+      );
+    }
+
+    const server = await prisma.server.update({
+      where: { id: serverId },
       data: {
         channels: {
           delete: {

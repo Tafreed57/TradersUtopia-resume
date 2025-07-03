@@ -14,7 +14,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Shield, Eye, EyeOff, Check, X } from 'lucide-react';
+import { Shield, Eye, EyeOff, Check, X, Mail } from 'lucide-react';
+import { useAuth, useUser } from '@clerk/nextjs';
 
 export function PasswordManager() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -24,7 +25,11 @@ export function PasswordManager() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChanging, setIsChanging] = useState(false);
+  const [isRequestingReset, setIsRequestingReset] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const { signOut } = useAuth();
+  const { user } = useUser();
 
   // Password validation
   const validatePassword = (password: string) => {
@@ -95,6 +100,33 @@ export function PasswordManager() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!user?.primaryEmailAddress?.emailAddress) {
+      toast.error('Email not found', {
+        description: 'Unable to initiate password reset.',
+      });
+      return;
+    }
+
+    setIsRequestingReset(true);
+
+    try {
+      toast.info('Redirecting to password reset...', {
+        description: 'You will be taken to the password reset page.',
+      });
+
+      // Redirect to the dedicated forgot password page
+      window.location.href = '/forgot-password';
+    } catch (error: any) {
+      console.error('Password reset redirect error:', error);
+      toast.error('Navigation failed', {
+        description:
+          error.message || 'Unable to navigate to password reset page.',
+      });
+      setIsRequestingReset(false);
+    }
+  };
+
   return (
     <div className='w-full max-w-2xl mx-auto space-y-6'>
       <Card className='bg-gray-800/50 backdrop-blur-sm border border-gray-700/50'>
@@ -140,6 +172,29 @@ export function PasswordManager() {
             </div>
             {errors.currentPassword && (
               <p className='text-sm text-red-400'>{errors.currentPassword}</p>
+            )}
+            {user && !user.passwordEnabled && (
+              <div className='flex justify-end'>
+                <Button
+                  type='button'
+                  variant='link'
+                  className='text-sm text-blue-400 hover:text-blue-300 p-0 h-auto flex items-center gap-1'
+                  onClick={handleForgotPassword}
+                  disabled={isRequestingReset}
+                >
+                  {isRequestingReset ? (
+                    <>
+                      <div className='w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin' />
+                      Redirecting...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className='w-3 h-3' />
+                      Set up your first password
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
           </div>
 

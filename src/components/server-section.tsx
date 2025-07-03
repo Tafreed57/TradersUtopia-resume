@@ -24,29 +24,34 @@ export function ServerSection({
   const onOpen = useStore.use.onOpen();
 
   return (
-    <div className='flex items-center justify-between p-2 '>
-      <p className='text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400'>
+    <div className='flex items-center justify-between px-3 py-2 mb-2 bg-gradient-to-r from-gray-800/30 to-gray-700/30 rounded-xl border border-gray-700/30 backdrop-blur-sm'>
+      <div className='text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2'>
+        <div className='w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-purple-500' />
         {label}
-      </p>
+      </div>
       {role !== MemberRole.GUEST && sectionType === 'channels' && (
-        <ActionTooltip label='Create Channel' side='top'>
-          <button
-            onClick={() => onOpen('createChannel', { channelType })}
-            className='text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300 transition'
-          >
-            <Plus className='h-4 w-4' />
-          </button>
-        </ActionTooltip>
+        <div className='flex-shrink-0 ml-2'>
+          <ActionTooltip label='Create Channel' side='top'>
+            <button
+              onClick={() => onOpen('createChannel', { channelType })}
+              className='flex items-center justify-center w-6 h-6 text-gray-400 hover:text-blue-400 transition-all duration-300 rounded-md hover:bg-blue-600/20 group backdrop-blur-sm border border-transparent hover:border-blue-400/30 hover:shadow-md hover:shadow-blue-400/20'
+            >
+              <Plus className='h-3.5 w-3.5 group-hover:rotate-90 transform transition-all duration-300' />
+            </button>
+          </ActionTooltip>
+        </div>
       )}
       {role === MemberRole.ADMIN && sectionType === 'members' && (
-        <ActionTooltip label='Manage Members' side='top'>
-          <button
-            onClick={() => onOpen('manageMembers', { server })}
-            className='text-zinc-500 hover:text-zinc-600 dark:text-zinc-400 dark:hover:text-zinc-300 transition'
-          >
-            <Settings className='h-4 w-4' />
-          </button>
-        </ActionTooltip>
+        <div className='flex-shrink-0 ml-2'>
+          <ActionTooltip label='Manage Members' side='top'>
+            <button
+              onClick={() => onOpen('manageMembers', { server })}
+              className='flex items-center justify-center w-6 h-6 text-gray-400 hover:text-purple-400 transition-all duration-300 rounded-md hover:bg-purple-600/20 group backdrop-blur-sm border border-transparent hover:border-purple-400/30 hover:shadow-md hover:shadow-purple-400/20'
+            >
+              <Settings className='h-3.5 w-3.5 group-hover:rotate-90 transform transition-all duration-300' />
+            </button>
+          </ActionTooltip>
+        </div>
       )}
     </div>
   );

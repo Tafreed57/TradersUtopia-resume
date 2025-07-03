@@ -121,7 +121,7 @@ const nextConfig = {
   // AWS Amplify configuration
   trailingSlash: false,
   generateEtags: false,
-  output: 'standalone', // ✅ This can help with AWS environment variable issues
+  // output: 'standalone', // ✅ Temporarily disabled due to Windows symlink issues
 
   // ✅ AWS AMPLIFY: Force environment variables to be available
   env: {

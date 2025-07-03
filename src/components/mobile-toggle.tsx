@@ -11,18 +11,26 @@ export async function MobileToggle({ serverId }: { serverId: string }) {
       <SheetTrigger asChild>
         <Button
           variant='ghost'
-          size='icon' className='md:hidden w-12 h-12 min-w-[48px] min-h-[48px] touch-manipulation hover:bg-gray-700/50 transition-all duration-200 rounded-xl border border-gray-600/30 backdrop-blur-sm'
+          size='icon'
+          className='md:hidden w-10 h-10 min-w-[40px] min-h-[40px] touch-manipulation transition-all duration-300 rounded-xl group relative overflow-hidden bg-gradient-to-br from-gray-700/50 to-gray-600/50 border border-gray-600/30 backdrop-blur-sm hover:from-blue-600/30 hover:to-purple-600/30 hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-400/20'
         >
-          <Menu className='w-5 h-5 text-gray-300 hover:text-white transition-colors' />
+          {/* Background gradient overlay */}
+          <div className='absolute inset-0 bg-gradient-to-br from-blue-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300' />
+
+          <Menu className='w-5 h-5 text-gray-300 group-hover:text-white transition-colors duration-300 relative z-10' />
         </Button>
       </SheetTrigger>
       <SheetContent
-        side='left' className='p-0 flex gap-0 w-auto max-w-[85vw] bg-gradient-to-br from-gray-900 via-gray-900/95 to-black border-r border-gray-700/50 backdrop-blur-xl'
+        side='left'
+        className='p-0 flex gap-0 w-auto max-w-[90vw] bg-gradient-to-br from-gray-900/98 via-gray-800/95 to-gray-900/98 border-r border-gray-700/50 backdrop-blur-xl shadow-2xl shadow-black/50 overflow-visible'
       >
-        <div className='w-[72px] border-r border-gray-700/50'>
+        {/* Main server sidebar */}
+        <div className='w-[96px] border-r border-gray-700/50 bg-gradient-to-b from-gray-800/50 to-gray-900/50 overflow-visible'>
           {await SideBar()}
         </div>
-        <div className='flex-1 min-w-0'>
+
+        {/* Channel sidebar */}
+        <div className='flex-1 min-w-0 max-w-[280px] sm:max-w-[320px] overflow-visible'>
           {await ServerSideBar({ serverId })}
         </div>
       </SheetContent>

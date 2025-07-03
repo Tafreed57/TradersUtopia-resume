@@ -40,9 +40,10 @@ export function EditServerModal() {
 
   const schema = z.object({
     name: z.string().min(1, { message: 'Server name is required' }),
-    imageUrl: z.string().min(1, { message: 'Image URL is invalid' }),
+    imageUrl: z.string().min(1, { message: 'Server image is required' }),
   });
-  const form = useForm({
+
+  const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: '',
@@ -52,29 +53,29 @@ export function EditServerModal() {
 
   useEffect(() => {
     if (data?.server) {
-      form.setValue('name', data?.server?.name as string);
-      form.setValue('imageUrl', data?.server?.imageUrl as string);
-    } else {
-      form.reset({
-        name: '',
-        imageUrl: '',
-      });
+      form.setValue('name', data?.server?.name || '');
+      form.setValue('imageUrl', data?.server?.imageUrl || '');
     }
-  }, [isModelOpen, data?.server, form]);
+  }, [data?.server, form]);
 
-  const { register, handleSubmit, formState, watch } = form;
-
-  const isLoading = formState.isSubmitting;
+  const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    console.log(values);
+    if (!data?.server?.id) {
+      console.error('No server ID found');
+      return;
+    }
+
     try {
-      await secureAxiosPatch(`/api/servers/${data?.server?.id}`, values);
+      await secureAxiosPatch(`/api/servers/${data.server.id}`, values);
       form.reset();
       router.refresh();
       onClose();
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      console.error(
+        'Error updating server:',
+        error.response?.data || error.message
+      );
     }
   };
   const handleClose = () => {
@@ -83,7 +84,7 @@ export function EditServerModal() {
   };
   return (
     <Dialog open={isModelOpen} onOpenChange={handleClose}>
-      <DialogContent className='bg-gray-900 text-white p-0 overflow-hidden'>
+      <DialogContent className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border border-gray-700/50 text-white p-0 overflow-hidden'>
         <DialogHeader className='pt-8 px-6'>
           <DialogTitle className='text-2xl text-center font-bold'>
             Customize your server
@@ -94,7 +95,7 @@ export function EditServerModal() {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={handleSubmit(onSubmit)} className='space-y-8'>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
             <div className='space-y-8 px-6'>
               <div className='flex items-center justify-center text-center'>
                 <FormField
@@ -108,10 +109,10 @@ export function EditServerModal() {
                           <div className='relative h-20 w-20'>
                             <NextImage
                               fill
-                              objectFit='cover'
                               src={field.value}
-                              className='rounded-full'
+                              className='rounded-full object-cover'
                               alt='Server Image'
+                              sizes='80px'
                             />
                             <Button
                               onClick={() => field.onChange('')}
@@ -186,14 +187,14 @@ export function EditServerModal() {
                 )}
               />
             </div>
-            <DialogFooter className='bg-gray-800 px-6 py-4'>
+            <DialogFooter className='bg-gradient-to-r from-gray-800/80 via-gray-700/80 to-gray-800/80 backdrop-blur-sm border-t border-gray-700/50 px-6 py-4'>
               <Button
                 type='submit'
                 variant='default'
                 disabled={isLoading}
                 className='w-full'
               >
-                Save
+                {isLoading ? 'Saving...' : 'Save'}
               </Button>
             </DialogFooter>
           </form>

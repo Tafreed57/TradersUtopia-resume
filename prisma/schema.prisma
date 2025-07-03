@@ -23,7 +23,6 @@ model Profile {
   stripeProductId    String?
   backupCodes        String[]
   isAdmin            Boolean            @default(false)
-  emailNotifications Json?              @default("{\"system\": true, \"payment\": true, \"mentions\": true, \"messages\": true, \"security\": true, \"serverUpdates\": false}")
   pushNotifications  Json?              @default("{\"system\": true, \"payment\": true, \"mentions\": true, \"messages\": true, \"security\": true, \"serverUpdates\": false}")
   pushSubscriptions  Json[]             @default([])
   channels           Channel[]

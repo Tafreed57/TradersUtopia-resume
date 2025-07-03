@@ -80,12 +80,6 @@ export function UserDetails() {
     }
   };
 
-  // Function to open Clerk user profile for email updates
-  const handleUpdateEmail = () => {
-    // Open Clerk's user profile page
-    window.open('/user-profile', '_blank');
-  };
-
   return (
     <div className='space-y-6'>
       {/* Profile Header */}
@@ -141,7 +135,7 @@ export function UserDetails() {
             icon={Mail}
             label='Email Address'
             value={user.emailAddresses[0]?.emailAddress || 'Not available'}
-            badge='Verified'
+            badge='Read-only'
           />
           <ProfileRow
             icon={Calendar}
@@ -171,19 +165,7 @@ export function UserDetails() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-            <button
-              onClick={handleUpdateEmail}
-              className='p-4 rounded-lg bg-blue-500/20 border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-left group'
-            >
-              <div className='flex items-center justify-between mb-2'>
-                <Mail className='h-5 w-5 text-blue-400 group-hover:scale-110 transition-transform' />
-                <ExternalLink className='h-4 w-4 text-blue-400/60' />
-              </div>
-              <p className='text-sm font-medium text-white'>Update Email</p>
-              <p className='text-xs text-gray-400'>Change your email address</p>
-            </button>
-
+          <div className='grid grid-cols-1 gap-3'>
             <button
               onClick={handleSecuritySettings}
               className='p-4 rounded-lg bg-green-500/20 border border-green-500/30 hover:bg-green-500/30 transition-colors text-left group'

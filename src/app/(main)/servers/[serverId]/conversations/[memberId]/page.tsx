@@ -55,7 +55,7 @@ export default async function MemberIdPage({
     memberOne.profileId === profile?.id ? memberTwo : memberOne;
 
   return (
-    <div className='bg-[#313338] flex flex-col h-full'>
+    <div className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full'>
       {await ChatHeader({
         name: otherMember.profile.name,
         serverId: params?.serverId,
@@ -80,7 +80,7 @@ export default async function MemberIdPage({
             apiUrl='/api/direct-messages'
             paramKey='conversationId'
             paramValue={conversation.id}
-            socketUrl='/api/socket/direct-messages'
+            socketUrl='/api/direct-messages'
             socketQuery={{
               conversationId: conversation.id,
             }}
@@ -88,7 +88,7 @@ export default async function MemberIdPage({
           <ChatInput
             name={otherMember.profile.name}
             type='conversation'
-            apiUrl='/api/socket/direct-messages'
+            apiUrl='/api/direct-messages'
             query={{
               conversationId: conversation.id,
             }}

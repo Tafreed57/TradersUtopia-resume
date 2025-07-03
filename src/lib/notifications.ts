@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { sendNotificationEmail } from '@/lib/email';
 import { sendPushNotification } from '@/lib/push-notifications';
 
 // Database notification functions
@@ -40,8 +39,6 @@ export async function createNotification({
       where: { userId },
       select: {
         name: true,
-        email: true,
-        emailNotifications: true,
         pushNotifications: true,
       },
     });
@@ -51,16 +48,7 @@ export async function createNotification({
       return notification;
     }
 
-    // Parse notification preferences (with defaults)
-    const emailPrefs = (profile.emailNotifications as any) || {
-      system: true,
-      security: true,
-      payment: true,
-      messages: true,
-      mentions: true,
-      serverUpdates: false,
-    };
-
+    // Parse push notification preferences (with defaults)
     const pushPrefs = (profile.pushNotifications as any) || {
       system: true,
       security: true,
@@ -71,7 +59,7 @@ export async function createNotification({
     };
 
     // Map notification types to preference keys
-    const typeMapping: Record<string, keyof typeof emailPrefs> = {
+    const typeMapping: Record<string, keyof typeof pushPrefs> = {
       SYSTEM: 'system',
       SECURITY: 'security',
       PAYMENT: 'payment',
@@ -82,26 +70,6 @@ export async function createNotification({
     };
 
     const prefKey = typeMapping[type] || 'system';
-
-    // Send email notification if enabled
-    if (emailPrefs[prefKey] && profile.email) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(
-          `📧 [NOTIFICATION] Sending email for ${type} to: ${profile.email}`
-        );
-      }
-
-      sendNotificationEmail({
-        to: profile.email,
-        userName: profile.name,
-        type,
-        title,
-        message,
-        actionUrl,
-      }).catch(error => {
-        console.error(`❌ [EMAIL] Failed to send email notification:`, error);
-      });
-    }
 
     // Send push notification if enabled
     if (pushPrefs[prefKey]) {

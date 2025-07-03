@@ -128,17 +128,17 @@ export function ChatItem({
         <div className='flex flex-col w-full min-w-0'>
           <div className='flex items-center gap-x-2 flex-wrap'>
             <div className='flex items-center gap-x-1'>
-              <p
+              <div
                 onClick={onMemberClick}
-                className='font-semibold text-sm sm:text-base hover:underline cursor-pointer truncate'
+                className='font-semibold text-sm sm:text-base text-white hover:underline cursor-pointer truncate'
               >
                 {member.profile.name}
-              </p>
+              </div>
               <ActionTooltip label={member.role}>
                 {roleIconMap[member.role]}
               </ActionTooltip>
             </div>
-            <span className='text-xs text-zinc-500 flex-shrink-0'>
+            <span className='text-xs text-gray-400 flex-shrink-0'>
               {timestamp}
             </span>
           </div>
@@ -164,23 +164,23 @@ export function ChatItem({
               rel='noreferrer noopener'
               className='relative rounded-md mt-2 overflow-hidden border flex items-center bg-secondary h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 touch-manipulation'
             >
-              <FileText className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-zinc-500 m-auto' />
+              <FileText className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-gray-400 m-auto' />
             </a>
           )}
           {!fileUrl && !isEditing && (
-            <p
+            <div
               className={cn(
-                'text-sm sm:text-base text-zinc-600 break-words',
-                deleted && 'italic text-zinc-500 text-xs sm:text-sm mt-1'
+                'text-sm sm:text-base text-gray-200 break-words',
+                deleted && 'italic text-gray-400 text-xs sm:text-sm mt-1'
               )}
             >
               {content}
               {isUpdated && !deleted && (
-                <span className='text-[10px] sm:text-xs text-zinc-500 ml-1'>
+                <span className='text-[10px] sm:text-xs text-gray-400 ml-1'>
                   (edited)
                 </span>
               )}
-            </p>
+            </div>
           )}
           {!fileUrl && isEditing && (
             <Form {...form}>
@@ -197,7 +197,7 @@ export function ChatItem({
                         <div className='relative w-full'>
                           <Input
                             disabled={isLoading}
-                            className='p-2 sm:p-3 bg-zinc-200/90 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-600 text-sm sm:text-base min-h-[44px] touch-manipulation'
+                            className='p-2 sm:p-3 bg-zinc-200/90 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-800 text-sm sm:text-base min-h-[44px] touch-manipulation'
                             placeholder='Edited Message'
                             autoComplete='off'
                             spellCheck={false}
@@ -219,20 +219,20 @@ export function ChatItem({
                   Save
                 </Button>
               </form>
-              <span className='mt-1 text-[10px] sm:text-xs text-zinc-400'>
+              <div className='mt-1 text-[10px] sm:text-xs text-gray-400'>
                 Press escape to cancel, enter to save
-              </span>
+              </div>
             </Form>
           )}
         </div>
       </div>
       {canDeleteMessage && (
-        <div className='hidden group-hover:flex items-center gap-x-1 sm:gap-x-2 absolute p-1 -top-2 right-3 sm:right-5 bg-gray-800 border rounded-sm shadow-lg'>
+        <div className='hidden group-hover:flex items-center gap-x-1 sm:gap-x-2 absolute p-1 -top-2 right-3 sm:right-5 bg-gradient-to-r from-gray-800/95 via-gray-700/95 to-gray-800/95 backdrop-blur-xl border border-gray-600/50 rounded-lg shadow-2xl'>
           {canEditMessage && (
             <ActionTooltip label='Edit'>
               <Edit
                 onClick={() => setIsEditing(true)}
-                className='cursor-pointer w-4 h-4 text-zinc-500 hover:text-zinc-600 transition touch-manipulation'
+                className='cursor-pointer w-4 h-4 text-gray-400 hover:text-white transition touch-manipulation'
               />
             </ActionTooltip>
           )}
@@ -244,7 +244,7 @@ export function ChatItem({
                   query: socketQuery,
                 })
               }
-              className='cursor-pointer w-4 h-4 text-zinc-500 hover:text-zinc-600 transition touch-manipulation'
+              className='cursor-pointer w-4 h-4 text-gray-400 hover:text-red-400 transition touch-manipulation'
             />
           </ActionTooltip>
         </div>

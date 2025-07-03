@@ -205,7 +205,7 @@ export function SecureEntryButton() {
       <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
         <Card className='w-full max-w-md'>
           <CardHeader className='text-center'>
-            <div className='mx-auto mb-4 p-3 rounded-full w-fit bg-gray-100 dark:bg-gray-800'>
+            <div className='mx-auto mb-4 p-3 rounded-full w-fit bg-gray-100 dark:bg-gradient-to-br dark:from-gray-800/80 dark:via-gray-700/80 dark:to-gray-800/80 dark:backdrop-blur-sm dark:border dark:border-gray-600/30'>
               {verificationResult.success ? (
                 <CheckCircle className='h-8 w-8 text-green-600' />
               ) : (

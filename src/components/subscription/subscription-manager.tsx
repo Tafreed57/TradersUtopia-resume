@@ -828,21 +828,6 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                   <RefreshCw className='h-4 w-4' />
                   Auto-Renewal & Subscription Management
                 </h4>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={verifyAutoRenewalStatus}
-                  disabled={isLoading}
-                  title='Verify auto-renewal status directly with Stripe'
-                  className='flex items-center gap-1.5 text-blue-400 border-blue-600/50 hover:bg-blue-900/20'
-                >
-                  {isLoading ? (
-                    <Loader2 className='h-3 w-3 animate-spin' />
-                  ) : (
-                    <Eye className='h-3 w-3' />
-                  )}
-                  Verify Status
-                </Button>
               </div>
               <div
                 className={`p-4 rounded-lg border ${

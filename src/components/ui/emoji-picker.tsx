@@ -17,16 +17,18 @@ export function EmojiPicker({ onChange }: EmojiPickerProps) {
   const { resolvedTheme } = useTheme();
   return (
     <Popover>
-      <PopoverTrigger>
-        <Smile
-          className='text-zinc-500 dark:text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition'
-          size={20}
-        />
+      <PopoverTrigger asChild>
+        <button
+          type='button'
+          className='w-full h-full flex items-center justify-center group transition-colors'
+        >
+          <Smile className='h-4 w-4 sm:h-5 sm:w-5 text-purple-400 group-hover:text-purple-300 transition-colors' />
+        </button>
       </PopoverTrigger>
       <PopoverContent
         side='right'
         sideOffset={40}
-        className='bg-transparent border-none shadow-none drop-shadow-none mb-16'
+        className='bg-transparent border-none shadow-none drop-shadow-none mb-16 z-50'
       >
         <Picker
           theme={resolvedTheme}

@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { rateLimitAdmin } from '@/lib/rate-limit';
 import { detectAndLogDuplicates } from '@/lib/safe-profile-operations';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Rate limiting for admin operations

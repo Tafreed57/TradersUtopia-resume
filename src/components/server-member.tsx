@@ -32,8 +32,9 @@ export function ServerMember({ member, server }: ServerMemberProps) {
     <button
       onClick={onClick}
       className={cn(
-        'group px-2 py-2 rounded-md flex items-center gap-x-2 w-full hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 transition mb-1',
-        params?.memberId === member.id && 'bg-zinc-700/10 dark:bg-zinc-700'
+        'group px-2 py-2 rounded-xl flex items-center gap-x-2 w-full hover:bg-gradient-to-r hover:from-gray-700/30 hover:to-gray-600/30 hover:backdrop-blur-sm transition-all duration-300 mb-1 border border-transparent hover:border-gray-600/20',
+        params?.memberId === member.id &&
+          'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-400/30 backdrop-blur-sm'
       )}
     >
       <UserAvatar
@@ -42,9 +43,8 @@ export function ServerMember({ member, server }: ServerMemberProps) {
       />
       <p
         className={cn(
-          'font-semibold text-sm text-zinc-500 group-hover:text-zinc-600 dark:text-zinc-400 dark:group-hover:text-zinc-300 transition',
-          params?.memberId === member.id &&
-            'text-primary dark:text-zinc-200 dark:group-hover:text-white'
+          'font-semibold text-sm text-gray-300 group-hover:text-white transition',
+          params?.memberId === member.id && 'text-white'
         )}
       >
         {member.profile?.name}

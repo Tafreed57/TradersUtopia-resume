@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         token: csrfToken,
-        maxAge: 3600, // 1 hour in seconds
+        expiresIn: 3600, // 1 hour in seconds
+        maxAge: 3600, // Legacy field for compatibility
         usage:
           'Include this token in X-CSRF-Token header for state-changing requests',
       },

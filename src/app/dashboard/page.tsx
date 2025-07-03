@@ -66,7 +66,7 @@ export default async function Dashboard() {
         'Priority features',
       ]}
     >
-      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-x-hidden'>
+      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative'>
         {/* Animated Background Effects */}
         <div className='absolute inset-0 pointer-events-none'>
           <div className='absolute -top-40 -right-40 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl animate-pulse'></div>

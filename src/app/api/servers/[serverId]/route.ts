@@ -51,13 +51,38 @@ export async function PATCH(
 
     const { name, imageUrl } = validationResult.data;
 
-    const server = await prisma.server.update({
-      where: {
-        id: params.serverId,
-        profileId: profile.id,
+    // First, check if the server exists and user has permission to update it
+    const existingServer = await prisma.server.findUnique({
+      where: { id: params.serverId },
+      include: {
+        members: {
+          where: { profileId: profile.id },
+          select: { role: true },
+        },
       },
+    });
+
+    if (!existingServer) {
+      return NextResponse.json({ error: 'Server not found' }, { status: 404 });
+    }
+
+    // Check if user is the owner OR an admin OR a server admin/moderator
+    const isOwner = existingServer.profileId === profile.id;
+    const isGlobalAdmin = profile.isAdmin;
+    const serverMember = existingServer.members[0];
+    const isServerAdmin =
+      serverMember?.role === 'ADMIN' || serverMember?.role === 'MODERATOR';
+
+    if (!isOwner && !isGlobalAdmin && !isServerAdmin) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to update this server' },
+        { status: 403 }
+      );
+    }
+
+    const server = await prisma.server.update({
+      where: { id: params.serverId },
       data: {
-        inviteCode: uuidv4(),
         name,
         imageUrl,
       },
@@ -71,6 +96,9 @@ export async function PATCH(
     console.log(
       `📍 [SERVER] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
     );
+
+    // Revalidate the server layout to reflect changes
+    revalidatePath(`/servers/${params.serverId}`, 'layout');
 
     return NextResponse.json(server);
   } catch (error: any) {
@@ -120,11 +148,34 @@ export async function DELETE(
       return new NextResponse('Server not found', { status: 404 });
     }
 
-    const server = await prisma.server.delete({
-      where: {
-        id: params.serverId,
-        profileId: profile.id,
+    // First, check if the server exists and user has permission to delete it
+    const existingServer = await prisma.server.findUnique({
+      where: { id: params.serverId },
+      include: {
+        members: {
+          where: { profileId: profile.id },
+          select: { role: true },
+        },
       },
+    });
+
+    if (!existingServer) {
+      return NextResponse.json({ error: 'Server not found' }, { status: 404 });
+    }
+
+    // Only server owner or global admin can delete servers
+    const isOwner = existingServer.profileId === profile.id;
+    const isGlobalAdmin = profile.isAdmin;
+
+    if (!isOwner && !isGlobalAdmin) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to delete this server' },
+        { status: 403 }
+      );
+    }
+
+    const server = await prisma.server.delete({
+      where: { id: params.serverId },
     });
 
     // ✅ SECURITY: Log successful server deletion

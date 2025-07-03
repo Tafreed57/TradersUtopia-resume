@@ -5,7 +5,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // ✅ SECURITY: Debug mode for CSRF operations
 // Set to true temporarily if you need to debug CSRF issues
-const DEBUG_CSRF = process.env.NODE_ENV === 'development' && false; // Temporarily disabled
+const DEBUG_CSRF = process.env.NODE_ENV === 'development' && false; // Disabled after fixing the issue
 
 // Token cache for client-side CSRF protection
 let csrfTokenCache: { token: string; expires: number } | null = null;
@@ -45,10 +45,17 @@ async function fetchCSRFToken(): Promise<string> {
       throw new Error('No CSRF token received from server');
     }
 
+    // Validate expiresIn value and provide fallback
+    const expiresIn = data.expiresIn || data.maxAge || 3600; // Default to 1 hour
+    if (typeof expiresIn !== 'number' || expiresIn <= 0) {
+      throw new Error(`Invalid expiresIn value: ${expiresIn}`);
+    }
+
     // Cache token with expiration (expires 5 minutes early for safety)
+    const expirationTime = Date.now() + (expiresIn - 300) * 1000;
     csrfTokenCache = {
       token: data.token,
-      expires: Date.now() + (data.expiresIn - 300) * 1000,
+      expires: expirationTime,
     };
 
     if (DEBUG_CSRF) {

@@ -69,7 +69,7 @@ export function CreateServerModal() {
   };
   return (
     <Dialog open={isModelOpen} onOpenChange={handleClose}>
-      <DialogContent className='bg-gray-900 text-white p-0 overflow-hidden'>
+      <DialogContent className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border border-gray-700/50 text-white p-0 overflow-hidden'>
         <DialogHeader className='pt-8 px-6'>
           <DialogTitle className='text-2xl text-center font-bold'>
             Customize your server
@@ -172,7 +172,7 @@ export function CreateServerModal() {
                 )}
               />
             </div>
-            <DialogFooter className='bg-gray-800 px-6 py-4'>
+            <DialogFooter className='bg-gradient-to-r from-gray-800/80 via-gray-700/80 to-gray-800/80 backdrop-blur-sm border-t border-gray-700/50 px-6 py-4'>
               <Button
                 type='submit'
                 variant='default'

@@ -2,338 +2,347 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global overflow fixes to prevent clipping */
 html,
 body,
 :root {
-	height: 100%;
+  overflow: visible !important;
 }
+
+/* Ensure #__next and main containers don't constrain overflow */
 @layer base {
-	:root {
-		--background: 0 0% 100%;
-		--foreground: 20 14.3% 4.1%;
-
-		--card: 0 0% 100%;
-		--card-foreground: 20 14.3% 4.1%;
-
-		--popover: 0 0% 100%;
-		--popover-foreground: 20 14.3% 4.1%;
-
-		--primary: 24 9.8% 10%;
-		--primary-foreground: 60 9.1% 97.8%;
-
-		--secondary: 60 4.8% 95.9%;
-		--secondary-foreground: 24 9.8% 10%;
-
-		--muted: 60 4.8% 95.9%;
-		--muted-foreground: 25 5.3% 44.7%;
-
-		--accent: 60 4.8% 95.9%;
-		--accent-foreground: 24 9.8% 10%;
-
-		--destructive: 0 84.2% 60.2%;
-		--destructive-foreground: 60 9.1% 97.8%;
-
-		--border: 20 5.9% 90%;
-		--input: 20 5.9% 90%;
-		--ring: 20 14.3% 4.1%;
-
-		--radius: 0.5rem;
-	}
-
-	.dark {
-		--background: 20 14.3% 4.1%;
-		--foreground: 60 9.1% 97.8%;
-
-		--card: 20 14.3% 4.1%;
-		--card-foreground: 60 9.1% 97.8%;
-
-		--popover: 20 14.3% 4.1%;
-		--popover-foreground: 60 9.1% 97.8%;
-
-		--primary: 60 9.1% 97.8%;
-		--primary-foreground: 24 9.8% 10%;
-
-		--secondary: 12 6.5% 15.1%;
-		--secondary-foreground: 60 9.1% 97.8%;
-
-		--muted: 12 6.5% 15.1%;
-		--muted-foreground: 24 5.4% 63.9%;
-
-		--accent: 12 6.5% 15.1%;
-		--accent-foreground: 60 9.1% 97.8%;
-
-		--destructive: 0 62.8% 30.6%;
-		--destructive-foreground: 60 9.1% 97.8%;
-
-		--border: 12 6.5% 15.1%;
-		--input: 12 6.5% 15.1%;
-		--ring: 24 5.7% 82.9%;
-	}
+  #__next,
+  main,
+  section,
+  div[data-orientation],
+  [data-radix-portal] {
+    overflow: visible !important;
+  }
 }
 
 @layer base {
-	* {
-		@apply border-border;
-	}
-	body {
-		@apply bg-background text-foreground;
-		/* Improve text rendering on mobile */
-		-webkit-font-smoothing: antialiased;
-		-moz-osx-font-smoothing: grayscale;
-		/* Disable text size adjustment on mobile */
-		-webkit-text-size-adjust: 100%;
-		-ms-text-size-adjust: 100%;
-		/* Better touch scrolling on iOS */
-		-webkit-overflow-scrolling: touch;
-	}
-	
-	/* Mobile-first responsive typography */
-	h1 { @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight; }
-	h2 { @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight; }
-	h3 { @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold leading-tight; }
-	h4 { @apply text-base sm:text-lg md:text-xl lg:text-2xl font-semibold leading-tight; }
-	h5 { @apply text-sm sm:text-base md:text-lg lg:text-xl font-medium leading-tight; }
-	h6 { @apply text-xs sm:text-sm md:text-base lg:text-lg font-medium leading-tight; }
-	
-	/* Better touch targets for mobile */
-	button, 
-	a, 
-	[role="button"] {
-		@apply min-h-[44px] min-w-[44px];
-		/* Better touch response */
-		-webkit-tap-highlight-color: transparent;
-		touch-action: manipulation;
-	}
-	
-	/* Responsive images */
-	img {
-		@apply max-w-full h-auto;
-	}
-	
-	/* Better focus states for accessibility */
-	*:focus-visible {
-		@apply ring-2 ring-ring ring-offset-2 ring-offset-background outline-none;
-	}
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
 }
 
-/* Custom Animations for Enhanced Aesthetics */
-@layer utilities {
-	.animate-gradient {
-		background-size: 200% 200%;
-		animation: gradient 3s ease infinite;
-	}
-	
-	.animate-float {
-		animation: float 6s ease-in-out infinite;
-	}
-	
-	.animate-glow {
-		animation: glow 2s ease-in-out infinite alternate;
-	}
-	
-	.animate-shimmer {
-		background: linear-gradient(
-			90deg,
-			transparent,
-			rgba(255, 255, 255, 0.1),
-			transparent
-		);
-		background-size: 200% 100%;
-		animation: shimmer 2s infinite;
-	}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Improve text rendering on mobile */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Disable text size adjustment on mobile */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    /* Better touch scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Ensure no global overflow constraints */
+    overflow: visible;
+  }
+
+  /* Mobile-first responsive typography */
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight;
+  }
+  h2 {
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight;
+  }
+  h3 {
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold leading-tight;
+  }
+  h4 {
+    @apply text-base sm:text-lg md:text-xl lg:text-2xl font-semibold leading-tight;
+  }
+  h5 {
+    @apply text-sm sm:text-base md:text-lg lg:text-xl font-medium leading-tight;
+  }
+  h6 {
+    @apply text-xs sm:text-sm md:text-base lg:text-lg font-medium leading-tight;
+  }
+
+  /* Better touch targets for mobile */
+  button,
+  a,
+  [role='button'] {
+    @apply min-h-[44px] min-w-[44px];
+    /* Better touch response */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Responsive images */
+  img {
+    @apply max-w-full h-auto;
+  }
+
+  /* Better focus states for accessibility */
+  *:focus-visible {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background outline-none;
+  }
 }
 
-@keyframes gradient {
-	0% {
-		background-position: 0% 50%;
-	}
-	50% {
-		background-position: 100% 50%;
-	}
-	100% {
-		background-position: 0% 50%;
-	}
+/* Remove all default scrollbars for a cleaner look while maintaining functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
 
-@keyframes float {
-	0%, 100% {
-		transform: translateY(0px);
-	}
-	50% {
-		transform: translateY(-20px);
-	}
+*::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+/* Special handling for elements that need visible scrollbars */
+.scrollbar-show,
+.scrollbar-show * {
+  scrollbar-width: thin;
+  -ms-overflow-style: auto;
+}
+
+.scrollbar-show::-webkit-scrollbar,
+.scrollbar-show *::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-show::-webkit-scrollbar-track,
+.scrollbar-show *::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.scrollbar-show::-webkit-scrollbar-thumb,
+.scrollbar-show *::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #fbbf24, #f59e0b);
+  border-radius: 3px;
+}
+
+.scrollbar-show::-webkit-scrollbar-thumb:hover,
+.scrollbar-show *::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #f59e0b, #d97706);
+}
+
+/* Animations and Effects */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes glow {
-	from {
-		box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-	}
-	to {
-		box-shadow: 0 0 30px rgba(255, 255, 255, 0.2), 0 0 40px rgba(255, 255, 255, 0.1);
-	}
+  from {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+  }
 }
 
-@keyframes shimmer {
-	0% {
-		background-position: -200% 0;
-	}
-	100% {
-		background-position: 200% 0;
-	}
+/* Utility Classes */
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
 }
 
-/* Glass morphism effects */
-.glass {
-	backdrop-filter: blur(16px) saturate(180%);
-	background-color: rgba(255, 255, 255, 0.05);
-	border: 1px solid rgba(255, 255, 255, 0.125);
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
 }
 
-/* Enhanced scrollbar */
-::-webkit-scrollbar {
-	width: 8px;
+/* Mobile-first responsive spacing */
+.space-mobile {
+  @apply space-y-4 sm:space-y-6 md:space-y-8;
+}
+.gap-mobile {
+  @apply gap-2 sm:gap-4 md:gap-6;
+}
+.p-mobile {
+  @apply p-4 sm:p-6 md:p-8 lg:p-10;
+}
+.px-mobile {
+  @apply px-4 sm:px-6 md:px-8 lg:px-10;
+}
+.py-mobile {
+  @apply py-4 sm:py-6 md:py-8 lg:py-10;
 }
 
-::-webkit-scrollbar-track {
-	background: rgba(0, 0, 0, 0.1);
+/* Mobile-optimized containers */
+.container-mobile {
+  @apply w-full max-w-none;
+  @apply px-4 sm:px-6 md:px-8;
+  @apply mx-auto;
+  @apply sm:max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl;
 }
 
-::-webkit-scrollbar-thumb {
-	background: linear-gradient(45deg, #fbbf24, #f59e0b);
-	border-radius: 4px;
+/* Hide scrollbars but keep functionality - Enhanced version */
+.scrollbar-hide {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  overflow: -moz-scrollbars-none !important;
 }
 
-::-webkit-scrollbar-thumb:hover {
-	background: linear-gradient(45deg, #f59e0b, #d97706);
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
-/* Mobile-optimized animations and utilities */
-@layer utilities {
-	.animate-gradient {
-		background-size: 200% 200%;
-		animation: gradient 3s ease infinite;
-	}
-	
-	.animate-float {
-		animation: float 6s ease-in-out infinite;
-	}
-	
-	.animate-glow {
-		animation: glow 2s ease-in-out infinite alternate;
-	}
-	
-	.animate-shimmer {
-		background: linear-gradient(
-			90deg,
-			transparent,
-			rgba(255, 255, 255, 0.1),
-			transparent
-		);
-		background-size: 200% 100%;
-		animation: shimmer 2s infinite;
-	}
-	
-	/* Mobile-first responsive spacing */
-	.space-mobile { @apply space-y-4 sm:space-y-6 md:space-y-8; }
-	.gap-mobile { @apply gap-2 sm:gap-4 md:gap-6; }
-	.p-mobile { @apply p-4 sm:p-6 md:p-8 lg:p-10; }
-	.px-mobile { @apply px-4 sm:px-6 md:px-8 lg:px-10; }
-	.py-mobile { @apply py-4 sm:py-6 md:py-8 lg:py-10; }
-	
-	/* Mobile-optimized containers */
-	.container-mobile {
-		@apply w-full max-w-none;
-		@apply px-4 sm:px-6 md:px-8;
-		@apply mx-auto;
-		@apply sm:max-w-screen-sm md:max-w-screen-md lg:max-w-screen-lg xl:max-w-screen-xl 2xl:max-w-screen-2xl;
-	}
-	
-	/* Hide scrollbars but keep functionality */
-	.scrollbar-hide {
-		-ms-overflow-style: none;
-		scrollbar-width: none;
-	}
-	.scrollbar-hide::-webkit-scrollbar {
-		display: none;
-	}
-	
-	/* Force horizontal scrolling for admin tabs - override parent overflow-x-hidden */
-	.force-horizontal-scroll {
-		overflow-x: auto !important;
-		overflow-y: hidden !important;
-		-webkit-overflow-scrolling: touch !important;
-		scrollbar-width: none !important;
-		-ms-overflow-style: none !important;
-	}
-	.force-horizontal-scroll::-webkit-scrollbar {
-		display: none !important;
-	}
-	
-	/* Touch-friendly interactive elements */
-	.touch-manipulation {
-		touch-action: manipulation;
-	}
-	
-	/* Safe area support for modern mobile devices */
-	.safe-top { padding-top: env(safe-area-inset-top); }
-	.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-	.safe-left { padding-left: env(safe-area-inset-left); }
-	.safe-right { padding-right: env(safe-area-inset-right); }
+/* Force horizontal scrolling for admin tabs - override parent overflow-x-hidden */
+.force-horizontal-scroll {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.force-horizontal-scroll::-webkit-scrollbar {
+  display: none !important;
 }
 
-/* Mobile-optimized scrollbar */
-::-webkit-scrollbar {
-	width: 6px;
-	height: 6px;
+/* Touch-friendly interactive elements */
+.touch-manipulation {
+  touch-action: manipulation;
 }
 
-::-webkit-scrollbar-track {
-	background: rgba(0, 0, 0, 0.1);
+/* Safe area support for modern mobile devices */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+.safe-right {
+  padding-right: env(safe-area-inset-right);
 }
 
-::-webkit-scrollbar-thumb {
-	background: linear-gradient(45deg, #fbbf24, #f59e0b);
-	border-radius: 3px;
+/* Utility class to ensure overflow visible */
+.overflow-fix {
+  overflow: visible !important;
 }
 
-::-webkit-scrollbar-thumb:hover {
-	background: linear-gradient(45deg, #f59e0b, #d97706);
+/* Enhanced overflow fix for all containers */
+.overflow-container-fix {
+  overflow: visible !important;
+}
+
+.overflow-container-fix * {
+  overflow: visible !important;
+}
+
+/* Specific fix for modal and dropdown clipping */
+.no-clip {
+  overflow: visible !important;
+  clip: unset !important;
+  clip-path: unset !important;
 }
 
 /* Mobile device optimizations */
 @media (max-width: 767px) {
-	/* Reduce motion for better mobile performance */
-	@media (prefers-reduced-motion: reduce) {
-		*,
-		*::before,
-		*::after {
-			animation-duration: 0.01ms !important;
-			animation-iteration-count: 1 !important;
-			transition-duration: 0.01ms !important;
-		}
-	}
-	
-	/* Optimize font sizes for small screens */
-	.text-hero {
-		@apply text-3xl leading-tight;
-	}
-	
-	/* Ensure buttons are touch-friendly */
-	button {
-		@apply min-h-[48px] px-4;
-	}
+  /* Reduce motion for better mobile performance */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Optimize font sizes for small screens */
+  .text-hero {
+    @apply text-3xl leading-tight;
+  }
+
+  /* Ensure buttons are touch-friendly */
+  button {
+    @apply min-h-[48px] px-4;
+  }
 }
 
 /* Tablet optimizations */
 @media (min-width: 768px) and (max-width: 1023px) {
-	.tablet-optimized {
-		@apply text-lg;
-	}
+  .tablet-optimized {
+    @apply text-lg;
+  }
 }
 
 /* Large screen optimizations */
 @media (min-width: 1920px) {
-	.container {
-		max-width: 1800px;
-	}
+  .container {
+    max-width: 1800px;
+  }
 }

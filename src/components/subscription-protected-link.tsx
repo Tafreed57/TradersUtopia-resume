@@ -19,7 +19,7 @@ interface SubscriptionProtectedLinkProps {
     | 'ghost'
     | 'link';
   size?: 'default' | 'sm' | 'lg' | 'icon';
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   disabled?: boolean;
 }
 
@@ -42,7 +42,7 @@ export function SubscriptionProtectedLink({
 
     // Execute any custom onClick first
     if (onClick) {
-      onClick();
+      onClick(e);
     }
 
     // If user is not authenticated, redirect to sign-in

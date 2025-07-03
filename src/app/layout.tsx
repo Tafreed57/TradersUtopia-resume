@@ -13,6 +13,7 @@ import type { Metadata, Viewport } from 'next';
 import { Open_Sans } from 'next/font/google';
 import { extractRouterConfig } from 'uploadthing/server';
 import { Toaster } from 'sonner';
+import { ServiceWorkerHandler } from '@/components/service-worker-handler';
 
 const open_sans = Open_Sans({ subsets: ['latin'] });
 
@@ -91,18 +92,18 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/logo.png', sizes: '32x32', type: 'image/png' },
-      { url: '/logo.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon.ico' },
+      { url: '/icon.png', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-2.png', type: 'image/png', sizes: '512x512' },
     ],
     shortcut: '/logo.png',
-    apple: [{ url: '/logo.png', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180' }],
   },
   manifest: '/site.webmanifest',
   other: {
-    'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'apple-mobile-web-app-title': 'TradersUtopia',
+    'mobile-web-app-capable': 'yes',
     'application-name': 'TradersUtopia',
     'msapplication-TileColor': '#000000',
     'msapplication-config': '/browserconfig.xml',
@@ -115,8 +116,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en' className='scroll-smooth' suppressHydrationWarning>
-      <body className={cn(open_sans.className, 'bg-white dark:bg-[#313338]')}>
+    <html lang='en' suppressHydrationWarning>
+      <body
+        className={cn(
+          open_sans.className,
+          'bg-white dark:bg-gradient-to-br dark:from-gray-900/95 dark:via-gray-800/90 dark:to-gray-900/95 overflow-visible min-h-screen'
+        )}
+      >
         <ClerkProvider
           appearance={{
             variables: { colorPrimary: '#000000' },
@@ -147,6 +153,7 @@ export default function RootLayout({
                 <QueryProvider>
                   <AuthWrapper>
                     <ModalProvider />
+                    <ServiceWorkerHandler />
                     <Toaster
                       position='top-right'
                       expand={true}

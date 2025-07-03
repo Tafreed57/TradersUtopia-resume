@@ -73,17 +73,23 @@ export function ChatInput({
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <div className='relative p-3 sm:p-4 pb-4 sm:pb-6 bg-[#313338] border-t border-neutral-200'>
+                <div className='relative p-4 sm:p-6 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/50'>
+                  {/* Background pattern */}
+                  <div className='absolute inset-0 bg-gradient-to-r from-blue-900/5 via-transparent to-purple-900/5 pointer-events-none' />
+
+                  {/* Add Media Button - centered vertically relative to input */}
                   <button
                     type='button'
                     onClick={() => onOpen('messageFile', { apiUrl, query })}
-                    className='absolute top-6 sm:top-7 left-6 sm:left-8 h-6 w-6 sm:h-7 sm:w-7 bg-zinc-500 hover:bg-zinc-600 transition rounded-full p-1 flex items-center justify-center touch-manipulation'
+                    className='absolute top-1/2 -translate-y-1/2 left-6 sm:left-8 h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-br from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 rounded-xl flex items-center justify-center touch-manipulation group backdrop-blur-sm hover:scale-110 hover:shadow-lg hover:shadow-blue-400/20 z-10'
                   >
-                    <Plus className='h-3 w-3 sm:h-4 sm:w-4 text-white#313338]' />
+                    <Plus className='h-4 w-4 sm:h-5 sm:w-5 text-blue-400 group-hover:text-blue-300 transition-colors' />
                   </button>
+
+                  {/* Input with proper padding for buttons */}
                   <Input
                     disabled={isLoading}
-                    className='px-12 sm:px-14 py-3 sm:py-4 md:py-6 bg-zinc-200/90 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-600 text-sm sm:text-base rounded-lg sm:rounded-xl min-h-[44px] touch-manipulation'
+                    className='pl-16 sm:pl-20 pr-16 sm:pr-20 py-4 sm:py-5 md:py-6 bg-gradient-to-r from-gray-800/80 to-gray-700/80 border border-gray-600/30 focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:border-blue-400/50 focus-visible:ring-offset-0 text-white placeholder:text-gray-400 text-sm sm:text-base rounded-xl sm:rounded-2xl min-h-[52px] sm:min-h-[56px] touch-manipulation backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50'
                     placeholder={`Message ${type === 'conversation' ? name : '#' + name}`}
                     autoComplete='off'
                     spellCheck={false}
@@ -91,12 +97,16 @@ export function ChatInput({
                     autoCapitalize='off'
                     {...field}
                   />
-                  <div className='absolute top-6 sm:top-7 right-6 sm:right-8'>
-                    <EmojiPicker
-                      onChange={value =>
-                        form.setValue('content', field.value + ' ' + value)
-                      }
-                    />
+
+                  {/* Emoji Button - centered vertically relative to input */}
+                  <div className='absolute top-1/2 -translate-y-1/2 right-6 sm:right-8'>
+                    <div className='h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-gray-700/50 to-gray-600/50 border border-gray-600/30 backdrop-blur-sm hover:from-purple-600/20 hover:to-pink-600/20 hover:border-purple-400/50 transition-all duration-300 hover:scale-110 flex items-center justify-center group z-10'>
+                      <EmojiPicker
+                        onChange={value =>
+                          form.setValue('content', field.value + ' ' + value)
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
               </FormControl>

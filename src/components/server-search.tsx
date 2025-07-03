@@ -12,6 +12,7 @@ import {
 import { Search, User } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+
 interface ServerSearchProps {
   data: {
     label: string;
@@ -62,13 +63,15 @@ export function ServerSearch({ data }: ServerSearchProps) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className='group px-2 py-2 rounded-md flex items-center gap-x-2 w-full hover:bg-zinc-700/10 dark:hover:bg-zinc-700/50 transition'
+        className='group px-3 py-2.5 rounded-xl flex items-center gap-x-3 w-full transition-all duration-300 bg-gradient-to-r from-gray-800/40 to-gray-700/40 border border-gray-600/30 backdrop-blur-sm hover:from-blue-600/20 hover:to-purple-600/20 hover:border-blue-400/50 hover:shadow-lg hover:shadow-blue-400/10'
       >
-        <Search className='w-4 h-4 text-zinc-500 dark:text-zinc-400' />
-        <p className='font-semibold text-sm text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition'>
+        <div className='flex items-center justify-center w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-400/30 group-hover:scale-110 transition-transform duration-300'>
+          <Search className='w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300' />
+        </div>
+        <p className='font-medium text-sm text-gray-300 group-hover:text-white transition-colors duration-300 flex-1 text-left'>
           Search
         </p>
-        <kbd className='pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-auto'>
+        <kbd className='pointer-events-none inline-flex h-6 select-none items-center gap-1 rounded-lg border border-gray-600/50 bg-gray-700/50 px-2 font-mono text-[10px] font-medium text-gray-400 group-hover:text-gray-300 group-hover:border-blue-400/50 transition-all duration-300 backdrop-blur-sm'>
           <span className='text-xs'>⌘</span>K
         </kbd>
       </button>

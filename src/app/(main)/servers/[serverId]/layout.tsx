@@ -19,11 +19,11 @@ export default async function ServerIdLayout({
     return redirect('/');
   }
   return (
-    <section className='h-full'>
-      <div className='hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0'>
+    <section className='h-full overflow-visible'>
+      <div className='hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0 left-[96px] overflow-visible'>
         {await ServerSideBar({ serverId: params.serverId })}
       </div>
-      <main className='h-full md:pl-60'>{children}</main>
+      <main className='h-full md:pl-60 overflow-visible'>{children}</main>
     </section>
   );
 }
