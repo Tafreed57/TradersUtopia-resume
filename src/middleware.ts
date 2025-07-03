@@ -1,14 +1,13 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-// ✅ DEBUG: Log environment variable status at module load time
-console.log('🔍 [MIDDLEWARE] Environment check at load time:', {
-  nodeEnv: process.env.NODE_ENV,
-  hasClerkSecret: process.env.CLERK_SECRET_KEY,
-  db: process.env.DATABASE_URL,
-  hasClerkPublishable: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-  secretKeyPrefix: process.env.CLERK_SECRET_KEY?.substring(0, 8) || 'NOT_FOUND',
-  timestamp: new Date().toISOString(),
-});
+// ✅ PERFORMANCE: Only log environment status once on startup, not on every request
+if (process.env.NODE_ENV === 'development') {
+  console.log('🔍 [MIDDLEWARE] Environment loaded:', {
+    hasClerkSecret: !!process.env.CLERK_SECRET_KEY,
+    hasClerkPublishable: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    hasDatabase: !!process.env.DATABASE_URL,
+  });
+}
 
 // ✅ WORKAROUND: Check for alternative environment variable names
 const clerkSecretKey =
@@ -79,7 +78,9 @@ const finalSecretKey =
 if (finalSecretKey) {
   // Force set the environment variable that Clerk expects
   // process.env.CLERK_SECRET_KEY = finalSecretKey;
-  console.log('✅ [MIDDLEWARE] Forced CLERK_SECRET_KEY to be set');
+  if (process.env.NODE_ENV === 'development') {
+    console.log('✅ [MIDDLEWARE] Clerk configured');
+  }
 } else {
   console.error(
     '❌ [MIDDLEWARE] No Clerk secret key found in any environment variable'

@@ -46,9 +46,11 @@ async function performLoginSync(userEmail: string) {
     );
 
     if (activeProfile && freeProfiles.length > 0) {
-      console.log(
-        `✅ [Login Sync] Found ACTIVE profile ${activeProfile.id}, syncing to ${freeProfiles.length} FREE profile(s)`
-      );
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          `✅ [Login Sync] Found ACTIVE profile ${activeProfile.id}, syncing to ${freeProfiles.length} FREE profile(s)`
+        );
+      }
 
       // Update all FREE profiles to match the ACTIVE one
       for (const freeProfile of freeProfiles) {
@@ -63,14 +65,18 @@ async function performLoginSync(userEmail: string) {
             stripeProductId: activeProfile.stripeProductId,
           },
         });
-        console.log(
-          `🔄 [Login Sync] Synced profile ${freeProfile.id} to ACTIVE status`
-        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log(
+            `🔄 [Login Sync] Synced profile ${freeProfile.id} to ACTIVE status`
+          );
+        }
       }
     } else {
-      console.log(
-        `ℹ️ [Login Sync] No ACTIVE profile found to sync from, or no FREE profiles to sync to`
-      );
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          `ℹ️ [Login Sync] No ACTIVE profile found to sync from, or no FREE profiles to sync to`
+        );
+      }
     }
   } catch (error) {
     console.error(`❌ [Login Sync] Failed for ${userEmail}:`, error);

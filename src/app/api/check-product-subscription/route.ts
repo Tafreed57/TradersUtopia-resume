@@ -52,9 +52,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(
-      `🔍 [SUBSCRIPTION] Checking product-specific subscription for user: ${userEmail}`
-    );
+    // ✅ PERFORMANCE: Reduced logging frequency
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔍 [SUBSCRIPTION] Checking for user: ${userEmail}`);
+    }
+
     console.log(
       `🎯 [SUBSCRIPTION] Allowed product IDs: ${allowedProductIds.join(', ')}`
     );
@@ -73,9 +75,11 @@ export async function POST(request: NextRequest) {
       });
 
       if (customers.data.length === 0) {
-        console.log(
-          `❌ [SUBSCRIPTION] No customer found in Stripe for: ${userEmail}`
-        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log(
+            `❌ [SUBSCRIPTION] No customer found in Stripe for: ${userEmail}`
+          );
+        }
         return NextResponse.json({
           hasAccess: false,
           reason: 'No customer found in Stripe with this email',
@@ -83,7 +87,9 @@ export async function POST(request: NextRequest) {
       }
 
       customer = customers.data[0];
-      console.log(`✅ [SUBSCRIPTION] Found Stripe customer: ${customer.id}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`✅ [SUBSCRIPTION] Found Stripe customer: ${customer.id}`);
+      }
     } catch (stripeError) {
       console.error(
         '❌ [SUBSCRIPTION] Stripe customer lookup error:',
@@ -119,9 +125,11 @@ export async function POST(request: NextRequest) {
           if (allowedProductIds.includes(price.product as string)) {
             validSubscription = subscription;
             subscribedProductId = price.product as string;
-            console.log(
-              `✅ [SUBSCRIPTION] Found valid subscription for product: ${subscribedProductId}`
-            );
+            if (process.env.NODE_ENV === 'development') {
+              console.log(
+                `✅ [SUBSCRIPTION] Found valid subscription for product: ${subscribedProductId}`
+              );
+            }
             break;
           }
         }
@@ -181,9 +189,11 @@ export async function POST(request: NextRequest) {
       } else {
         // Fallback: 30 days from now for one-time payments or invalid subscription data
         subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        console.log(
-          `📅 [SUBSCRIPTION] Using fallback subscription end: ${subscriptionEnd.toISOString()}`
-        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log(
+            `📅 [SUBSCRIPTION] Using fallback subscription end: ${subscriptionEnd.toISOString()}`
+          );
+        }
       }
 
       // Validate the date is not invalid

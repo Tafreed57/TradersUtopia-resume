@@ -25,14 +25,19 @@ if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       process.env.VAPID_PRIVATE_KEY
     );
+    // ✅ PERFORMANCE: Only log VAPID setup once, not on every import
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ [PUSH] VAPID details configured successfully');
+      console.log('✅ [PUSH] VAPID configured');
     }
   } catch (error) {
     console.error('❌ [PUSH] Failed to configure VAPID details:', error);
   }
 } else {
-  console.warn('⚠️ [PUSH] VAPID keys not found - push notifications disabled');
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(
+      '⚠️ [PUSH] VAPID keys not found - push notifications disabled'
+    );
+  }
 }
 
 export interface PushNotificationData {

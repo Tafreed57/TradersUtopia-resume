@@ -40,9 +40,11 @@ export async function findOrCreateProfile() {
   });
 
   if (profile) {
-    console.log(
-      `✅ [SAFE_PROFILE] Found existing profile by userId: ${profile.id}`
-    );
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        `✅ [SAFE_PROFILE] Found existing profile by userId: ${profile.id}`
+      );
+    }
     return profile;
   }
 

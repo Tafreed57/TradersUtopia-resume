@@ -160,8 +160,8 @@ export function NotificationBell() {
         }
       };
 
-      // Poll for new notifications every 2 minutes (reduced frequency)
-      const interval = setInterval(pollNotifications, 120000);
+      // Poll for new notifications every 5 minutes (reduced frequency for better performance)
+      const interval = setInterval(pollNotifications, 300000); // 5 minutes instead of 2
 
       return () => {
         clearInterval(interval);
