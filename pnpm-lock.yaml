@@ -11,6 +11,9 @@ importers:
       '@aws-amplify/backend':
         specifier: ^1.16.1
         version: 1.16.1(@aws-cdk/cli-plugin-contract@2.181.0)(@aws-sdk/client-cloudformation@3.840.0)(@aws-sdk/client-s3@3.840.0)(@aws-sdk/types@3.840.0)(aws-cdk-lib@2.203.0(constructs@10.4.2))(constructs@10.4.2)(zod@3.25.67)
+      '@aws-amplify/backend-cli':
+        specifier: ^1.8.0
+        version: 1.8.0(@aws-cdk/cli-plugin-contract@2.181.0)(@aws-sdk/types@3.840.0)(@types/node@20.19.4)(aws-cdk-lib@2.203.0(constructs@10.4.2))(constructs@10.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)
       '@aws-sdk/client-secrets-manager':
         specifier: ^3.840.0
         version: 3.840.0
@@ -92,6 +95,9 @@ importers:
       auto-zustand-selectors-hook:
         specifier: ^3.0.1
         version: 3.0.1(zustand@4.5.7(@types/react@18.3.23)(immer@10.1.1)(react@18.3.1))
+      aws-cdk-lib:
+        specifier: ^2.203.0
+        version: 2.203.0(constructs@10.4.2)
       axios:
         specifier: ^1.10.0
         version: 1.10.0
@@ -104,6 +110,9 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      constructs:
+        specifier: ^10.4.2
+        version: 10.4.2
       date-fns:
         specifier: ^3.6.0
         version: 3.6.0
@@ -177,9 +186,6 @@ importers:
         specifier: ^4.5.2
         version: 4.5.7(@types/react@18.3.23)(immer@10.1.1)(react@18.3.1)
     devDependencies:
-      '@aws-amplify/backend-cli':
-        specifier: ^1.8.0
-        version: 1.8.0(@aws-cdk/cli-plugin-contract@2.181.0)(@aws-sdk/types@3.840.0)(@types/node@20.19.4)(aws-cdk-lib@2.203.0(constructs@10.4.2))(constructs@10.4.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)
       '@types/aws-lambda':
         specifier: ^8.10.150
         version: 8.10.150
@@ -201,12 +207,6 @@ importers:
       aws-cdk:
         specifier: ^2.1020.0
         version: 2.1020.0
-      aws-cdk-lib:
-        specifier: ^2.203.0
-        version: 2.203.0(constructs@10.4.2)
-      constructs:
-        specifier: ^10.4.2
-        version: 10.4.2
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
