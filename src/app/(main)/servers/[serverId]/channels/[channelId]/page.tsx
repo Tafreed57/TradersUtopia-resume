@@ -1,7 +1,6 @@
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatMessages } from '@/components/chat/chat-messages';
-import { MediaRoom } from '@/components/media-room';
 import {
   getChannel,
   getCurrentProfile,
@@ -22,23 +21,16 @@ interface ChannelIdPageProps {
   };
 }
 
-// Loading component for better UX
+// ✅ SIMPLIFIED: Loading state for text channels only
 function ChannelLoadingState() {
   return (
     <div className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full'>
-      <div className='h-16 sm:h-18 border-b border-gray-700/50 bg-gradient-to-r from-gray-800/90 via-gray-700/80 to-gray-800/90 backdrop-blur-xl flex items-center justify-center'>
-        <div className='flex items-center gap-3'>
-          <Loader2 className='h-5 w-5 animate-spin text-blue-400' />
-          <span className='text-gray-300 font-medium'>Loading channel...</span>
-        </div>
+      <div className='h-12 border-b border-gray-700/30 flex items-center px-4'>
+        <div className='w-6 h-6 bg-gray-600/50 rounded animate-pulse mr-2' />
+        <div className='w-32 h-4 bg-gray-600/50 rounded animate-pulse' />
       </div>
       <div className='flex-1 flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-400/30 backdrop-blur-sm flex items-center justify-center mx-auto mb-4'>
-            <Loader2 className='h-6 w-6 animate-spin text-blue-400' />
-          </div>
-          <p className='text-gray-400'>Preparing your channel experience...</p>
-        </div>
+        <div className='w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin' />
       </div>
     </div>
   );
@@ -59,14 +51,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
 
   return (
     <Suspense fallback={<ChannelLoadingState />}>
-      <div
-        className={cn(
-          'bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full relative overflow-visible',
-          (channel.type === ChannelType.VIDEO ||
-            channel.type === ChannelType.AUDIO) &&
-            'overflow-visible'
-        )}
-      >
+      <div className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full relative overflow-visible'>
         {/* Enhanced Background Pattern */}
         <div className='absolute inset-0 opacity-5 pointer-events-none'>
           <div className='absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-purple-900/20' />
@@ -84,60 +69,37 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
           type: 'channel',
         })}
 
-        {channel.type === ChannelType.TEXT && (
-          <>
-            <div className='flex-1 relative z-10 overflow-visible'>
-              <ChatMessages
-                chatId={channel.id}
-                member={member}
-                name={channel.name}
-                type='channel'
-                apiUrl='/api/messages'
-                socketUrl='/api/messages'
-                socketQuery={{
-                  channelId: channel.id,
-                  serverId: channel.serverId,
-                }}
-                paramKey='channelId'
-                paramValue={channel.id}
-              />
-            </div>
-            <div className='relative z-10 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/30 overflow-visible'>
-              <ChatInput
-                name={channel.name}
-                type='channel'
-                apiUrl='/api/messages'
-                query={{
-                  channelId: channel.id,
-                  serverId: channel.serverId,
-                }}
-                member={member}
-              />
-            </div>
-          </>
-        )}
+        {/* ✅ SIMPLIFIED: Only handle TEXT channels */}
+        <div className='flex-1 relative z-10 overflow-visible'>
+          <ChatMessages
+            chatId={channel.id}
+            member={member}
+            name={channel.name}
+            type='channel'
+            apiUrl='/api/messages'
+            socketUrl='/api/messages'
+            socketQuery={{
+              channelId: channel.id,
+              serverId: channel.serverId,
+            }}
+            paramKey='channelId'
+            paramValue={channel.id}
+          />
+        </div>
+        <div className='relative z-10 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/30 overflow-visible'>
+          <ChatInput
+            name={channel.name}
+            type='channel'
+            apiUrl='/api/messages'
+            query={{
+              channelId: channel.id,
+              serverId: channel.serverId,
+            }}
+            member={member}
+          />
+        </div>
 
-        {channel.type === ChannelType.AUDIO && (
-          <div className='flex-1 relative z-10 overflow-visible'>
-            <MediaRoom
-              chatId={channel.id}
-              serverId={params.serverId}
-              video={false}
-              audio={true}
-            />
-          </div>
-        )}
-
-        {channel.type === ChannelType.VIDEO && (
-          <div className='flex-1 relative z-10 overflow-visible'>
-            <MediaRoom
-              chatId={channel.id}
-              serverId={params.serverId}
-              video={true}
-              audio={true}
-            />
-          </div>
-        )}
+        {/* ✅ REMOVED: Audio and Video channel MediaRoom components */}
       </div>
     </Suspense>
   );

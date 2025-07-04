@@ -17,7 +17,6 @@ import {
   Settings,
   TrashIcon,
   UserPlus,
-  Users,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -42,10 +41,6 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
     onOpen('editServer', { server });
   };
 
-  function handleMangeMembersClick() {
-    setIsDropdownOpen(false);
-    onOpen('manageMembers', { server });
-  }
   function handleLeaveServerClick() {
     setIsDropdownOpen(false);
     onOpen('leaveServer', { server });
@@ -112,15 +107,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
               <span className='font-medium'>Invite People</span>
             </DropdownMenuItem>
           )}
-          {isAdmin && (
-            <DropdownMenuItem
-              onClick={handleMangeMembersClick}
-              className='text-gray-300 hover:text-white text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-gray-700/50 transition-all duration-200 flex items-center gap-3'
-            >
-              <Users className='w-4 h-4' />
-              <span className='font-medium'>Manage Members</span>
-            </DropdownMenuItem>
-          )}
+
           {isAdmin && (
             <DropdownMenuItem
               onClick={handleServerSettingsClick}

@@ -29,6 +29,13 @@ export async function POST(req: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // ✅ ENHANCEMENT: Check if user is admin for auto-adding all users
+    const isAdmin = profile.isAdmin;
+
+    console.log(
+      `🏰 [SERVER] Creating server "${name}" by ${isAdmin ? 'ADMIN' : 'USER'}: ${profile.email}`
+    );
+
     const server = await prisma.server.create({
       data: {
         profileId: profile.id,
@@ -44,18 +51,63 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // ✅ ENHANCEMENT: If admin creates server, auto-add all existing users
+    if (isAdmin) {
+      console.log(
+        `👥 [SERVER] Admin created server "${name}" - auto-adding all users...`
+      );
+
+      // Get all existing profiles except the creator (already added)
+      const allProfiles = await prisma.profile.findMany({
+        where: {
+          id: {
+            not: profile.id, // Exclude creator
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          isAdmin: true,
+        },
+      });
+
+      // Auto-add all users to the admin-created server
+      if (allProfiles.length > 0) {
+        const memberData = allProfiles.map(userProfile => ({
+          profileId: userProfile.id,
+          serverId: server.id,
+          role: userProfile.isAdmin ? MemberRole.ADMIN : MemberRole.GUEST,
+        }));
+
+        await prisma.member.createMany({
+          data: memberData,
+          skipDuplicates: true, // Prevent duplicate memberships
+        });
+
+        console.log(
+          `✅ [SERVER] Auto-added ${allProfiles.length} users to admin-created server "${name}"`
+        );
+        console.log(
+          `📊 [SERVER] Added ${allProfiles.filter(p => p.isAdmin).length} admins and ${allProfiles.filter(p => !p.isAdmin).length} guests`
+        );
+      } else {
+        console.log(
+          `ℹ️ [SERVER] No other users found to auto-add to admin-created server "${name}"`
+        );
+      }
+    }
+
     // ✅ SECURITY: Log successful server creation
     console.log(
-      `🏰 [SERVER] Server created successfully by user: ${profile.email} (${profile.id})`
+      `🏰 [SERVER] Server created successfully: "${name}" (ID: ${server.id})`
     );
-    console.log(`📝 [SERVER] Server name: "${name}", ID: ${server.id}`);
-    console.log(
-      `📍 [SERVER] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
-    );
+    console.log(`📝 [SERVER] Created by: ${profile.email} (${profile.id})`);
+    console.log(`🔑 [SERVER] Invite code: ${server.inviteCode}`);
 
     return NextResponse.json(server);
-  } catch (error: any) {
-    console.log(error, 'SERVERS API ERROR');
-    return new NextResponse('Internal Error', { status: 500 });
+  } catch (error) {
+    console.error('❌ [SERVER] Server creation error:', error);
+    trackSuspiciousActivity(req, 'SERVER_CREATION_DATABASE_ERROR');
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

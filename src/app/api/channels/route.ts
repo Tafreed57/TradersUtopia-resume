@@ -27,11 +27,6 @@ export async function POST(req: NextRequest) {
       trackSuspiciousActivity(req, 'CHANNEL_CREATION_NO_SERVER_ID');
       return new NextResponse('Server not found', { status: 404 });
     }
-    if (name === 'general') {
-      return new NextResponse("Channel name can't be 'general'", {
-        status: 400,
-      });
-    }
 
     const server = await prisma.server.update({
       where: {

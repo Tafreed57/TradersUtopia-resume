@@ -75,15 +75,10 @@ export const serverUpdateSchema = z.object({
 });
 
 export const channelSchema = z.object({
-  name: z
-    .string()
-    .min(1, {
-      message: 'Channel name is required.',
-    })
-    .refine(name => name !== 'general', {
-      message: "Channel name cannot be 'general'",
-    }),
-  type: z.enum(['TEXT', 'AUDIO', 'VIDEO']),
+  name: z.string().min(1, {
+    message: 'Channel name is required.',
+  }),
+  type: z.enum(['TEXT']),
 });
 
 // Member management schemas

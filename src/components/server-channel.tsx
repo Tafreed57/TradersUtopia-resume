@@ -2,7 +2,7 @@
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { cn } from '@/lib/utils';
 import { Channel, ChannelType, MemberRole, Server } from '@prisma/client';
-import { Edit, Hash, Mic, Trash, Video, Lock } from 'lucide-react';
+import { Edit, Hash, Trash, Lock } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import React, {
   useMemo,
@@ -20,10 +20,9 @@ interface ServerChannelParams {
   role?: MemberRole;
 }
 
+// ✅ SIMPLIFIED: Only Hash icon for TEXT channels (removed Mic and Video)
 const iconMap = {
   [ChannelType.TEXT]: Hash,
-  [ChannelType.AUDIO]: Mic,
-  [ChannelType.VIDEO]: Video,
 };
 
 export function ServerChannel({ channel, server, role }: ServerChannelParams) {
@@ -34,10 +33,15 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
   const [optimisticActive, setOptimisticActive] = useState(false);
   const [showActions, setShowActions] = useState(false);
 
-  const Icon = iconMap[channel.type];
+  // ✅ SIMPLIFIED: Always Hash icon since we only support TEXT channels
+  const Icon = iconMap[channel.type] || Hash;
   const isActive = params?.channelId === channel.id || optimisticActive;
-  const canManageChannel =
-    channel.name !== 'general' && role !== MemberRole.GUEST;
+
+  // ✅ UPDATED: Allow admins and moderators to edit any channel including general
+  const canManageChannel = role !== MemberRole.GUEST;
+
+  // ✅ NEW: Show lock icon only for guests on general channel (to indicate they can't edit)
+  const showLockIcon = channel.name === 'general' && role === MemberRole.GUEST;
 
   // Prefetch the channel route for faster navigation
   useEffect(() => {
@@ -126,10 +130,15 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
         <Icon className={iconClasses} />
         <span className={textClasses}>{channel.name}</span>
 
-        {/* General channel lock icon */}
-        {channel.name === 'general' && (
+        {/* Lock icon only for guests on general channel */}
+        {showLockIcon && (
           <div className='flex-shrink-0 ml-auto'>
-            <Lock className='w-4 h-4 text-gray-500 group-hover:text-gray-400 transition-colors' />
+            <ActionTooltip
+              label='Only admins and moderators can edit'
+              side='top'
+            >
+              <Lock className='w-4 h-4 text-gray-500 group-hover:text-gray-400 transition-colors' />
+            </ActionTooltip>
           </div>
         )}
 
@@ -146,7 +155,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
         )}
       </button>
 
-      {/* Edit and Delete buttons - subtle and positioned better */}
+      {/* Edit and Delete buttons - show for all channels if user has permissions */}
       {canManageChannel && (
         <div
           className={cn(

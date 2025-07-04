@@ -119,29 +119,63 @@ export default function SubscriptionStatusPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {envStatus && (
+            {envStatus && envStatus.configuration_status && (
               <div className='space-y-2'>
                 <p>
                   <strong>Stripe Secret Key:</strong>{' '}
-                  {envStatus.environment_check.STRIPE_SECRET_KEY}
+                  {envStatus.configuration_status.core_services
+                    ?.STRIPE_SECRET_KEY || 'Not available'}
                 </p>
                 <p>
                   <strong>Webhook Secret:</strong>{' '}
-                  {envStatus.environment_check.STRIPE_WEBHOOK_SECRET}
+                  {envStatus.configuration_status.core_services
+                    ?.STRIPE_WEBHOOK_SECRET || 'Not available'}
                 </p>
                 <p>
                   <strong>Database URL:</strong>{' '}
-                  {envStatus.environment_check.DATABASE_URL}
+                  {envStatus.configuration_status.core_services?.DATABASE_URL ||
+                    'Not available'}
+                </p>
+                <p>
+                  <strong>Clerk Secret Key:</strong>{' '}
+                  {envStatus.configuration_status.authentication
+                    ?.CLERK_SECRET_KEY || 'Not available'}
+                </p>
+                <p>
+                  <strong>Clerk Publishable Key:</strong>{' '}
+                  {envStatus.configuration_status.authentication
+                    ?.CLERK_PUBLISHABLE_KEY || 'Not available'}
                 </p>
 
-                {envStatus.stripe_key_preview && (
-                  <p className='text-sm text-gray-600'>
-                    Stripe Key Preview: {envStatus.stripe_key_preview}
-                  </p>
+                {envStatus.summary && (
+                  <div className='mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200'>
+                    <p className='text-sm'>
+                      <strong>Configuration Completeness:</strong>{' '}
+                      {envStatus.summary.completeness}
+                    </p>
+                    <p className='text-sm'>
+                      <strong>Status:</strong> {envStatus.summary.configured}/
+                      {envStatus.summary.total} services configured
+                    </p>
+                    <p className='text-sm'>
+                      <strong>Production Ready:</strong>{' '}
+                      {envStatus.summary.ready_for_production
+                        ? '✅ Yes'
+                        : '❌ No'}
+                    </p>
+                  </div>
                 )}
-                {envStatus.webhook_secret_preview && (
-                  <p className='text-sm text-gray-600'>
-                    Webhook Secret Preview: {envStatus.webhook_secret_preview}
+              </div>
+            )}
+
+            {envStatus && envStatus.error && (
+              <div className='p-3 bg-red-50 dark:bg-red-900/20 rounded border border-red-200'>
+                <p className='text-red-700'>
+                  <strong>Error:</strong> {envStatus.error}
+                </p>
+                {envStatus.security_note && (
+                  <p className='text-sm text-red-600 mt-1'>
+                    {envStatus.security_note}
                   </p>
                 )}
               </div>

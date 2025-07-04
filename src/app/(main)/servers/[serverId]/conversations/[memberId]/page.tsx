@@ -1,14 +1,9 @@
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { getConversation, getCurrentProfile } from '@/lib/query';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatMessages } from '@/components/chat/chat-messages';
 import { ChatInput } from '@/components/chat/chat-input';
-import {
-  getCurrentMember,
-  getCurrentProfile,
-  getOrCreateConversation,
-} from '@/lib/query';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import { MediaRoom } from '@/components/media-room';
 
 import type { Metadata } from 'next';
 
@@ -22,13 +17,20 @@ export const metadata: Metadata = {
 
 interface MemberIdPageProps {
   params: {
-    serverId: string;
     memberId: string;
+    serverId: string;
   };
   searchParams: {
     video?: boolean;
   };
 }
+
+const getOrCreateConversation = async (
+  memberOneId: string,
+  memberTwoId: string
+) => {
+  return await getConversation(memberOneId, memberTwoId);
+};
 
 export default async function MemberIdPage({
   params,
@@ -39,63 +41,50 @@ export default async function MemberIdPage({
     return auth().redirectToSignIn();
   }
 
-  const currentMember = await getCurrentMember(params?.serverId, profile?.id);
-  if (!currentMember) {
-    return redirect('/');
-  }
   const conversation = await getOrCreateConversation(
-    currentMember?.id,
-    params?.memberId
+    params.memberId,
+    profile.id
   );
+
   if (!conversation) {
     return redirect(`/servers/${params.serverId}`);
   }
+
   const { memberOne, memberTwo } = conversation;
   const otherMember =
-    memberOne.profileId === profile?.id ? memberTwo : memberOne;
+    memberOne.profileId === profile.id ? memberTwo : memberOne;
 
   return (
-    <div className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full'>
-      {await ChatHeader({
-        name: otherMember.profile.name,
-        serverId: params?.serverId,
-        type: 'conversation',
-        imageUrl: otherMember.profile.imageUrl ?? undefined,
-      })}
-      {searchParams?.video && (
-        <MediaRoom
-          serverId={params?.serverId}
-          chatId={conversation.id}
-          video={true}
-          audio={true}
-        />
-      )}
-      {!searchParams?.video && (
-        <>
-          <ChatMessages
-            member={currentMember}
-            name={otherMember.profile.name}
-            chatId={conversation.id}
-            type='conversation'
-            apiUrl='/api/direct-messages'
-            paramKey='conversationId'
-            paramValue={conversation.id}
-            socketUrl='/api/direct-messages'
-            socketQuery={{
-              conversationId: conversation.id,
-            }}
-          />
-          <ChatInput
-            name={otherMember.profile.name}
-            type='conversation'
-            apiUrl='/api/direct-messages'
-            query={{
-              conversationId: conversation.id,
-            }}
-            member={currentMember}
-          />
-        </>
-      )}
+    <div className='bg-white dark:bg-[#313338] flex flex-col h-full'>
+      <ChatHeader
+        serverId={params.serverId}
+        name={otherMember.profile.name}
+        type='conversation'
+        imageUrl={otherMember.profile.imageUrl || undefined}
+      />
+
+      <ChatMessages
+        chatId={conversation.id}
+        member={otherMember}
+        name={otherMember.profile.name}
+        type='conversation'
+        apiUrl='/api/direct-messages'
+        paramKey='conversationId'
+        paramValue={conversation.id}
+        socketUrl='/api/direct-messages'
+        socketQuery={{
+          conversationId: conversation.id,
+        }}
+      />
+      <ChatInput
+        name={otherMember.profile.name}
+        type='conversation'
+        apiUrl='/api/direct-messages'
+        query={{
+          conversationId: conversation.id,
+        }}
+        member={otherMember}
+      />
     </div>
   );
 }

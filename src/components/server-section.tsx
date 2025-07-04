@@ -3,7 +3,7 @@ import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { useStore } from '@/store/store';
 import { ServerWithMembersWithProfiles } from '@/types/server';
 import { ChannelType, MemberRole } from '@prisma/client';
-import { Plus, Settings } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface ServerSectionProps {
   label: string;
@@ -37,18 +37,6 @@ export function ServerSection({
               className='flex items-center justify-center w-6 h-6 text-gray-400 hover:text-blue-400 transition-all duration-300 rounded-md hover:bg-blue-600/20 group backdrop-blur-sm border border-transparent hover:border-blue-400/30 hover:shadow-md hover:shadow-blue-400/20'
             >
               <Plus className='h-3.5 w-3.5 group-hover:rotate-90 transform transition-all duration-300' />
-            </button>
-          </ActionTooltip>
-        </div>
-      )}
-      {role === MemberRole.ADMIN && sectionType === 'members' && (
-        <div className='flex-shrink-0 ml-2'>
-          <ActionTooltip label='Manage Members' side='top'>
-            <button
-              onClick={() => onOpen('manageMembers', { server })}
-              className='flex items-center justify-center w-6 h-6 text-gray-400 hover:text-purple-400 transition-all duration-300 rounded-md hover:bg-purple-600/20 group backdrop-blur-sm border border-transparent hover:border-purple-400/30 hover:shadow-md hover:shadow-purple-400/20'
-            >
-              <Settings className='h-3.5 w-3.5 group-hover:rotate-90 transform transition-all duration-300' />
             </button>
           </ActionTooltip>
         </div>

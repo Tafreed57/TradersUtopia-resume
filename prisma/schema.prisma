@@ -142,8 +142,6 @@ model DirectMessage {
 
 enum ChannelType {
   TEXT
-  AUDIO
-  VIDEO
 }
 
 enum MemberRole {

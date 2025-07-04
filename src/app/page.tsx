@@ -488,7 +488,7 @@ export default function HomePage() {
                   <div className='absolute -top-4 -right-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-black text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-full shadow-lg'>
                     🔥 Free Access
                   </div>
-                  
+
                   {/* Video Description */}
                   <div className='mt-4 text-center'>
                     <p className='text-gray-400 text-xs sm:text-sm'>
@@ -710,9 +710,7 @@ export default function HomePage() {
               <div className='w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6'>
                 <Shield className='w-8 h-8 text-green-400' />
               </div>
-              <h2 className='text-3xl font-bold mb-4'>
-                100% Risk-Free Guarantee
-              </h2>
+              <h2 className='text-3xl font-bold mb-4'>Our Commitment to You</h2>
               <p className='text-xl text-gray-300 mb-6'>
                 Join TradersUtopia and access our proven trading strategies and
                 professional alerts.

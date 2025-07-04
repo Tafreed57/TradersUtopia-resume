@@ -72,6 +72,16 @@ export async function PATCH(
       return new NextResponse('Channel not found', { status: 404 });
     }
 
+    // ✅ ENHANCEMENT: Check if channel exists and get current name
+    const existingChannel = await prisma.channel.findUnique({
+      where: { id: params.channelId },
+      select: { id: true, name: true, serverId: true },
+    });
+
+    if (!existingChannel) {
+      return NextResponse.json({ error: 'Channel not found' }, { status: 404 });
+    }
+
     // Check permissions: server member with admin/moderator role OR global admin
     const serverMember = await prisma.member.findFirst({
       where: {
@@ -90,6 +100,10 @@ export async function PATCH(
       );
     }
 
+    // ✅ UPDATED: Allow renaming the general channel now
+    // Note: Removed the restriction that prevented renaming general channel
+
+    // ✅ UPDATED: Allow editing of any channel including general
     const server = await prisma.server.update({
       where: { id: serverId },
       data: {
@@ -97,9 +111,6 @@ export async function PATCH(
           update: {
             where: {
               id: params.channelId,
-              NOT: {
-                name: 'general',
-              },
             },
             data: {
               name,
@@ -115,10 +126,7 @@ export async function PATCH(
       `📢 [CHANNEL] Channel updated successfully by user: ${profile.email} (${profile.id})`
     );
     console.log(
-      `📝 [CHANNEL] Channel ID: ${params.channelId}, Name: "${name}", Type: ${type}, Server: ${serverId}`
-    );
-    console.log(
-      `📍 [CHANNEL] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
+      `📝 [CHANNEL] Channel ID: ${params.channelId}, Name: "${existingChannel.name}" → "${name}", Type: ${type}, Server: ${serverId}`
     );
 
     return NextResponse.json(server);
@@ -210,15 +218,14 @@ export async function DELETE(
       );
     }
 
+    // ✅ UPDATED: Allow deletion of ANY channel including general
     const server = await prisma.server.update({
       where: { id: serverId },
       data: {
         channels: {
           delete: {
             id: params.channelId,
-            name: {
-              not: 'general',
-            },
+            // ✅ REMOVED: name restriction - can now delete general channel
           },
         },
       },
@@ -230,9 +237,6 @@ export async function DELETE(
     );
     console.log(
       `📝 [CHANNEL] Deleted channel ID: ${params.channelId}, Server: ${serverId}`
-    );
-    console.log(
-      `📍 [CHANNEL] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
     );
 
     revalidatePath('/(main)', 'layout');
