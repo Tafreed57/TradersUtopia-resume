@@ -523,7 +523,6 @@ export default async function Dashboard() {
   const shouldBypassGate =
     profile.isAdmin ||
     profile.subscriptionStatus === 'ACTIVE' ||
-    profile.subscriptionStatus === 'TRIAL' ||
     (profile.subscriptionEnd && new Date(profile.subscriptionEnd) > new Date()); // Valid subscription not yet expired
 
   console.log('🔍 [Dashboard Security Check]:', {
