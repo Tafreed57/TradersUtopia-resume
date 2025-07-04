@@ -6,10 +6,10 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // ✅ SECURITY: Prevent clickjacking attacks
+          // ✅ SECURITY: Prevent clickjacking attacks (allow same origin for our own content)
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
           // ✅ SECURITY: Prevent MIME type sniffing
           {
@@ -37,7 +37,7 @@ const nextConfig = {
               "img-src 'self' data: https: blob:",
               "media-src 'self' https:",
               "connect-src 'self' https: wss: blob:",
-              "frame-src 'self' https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev https://www.google.com https://www.recaptcha.net https://hcaptcha.com https://*.hcaptcha.com https://challenges.cloudflare.com",
+              "frame-src 'self' https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev https://www.google.com https://www.recaptcha.net https://hcaptcha.com https://*.hcaptcha.com https://challenges.cloudflare.com https://www.youtube.com https://youtube.com https://*.youtube.com",
               "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",

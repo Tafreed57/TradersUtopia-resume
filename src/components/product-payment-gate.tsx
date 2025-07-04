@@ -2,8 +2,14 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useNavigationLoading } from '@/hooks/use-navigation-loading';
+import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
+import {
+  ComponentLoading,
+  ApiLoading,
+  ButtonLoading,
+} from '@/components/ui/loading-components';
 import {
   Card,
   CardContent,
@@ -79,12 +85,14 @@ export function ProductPaymentGate({
   ],
 }: ProductPaymentGateProps) {
   const { isLoaded, user } = useUser();
-  const router = useRouter();
+  const { navigate } = useNavigationLoading();
+  const apiLoading = useComprehensiveLoading('api');
+  const verifyLoading = useComprehensiveLoading('api');
   const [accessStatus, setAccessStatus] = useState<ProductAccessStatus | null>(
     null
   );
   const [loading, setLoading] = useState(true);
-  const [verifying, setVerifying] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const checkProductAccess = useCallback(async () => {
     if (!isLoaded || !user) {
@@ -93,7 +101,7 @@ export function ProductPaymentGate({
     }
 
     try {
-      setLoading(true);
+      setApiError(null);
 
       // ✅ PERFORMANCE: Check cache first
       const cachedStatus = getCachedAccess(user.id, allowedProductIds);
@@ -103,74 +111,75 @@ export function ProductPaymentGate({
         return;
       }
 
-      // ✅ PERFORMANCE: Debounce multiple rapid calls
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const data = await apiLoading.withLoading(
+        async () => {
+          // ✅ PERFORMANCE: Debounce multiple rapid calls
+          await new Promise(resolve => setTimeout(resolve, 100));
 
-      const response = await fetch('/api/check-product-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+          const response = await fetch('/api/check-product-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              allowedProductIds,
+            }),
+          });
+
+          if (response.status === 429) {
+            // Rate limited - wait and retry once
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const retryResponse = await fetch(
+              '/api/check-product-subscription',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  allowedProductIds,
+                }),
+              }
+            );
+
+            if (retryResponse.status === 429) {
+              throw new Error(
+                'Rate limit exceeded. Please wait a moment and refresh the page.'
+              );
+            }
+
+            return retryResponse.json();
+          }
+
+          return response.json();
         },
-        body: JSON.stringify({
-          allowedProductIds,
-        }),
-      });
-
-      if (response.status === 429) {
-        // Rate limited - wait and retry once
-        console.warn('Rate limited, waiting before retry...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const retryResponse = await fetch('/api/check-product-subscription', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            allowedProductIds,
-          }),
-        });
-
-        if (retryResponse.status === 429) {
-          // Still rate limited, use fallback
-          const fallbackStatus = {
-            hasAccess: false,
-            reason:
-              'Rate limit exceeded. Please wait a moment and refresh the page.',
-          };
-          setAccessStatus(fallbackStatus);
-          return;
+        {
+          loadingMessage: `Checking ${productName} access...`,
+          errorMessage: 'Failed to verify subscription access',
         }
+      );
 
-        const data = await retryResponse.json();
-        setAccessStatus(data);
-        setCachedAccess(user.id, allowedProductIds, data);
-        return;
-      }
-
-      const data = await response.json();
       setAccessStatus(data);
-
-      // ✅ PERFORMANCE: Cache successful responses
       setCachedAccess(user.id, allowedProductIds, data);
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Product access check:', data);
-      }
     } catch (error) {
       console.error('Error checking product access:', error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error checking subscription status';
+      setApiError(errorMessage);
       const errorStatus = {
         hasAccess: false,
-        reason: 'Error checking subscription status',
+        reason: errorMessage,
       };
       setAccessStatus(errorStatus);
     } finally {
       setLoading(false);
     }
-  }, [isLoaded, user, allowedProductIds]);
+  }, [isLoaded, user, allowedProductIds, apiLoading, productName]);
 
   const verifyStripePayment = async () => {
-    setVerifying(true);
     try {
       // ✅ PERFORMANCE: Clear cache on manual verification
       if (user) {
@@ -178,16 +187,25 @@ export function ProductPaymentGate({
         accessCache.delete(key);
       }
 
-      const response = await fetch('/api/verify-stripe-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const result = await verifyLoading.withLoading(
+        async () => {
+          const response = await fetch('/api/verify-stripe-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          return response.json();
         },
-      });
+        {
+          loadingMessage: 'Verifying payment with Stripe...',
+          successMessage: 'Payment verified successfully!',
+          errorMessage: 'Failed to verify payment',
+        }
+      );
 
-      const result = await response.json();
-
-      if (response.ok && result.success) {
+      if (result.success) {
         // Re-check product access after verification
         await checkProductAccess();
       } else {
@@ -196,8 +214,6 @@ export function ProductPaymentGate({
     } catch (error) {
       console.error('Error verifying payment:', error);
       alert('❌ Error verifying payment with Stripe');
-    } finally {
-      setVerifying(false);
     }
   };
 
@@ -208,9 +224,11 @@ export function ProductPaymentGate({
 
   useEffect(() => {
     if (!isLoaded || !user) {
-      router.push('/sign-in');
+      navigate('/sign-in', {
+        message: 'Please sign in to continue...',
+      });
     }
-  }, [isLoaded, user, router]);
+  }, [isLoaded, user, navigate]);
 
   if (!isLoaded || !user) {
     return null;
@@ -218,13 +236,17 @@ export function ProductPaymentGate({
 
   if (loading) {
     return (
-      <div className='flex items-center justify-center min-h-screen'>
-        <div className='text-center'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4'></div>
-          <p className='text-muted-foreground'>
-            Checking subscription access...
-          </p>
-        </div>
+      <div className='min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black'>
+        <ApiLoading
+          isLoading={loading || apiLoading.isLoading}
+          error={apiError}
+          retry={checkProductAccess}
+          message={
+            apiLoading.isLoading
+              ? apiLoading.message
+              : `Checking ${productName} access...`
+          }
+        />
       </div>
     );
   }
@@ -292,7 +314,9 @@ export function ProductPaymentGate({
                 <Button
                   variant='outline'
                   size='lg'
-                  onClick={() => router.push('/')}
+                  onClick={() =>
+                    navigate('/', { message: 'Going to homepage...' })
+                  }
                 >
                   Back to Homepage
                 </Button>
@@ -314,11 +338,14 @@ export function ProductPaymentGate({
                 size='lg'
                 className='w-full'
                 onClick={verifyStripePayment}
-                disabled={verifying}
+                disabled={verifyLoading.isLoading}
               >
-                {verifying
-                  ? 'Verifying...'
-                  : '🔍 Verify My Payment with Stripe'}
+                <ButtonLoading
+                  isLoading={verifyLoading.isLoading}
+                  loadingText={verifyLoading.message}
+                >
+                  🔍 Verify My Payment with Stripe
+                </ButtonLoading>
               </Button>
             </div>
 

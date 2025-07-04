@@ -40,10 +40,11 @@ import { UserManagement } from '@/components/admin/user-management';
 import { UserDetails } from '@/components/user/user-details';
 import { PasswordManager } from '@/components/user/password-manager';
 import { Badge } from '@/components/ui/badge';
+import { ImmediateLoadingDemo } from '@/components/immediate-loading-demo';
 
 export default async function Dashboard() {
   const profile = await getCurrentProfileWithSync();
-  console.log(profile);
+  // ✅ PERFORMANCE: Profile loaded successfully (no console output for performance)
 
   // Get user's servers but don't redirect - let them choose what to do
   const servers = await getAllServers(profile.id);
@@ -391,8 +392,28 @@ export default async function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
-                        <UserDetails />
+                      <div className='space-y-6'>
+                        <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
+                          <UserDetails />
+                        </div>
+
+                        {/* Immediate Loading Test */}
+                        <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
+                          <div className='flex items-center gap-3 mb-4'>
+                            <div className='w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center'>
+                              <Activity className='h-4 w-4 text-yellow-400' />
+                            </div>
+                            <div>
+                              <h3 className='text-lg font-semibold text-white'>
+                                Loading Test
+                              </h3>
+                              <p className='text-gray-400 text-sm'>
+                                Test immediate loading feedback
+                              </p>
+                            </div>
+                          </div>
+                          <ImmediateLoadingDemo />
+                        </div>
                       </div>
                     </div>
                   </div>

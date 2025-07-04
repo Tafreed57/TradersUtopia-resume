@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import { useNavigationLoading } from '@/hooks/use-navigation-loading';
+import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
+import { ButtonLoading } from '@/components/ui/loading-components';
 import { Loader2 } from 'lucide-react';
 
 interface SubscriptionProtectedLinkProps {
@@ -23,18 +25,25 @@ interface SubscriptionProtectedLinkProps {
   disabled?: boolean;
 }
 
-export function SubscriptionProtectedLink({
-  href,
-  children,
-  allowedProductIds = ['prod_SWIyAf2tfVrJao'], // Default to your current product
-  className,
-  variant,
-  size,
-  onClick,
-  disabled = false,
-}: SubscriptionProtectedLinkProps) {
+export const SubscriptionProtectedLink = forwardRef<
+  HTMLDivElement,
+  SubscriptionProtectedLinkProps
+>(function SubscriptionProtectedLink(
+  {
+    href,
+    children,
+    allowedProductIds = ['prod_SWIyAf2tfVrJao'], // Default to your current product
+    className,
+    variant,
+    size,
+    onClick,
+    disabled = false,
+  },
+  ref
+) {
   const { user, isLoaded } = useUser();
-  const router = useRouter();
+  const { navigate } = useNavigationLoading();
+  const loading = useComprehensiveLoading('api');
   const [isChecking, setIsChecking] = useState(false);
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -47,52 +56,59 @@ export function SubscriptionProtectedLink({
 
     // If user is not authenticated, redirect to sign-in
     if (!isLoaded || !user) {
-      console.log('🔐 User not authenticated, redirecting to sign-in');
-      router.push('/sign-in');
+      await navigate('/sign-in', {
+        message: 'Redirecting to sign in...',
+      });
       return;
     }
 
-    // Set loading state
-    setIsChecking(true);
-
+    // Use comprehensive loading wrapper
     try {
-      console.log('🔍 Checking subscription for navigation to:', href);
+      const result = await loading.withLoading(
+        async () => {
+          const response = await fetch('/api/check-product-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              allowedProductIds,
+            }),
+          });
 
-      // Check subscription status
-      const response = await fetch('/api/check-product-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+          if (response.status === 429) {
+            throw new Error(
+              'Rate limited. Please wait a moment before trying again.'
+            );
+          }
+
+          return response.json();
         },
-        body: JSON.stringify({
-          allowedProductIds,
-        }),
-      });
-
-      if (response.status === 429) {
-        console.warn('⚠️ Rate limited, please wait a moment');
-        alert(
-          'Please wait a moment before trying again. The system is protecting against too many requests.'
-        );
-        return;
-      }
-
-      const result = await response.json();
-      console.log('📊 Subscription check result:', result);
+        {
+          loadingMessage: 'Checking subscription access...',
+          errorMessage: 'Failed to verify subscription',
+        }
+      );
 
       if (result.hasAccess) {
-        console.log('✅ Access granted, navigating to:', href);
-        router.push(href);
+        await navigate(href, {
+          message: `Opening ${href}...`,
+        });
       } else {
-        console.log('❌ Access denied, redirecting to pricing page');
-        router.push('/pricing');
+        await navigate('/pricing', {
+          message: 'Redirecting to pricing...',
+        });
       }
     } catch (error) {
       console.error('❌ Error checking subscription:', error);
-      // On error, redirect to pricing to be safe
-      router.push('/pricing');
-    } finally {
-      setIsChecking(false);
+      if (error instanceof Error && error.message.includes('Rate limited')) {
+        alert(error.message);
+      } else {
+        // On error, redirect to pricing to be safe
+        await navigate('/pricing', {
+          message: 'Redirecting to pricing...',
+        });
+      }
     }
   };
 
@@ -104,16 +120,15 @@ export function SubscriptionProtectedLink({
         className={className}
         variant={variant}
         size={size}
-        disabled={disabled || isChecking}
+        disabled={disabled || loading.isLoading}
+        ref={ref as any}
       >
-        {isChecking ? (
-          <>
-            <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-            Checking...
-          </>
-        ) : (
-          children
-        )}
+        <ButtonLoading
+          isLoading={loading.isLoading}
+          loadingText={loading.message}
+        >
+          {children}
+        </ButtonLoading>
       </Button>
     );
   }
@@ -121,8 +136,9 @@ export function SubscriptionProtectedLink({
   // For other clickable elements
   return (
     <div
+      ref={ref}
       onClick={handleClick}
-      className={`cursor-pointer ${disabled ? 'pointer-events-none opacity-50' : ''} ${className || ''}`}
+      className={`cursor-pointer ${disabled || loading.isLoading ? 'pointer-events-none opacity-50' : ''} ${className || ''}`}
       role='button'
       tabIndex={0}
       onKeyDown={e => {
@@ -131,14 +147,12 @@ export function SubscriptionProtectedLink({
         }
       }}
     >
-      {isChecking ? (
-        <div className='flex items-center gap-2'>
-          <Loader2 className='w-4 h-4 animate-spin' />
-          <span>Checking...</span>
-        </div>
-      ) : (
-        children
-      )}
+      <ButtonLoading
+        isLoading={loading.isLoading}
+        loadingText={loading.message}
+      >
+        {children}
+      </ButtonLoading>
     </div>
   );
-}
+});

@@ -45,16 +45,16 @@ export function LoadingProvider({ children }: LoadingProviderProps) {
     }
   }, []);
 
-  const startLoading = useCallback(
-    (message = 'Loading...') => {
-      setLoading(true, message);
-    },
-    [setLoading]
-  );
+  const startLoading = useCallback((message = 'Loading...') => {
+    // ✅ IMMEDIATE FEEDBACK: Set loading state immediately
+    setIsLoading(true);
+    setLoadingMessage(message);
+  }, []);
 
   const stopLoading = useCallback(() => {
-    setLoading(false);
-  }, [setLoading]);
+    // ✅ IMMEDIATE FEEDBACK: Stop loading immediately
+    setIsLoading(false);
+  }, []);
 
   // Auto-stop loading when pathname changes
   useEffect(() => {
