@@ -169,44 +169,42 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = messageSchema.parse(body);
 
-    // ✅ SECURITY: Verify user is a member of the server and has access to the channel
-    const member = await prisma.member.findFirst({
-      where: {
-        profileId: profile.id,
-        serverId: serverId,
-      },
-    });
-
-    if (!member) {
-      trackSuspiciousActivity(req, 'UNAUTHORIZED_SERVER_MESSAGE_ACCESS');
-      return new NextResponse('Server not found or access denied', {
-        status: 404,
-      });
-    }
-
-    // ✅ SECURITY: Verify channel exists in the server and get channel details
-    const channel = await prisma.channel.findFirst({
+    // ✅ PERFORMANCE: Combined database query to verify permissions and get channel data
+    const channelWithMember = await prisma.channel.findFirst({
       where: {
         id: channelId,
         serverId: serverId,
+        server: {
+          members: {
+            some: {
+              profileId: profile.id,
+            },
+          },
+        },
       },
       include: {
         server: {
           include: {
             members: {
-              include: {
-                profile: true,
+              where: {
+                profileId: profile.id,
               },
+              take: 1,
             },
           },
         },
       },
     });
 
-    if (!channel) {
+    if (!channelWithMember || !channelWithMember.server.members[0]) {
       trackSuspiciousActivity(req, 'UNAUTHORIZED_CHANNEL_MESSAGE_ACCESS');
-      return new NextResponse('Channel not found', { status: 404 });
+      return new NextResponse('Channel not found or access denied', {
+        status: 404,
+      });
     }
+
+    const member = channelWithMember.server.members[0];
+    const channel = channelWithMember;
 
     // Create the message
     const message = await prisma.message.create({
@@ -225,59 +223,76 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 📱 PUSH NOTIFICATIONS: Handle mentions and general message notifications
-    try {
-      const otherMembers = channel.server.members.filter(
-        serverMember => serverMember.profileId !== profile.id
-      );
+    // ✅ PERFORMANCE: Return message immediately, handle notifications in background
+    const responsePromise = NextResponse.json(message);
 
-      // Detect mentions in the message content (@username pattern)
-      const mentionRegex = /@(\w+)/g;
-      const mentions = Array.from(validatedData.content.matchAll(mentionRegex));
-      const mentionedUsernames = mentions.map(match => match[1].toLowerCase());
+    // 📱 BACKGROUND NOTIFICATIONS: Process notifications after response is sent
+    // This prevents notifications from blocking the API response
+    setImmediate(async () => {
+      try {
+        // Get other members for notifications (simplified query)
+        const otherMembers = await prisma.member.findMany({
+          where: {
+            serverId: serverId,
+            profileId: { not: profile.id },
+          },
+          include: {
+            profile: {
+              select: {
+                userId: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        });
 
-      const truncatedContent =
-        validatedData.content.length > 100
-          ? validatedData.content.substring(0, 100) + '...'
-          : validatedData.content;
+        if (otherMembers.length === 0) return;
 
-      // Create notifications for each member
-      const notificationPromises = otherMembers.map(serverMember => {
-        const isMentioned = mentionedUsernames.some(
-          username =>
-            serverMember.profile.name.toLowerCase().includes(username) ||
-            serverMember.profile.email.toLowerCase().includes(username)
+        // Detect mentions in the message content (@username pattern)
+        const mentionRegex = /@(\w+)/g;
+        const mentions = Array.from(
+          validatedData.content.matchAll(mentionRegex)
+        );
+        const mentionedUsernames = mentions.map(match =>
+          match[1].toLowerCase()
         );
 
-        return createNotification({
-          userId: serverMember.profile.userId,
-          type: isMentioned ? 'MENTION' : 'MESSAGE',
-          title: isMentioned
-            ? `You were mentioned in #${channel.name}`
-            : `New message in #${channel.name}`,
-          message: `${profile.name}: ${truncatedContent}`,
-          actionUrl: `/servers/${serverId}/channels/${channelId}`,
-        });
-      });
+        const truncatedContent =
+          validatedData.content.length > 100
+            ? validatedData.content.substring(0, 100) + '...'
+            : validatedData.content;
 
-      // Send notifications asynchronously to avoid blocking response
-      Promise.all(notificationPromises).catch(error => {
+        // Create notifications for each member
+        const notificationPromises = otherMembers.map(serverMember => {
+          const isMentioned = mentionedUsernames.some(
+            username =>
+              serverMember.profile.name.toLowerCase().includes(username) ||
+              serverMember.profile.email.toLowerCase().includes(username)
+          );
+
+          return createNotification({
+            userId: serverMember.profile.userId,
+            type: isMentioned ? 'MENTION' : 'MESSAGE',
+            title: isMentioned
+              ? `You were mentioned in #${channel.name}`
+              : `New message in #${channel.name}`,
+            message: `${profile.name}: ${truncatedContent}`,
+            actionUrl: `/servers/${serverId}/channels/${channelId}`,
+          });
+        });
+
+        // Send notifications without blocking
+        await Promise.all(notificationPromises);
+      } catch (error) {
         console.error(
-          '❌ [NOTIFICATIONS] Failed to send channel message notifications:',
+          '❌ [BACKGROUND NOTIFICATIONS] Failed to send message notifications:',
           error
         );
-      });
+      }
+    });
 
-      // ✅ PERFORMANCE: Sending message notifications (no console output for performance)
-    } catch (error) {
-      console.error(
-        '❌ [NOTIFICATIONS] Error setting up channel message notifications:',
-        error
-      );
-      // Don't fail the message creation if notifications fail
-    }
-
-    return NextResponse.json(message);
+    return responsePromise;
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return new NextResponse('Invalid input data', { status: 400 });

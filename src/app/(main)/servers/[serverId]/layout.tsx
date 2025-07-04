@@ -2,6 +2,7 @@ import { ServerSideBar } from '@/components/layout/server-side-bar';
 import { getCurrentProfile, getServer } from '@/lib/query';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { ProductPaymentGate } from '@/components/product-payment-gate';
 
 export default async function ServerIdLayout({
   children,
@@ -18,12 +19,58 @@ export default async function ServerIdLayout({
   if (!server) {
     return redirect('/');
   }
-  return (
+
+  // Configure which Stripe products are allowed for server access
+  const allowedProductIds = [
+    'prod_SWIyAf2tfVrJao', // Your current product ID
+    // Add more product IDs here as you create them
+  ];
+
+  // Server access protection - bypass gate for legitimate users
+  const shouldBypassGate =
+    profile.isAdmin ||
+    profile.subscriptionStatus === 'ACTIVE' ||
+    profile.subscriptionStatus === 'TRIAL' ||
+    (profile.subscriptionEnd && new Date(profile.subscriptionEnd) > new Date()); // Valid subscription not yet expired
+
+  console.log('🔍 [Server Access Security Check]:', {
+    serverId: params.serverId,
+    serverName: server.name,
+    email: profile.email,
+    isAdmin: profile.isAdmin,
+    subscriptionStatus: profile.subscriptionStatus,
+    subscriptionEnd: profile.subscriptionEnd,
+    subscriptionEndValid: profile.subscriptionEnd
+      ? new Date(profile.subscriptionEnd) > new Date()
+      : false,
+    shouldBypassGate,
+  });
+
+  const serverContent = (
     <section className='h-full overflow-visible'>
       <div className='hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0 left-[96px] overflow-visible'>
         {await ServerSideBar({ serverId: params.serverId })}
       </div>
       <main className='h-full md:pl-60 overflow-visible'>{children}</main>
     </section>
+  );
+
+  return shouldBypassGate ? (
+    serverContent
+  ) : (
+    <ProductPaymentGate
+      allowedProductIds={allowedProductIds}
+      productName='Premium Server Access'
+      upgradeUrl='https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01'
+      features={[
+        'Access to trading servers',
+        'Real-time chat and discussions',
+        'Premium trading signals',
+        'Community insights and analysis',
+      ]}
+      adminBypass={false} // Let the component handle its own subscription checks
+    >
+      {serverContent}
+    </ProductPaymentGate>
   );
 }

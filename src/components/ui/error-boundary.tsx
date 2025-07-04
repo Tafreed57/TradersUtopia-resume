@@ -70,7 +70,15 @@ export class ErrorBoundary extends React.Component<
   };
 
   handleGoHome = () => {
-    window.location.href = '/';
+    // Only redirect to home if user explicitly clicks the button
+    // Don't automatically redirect on errors
+    if (
+      window.confirm(
+        'Are you sure you want to go to the homepage? You will lose your current page.'
+      )
+    ) {
+      window.location.href = '/';
+    }
   };
 
   render() {

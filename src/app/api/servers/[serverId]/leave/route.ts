@@ -17,7 +17,26 @@ export async function PATCH(
       return new NextResponse('Server not found', { status: 404 });
     }
 
-    // leave server logic
+    // ✅ UPDATED: Check if user is admin before allowing them to leave
+    const member = await prisma.member.findFirst({
+      where: {
+        profileId: profile.id,
+        serverId: params.serverId,
+      },
+    });
+
+    if (!member) {
+      return new NextResponse('Member not found', { status: 404 });
+    }
+
+    // ✅ NEW: Only admin users can leave servers
+    if (member.role !== MemberRole.ADMIN) {
+      return new NextResponse('Only admin users can leave servers', {
+        status: 403,
+      });
+    }
+
+    // ✅ UPDATED: Leave server logic - now only for admin users
     const server = await prisma.server.update({
       where: {
         id: params.serverId,

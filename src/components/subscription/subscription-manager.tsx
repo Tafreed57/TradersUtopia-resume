@@ -94,7 +94,6 @@ interface SubscriptionDetails {
 export function SubscriptionManager() {
   const { user } = useUser();
   const apiLoading = useComprehensiveLoading('api');
-  const actionLoading = useComprehensiveLoading('api');
   const [isLoading, setIsLoading] = useState(true);
   const [subscription, setSubscription] = useState<SubscriptionDetails | null>(
     null
@@ -301,48 +300,53 @@ export function SubscriptionManager() {
   };
 
   const refreshAndSync = async () => {
+    if (isLoading) return; // Prevent multiple simultaneous refreshes
+
+    setIsLoading(true);
     try {
-      const data = await actionLoading.withLoading(
-        async () => {
-          console.log('🔄 Refreshing and syncing subscription with Stripe...');
+      console.log('🔄 Refreshing and syncing subscription with Stripe...');
 
-          // First, sync with Stripe to get the latest data
-          const syncResponse = await makeSecureRequest(
-            '/api/subscription/sync',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            }
+      // First, try to sync with Stripe to get the latest data
+      try {
+        const syncResponse = await makeSecureRequest('/api/subscription/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (syncResponse.ok) {
+          console.log('✅ Sync successful, fetching updated details...');
+          showToast.success('🔄 Synced', 'Subscription data synchronized!');
+        } else {
+          const syncData = await syncResponse.json();
+          console.log('⚠️ Sync failed, still refreshing local data...');
+          showToast.warning(
+            '⚠️ Partial Sync',
+            'Refreshing with available data...'
           );
-
-          if (syncResponse.ok) {
-            console.log('✅ Sync successful, fetching updated details...');
-          } else {
-            const syncData = await syncResponse.json();
-            console.log('⚠️ Sync failed, still refreshing local data...');
-          }
-
-          // Always fetch subscription details (even if sync failed)
-          const response = await fetch('/api/subscription/details');
-          if (!response.ok) {
-            throw new Error(
-              `Failed to refresh subscription details: ${response.status}`
-            );
-          }
-
-          return response.json();
-        },
-        {
-          loadingMessage: 'Syncing with Stripe...',
-          successMessage: 'Subscription data synchronized!',
-          errorMessage: 'Failed to refresh subscription data',
         }
-      );
+      } catch (syncError) {
+        console.log(
+          '⚠️ Sync error, proceeding with refresh anyway...',
+          syncError
+        );
+        showToast.warning('⚠️ Sync Issue', 'Refreshing with available data...');
+      }
 
+      // Always fetch subscription details (even if sync failed)
+      const response = await fetch('/api/subscription/details');
+      if (!response.ok) {
+        throw new Error(
+          `Failed to refresh subscription details: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
       console.log('📊 Updated subscription data received:', data);
       setSubscription(data.subscription);
+
+      showToast.success('✅ Refreshed', 'Subscription data updated!');
     } catch (error) {
       console.error('❌ Error refreshing subscription:', error);
       showToast.error(
@@ -565,7 +569,7 @@ This data comes directly from Stripe and shows the REAL status of your subscript
 
   useEffect(() => {
     if (user) {
-      refreshAndSync();
+      fetchSubscriptionDetails();
     }
   }, [user]);
 
@@ -626,14 +630,19 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                 onClick={refreshAndSync}
                 disabled={isLoading}
                 title='Refresh & sync with Stripe'
-                className='flex items-center gap-1.5'
+                className='flex items-center gap-1.5 hover:bg-gray-700/50 transition-colors'
               >
                 {isLoading ? (
-                  <Loader2 className='h-3 w-3 animate-spin' />
+                  <>
+                    <Loader2 className='h-3 w-3 animate-spin' />
+                    <span className='hidden sm:inline'>Syncing...</span>
+                  </>
                 ) : (
-                  <RefreshCw className='h-3 w-3' />
+                  <>
+                    <RefreshCw className='h-3 w-3' />
+                    <span className='hidden sm:inline'>Refresh</span>
+                  </>
                 )}
-                Refresh
               </Button>
             </div>
           </div>

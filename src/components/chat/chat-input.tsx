@@ -18,7 +18,7 @@ interface ChatInputProps {
   apiUrl: string;
   query: Record<string, any>;
   name: string;
-  type: 'conversation' | 'channel';
+  type: 'channel';
   member: Member;
 }
 
@@ -57,6 +57,9 @@ export function ChatInput({
         url: apiUrl,
         query,
       });
+
+      // ✅ OPTIMIZATION: Remove router.refresh() to eliminate expensive page reloads
+      // The chat will update via other mechanisms (React Query, sockets, etc.)
       await secureAxiosPost(url, values);
       form.reset();
 
@@ -69,7 +72,8 @@ export function ChatInput({
         textarea.style.height = '52px';
       }
 
-      router.refresh();
+      // ✅ PERFORMANCE: Removed router.refresh() - this was causing the slow message sending
+      // Messages will appear via React Query refetch or real-time updates
     } catch (error) {
       console.log(error);
     }
@@ -117,7 +121,7 @@ export function ChatInput({
                   <Textarea
                     disabled={isLoading}
                     className='pl-16 sm:pl-20 pr-16 sm:pr-20 py-4 sm:py-5 bg-gradient-to-r from-gray-800/80 to-gray-700/80 border border-gray-600/30 focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:border-blue-400/50 focus-visible:ring-offset-0 text-white placeholder:text-gray-400 text-sm sm:text-base rounded-xl sm:rounded-2xl min-h-[52px] sm:min-h-[56px] max-h-[200px] touch-manipulation backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50 resize-none overflow-y-auto'
-                    placeholder={`Message ${type === 'conversation' ? name : '#' + name} (Shift+Enter for new line)`}
+                    placeholder={`Message #${name} (Shift+Enter for new line)`}
                     autoComplete='off'
                     spellCheck={true}
                     autoCorrect='on'

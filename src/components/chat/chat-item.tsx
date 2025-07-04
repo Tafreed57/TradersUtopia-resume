@@ -108,18 +108,10 @@ export function ChatItem({
     }
   };
 
-  const onMemberClick = () => {
-    if (member?.id === currentMember.id) return;
-    router.push(`/servers/${params?.serverId}/conversations/${member.id}`);
-  };
-
   return (
     <div className='relative group flex items-start hover:bg-black/5 p-3 sm:p-4 transition w-full touch-manipulation'>
       <div className='group flex gap-x-2 sm:gap-x-3 items-start w-full'>
-        <div
-          onClick={onMemberClick}
-          className='transition cursor-pointer hover:drop-shadow-md flex-shrink-0'
-        >
+        <div className='flex-shrink-0'>
           <UserAvatar
             src={member.profile.imageUrl ?? undefined}
             className='h-8 w-8 sm:h-10 sm:w-10'
@@ -128,10 +120,7 @@ export function ChatItem({
         <div className='flex flex-col w-full min-w-0'>
           <div className='flex items-center gap-x-2 flex-wrap'>
             <div className='flex items-center gap-x-1'>
-              <div
-                onClick={onMemberClick}
-                className='font-semibold text-sm sm:text-base text-white hover:underline cursor-pointer truncate'
-              >
+              <div className='font-semibold text-sm sm:text-base text-white truncate'>
                 {member.profile.name}
               </div>
               <ActionTooltip label={member.role}>

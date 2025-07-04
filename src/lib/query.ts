@@ -199,39 +199,23 @@ Happy Trading! 📈
 
 // ✅ PERFORMANCE: Lightweight auth function for frequent API calls (NO login sync)
 export async function getCurrentProfileForAuth() {
-  try {
-    const user = await currentUser();
-    if (!user) return null;
+  const { userId } = auth();
 
-    // Simple profile lookup without any sync operations
-    const profile = await prisma.profile.findUnique({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        userId: true,
-        name: true,
-        email: true,
-        imageUrl: true,
-        createdAt: true,
-        updatedAt: true,
-        stripeCustomerId: true,
-        stripeSessionId: true,
-        subscriptionEnd: true,
-        subscriptionStart: true,
-        subscriptionStatus: true,
-        stripeProductId: true,
-        backupCodes: true,
-        isAdmin: true,
-        pushNotifications: true,
-        pushSubscriptions: true,
-      },
-    });
-
-    return profile;
-  } catch (error) {
-    console.error('❌ [getCurrentProfileForAuth] Error:', error);
-    return null;
+  if (!userId) {
+    throw new Error('Unauthorized');
   }
+
+  const profile = await prisma.profile.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  if (!profile) {
+    throw new Error('Profile not found');
+  }
+
+  return profile;
 }
 
 // ✅ PERFORMANCE: Use this for dashboard/server access that might need login sync
@@ -312,106 +296,42 @@ export async function getCurrentProfileWithSync() {
     return profile;
   } catch (error) {
     console.error('❌ [getCurrentProfileWithSync] Error:', error);
+
+    // Check if user is actually authenticated but there's just a temporary issue
+    try {
+      const { userId } = auth();
+      if (userId) {
+        console.error(
+          '🔴 [Profile Error] User is authenticated but profile loading failed. This might be a temporary database issue.'
+        );
+        console.error(
+          '🔄 [Profile Error] Throwing error instead of redirecting to prevent homepage redirect loop'
+        );
+        throw error;
+      }
+    } catch (authError) {
+      console.error('❌ [Auth Error] User not authenticated:', authError);
+    }
+
+    // Only redirect to sign-in if user is actually not authenticated
     return auth().redirectToSignIn();
   }
 }
 
 export async function getCurrentProfile() {
-  try {
-    const user = await currentUser();
-    if (!user) return auth().redirectToSignIn();
+  const { userId } = auth();
 
-    // Use upsert to handle potential race conditions and unique constraint violations
-    const userEmail = user.primaryEmailAddress?.emailAddress;
-    const name =
-      user?.fullName ||
-      user?.firstName ||
-      user?.lastName ||
-      user.primaryEmailAddress?.emailAddress.split('@')[0] ||
-      'unknown';
-
-    const profile = await prisma.profile.upsert({
-      where: {
-        userId: user.id,
-      },
-      update: {
-        // Only update fields that should sync from Clerk - preserve isAdmin and other important fields
-        name: name,
-        email: userEmail as string,
-        imageUrl: user?.imageUrl,
-        // Note: isAdmin, subscriptionStatus, and other critical fields are preserved
-      },
-      create: {
-        userId: user.id,
-        email: userEmail as string,
-        name: name,
-        imageUrl: user?.imageUrl,
-        // isAdmin defaults to false for new profiles (as expected)
-      },
-    });
-
-    // ✅ PERFORMANCE: Only trigger login sync on actual profile creation (not updates)
-    // Check if this was a new profile creation by looking for default values
-    const isNewProfile =
-      profile.stripeCustomerId === null &&
-      profile.subscriptionStatus === 'FREE' &&
-      profile.createdAt.getTime() > Date.now() - 10000; // Created within last 10 seconds
-
-    if (userEmail && isNewProfile) {
-      // Only run sync for genuinely new profiles
-      Promise.resolve()
-        .then(() => {
-          performLoginSync(userEmail);
-        })
-        .catch(error => {
-          console.error(
-            `❌ [Login Sync] Background sync failed for ${userEmail}:`,
-            error
-          );
-        });
-    }
-
-    return profile;
-  } catch (error) {
-    console.error('❌ [getCurrentProfile] Error:', error);
-
-    // If there's still an error, try to find existing profile one more time
-    try {
-      const user = await currentUser();
-      if (user) {
-        const existingProfile = await prisma.profile.findUnique({
-          where: { userId: user.id },
-          select: {
-            id: true,
-            userId: true,
-            name: true,
-            email: true,
-            imageUrl: true,
-            createdAt: true,
-            updatedAt: true,
-            stripeCustomerId: true,
-            stripeSessionId: true,
-            subscriptionEnd: true,
-            subscriptionStart: true,
-            subscriptionStatus: true,
-            stripeProductId: true,
-            backupCodes: true,
-            isAdmin: true,
-            pushNotifications: true,
-            pushSubscriptions: true,
-          },
-        });
-        if (existingProfile) {
-          return existingProfile;
-        }
-      }
-    } catch (fallbackError) {
-      console.error('❌ [getCurrentProfile] Fallback error:', fallbackError);
-    }
-
-    // If all else fails, redirect to sign in
-    return auth().redirectToSignIn();
+  if (!userId) {
+    return null;
   }
+
+  const profile = await prisma.profile.findUnique({
+    where: {
+      userId,
+    },
+  });
+
+  return profile;
 }
 
 export async function getCurrentProfilePage(req: NextApiRequest) {
@@ -445,10 +365,10 @@ export async function getCurrentProfilePage(req: NextApiRequest) {
   if (profile) return profile;
 }
 
-export async function getServer(id: string, profileId: string) {
+export async function getServer(serverId: string, profileId: string) {
   const server = await prisma.server.findUnique({
     where: {
-      id,
+      id: serverId,
       members: {
         some: {
           profileId,
@@ -458,7 +378,19 @@ export async function getServer(id: string, profileId: string) {
     include: {
       channels: {
         orderBy: {
-          createdAt: 'asc',
+          position: 'asc',
+        },
+      },
+      sections: {
+        include: {
+          channels: {
+            orderBy: {
+              position: 'asc',
+            },
+          },
+        },
+        orderBy: {
+          position: 'asc',
         },
       },
       members: {
@@ -471,7 +403,8 @@ export async function getServer(id: string, profileId: string) {
       },
     },
   });
-  if (server) return server;
+
+  return server;
 }
 
 export async function getGeneralServer(id: string, profileId: string) {
@@ -548,8 +481,12 @@ export async function getMember(serverId: string, profileId: string) {
       serverId,
       profileId,
     },
+    include: {
+      profile: true,
+    },
   });
-  if (member) return member;
+
+  return member;
 }
 
 export async function getChannel(channelId: string) {
@@ -557,87 +494,12 @@ export async function getChannel(channelId: string) {
     where: {
       id: channelId,
     },
+    include: {
+      section: true,
+    },
   });
-  if (channel) return channel;
-}
 
-export async function getConversation(
-  memberOneId: string,
-  memberTwoId: string
-) {
-  try {
-    const conversation = await prisma.conversation.findFirst({
-      where: {
-        AND: [
-          {
-            memberOneId: memberOneId,
-          },
-          {
-            memberTwoId: memberTwoId,
-          },
-        ],
-      },
-      include: {
-        memberOne: {
-          include: {
-            profile: true,
-          },
-        },
-        memberTwo: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
-    return conversation;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-export async function createConversation(
-  memberOneId: string,
-  memberTwoId: string
-) {
-  try {
-    const conversation = await prisma.conversation.create({
-      data: {
-        memberOneId,
-        memberTwoId,
-      },
-      include: {
-        memberOne: {
-          include: {
-            profile: true,
-          },
-        },
-        memberTwo: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
-    return conversation;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-export async function getOrCreateConversation(
-  memberOneId: string,
-  memberTwoId: string
-) {
-  if (!memberOneId || !memberTwoId) return;
-  const conversation =
-    (await getConversation(memberOneId, memberTwoId)) ||
-    (await getConversation(memberTwoId, memberOneId));
-  if (conversation) return conversation;
-  const newConversation = await createConversation(memberOneId, memberTwoId);
-  return newConversation;
+  return channel;
 }
 
 export async function getCurrentMember(serverId: string, profileId: string) {

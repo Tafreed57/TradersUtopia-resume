@@ -19,9 +19,9 @@ interface ChatMessagesProps {
   apiUrl: string;
   socketUrl: string;
   socketQuery: Record<string, string>;
-  paramKey: 'channelId' | 'conversationId';
+  paramKey: 'channelId';
   paramValue: string;
-  type: 'channel' | 'conversation';
+  type: 'channel';
 }
 
 export function ChatMessages({
@@ -70,7 +70,7 @@ export function ChatMessages({
           Loading messages...
         </p>
         <p className='text-xs text-gray-500 text-center mt-1'>
-          Please wait while we fetch your conversations
+          Please wait while we fetch your messages
         </p>
       </div>
     );
@@ -86,7 +86,7 @@ export function ChatMessages({
           Failed to load messages
         </p>
         <p className='text-xs text-gray-500 text-center mt-1'>
-          There was an error loading the conversation
+          There was an error loading the channel messages
         </p>
       </div>
     );

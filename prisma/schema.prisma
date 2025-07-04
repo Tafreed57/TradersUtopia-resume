@@ -28,6 +28,7 @@ model Profile {
   channels           Channel[]
   members            Member[]
   servers            Server[]
+  sections           Section[]
 }
 
 model Notification {
@@ -46,17 +47,36 @@ model Notification {
 }
 
 model Server {
-  id         String    @id @default(cuid())
-  name       String
-  imageUrl   String?
-  inviteCode String    @unique
-  profileId  String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  channels   Channel[]
-  members    Member[]
-  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(cuid())
+  name               String
+  imageUrl           String?
+  inviteCode         String    @unique
+  profileId          String
+  defaultSectionName String    @default("Text Channels")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  channels           Channel[]
+  members            Member[]
+  sections           Section[]
+  profile            Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
+  @@index([profileId])
+}
+
+model Section {
+  id        String    @id @default(cuid())
+  name      String
+  serverId  String
+  profileId String
+  position  Int       @default(0)
+  collapsed Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  channels  Channel[]
+  server    Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([serverId])
   @@index([profileId])
 }
 
@@ -84,14 +104,18 @@ model Channel {
   type      ChannelType @default(TEXT)
   profileId String
   serverId  String
+  sectionId String?
+  position  Int         @default(0)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   profile   Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
   server    Server      @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  section   Section?    @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   messages  Message[]
 
   @@index([profileId])
   @@index([serverId])
+  @@index([sectionId])
 }
 
 model Message {

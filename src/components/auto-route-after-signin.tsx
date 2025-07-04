@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 export function AutoRouteAfterSignIn() {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [hasChecked, setHasChecked] = useState(false);
   const [isAutoRouting, setIsAutoRouting] = useState(false);
 
@@ -15,6 +16,15 @@ export function AutoRouteAfterSignIn() {
     const checkAndRoute = async () => {
       // Only run this check once per page load and only if user is signed in
       if (!isLoaded || !isSignedIn || hasChecked) {
+        return;
+      }
+
+      // Only run auto-routing when user is on the homepage
+      if (pathname !== '/') {
+        console.log(
+          `🚫 Auto-route: Not on homepage (current: ${pathname}), skipping auto-routing`
+        );
+        setHasChecked(true);
         return;
       }
 
@@ -80,7 +90,7 @@ export function AutoRouteAfterSignIn() {
     };
 
     checkAndRoute();
-  }, [isLoaded, isSignedIn, user, hasChecked, searchParams, router]);
+  }, [isLoaded, isSignedIn, user, hasChecked, searchParams, router, pathname]);
 
   // Show loading overlay when auto-routing
   if (isAutoRouting) {

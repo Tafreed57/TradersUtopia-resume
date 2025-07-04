@@ -22,6 +22,7 @@ import {
   ArrowRight,
   Loader2,
   ExternalLink,
+  Users,
 } from 'lucide-react';
 
 export default function PaymentVerificationPage() {
@@ -31,6 +32,7 @@ export default function PaymentVerificationPage() {
   const [verificationStatus, setVerificationStatus] = useState<
     'idle' | 'success' | 'error'
   >('idle');
+  const [verificationResult, setVerificationResult] = useState<any>(null);
 
   const verifyStripePayment = async () => {
     setIsVerifying(true);
@@ -48,10 +50,12 @@ export default function PaymentVerificationPage() {
 
       if (response.ok && result.success) {
         setVerificationStatus('success');
+        setVerificationResult(result);
+
         setTimeout(() => {
-          startLoading('Loading your dashboard...');
+          startLoading('Setting up your dashboard and servers...');
           router.push('/dashboard');
-        }, 2000);
+        }, 1000);
       } else {
         setVerificationStatus('error');
         alert(`❌ ${result.message || result.error}`);
@@ -84,7 +88,8 @@ export default function PaymentVerificationPage() {
                 src='/logo.png'
                 alt='TradersUtopia'
                 width={20}
-                height={20} className='sm:w-6 sm:h-6'
+                height={20}
+                className='sm:w-6 sm:h-6'
               />
             </div>
             <span className='text-white text-lg sm:text-xl font-bold'>
@@ -102,7 +107,8 @@ export default function PaymentVerificationPage() {
           <NavigationButton
             href='/pricing'
             asButton={true}
-            variant='ghost' className='text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30'
+            variant='ghost'
+            className='text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30'
             loadingMessage='Loading pricing information...'
           >
             Back to Pricing
@@ -132,7 +138,7 @@ export default function PaymentVerificationPage() {
               </CardDescription>
             </CardHeader>
 
-            <CardContent className='space-y-6'>
+            <CardContent>
               {/* Payment Steps */}
               <div className='grid gap-4'>
                 <div className='flex items-center gap-4 p-4 bg-gradient-to-r from-blue-600/20 to-blue-700/20 rounded-xl border border-blue-400/30'>
@@ -155,7 +161,8 @@ export default function PaymentVerificationPage() {
                         'https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01',
                         '_blank'
                       )
-                    } className='border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black flex-shrink-0'
+                    }
+                    className='border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black flex-shrink-0'
                   >
                     <ExternalLink className='w-4 h-4 mr-2' />
                     Open Stripe
@@ -178,7 +185,7 @@ export default function PaymentVerificationPage() {
               </div>
 
               {/* Verification Button */}
-              <div className='pt-4 border-t border-gray-600/30'>
+              <div className='mt-6'>
                 {verificationStatus === 'success' ? (
                   <div className='text-center space-y-4'>
                     <div className='w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto'>
@@ -188,8 +195,17 @@ export default function PaymentVerificationPage() {
                       <p className='text-green-400 font-semibold text-lg'>
                         Payment Verified Successfully!
                       </p>
-                      <p className='text-gray-300 text-sm'>
-                        Redirecting to your dashboard...
+                      {verificationResult?.serversJoined > 0 && (
+                        <div className='flex items-center justify-center gap-2 mt-2'>
+                          <Users className='w-4 h-4 text-blue-400' />
+                          <p className='text-blue-300 text-sm'>
+                            Added to {verificationResult.serversJoined} trading
+                            servers
+                          </p>
+                        </div>
+                      )}
+                      <p className='text-gray-300 text-sm mt-2'>
+                        Setting up your dashboard...
                       </p>
                     </div>
                   </div>
@@ -197,12 +213,13 @@ export default function PaymentVerificationPage() {
                   <div className='space-y-4'>
                     <Button
                       onClick={verifyStripePayment}
-                      disabled={isVerifying} className='w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none'
+                      disabled={isVerifying}
+                      className='w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none'
                     >
                       {isVerifying ? (
                         <div className='flex items-center justify-center gap-2'>
                           <Loader2 className='w-5 h-5 animate-spin' />
-                          <span>Verifying Payment...</span>
+                          <span>Verifying Payment & Setting Up Servers...</span>
                         </div>
                       ) : (
                         <div className='flex items-center justify-center gap-2'>
@@ -225,7 +242,7 @@ export default function PaymentVerificationPage() {
               </div>
 
               {/* Help Text */}
-              <div className='bg-gray-800/60 rounded-xl p-4 border border-gray-600/30'>
+              <div className='bg-gray-800/60 rounded-xl p-4 border border-gray-600/30 mt-6'>
                 <div className='text-center'>
                   <p className='text-gray-300 text-sm mb-2'>
                     <strong>Need help?</strong>
@@ -233,9 +250,8 @@ export default function PaymentVerificationPage() {
                   <div className='space-y-1 text-xs text-gray-400'>
                     <p>• Complete your payment in the Stripe window</p>
                     <p>• Return here and click "Verify Stripe Payment"</p>
-                    <p>
-                      • You'll be automatically redirected to your dashboard
-                    </p>
+                    <p>• Your servers will be set up automatically</p>
+                    <p>• You'll be redirected to your dashboard</p>
                   </div>
                 </div>
               </div>

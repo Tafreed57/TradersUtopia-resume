@@ -21,27 +21,29 @@ export async function SideBar() {
   return (
     <div className='flex flex-col items-center h-full text-primary w-full bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible'>
       {/* Dashboard Link */}
-      <div className='mb-5'>
-        <ActionTooltip label='Dashboard' side='right' align='center'>
-          <SubscriptionProtectedLink
-            href='/dashboard'
-            className='h-[56px] w-[56px] rounded-full bg-background/10 hover:bg-background/20 transition-all group'
-            size='icon'
-            variant='ghost'
-          >
-            <LayoutDashboard className='h-6 w-6 text-primary group-hover:text-white transition-colors' />
-          </SubscriptionProtectedLink>
+      <div className='mb-5 overflow-visible'>
+        <ActionTooltip label='Go to Dashboard' side='right' align='center'>
+          <div>
+            <SubscriptionProtectedLink
+              href='/dashboard'
+              className='h-[56px] w-[56px] rounded-full bg-background/10 hover:bg-background/20 transition-all group flex items-center justify-center'
+              size='icon'
+              variant='ghost'
+            >
+              <LayoutDashboard className='h-6 w-6 text-primary group-hover:text-white transition-colors' />
+            </SubscriptionProtectedLink>
+          </div>
         </ActionTooltip>
       </div>
 
-      <div className='mb-5'>
+      <div className='mb-5 overflow-visible'>
         <SideBarActions />
       </div>
 
       <Separator className='h-[2px] bg-zinc-300 dark:bg-zinc-700 rounded-md w-12 mx-auto mb-5' />
 
       <div className='flex-1 w-full overflow-y-auto scrollbar-hide overflow-x-visible'>
-        <div className='flex flex-col items-center space-y-4 pb-5'>
+        <div className='flex flex-col items-center space-y-4 pb-5 overflow-visible'>
           {servers?.map(server => (
             <SideBarItem
               key={server.id}
@@ -53,7 +55,7 @@ export async function SideBar() {
         </div>
       </div>
 
-      <div className='mt-auto flex items-center flex-col gap-y-5 pb-4'>
+      <div className='mt-auto flex items-center flex-col gap-y-5 pb-4 overflow-visible'>
         <NotificationBell />
         {/* <ModeToggle /> */}
         <UserButton

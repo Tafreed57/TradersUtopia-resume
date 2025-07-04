@@ -40,9 +40,6 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
   // ✅ UPDATED: Allow admins and moderators to edit any channel including general
   const canManageChannel = role !== MemberRole.GUEST;
 
-  // ✅ NEW: Show lock icon only for guests on general channel (to indicate they can't edit)
-  const showLockIcon = channel.name === 'general' && role === MemberRole.GUEST;
-
   // Prefetch the channel route for faster navigation
   useEffect(() => {
     router.prefetch(`/servers/${params?.serverId}/channels/${channel.id}`);
@@ -130,18 +127,6 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
         <Icon className={iconClasses} />
         <span className={textClasses}>{channel.name}</span>
 
-        {/* Lock icon only for guests on general channel */}
-        {showLockIcon && (
-          <div className='flex-shrink-0 ml-auto'>
-            <ActionTooltip
-              label='Only admins and moderators can edit'
-              side='top'
-            >
-              <Lock className='w-4 h-4 text-gray-500 group-hover:text-gray-400 transition-colors' />
-            </ActionTooltip>
-          </div>
-        )}
-
         {/* Active channel indicator */}
         {isActive && (
           <div className='absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-400 to-purple-500 rounded-r-full' />
@@ -155,32 +140,37 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
         )}
       </button>
 
-      {/* Edit and Delete buttons - show for all channels if user has permissions */}
+      {/* Edit and Delete buttons with much higher z-index */}
       {canManageChannel && (
         <div
           className={cn(
-            'absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 z-20',
+            'absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 z-[70]',
             showActions ? 'opacity-100 visible' : 'opacity-0 invisible'
           )}
         >
-          <ActionTooltip label='Edit' side='top'>
-            <button
-              onClick={e => onAction(e, 'editChannel')}
-              className='p-1.5 rounded-md hover:bg-blue-600/20 transition-all duration-200 group/edit flex items-center justify-center backdrop-blur-sm border border-transparent hover:border-blue-400/30'
-              title='Edit Channel'
-            >
-              <Edit className='w-3 h-3 text-gray-400 group-hover/edit:text-blue-400 transition-colors duration-200' />
-            </button>
-          </ActionTooltip>
-          <ActionTooltip label='Delete' side='top'>
-            <button
-              onClick={e => onAction(e, 'deleteChannel')}
-              className='p-1.5 rounded-md hover:bg-red-600/20 transition-all duration-200 group/delete flex items-center justify-center backdrop-blur-sm border border-transparent hover:border-red-400/30'
-              title='Delete Channel'
-            >
-              <Trash className='w-3 h-3 text-gray-400 group-hover/delete:text-red-400 transition-colors duration-200' />
-            </button>
-          </ActionTooltip>
+          <div className='relative z-[70]'>
+            <ActionTooltip label='Edit' side='top'>
+              <button
+                onClick={e => onAction(e, 'editChannel')}
+                className='p-1.5 rounded-md hover:bg-blue-600/20 transition-all duration-200 group/edit flex items-center justify-center backdrop-blur-sm border border-transparent hover:border-blue-400/30 relative z-[70]'
+                title='Edit Channel'
+              >
+                <Edit className='w-3 h-3 text-gray-400 group-hover/edit:text-blue-400 transition-colors duration-200' />
+              </button>
+            </ActionTooltip>
+          </div>
+
+          <div className='relative z-[70]'>
+            <ActionTooltip label='Delete' side='top'>
+              <button
+                onClick={e => onAction(e, 'deleteChannel')}
+                className='p-1.5 rounded-md hover:bg-red-600/20 transition-all duration-200 group/delete flex items-center justify-center backdrop-blur-sm border border-transparent hover:border-red-400/30 relative z-[70]'
+                title='Delete Channel'
+              >
+                <Trash className='w-3 h-3 text-gray-400 group-hover/delete:text-red-400 transition-colors duration-200' />
+              </button>
+            </ActionTooltip>
+          </div>
         </div>
       )}
     </div>

@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { makeSecureRequest } from '@/lib/csrf-client';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 interface DashboardAutoJoinProps {
   hasServers: boolean;
@@ -21,7 +23,10 @@ export function DashboardAutoJoin({
   userId,
 }: DashboardAutoJoinProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [hasAttempted, setHasAttempted] = useState(false);
+  const [showRefreshButton, setShowRefreshButton] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Add debug function to window for troubleshooting
   useEffect(() => {
@@ -38,6 +43,33 @@ export function DashboardAutoJoin({
     };
   }, [userId]);
 
+  // Show refresh button if user has no servers after a delay
+  useEffect(() => {
+    if (!hasServers && userId) {
+      const timer = setTimeout(() => {
+        setShowRefreshButton(true);
+      }, 5000); // Show refresh button after 5 seconds if no servers
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasServers, userId]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Clear the auto-join flag so it can run again
+      if (userId) {
+        localStorage.removeItem(`auto-join-attempted-${userId}`);
+      }
+
+      // Refresh the page to retry
+      window.location.reload();
+    } catch (error) {
+      console.error('Error refreshing:', error);
+      setIsRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -45,6 +77,14 @@ export function DashboardAutoJoin({
       // Exit early if user already has servers
       if (hasServers) {
         console.log('✅ User already has servers, skipping auto-join');
+        return;
+      }
+
+      // Skip auto-join if user is already on dashboard (refreshing page)
+      if (pathname === '/dashboard') {
+        console.log(
+          '🚫 User is on dashboard, skipping auto-join (likely a page refresh)'
+        );
         return;
       }
 
@@ -90,19 +130,12 @@ export function DashboardAutoJoin({
 
         if (result.success && result.server) {
           console.log('✅ Successfully joined server:', result.server.name);
+          console.log(`🎉 Joined ${result.serversJoined || 1} servers total`);
 
-          // Get the first channel and redirect there
-          const firstChannel = result.server.channels?.[0];
-
-          if (firstChannel) {
-            console.log('🎯 Redirecting to channel:', firstChannel.name);
-            router.push(
-              `/servers/${result.server.id}/channels/${firstChannel.id}`
-            );
-          } else {
-            console.log('🎯 Redirecting to server:', result.server.id);
-            router.push(`/servers/${result.server.id}`);
-          }
+          // ✅ IMPROVED: Force page refresh to show servers immediately
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
         } else {
           console.error('❌ Failed to join default server:', result);
           // Remove the attempted flag if it failed so they can try again
@@ -121,9 +154,9 @@ export function DashboardAutoJoin({
 
     // Only run auto-join if user has no servers and hasn't attempted before
     if (!hasServers && !hasAttempted && userId) {
-      console.log('⚡ Auto-join conditions met, starting in 1.5 seconds...');
-      // Small delay to ensure the component is mounted and data is stable
-      const timeoutId = setTimeout(autoJoinServer, 1500);
+      console.log('⚡ Auto-join conditions met, starting in 500ms...');
+      // ✅ IMPROVED: Reduced delay from 1500ms to 500ms
+      const timeoutId = setTimeout(autoJoinServer, 500);
 
       return () => {
         mounted = false;
@@ -141,8 +174,34 @@ export function DashboardAutoJoin({
     return () => {
       mounted = false;
     };
-  }, [hasServers, hasAttempted, userId, router]);
+  }, [hasServers, hasAttempted, userId, router, pathname]);
 
-  // This component doesn't render anything
+  // Render refresh button if servers haven't loaded
+  if (showRefreshButton && !hasServers) {
+    return (
+      <div className='fixed bottom-4 right-4 z-50'>
+        <div className='bg-gray-800/90 backdrop-blur-sm border border-gray-600/50 rounded-lg p-4 shadow-xl'>
+          <p className='text-sm text-gray-300 mb-2'>
+            Servers taking longer than expected?
+          </p>
+          <Button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            size='sm'
+            className='w-full bg-blue-600 hover:bg-blue-700'
+          >
+            {isRefreshing ? (
+              <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
+            ) : (
+              <RefreshCw className='w-4 h-4 mr-2' />
+            )}
+            {isRefreshing ? 'Refreshing...' : 'Refresh Page'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // This component doesn't render anything normally
   return null;
 }

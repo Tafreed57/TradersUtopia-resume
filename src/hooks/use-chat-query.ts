@@ -4,7 +4,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 interface UseChatQueryProps {
   queryKey: string;
   apiUrl: string;
-  paramKey: 'channelId' | 'conversationId';
+  paramKey: 'channelId';
   paramValue: string;
 }
 
@@ -35,8 +35,10 @@ export function useChatQuery({
       queryKey: [queryKey],
       queryFn: fetchMessages,
       getNextPageParam: lastPage => lastPage?.nextCursor,
-      refetchInterval: 5000, // Poll every 5 seconds for updates
-      staleTime: 1000, // Consider data stale after 1 second
+      refetchInterval: 2000, // ✅ PERFORMANCE: Faster polling for new messages (2s instead of 5s)
+      staleTime: 500, // ✅ PERFORMANCE: More aggressive cache invalidation (500ms instead of 1s)
+      refetchOnWindowFocus: true, // ✅ UX: Refetch when user returns to window
+      refetchOnReconnect: true, // ✅ UX: Refetch when connection is restored
     });
 
   return {

@@ -82,11 +82,11 @@ async function getCSRFToken(): Promise<string> {
     csrfTokenCache.expires > Date.now() &&
     csrfTokenCache.token
   ) {
-    if (DEBUG_CSRF)
-      console.log('🔄 [CSRF] Token missing or expiring, fetching new token...');
+    if (DEBUG_CSRF) console.log('✅ [CSRF] Using cached token');
     return csrfTokenCache.token;
   } else {
-    if (DEBUG_CSRF) console.log('✅ [CSRF] Using cached token');
+    if (DEBUG_CSRF)
+      console.log('🔄 [CSRF] Token missing or expiring, fetching new token...');
     return await fetchCSRFToken();
   }
 }

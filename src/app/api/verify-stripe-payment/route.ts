@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import Stripe from 'stripe';
+import { prisma } from '@/lib/prismadb';
+import { MemberRole } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
@@ -167,6 +169,59 @@ export async function POST(request: NextRequest) {
       `✅ Successfully verified and activated subscription for: ${userEmail}`
     );
 
+    // ✅ NEW: Immediately ensure user joins all admin servers after payment verification
+    console.log(
+      `🚀 Ensuring user ${userEmail} is added to all admin servers...`
+    );
+
+    // Get all admin-created servers
+    const adminServers = await prisma.server.findMany({
+      where: {
+        profile: {
+          isAdmin: true,
+        },
+      },
+      include: {
+        members: {
+          where: {
+            profileId: profile.id,
+          },
+        },
+      },
+    });
+
+    let serversJoined = 0;
+    const joinedServerNames = [];
+
+    for (const server of adminServers) {
+      // If user is not already a member, add them
+      if (server.members.length === 0) {
+        await prisma.member.create({
+          data: {
+            profileId: profile.id,
+            serverId: server.id,
+            role: profile.isAdmin ? MemberRole.ADMIN : MemberRole.GUEST,
+          },
+        });
+
+        serversJoined++;
+        joinedServerNames.push(server.name);
+        console.log(
+          `✅ Auto-joined user ${userEmail} to admin server "${server.name}" as ${profile.isAdmin ? 'ADMIN' : 'GUEST'}`
+        );
+      }
+    }
+
+    if (serversJoined > 0) {
+      console.log(
+        `🎉 User ${userEmail} joined ${serversJoined} admin servers: ${joinedServerNames.join(', ')}`
+      );
+    } else {
+      console.log(
+        `ℹ️ User ${userEmail} was already a member of all admin servers`
+      );
+    }
+
     // Determine the access reason for better messaging
     let accessReason = '';
     if (hasActiveSubscription) {
@@ -182,6 +237,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message: `Payment verified successfully! Access granted. ${accessReason}`,
       hasAccess: true,
+      serversJoined,
+      joinedServerNames,
       stripeData: {
         customerId: customer.id,
         hasActiveSubscription,

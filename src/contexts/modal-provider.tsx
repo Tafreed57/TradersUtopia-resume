@@ -11,7 +11,22 @@ import { DeleteChannelModal } from '@/components/modals/delete-channel-modal';
 import { EditChannelModal } from '@/components/modals/edit-channel-modal';
 import { MessageFileModal } from '@/components/modals/message-file-modal';
 import { DeleteMessageModal } from '@/components/modals/delete-message-modal';
+import { CreateSectionModal } from '@/components/modals/create-section-modal';
+import { EditSectionModal } from '@/components/modals/edit-section-modal';
+import { EditDefaultSectionModal } from '@/components/modals/edit-default-section-modal';
+import { useEffect, useState } from 'react';
+
 export function ModalProvider() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+
   return (
     <>
       <CreateServerModal />
@@ -25,6 +40,9 @@ export function ModalProvider() {
       <EditChannelModal />
       <MessageFileModal />
       <DeleteMessageModal />
+      <CreateSectionModal />
+      <EditSectionModal />
+      <EditDefaultSectionModal />
     </>
   );
 }

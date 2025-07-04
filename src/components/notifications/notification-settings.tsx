@@ -240,8 +240,8 @@ export function NotificationSettings() {
     },
     {
       key: 'messages' as const,
-      title: 'Direct Messages',
-      description: 'New messages and conversation updates',
+      title: 'Channel Messages',
+      description: 'New channel messages and updates',
       icon: MessageSquare,
       color: 'bg-purple-500',
     },

@@ -40,12 +40,6 @@ export const chatQuerySchema = z.object({
   channelId: z.string(),
 });
 
-// Direct message query schema
-export const directMessageQuerySchema = z.object({
-  cursor: z.string().optional(),
-  conversationId: z.string(),
-});
-
 // Server management schemas
 export const serverSchema = z.object({
   name: z.string().min(1, {

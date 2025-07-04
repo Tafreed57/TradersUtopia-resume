@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     const profile = await getCurrentProfile();
     const { searchParams } = new URL(req.url);
-    const { name, type } = await req.json();
+    const { name, type, sectionId } = await req.json();
     const serverId = searchParams.get('serverId');
 
     if (!profile) {
@@ -26,6 +26,36 @@ export async function POST(req: NextRequest) {
     if (!serverId) {
       trackSuspiciousActivity(req, 'CHANNEL_CREATION_NO_SERVER_ID');
       return new NextResponse('Server not found', { status: 404 });
+    }
+
+    // ✅ NEW: Validate section if provided
+    if (sectionId) {
+      const section = await prisma.section.findFirst({
+        where: {
+          id: sectionId,
+          serverId,
+        },
+      });
+
+      if (!section) {
+        return new NextResponse('Section not found', { status: 400 });
+      }
+    }
+
+    // ✅ NEW: Get position for ordering within section or server
+    let position = 0;
+    if (sectionId) {
+      const lastChannelInSection = await prisma.channel.findFirst({
+        where: { sectionId },
+        orderBy: { position: 'desc' },
+      });
+      position = (lastChannelInSection?.position || 0) + 1;
+    } else {
+      const lastChannel = await prisma.channel.findFirst({
+        where: { serverId, sectionId: null },
+        orderBy: { position: 'desc' },
+      });
+      position = (lastChannel?.position || 0) + 1;
     }
 
     const server = await prisma.server.update({
@@ -46,6 +76,8 @@ export async function POST(req: NextRequest) {
             profileId: profile.id,
             name,
             type,
+            sectionId: sectionId || null,
+            position,
           },
         },
       },
@@ -56,7 +88,7 @@ export async function POST(req: NextRequest) {
       `📢 [CHANNEL] Channel created successfully by user: ${profile.email} (${profile.id})`
     );
     console.log(
-      `📝 [CHANNEL] Channel name: "${name}", type: ${type}, server: ${serverId}`
+      `📝 [CHANNEL] Channel name: "${name}", type: ${type}, section: ${sectionId || 'none'}, server: ${serverId}, position: ${position}`
     );
     console.log(
       `📍 [CHANNEL] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
@@ -64,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(server);
   } catch (error: any) {
-    console.log(error, 'MEMBER ID  API ERROR');
+    console.log(error, 'CHANNEL CREATION API ERROR');
     return new NextResponse('Internal Error', { status: 500 });
   }
 }
