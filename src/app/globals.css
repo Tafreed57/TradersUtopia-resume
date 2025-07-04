@@ -218,6 +218,31 @@ body,
   animation: shimmer 2s infinite;
 }
 
+/* Glass Effect for Authentication Panels */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile-specific optimizations for auth pages */
+@media (max-width: 767px) {
+  .glass {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Ensure proper touch targets on mobile */
+  button,
+  a,
+  [role='button'] {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+}
+
 /* Mobile-first responsive spacing */
 .space-mobile {
   @apply space-y-4 sm:space-y-6 md:space-y-8;
@@ -324,12 +349,22 @@ body,
 
   /* Optimize font sizes for small screens */
   .text-hero {
-    @apply text-3xl leading-tight;
+    @apply text-2xl leading-tight;
   }
 
-  /* Ensure buttons are touch-friendly */
-  button {
-    @apply min-h-[48px] px-4;
+  /* Ensure all interactive elements are touch-friendly */
+  button,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Auth page mobile optimizations */
+  .glass {
+    margin: 0.5rem;
+    padding: 1.5rem !important;
   }
 }
 

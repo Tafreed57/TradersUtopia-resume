@@ -41,6 +41,7 @@ import { UserDetails } from '@/components/user/user-details';
 import { PasswordManager } from '@/components/user/password-manager';
 import { Badge } from '@/components/ui/badge';
 import { ImmediateLoadingDemo } from '@/components/immediate-loading-demo';
+import { DashboardAutoJoin } from '@/components/dashboard-auto-join';
 
 export default async function Dashboard() {
   const profile = await getCurrentProfileWithSync();
@@ -157,7 +158,10 @@ export default async function Dashboard() {
             </header>
 
             {/* Auto-join to default server */}
-            {/* DISABLED: This was causing automatic redirects and misdirection issues */}
+            <DashboardAutoJoin
+              hasServers={(servers?.length || 0) > 0}
+              userId={profile.userId}
+            />
 
             {/* Dashboard Stats - Mobile-First Cards */}
             <div className='grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8'>
@@ -305,21 +309,24 @@ export default async function Dashboard() {
                 </div>
 
                 {(servers?.length || 0) === 0 && (
-                  <div className='text-center py-12 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-2xl border border-gray-600/30 backdrop-blur-sm'>
-                    <div className='w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6'>
+                  <div className='text-center py-12 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl border border-blue-400/30 backdrop-blur-sm'>
+                    <div className='w-20 h-20 bg-gradient-to-br from-blue-500/30 to-purple-600/30 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse'>
                       <Users className='h-10 w-10 text-blue-400' />
                     </div>
                     <h3 className='text-xl font-bold text-white mb-2'>
-                      Setting up your community server...
+                      🚀 Joining Traders Utopia Community...
                     </h3>
-                    <p className='text-gray-400'>
-                      You'll be automatically joined to Traders Utopia
+                    <p className='text-gray-300 mb-4'>
+                      Setting up your access to the premium trading server
                     </p>
-                    <div className='flex items-center justify-center gap-2 mt-4'>
+                    <div className='flex items-center justify-center gap-2 mb-4'>
                       <div className='w-2 h-2 bg-blue-400 rounded-full animate-pulse'></div>
-                      <div className='w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-100'></div>
-                      <div className='w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-200'></div>
+                      <div className='w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-100'></div>
+                      <div className='w-2 h-2 bg-indigo-400 rounded-full animate-pulse delay-200'></div>
                     </div>
+                    <p className='text-sm text-gray-400'>
+                      This should take just a moment...
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -395,24 +402,6 @@ export default async function Dashboard() {
                       <div className='space-y-6'>
                         <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
                           <UserDetails />
-                        </div>
-
-                        {/* Immediate Loading Test */}
-                        <div className='bg-gray-900/40 rounded-xl p-4 sm:p-6 border border-gray-700/30'>
-                          <div className='flex items-center gap-3 mb-4'>
-                            <div className='w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center'>
-                              <Activity className='h-4 w-4 text-yellow-400' />
-                            </div>
-                            <div>
-                              <h3 className='text-lg font-semibold text-white'>
-                                Loading Test
-                              </h3>
-                              <p className='text-gray-400 text-sm'>
-                                Test immediate loading feedback
-                              </p>
-                            </div>
-                          </div>
-                          <ImmediateLoadingDemo />
                         </div>
                       </div>
                     </div>

@@ -1469,70 +1469,72 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                     <AlertDialogTitle className='text-lg sm:text-xl md:text-2xl font-bold text-red-600 text-center leading-tight'>
                       Disable Auto-Renewal?
                     </AlertDialogTitle>
-                    <AlertDialogDescription className='text-center mt-3 sm:mt-4 px-2'>
-                      <div className='space-y-3 sm:space-y-4'>
-                        <p className='text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed'>
-                          This will disable auto-renewal for your subscription.
-                          Here's what happens:
-                        </p>
-                        <div className='bg-gradient-to-br from-gray-800/50 to-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-600'>
-                          <ul className='space-y-2 sm:space-y-3 text-left'>
-                            <li className='flex items-start gap-2 sm:gap-3'>
-                              <span className='text-green-500 text-sm sm:text-base'>
-                                ✅
-                              </span>
-                              <span className='text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed'>
-                                Your subscription stays{' '}
-                                <strong className='text-green-600'>
-                                  active
-                                </strong>{' '}
-                                until{' '}
-                                <strong className='text-blue-600'>
-                                  {subscription?.stripe?.currentPeriodEnd
-                                    ? new Date(
-                                        subscription.stripe.currentPeriodEnd
-                                      ).toLocaleDateString()
-                                    : new Date(
-                                        subscription.subscriptionEnd
-                                      ).toLocaleDateString()}
-                                </strong>
-                              </span>
-                            </li>
-                            <li className='flex items-start gap-2 sm:gap-3'>
-                              <span className='text-green-500 text-sm sm:text-base'>
-                                ✅
-                              </span>
-                              <span className='text-xs sm:text-sm md:text-base text-gray-700'>
-                                You keep all premium features until then
-                              </span>
-                            </li>
-                            <li className='flex items-start gap-2 sm:gap-3'>
-                              <span className='text-blue-500 text-sm sm:text-base'>
-                                🔄
-                              </span>
-                              <span className='text-xs sm:text-sm md:text-base text-gray-700'>
-                                <strong className='text-blue-600'>
-                                  You can re-enable auto-renewal anytime
-                                </strong>{' '}
-                                before expiration
-                              </span>
-                            </li>
-                            <li className='flex items-start gap-2 sm:gap-3'>
-                              <span className='text-orange-500 text-sm sm:text-base'>
-                                ⏹️
-                              </span>
-                              <span className='text-xs sm:text-sm md:text-base text-gray-700'>
-                                Only expires if auto-renewal stays disabled
-                              </span>
-                            </li>
-                          </ul>
-                        </div>
-                        <div className='bg-gradient-to-r from-blue-900/20 to-cyan-900/20 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-700'>
-                          <p className='text-xs sm:text-sm text-blue-300 font-medium'>
-                            💡 <strong>Pro Tip:</strong> This is reversible!
-                            Simply toggle auto-renewal back on to resume normal
-                            billing.
+                    <AlertDialogDescription asChild>
+                      <div className='text-center mt-3 sm:mt-4 px-2'>
+                        <div className='space-y-3 sm:space-y-4'>
+                          <p className='text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed'>
+                            This will disable auto-renewal for your
+                            subscription. Here's what happens:
                           </p>
+                          <div className='bg-gradient-to-br from-gray-800/50 to-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-600'>
+                            <ul className='space-y-2 sm:space-y-3 text-left'>
+                              <li className='flex items-start gap-2 sm:gap-3'>
+                                <span className='text-green-500 text-sm sm:text-base'>
+                                  ✅
+                                </span>
+                                <span className='text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed'>
+                                  Your subscription stays{' '}
+                                  <strong className='text-green-600'>
+                                    active
+                                  </strong>{' '}
+                                  until{' '}
+                                  <strong className='text-blue-600'>
+                                    {subscription?.stripe?.currentPeriodEnd
+                                      ? new Date(
+                                          subscription.stripe.currentPeriodEnd
+                                        ).toLocaleDateString()
+                                      : new Date(
+                                          subscription.subscriptionEnd
+                                        ).toLocaleDateString()}
+                                  </strong>
+                                </span>
+                              </li>
+                              <li className='flex items-start gap-2 sm:gap-3'>
+                                <span className='text-green-500 text-sm sm:text-base'>
+                                  ✅
+                                </span>
+                                <span className='text-xs sm:text-sm md:text-base text-gray-700'>
+                                  You keep all premium features until then
+                                </span>
+                              </li>
+                              <li className='flex items-start gap-2 sm:gap-3'>
+                                <span className='text-blue-500 text-sm sm:text-base'>
+                                  🔄
+                                </span>
+                                <span className='text-xs sm:text-sm md:text-base text-gray-700'>
+                                  <strong className='text-blue-600'>
+                                    You can re-enable auto-renewal anytime
+                                  </strong>{' '}
+                                  before expiration
+                                </span>
+                              </li>
+                              <li className='flex items-start gap-2 sm:gap-3'>
+                                <span className='text-orange-500 text-sm sm:text-base'>
+                                  ⏹️
+                                </span>
+                                <span className='text-xs sm:text-sm md:text-base text-gray-700'>
+                                  Only expires if auto-renewal stays disabled
+                                </span>
+                              </li>
+                            </ul>
+                          </div>
+                          <div className='bg-gradient-to-r from-blue-900/20 to-cyan-900/20 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-700'>
+                            <p className='text-xs sm:text-sm text-blue-300 font-medium'>
+                              💡 <strong>Pro Tip:</strong> This is reversible!
+                              Simply toggle auto-renewal back on to resume
+                              normal billing.
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </AlertDialogDescription>

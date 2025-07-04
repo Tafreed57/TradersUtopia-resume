@@ -27,19 +27,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(
-      `🔄 [SYNC] Syncing subscription for: ${profile.stripeCustomerId}`
-    );
-
     // Get latest data from Stripe
     const subscriptions = await stripe.subscriptions.list({
       customer: profile.stripeCustomerId,
       limit: 10,
     });
-
-    console.log(
-      `📊 [SYNC] Found ${subscriptions.data.length} subscription(s) for customer`
-    );
 
     const activeSubscription =
       subscriptions.data.find(
@@ -58,21 +50,6 @@ export async function POST(request: NextRequest) {
     }
 
     const activeSubscriptionWithPeriods = activeSubscription as any;
-    console.log(
-      `🎯 [SYNC] Using subscription: ${activeSubscription.id} (${activeSubscription.status})`
-    );
-    console.log(
-      `🔍 [SYNC] Period start: ${activeSubscriptionWithPeriods.current_period_start} (type: ${typeof activeSubscriptionWithPeriods.current_period_start})`
-    );
-    console.log(
-      `🔍 [SYNC] Period end: ${activeSubscriptionWithPeriods.current_period_end} (type: ${typeof activeSubscriptionWithPeriods.current_period_end})`
-    );
-    console.log(
-      `🔍 [SYNC] Items count: ${activeSubscription.items.data.length}`
-    );
-    console.log(
-      `🔍 [SYNC] First item product: ${activeSubscription.items.data[0]?.price.product}`
-    );
 
     // Validate subscription has required data - check both subscription level and subscription item level
     const subscriptionItem = activeSubscription.items.data[0];
@@ -96,16 +73,6 @@ export async function POST(request: NextRequest) {
     const periodEnd =
       activeSubscriptionWithPeriods.current_period_end ||
       subscriptionItemWithPeriods.current_period_end;
-
-    console.log(
-      `🔍 [SYNC] Subscription level periods: start=${activeSubscriptionWithPeriods.current_period_start}, end=${activeSubscriptionWithPeriods.current_period_end}`
-    );
-    console.log(
-      `🔍 [SYNC] Item level periods: start=${subscriptionItemWithPeriods.current_period_start}, end=${subscriptionItemWithPeriods.current_period_end}`
-    );
-    console.log(
-      `🔍 [SYNC] Using periods: start=${periodStart}, end=${periodEnd}`
-    );
 
     if (!periodStart || !periodEnd) {
       console.error(
@@ -144,13 +111,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(
-      `📅 [SYNC] Stripe dates: ${stripeStart.toISOString()} to ${stripeEnd.toISOString()}`
-    );
-    console.log(
-      `📅 [SYNC] Database dates: ${profile.subscriptionStart ? profile.subscriptionStart.toISOString() : 'null'} to ${profile.subscriptionEnd ? profile.subscriptionEnd.toISOString() : 'null'}`
-    );
-
     // Update database with Stripe's accurate data
     await db.profile.update({
       where: { id: profile.id },
@@ -161,8 +121,6 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       },
     });
-
-    console.log(`✅ [SYNC] Successfully synchronized subscription data`);
 
     return NextResponse.json({
       success: true,

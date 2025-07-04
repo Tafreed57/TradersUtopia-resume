@@ -33,13 +33,13 @@
       "src": "/apple-icon.png",
       "sizes": "180x180",
       "type": "image/png",
-      "purpose": "apple touch icon"
+      "purpose": "any"
     },
     {
       "src": "/android-icon.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "android chrome icon"
+      "purpose": "any"
     },
     {
       "src": "/logo.png",

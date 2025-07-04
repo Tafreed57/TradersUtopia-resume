@@ -104,11 +104,11 @@ export function ChatInput({
                   {/* Background pattern */}
                   <div className='absolute inset-0 bg-gradient-to-r from-blue-900/5 via-transparent to-purple-900/5 pointer-events-none' />
 
-                  {/* Add Media Button - positioned for textarea */}
+                  {/* Add Media Button - vertically centered */}
                   <button
                     type='button'
                     onClick={() => onOpen('messageFile', { apiUrl, query })}
-                    className='absolute top-6 left-6 sm:left-8 h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-br from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 rounded-xl flex items-center justify-center touch-manipulation group backdrop-blur-sm hover:scale-110 hover:shadow-lg hover:shadow-blue-400/20 z-10'
+                    className='absolute top-1/2 -translate-y-1/2 left-6 sm:left-8 h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-br from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 rounded-xl flex items-center justify-center touch-manipulation group backdrop-blur-sm hover:scale-110 hover:shadow-lg hover:shadow-blue-400/20 z-10'
                   >
                     <Plus className='h-4 w-4 sm:h-5 sm:w-5 text-blue-400 group-hover:text-blue-300 transition-colors' />
                   </button>
@@ -146,8 +146,8 @@ export function ChatInput({
                     name={field.name}
                   />
 
-                  {/* Emoji Button - positioned for textarea */}
-                  <div className='absolute top-6 right-6 sm:right-8'>
+                  {/* Emoji Button - vertically centered */}
+                  <div className='absolute top-1/2 -translate-y-1/2 right-6 sm:right-8'>
                     <div className='h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-gray-700/50 to-gray-600/50 border border-gray-600/30 backdrop-blur-sm hover:from-purple-600/20 hover:to-pink-600/20 hover:border-purple-400/50 transition-all duration-300 hover:scale-110 flex items-center justify-center group z-10'>
                       <EmojiPicker
                         onChange={value =>

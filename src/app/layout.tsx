@@ -107,6 +107,8 @@ export const metadata: Metadata = {
     'application-name': 'TradersUtopia',
     'msapplication-TileColor': '#000000',
     'msapplication-config': '/browserconfig.xml',
+    'permissions-policy':
+      'accelerometer=(), gyroscope=(), microphone=(), camera=(), geolocation=()',
   },
 };
 
