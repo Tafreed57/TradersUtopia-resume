@@ -4,32 +4,26 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
-export function AutoRouteAfterSignIn() {
+function AutoRouteAfterSignInClient() {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const [hasChecked, setHasChecked] = useState(false);
   const [isAutoRouting, setIsAutoRouting] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const [currentPathname, setCurrentPathname] = useState('');
 
-  // Ensure we're on the client side
+  // Update current pathname when pathname is available
   useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Update current pathname when client-side and pathname is available
-  useEffect(() => {
-    if (isClient && pathname) {
+    if (pathname) {
       setCurrentPathname(pathname);
     }
-  }, [isClient, pathname]);
+  }, [pathname]);
 
   useEffect(() => {
     const checkAndRoute = async () => {
       // Only run this check once per page load and only if user is signed in
-      if (!isLoaded || !isSignedIn || hasChecked || !isClient) {
+      if (!isLoaded || !isSignedIn || hasChecked) {
         return;
       }
 
@@ -112,7 +106,6 @@ export function AutoRouteAfterSignIn() {
     searchParams,
     router,
     currentPathname,
-    isClient,
   ]);
 
   // Show loading overlay when auto-routing (with lower z-index than main loading screen)
@@ -132,4 +125,19 @@ export function AutoRouteAfterSignIn() {
 
   // This component doesn't render anything when not auto-routing
   return null;
+}
+
+export function AutoRouteAfterSignIn() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Only render the actual component after hydration
+  if (!isClient) {
+    return null;
+  }
+
+  return <AutoRouteAfterSignInClient />;
 }

@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-export function DashboardAutoJoin({
+function DashboardAutoJoinClient({
   hasServers,
   userId,
 }: DashboardAutoJoinProps) {
@@ -27,20 +27,14 @@ export function DashboardAutoJoin({
   const [hasAttempted, setHasAttempted] = useState(false);
   const [showRefreshButton, setShowRefreshButton] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const [currentPathname, setCurrentPathname] = useState('');
 
-  // Ensure we're on the client side
+  // Update current pathname when pathname is available
   useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Update current pathname when client-side and pathname is available
-  useEffect(() => {
-    if (isClient && pathname) {
+    if (pathname) {
       setCurrentPathname(pathname);
     }
-  }, [isClient, pathname]);
+  }, [pathname]);
 
   // Add debug function to window for troubleshooting
   useEffect(() => {
@@ -167,7 +161,7 @@ export function DashboardAutoJoin({
     };
 
     // Only run auto-join if user has no servers and hasn't attempted before
-    if (!hasServers && !hasAttempted && userId && isClient) {
+    if (!hasServers && !hasAttempted && userId) {
       console.log('⚡ Auto-join conditions met, starting in 500ms...');
       // ✅ IMPROVED: Reduced delay from 1500ms to 500ms
       const timeoutId = setTimeout(autoJoinServer, 500);
@@ -188,7 +182,7 @@ export function DashboardAutoJoin({
     return () => {
       mounted = false;
     };
-  }, [hasServers, hasAttempted, userId, router, currentPathname, isClient]);
+  }, [hasServers, hasAttempted, userId, router, currentPathname]);
 
   // Render refresh button if servers haven't loaded
   if (showRefreshButton && !hasServers) {
@@ -218,4 +212,19 @@ export function DashboardAutoJoin({
 
   // This component doesn't render anything normally
   return null;
+}
+
+export function DashboardAutoJoin(props: DashboardAutoJoinProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Only render the actual component after hydration
+  if (!isClient) {
+    return null;
+  }
+
+  return <DashboardAutoJoinClient {...props} />;
 }
