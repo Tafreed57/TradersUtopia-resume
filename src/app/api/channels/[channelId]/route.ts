@@ -1,13 +1,10 @@
 import { prisma } from '@/lib/prismadb';
-import { getCurrentProfile } from '@/lib/query';
+import { getCurrentProfileForAuth } from '@/lib/query';
 import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
 import { revalidatePath } from 'next/cache';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { validateInput, channelSchema, cuidSchema } from '@/lib/validation';
-import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
 
 // Force dynamic rendering due to rate limiting using request.headers
 export const dynamic = 'force-dynamic';
@@ -35,7 +32,7 @@ export async function PATCH(
       );
     }
 
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfileForAuth();
     const { searchParams } = new URL(req.url);
     const serverId = searchParams.get('serverId');
 
@@ -76,26 +73,45 @@ export async function PATCH(
       return new NextResponse('Channel not found', { status: 404 });
     }
 
-    const server = await prisma.server.update({
+    // ✅ ENHANCEMENT: Check if channel exists and get current name
+    const existingChannel = await prisma.channel.findUnique({
+      where: { id: params.channelId },
+      select: { id: true, name: true, serverId: true },
+    });
+
+    if (!existingChannel) {
+      return NextResponse.json({ error: 'Channel not found' }, { status: 404 });
+    }
+
+    // Check permissions: server member with admin/moderator role OR global admin
+    const serverMember = await prisma.member.findFirst({
       where: {
-        id: serverId,
-        members: {
-          some: {
-            profileId: profile.id,
-            role: {
-              in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-            },
-          },
+        serverId: serverId,
+        profileId: profile.id,
+        role: {
+          in: [MemberRole.ADMIN, MemberRole.MODERATOR],
         },
       },
+    });
+
+    if (!serverMember && !profile.isAdmin) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to update this channel' },
+        { status: 403 }
+      );
+    }
+
+    // ✅ UPDATED: Allow renaming the general channel now
+    // Note: Removed the restriction that prevented renaming general channel
+
+    // ✅ UPDATED: Allow editing of any channel including general
+    const server = await prisma.server.update({
+      where: { id: serverId },
       data: {
         channels: {
           update: {
             where: {
               id: params.channelId,
-              NOT: {
-                name: 'general',
-              },
             },
             data: {
               name,
@@ -111,10 +127,7 @@ export async function PATCH(
       `📢 [CHANNEL] Channel updated successfully by user: ${profile.email} (${profile.id})`
     );
     console.log(
-      `📝 [CHANNEL] Channel ID: ${params.channelId}, Name: "${name}", Type: ${type}, Server: ${serverId}`
-    );
-    console.log(
-      `📍 [CHANNEL] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
+      `📝 [CHANNEL] Channel ID: ${params.channelId}, Name: "${existingChannel.name}" → "${name}", Type: ${type}, Server: ${serverId}`
     );
 
     return NextResponse.json(server);
@@ -156,7 +169,7 @@ export async function DELETE(
       );
     }
 
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfileForAuth();
     const { searchParams } = new URL(req.url);
     const serverId = searchParams.get('serverId');
 
@@ -188,25 +201,32 @@ export async function DELETE(
       return new NextResponse('Channel not found', { status: 404 });
     }
 
-    const server = await prisma.server.update({
+    // Check permissions: server member with admin/moderator role OR global admin
+    const serverMember = await prisma.member.findFirst({
       where: {
-        id: serverId,
-        members: {
-          some: {
-            profileId: profile.id,
-            role: {
-              in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-            },
-          },
+        serverId: serverId,
+        profileId: profile.id,
+        role: {
+          in: [MemberRole.ADMIN, MemberRole.MODERATOR],
         },
       },
+    });
+
+    if (!serverMember && !profile.isAdmin) {
+      return NextResponse.json(
+        { error: 'Insufficient permissions to delete this channel' },
+        { status: 403 }
+      );
+    }
+
+    // ✅ UPDATED: Allow deletion of ANY channel including general
+    const server = await prisma.server.update({
+      where: { id: serverId },
       data: {
         channels: {
           delete: {
             id: params.channelId,
-            name: {
-              not: 'general',
-            },
+            // ✅ REMOVED: name restriction - can now delete general channel
           },
         },
       },
@@ -218,9 +238,6 @@ export async function DELETE(
     );
     console.log(
       `📝 [CHANNEL] Deleted channel ID: ${params.channelId}, Server: ${serverId}`
-    );
-    console.log(
-      `📍 [CHANNEL] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
     );
 
     revalidatePath('/(main)', 'layout');

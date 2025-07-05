@@ -18,6 +18,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell, BellRing, Check, CheckCheck } from 'lucide-react';
@@ -160,8 +161,8 @@ export function NotificationBell() {
         }
       };
 
-      // Poll for new notifications every 2 minutes (reduced frequency)
-      const interval = setInterval(pollNotifications, 120000);
+      // Poll for new notifications every 5 minutes (reduced frequency for better performance)
+      const interval = setInterval(pollNotifications, 300000); // 5 minutes instead of 2
 
       return () => {
         clearInterval(interval);
@@ -220,126 +221,138 @@ export function NotificationBell() {
   if (!user) return null;
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant='ghost'
-          size='sm' className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation'
-        >
-          {unreadCount > 0 ? (
-            <BellRing className='h-5 w-5 sm:h-6 sm:w-6' />
-          ) : (
-            <Bell className='h-5 w-5 sm:h-6 sm:w-6' />
-          )}
-          {unreadCount > 0 && (
-            <Badge
-              variant='destructive' className='absolute -top-1 -right-1 h-5 w-5 sm:h-6 sm:w-6 rounded-full p-0 flex items-center justify-center text-xs'
-            >
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        align='end' className='w-72 sm:w-80 max-h-80 sm:max-h-96 mr-2 sm:mr-0'
-        sideOffset={5}
-      >
-        <DropdownMenuLabel className='flex items-center justify-between p-3 sm:p-4'>
-          <span className='text-sm sm:text-base font-semibold'>
-            Notifications
-          </span>
-          {unreadCount > 0 && (
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={markAllAsRead}
-              disabled={isLoading} className='h-auto p-1 sm:p-2 text-xs touch-manipulation'
-            >
-              <CheckCheck className='h-3 w-3 sm:h-4 sm:w-4 mr-1' />
-              <span className='hidden sm:inline'>Mark all read</span>
-              <span className='sm:hidden'>Read all</span>
-            </Button>
-          )}
-        </DropdownMenuLabel>
-
-        <DropdownMenuSeparator />
-
-        {notifications.length === 0 ? (
-          <div className='p-4 text-center text-sm text-gray-500'>
-            <Bell className='h-8 w-8 mx-auto mb-2 text-gray-300' />
-            <p>No notifications yet</p>
-          </div>
-        ) : (
-          <ScrollArea className='max-h-80'>
-            {notifications.map(notification => (
-              <DropdownMenuItem
-                key={notification.id}
-                className='p-0'
-                onSelect={() => handleNotificationClick(notification)}
+    <div
+      className='relative z-[99999]'
+      style={{ zIndex: 99999, position: 'relative' }}
+    >
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant='ghost'
+            size='sm'
+            className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation'
+          >
+            {unreadCount > 0 ? (
+              <BellRing className='h-5 w-5 sm:h-6 sm:w-6' />
+            ) : (
+              <Bell className='h-5 w-5 sm:h-6 sm:w-6' />
+            )}
+            {unreadCount > 0 && (
+              <Badge
+                variant='destructive'
+                className='absolute -top-1 -right-1 h-5 w-5 sm:h-6 sm:w-6 rounded-full p-0 flex items-center justify-center text-xs z-[99999]'
+                style={{ zIndex: 99999 }}
               >
-                <Card
-                  className={`w-full border-0 shadow-none ${
-                    notification.read
-                      ? 'opacity-60'
-                      : 'bg-blue-50'
-                  }`}
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Badge>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuPortal>
+          <DropdownMenuContent
+            align='end'
+            className='w-72 sm:w-80 max-h-80 sm:max-h-96 mr-2 sm:mr-0 z-[99999]'
+            style={{ zIndex: 99999 }}
+            sideOffset={5}
+          >
+            <DropdownMenuLabel className='flex items-center justify-between p-3 sm:p-4'>
+              <span className='text-sm sm:text-base font-semibold'>
+                Notifications
+              </span>
+              {unreadCount > 0 && (
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={markAllAsRead}
+                  disabled={isLoading}
+                  className='h-auto p-1 sm:p-2 text-xs touch-manipulation'
                 >
-                  <CardContent className='p-3'>
-                    <div className='flex items-start gap-3'>
-                      <div className='text-lg'>
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div className='flex-1 min-w-0'>
-                        <div className='flex items-center gap-2'>
-                          <h4 className='text-sm font-medium truncate'>
-                            {notification.title}
-                          </h4>
+                  <CheckCheck className='h-3 w-3 sm:h-4 sm:w-4 mr-1' />
+                  <span className='hidden sm:inline'>Mark all read</span>
+                  <span className='sm:hidden'>Read all</span>
+                </Button>
+              )}
+            </DropdownMenuLabel>
+
+            <DropdownMenuSeparator />
+
+            {notifications.length === 0 ? (
+              <div className='p-4 text-center text-sm text-gray-500'>
+                <Bell className='h-8 w-8 mx-auto mb-2 text-gray-300' />
+                <p>No notifications yet</p>
+              </div>
+            ) : (
+              <ScrollArea className='max-h-80'>
+                {notifications.map(notification => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className='p-0'
+                    onSelect={() => handleNotificationClick(notification)}
+                  >
+                    <Card
+                      className={`w-full border-0 shadow-none ${
+                        notification.read ? 'opacity-60' : 'bg-blue-50'
+                      }`}
+                    >
+                      <CardContent className='p-3'>
+                        <div className='flex items-start gap-3'>
+                          <div className='text-lg'>
+                            {getNotificationIcon(notification.type)}
+                          </div>
+                          <div className='flex-1 min-w-0'>
+                            <div className='flex items-center gap-2'>
+                              <h4 className='text-sm font-medium truncate'>
+                                {notification.title}
+                              </h4>
+                              {!notification.read && (
+                                <div className='h-2 w-2 bg-blue-500 rounded-full flex-shrink-0' />
+                              )}
+                            </div>
+                            <p className='text-xs text-gray-600 mt-1 line-clamp-2'>
+                              {notification.message}
+                            </p>
+                            <p className='text-xs text-gray-400 mt-1'>
+                              {formatDistanceToNow(
+                                new Date(notification.createdAt),
+                                { addSuffix: true }
+                              )}
+                            </p>
+                          </div>
                           {!notification.read && (
-                            <div className='h-2 w-2 bg-blue-500 rounded-full flex-shrink-0' />
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='h-auto p-1'
+                              onClick={e => {
+                                e.stopPropagation();
+                                markAsRead(notification.id);
+                              }}
+                            >
+                              <Check className='h-3 w-3' />
+                            </Button>
                           )}
                         </div>
-                        <p className='text-xs text-gray-600 mt-1 line-clamp-2'>
-                          {notification.message}
-                        </p>
-                        <p className='text-xs text-gray-400 mt-1'>
-                          {formatDistanceToNow(
-                            new Date(notification.createdAt),
-                            { addSuffix: true }
-                          )}
-                        </p>
-                      </div>
-                      {!notification.read && (
-                        <Button
-                          variant='ghost'
-                          size='sm' className='h-auto p-1'
-                          onClick={e => {
-                            e.stopPropagation();
-                            markAsRead(notification.id);
-                          }}
-                        >
-                          <Check className='h-3 w-3' />
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </DropdownMenuItem>
-            ))}
-          </ScrollArea>
-        )}
+                      </CardContent>
+                    </Card>
+                  </DropdownMenuItem>
+                ))}
+              </ScrollArea>
+            )}
 
-        {notifications.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className='text-center justify-center'>
-              <Button variant='ghost' size='sm' className='w-full'>
-                View All Notifications
-              </Button>
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+            {notifications.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className='text-center justify-center'>
+                  <Button variant='ghost' size='sm' className='w-full'>
+                    View All Notifications
+                  </Button>
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenuPortal>
+      </DropdownMenu>
+    </div>
   );
 }

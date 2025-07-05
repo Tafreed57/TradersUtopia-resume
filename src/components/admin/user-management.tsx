@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -422,9 +423,11 @@ export function UserManagement() {
                           {/* User Info Row */}
                           <div className='flex items-start gap-3'>
                             {userData.imageUrl ? (
-                              <img
+                              <Image
                                 src={userData.imageUrl}
                                 alt={userData.name}
+                                width={48}
+                                height={48}
                                 className='w-10 h-10 sm:w-12 sm:h-12 rounded-full flex-shrink-0'
                               />
                             ) : (
@@ -615,9 +618,11 @@ export function UserManagement() {
               <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'>
                 <div className='flex items-center gap-3 min-w-0 flex-1'>
                   {selectedUser.imageUrl ? (
-                    <img
+                    <Image
                       src={selectedUser.imageUrl}
                       alt={selectedUser.name}
+                      width={56}
+                      height={56}
                       className='w-12 h-12 sm:w-14 sm:h-14 rounded-full flex-shrink-0 border-2 border-blue-500/30'
                     />
                   ) : (

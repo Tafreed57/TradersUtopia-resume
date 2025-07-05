@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -57,6 +59,11 @@ function formatDate(date: Date) {
 
 export function UserDetails() {
   const { user } = useUser();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   if (!user) {
     return (
@@ -69,22 +76,112 @@ export function UserDetails() {
     );
   }
 
-  // Function to navigate to Security tab
+  // Function to navigate to Security tab with proper error handling
   const handleSecuritySettings = () => {
-    // Find the Security tab button and click it
-    const securityTab = document.querySelector(
-      '[value="security"]'
-    ) as HTMLButtonElement;
-    if (securityTab) {
-      securityTab.click();
+    try {
+      if (!isClient || typeof document === 'undefined') {
+        console.warn(
+          'Cannot navigate to security tab: not in browser environment'
+        );
+        return;
+      }
+
+      // Find the Security tab button and click it
+      const securityTab = document.querySelector(
+        '[value="security"]'
+      ) as HTMLButtonElement;
+      if (securityTab && typeof securityTab.click === 'function') {
+        securityTab.click();
+      } else {
+        console.warn('Security tab not found or not clickable');
+      }
+    } catch (error) {
+      console.error('Error navigating to security tab:', error);
     }
   };
 
-  // Function to open Clerk user profile for email updates
-  const handleUpdateEmail = () => {
-    // Open Clerk's user profile page
-    window.open('/user-profile', '_blank');
+  // Function to open user profile with proper error handling
+  const handleOpenProfile = () => {
+    try {
+      if (!isClient || typeof window === 'undefined') {
+        console.warn('Cannot open profile: not in browser environment');
+        return;
+      }
+
+      if (typeof window.open === 'function') {
+        window.open('/user-profile', '_blank');
+      } else {
+        // Fallback: try to navigate in the same window
+        if (typeof window.location !== 'undefined') {
+          window.location.href = '/user-profile';
+        }
+      }
+    } catch (error) {
+      console.error('Error opening user profile:', error);
+      // Silent fallback - the button click just won't work
+    }
   };
+
+  // Don't render interactive elements until we're on the client
+  if (!isClient) {
+    return (
+      <div className='space-y-6'>
+        {/* Profile Header */}
+        <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-600/30 backdrop-blur-md'>
+          <CardContent className='p-6'>
+            <div className='flex items-center gap-6'>
+              <div className='relative'>
+                <Image
+                  src={user.imageUrl}
+                  alt={`${user.firstName} ${user.lastName} profile picture`}
+                  width={80}
+                  height={80}
+                  className='w-20 h-20 rounded-full border-3 border-yellow-400/50 shadow-lg'
+                />
+                <div className='absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-gray-800 flex items-center justify-center'>
+                  <Activity className='h-3 w-3 text-white' />
+                </div>
+              </div>
+              <div className='flex-1'>
+                <h2 className='text-2xl font-bold text-white mb-1'>
+                  {user.firstName} {user.lastName}
+                </h2>
+                <p className='text-gray-300 mb-3'>
+                  {user.emailAddresses[0]?.emailAddress}
+                </p>
+                <div className='flex items-center gap-2'>
+                  <Badge
+                    variant='secondary'
+                    className='bg-green-500/20 text-green-300 border-green-500/30'
+                  >
+                    Active Account
+                  </Badge>
+                  <Badge
+                    variant='secondary'
+                    className='bg-blue-500/20 text-blue-300 border-blue-500/30'
+                  >
+                    Premium Member
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Loading indicator for interactive elements */}
+        <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-600/30 backdrop-blur-md'>
+          <CardContent className='flex items-center justify-center py-6'>
+            <div className='flex items-center gap-2'>
+              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400'></div>
+              <span className='text-gray-300'>
+                Loading interactive features...
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className='space-y-6'>
@@ -93,9 +190,11 @@ export function UserDetails() {
         <CardContent className='p-6'>
           <div className='flex items-center gap-6'>
             <div className='relative'>
-              <img
+              <Image
                 src={user.imageUrl}
                 alt={`${user.firstName} ${user.lastName} profile picture`}
+                width={80}
+                height={80}
                 className='w-20 h-20 rounded-full border-3 border-yellow-400/50 shadow-lg'
               />
               <div className='absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-gray-800 flex items-center justify-center'>
@@ -141,7 +240,7 @@ export function UserDetails() {
             icon={Mail}
             label='Email Address'
             value={user.emailAddresses[0]?.emailAddress || 'Not available'}
-            badge='Verified'
+            badge='Read-only'
           />
           <ProfileRow
             icon={Calendar}
@@ -171,22 +270,10 @@ export function UserDetails() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-            <button
-              onClick={handleUpdateEmail}
-              className='p-4 rounded-lg bg-blue-500/20 border border-blue-500/30 hover:bg-blue-500/30 transition-colors text-left group'
-            >
-              <div className='flex items-center justify-between mb-2'>
-                <Mail className='h-5 w-5 text-blue-400 group-hover:scale-110 transition-transform' />
-                <ExternalLink className='h-4 w-4 text-blue-400/60' />
-              </div>
-              <p className='text-sm font-medium text-white'>Update Email</p>
-              <p className='text-xs text-gray-400'>Change your email address</p>
-            </button>
-
+          <div className='grid grid-cols-1 gap-3'>
             <button
               onClick={handleSecuritySettings}
-              className='p-4 rounded-lg bg-green-500/20 border border-green-500/30 hover:bg-green-500/30 transition-colors text-left group'
+              className='p-4 rounded-lg bg-green-500/20 border border-green-500/30 hover:bg-green-500/30 transition-colors text-left group touch-manipulation'
             >
               <div className='flex items-center justify-between mb-2'>
                 <Shield className='h-5 w-5 text-green-400 group-hover:scale-110 transition-transform' />
@@ -212,8 +299,8 @@ export function UserDetails() {
         <CardContent>
           <div className='space-y-3'>
             <button
-              onClick={() => window.open('/user-profile', '_blank')}
-              className='w-full p-3 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition-colors text-left group flex items-center justify-between'
+              onClick={handleOpenProfile}
+              className='w-full p-3 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 transition-colors text-left group flex items-center justify-between touch-manipulation'
             >
               <div className='flex items-center gap-3'>
                 <User className='h-4 w-4 text-purple-400' />
@@ -231,7 +318,7 @@ export function UserDetails() {
 
             <button
               onClick={handleSecuritySettings}
-              className='w-full p-3 rounded-lg bg-yellow-500/20 border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors text-left group flex items-center justify-between'
+              className='w-full p-3 rounded-lg bg-yellow-500/20 border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors text-left group flex items-center justify-between touch-manipulation'
             >
               <div className='flex items-center gap-3'>
                 <Shield className='h-4 w-4 text-yellow-400' />

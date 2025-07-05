@@ -18,12 +18,33 @@ export async function findOrCreateProfile() {
   // First, try to find by userId (most reliable)
   let profile = await db.profile.findUnique({
     where: { userId: user.id },
+    select: {
+      id: true,
+      userId: true,
+      name: true,
+      email: true,
+      imageUrl: true,
+      createdAt: true,
+      updatedAt: true,
+      stripeCustomerId: true,
+      stripeSessionId: true,
+      subscriptionEnd: true,
+      subscriptionStart: true,
+      subscriptionStatus: true,
+      stripeProductId: true,
+      backupCodes: true,
+      isAdmin: true,
+      pushNotifications: true,
+      pushSubscriptions: true,
+    },
   });
 
   if (profile) {
-    console.log(
-      `✅ [SAFE_PROFILE] Found existing profile by userId: ${profile.id}`
-    );
+    if (process.env.NODE_ENV === 'development') {
+      console.log(
+        `✅ [SAFE_PROFILE] Found existing profile by userId: ${profile.id}`
+      );
+    }
     return profile;
   }
 
@@ -85,7 +106,7 @@ export async function findOrCreateProfile() {
     }
   }
 
-  // Create new profile only if none exists
+  // Use upsert to safely create profile or update existing one
   const name =
     user.fullName ||
     user.firstName ||
@@ -94,8 +115,14 @@ export async function findOrCreateProfile() {
     'Unknown User';
 
   try {
-    profile = await db.profile.create({
-      data: {
+    profile = await db.profile.upsert({
+      where: { userId: user.id },
+      update: {
+        name: name,
+        email: userEmail,
+        imageUrl: user.imageUrl,
+      },
+      create: {
         userId: user.id,
         email: userEmail,
         name: name,
@@ -104,20 +131,39 @@ export async function findOrCreateProfile() {
     });
 
     console.log(
-      `✅ [SAFE_PROFILE] Created new profile: ${profile.id} for ${userEmail}`
+      `✅ [SAFE_PROFILE] Upserted profile: ${profile.id} for ${userEmail}`
     );
     return profile;
   } catch (error) {
-    console.error(`❌ [SAFE_PROFILE] Failed to create profile:`, error);
+    console.error(`❌ [SAFE_PROFILE] Failed to upsert profile:`, error);
 
-    // If creation failed due to duplicate, try to find the profile that was created
+    // Final fallback - try to find existing profile
     profile = await db.profile.findUnique({
       where: { userId: user.id },
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        email: true,
+        imageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        stripeCustomerId: true,
+        stripeSessionId: true,
+        subscriptionEnd: true,
+        subscriptionStart: true,
+        subscriptionStatus: true,
+        stripeProductId: true,
+        backupCodes: true,
+        isAdmin: true,
+        pushNotifications: true,
+        pushSubscriptions: true,
+      },
     });
 
     if (profile) {
       console.log(
-        `✅ [SAFE_PROFILE] Found profile after failed creation: ${profile.id}`
+        `✅ [SAFE_PROFILE] Found profile after failed upsert: ${profile.id}`
       );
       return profile;
     }

@@ -1,14 +1,36 @@
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+'use client';
+
+import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs';
 import { Button } from './ui/button';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export function AuthHeader() {
+  const { isLoaded } = useUser();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // ✅ FIX: Prevent hydration mismatch by waiting for client-side mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // ✅ FIX: Show loading state during hydration to prevent mismatch
+  if (!isMounted || !isLoaded) {
+    return (
+      <div className='flex items-center gap-3 h-full'>
+        <div className='h-10 w-20 bg-white/10 rounded animate-pulse'></div>
+        <div className='h-10 w-10 bg-white/10 rounded-full animate-pulse'></div>
+      </div>
+    );
+  }
+
   return (
     <div className='flex items-center gap-3 h-full'>
       <SignedOut>
         <Link href='/sign-in'>
           <Button
-            variant='outline' className='h-10 bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200'
+            variant='outline'
+            className='h-10 bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200'
           >
             Sign In
           </Button>

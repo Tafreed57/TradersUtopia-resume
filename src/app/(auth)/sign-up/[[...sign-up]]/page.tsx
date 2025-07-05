@@ -1,7 +1,8 @@
 'use client';
 
 import { SignUp } from '@clerk/nextjs';
-import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 
 export default function Page({
   searchParams,
@@ -9,172 +10,153 @@ export default function Page({
   searchParams: { redirect_url?: string };
 }) {
   const redirectUrl = searchParams.redirect_url || '/';
+  const router = useRouter();
+
+  const handleBack = () => {
+    // Try to go back in history, fallback to home page
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/');
+    }
+  };
 
   return (
-    <div className='min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-slate-900 via-gray-900 to-black'>
-      {/* Logo and Header */}
-      <div className='w-full max-w-md mx-auto mb-8 text-center'>
-        <div className='flex justify-center mb-6'>
-          <div className='relative w-16 h-16 sm:w-20 sm:h-20 animate-glow'>
-            <Image
-              src='/logo.png'
-              alt='Traders Utopia'
-              fill
-              className='object-contain'
-              priority
-            />
-          </div>
-        </div>
-        <h1 className='text-2xl sm:text-3xl font-bold text-white mb-2'>
-          Join Traders Utopia
-        </h1>
-        <p className='text-gray-400 text-sm sm:text-base'>
-          Create your account to access premium trading signals
-        </p>
-      </div>
+    <div
+      className='min-h-screen min-h-[100vh] min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-black p-4'
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {/* Back Button */}
+      <button
+        onClick={handleBack}
+        className='fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-gray-600/50 hover:border-gray-500 rounded-xl text-white font-medium transition-all duration-200 active:scale-[0.98] transform'
+      >
+        <ArrowLeft className='w-4 h-4' />
+        <span className='hidden sm:inline'>Back</span>
+      </button>
 
-      {/* Sign Up Form */}
-      <div className='w-full max-w-md mx-auto'>
-        <div className='glass rounded-2xl p-8 shadow-2xl border border-gray-700/50'>
-          <SignUp
-            fallbackRedirectUrl={redirectUrl}
-            appearance={{
-              elements: {
-                rootBox: 'w-full',
-                card: 'w-full bg-transparent shadow-none border-none',
-                headerTitle: 'text-white text-xl font-semibold text-center',
-                headerSubtitle: 'text-gray-300 text-sm text-center mt-2',
+      <div className='w-full max-w-md'>
+        <SignUp
+          fallbackRedirectUrl={redirectUrl}
+          appearance={{
+            elements: {
+              rootBox: 'w-full flex justify-center',
+              card: 'w-full max-w-md bg-transparent shadow-none border-none',
 
-                // Social buttons styling
-                socialButtonsBlockButton: [
-                  'w-full bg-white/10 backdrop-blur-sm border border-gray-600/50',
-                  'hover:bg-white/20 hover:border-gray-500',
-                  'text-white font-medium rounded-xl',
-                  'min-h-[48px] transition-all duration-200',
-                  'flex items-center justify-center gap-3',
-                  'active:scale-[0.98] transform',
-                ].join(' '),
-                socialButtonsBlockButtonText: 'text-white font-medium',
-                socialButtonsIconButton: 'text-white',
+              // Header customization
+              header: 'mb-8',
+              headerTitle:
+                'text-white text-2xl sm:text-3xl font-bold text-center mb-2',
+              headerSubtitle: 'text-gray-400 text-base text-center',
 
-                // Form styling
-                formFieldInput: [
-                  'w-full bg-gray-800/50 border border-gray-600/50',
-                  'rounded-xl px-4 py-3 text-white',
-                  'placeholder:text-gray-400',
-                  'focus:border-yellow-500/50 focus:ring-2 focus:ring-yellow-500/20',
-                  'transition-all duration-200',
-                  'min-h-[48px]',
-                ].join(' '),
-                formFieldLabel: 'text-gray-300 font-medium mb-2',
+              // Main form container
+              main: 'glass rounded-2xl p-6 sm:p-8 shadow-2xl border border-gray-700/50',
 
-                // Primary button styling
-                formButtonPrimary: [
-                  'w-full bg-gradient-to-r from-yellow-500 to-yellow-600',
-                  'hover:from-yellow-600 hover:to-yellow-700',
-                  'text-black font-semibold rounded-xl',
-                  'min-h-[48px] transition-all duration-200',
-                  'active:scale-[0.98] transform',
-                  'shadow-lg hover:shadow-yellow-500/25',
-                ].join(' '),
+              // Social buttons styling
+              socialButtonsBlockButton: [
+                'w-full bg-white/10 backdrop-blur-sm border border-gray-600/50',
+                'hover:bg-white/20 hover:border-gray-500',
+                'text-white font-medium rounded-xl',
+                'min-h-[48px] transition-all duration-200',
+                'flex items-center justify-center gap-3',
+                'active:scale-[0.98] transform',
+              ].join(' '),
+              socialButtonsBlockButtonText: 'text-white font-medium',
+              socialButtonsIconButton: 'text-white',
 
-                // Footer styling - improved alignment and spacing
-                footerActionText: 'text-gray-400 text-sm inline',
-                footerActionLink: [
-                  'text-yellow-400 hover:text-yellow-300',
-                  'font-medium transition-colors duration-200 inline ml-1',
-                ].join(' '),
-                footerAction: 'text-center mb-4',
+              // Form styling
+              formFieldInput: [
+                'w-full bg-gray-800/50 border border-gray-600/50',
+                'rounded-xl px-4 py-3 text-white',
+                'placeholder:text-gray-400',
+                'focus:border-yellow-500/50 focus:ring-2 focus:ring-yellow-500/20',
+                'transition-all duration-200',
+                'min-h-[48px]',
+              ].join(' '),
+              formFieldLabel: 'text-gray-300 font-medium mb-2',
 
-                // Divider styling
-                dividerLine: 'bg-gray-600/50',
-                dividerText: 'text-gray-400 bg-transparent px-4',
+              // Primary button styling
+              formButtonPrimary: [
+                'w-full bg-gradient-to-r from-yellow-500 to-yellow-600',
+                'hover:from-yellow-600 hover:to-yellow-700',
+                'text-black font-semibold rounded-xl',
+                'min-h-[48px] transition-all duration-200',
+                'active:scale-[0.98] transform',
+                'shadow-lg hover:shadow-yellow-500/25',
+              ].join(' '),
 
-                // OTP styling
-                otpCodeFieldInput: [
-                  'bg-gray-800/50 border border-gray-600/50',
-                  'rounded-lg text-white text-center',
-                  'focus:border-yellow-500/50 focus:ring-2 focus:ring-yellow-500/20',
-                  'transition-all duration-200',
-                  'min-h-[48px] min-w-[48px]',
-                ].join(' '),
+              // Footer styling
+              footer: 'mt-6 pt-6 border-t border-gray-700/50',
+              footerActionText: 'text-gray-400 text-sm',
+              footerActionLink:
+                'text-yellow-400 hover:text-yellow-300 font-medium transition-colors duration-200 ml-1',
+              footerAction: 'text-center',
 
-                // Additional form elements
-                formFieldInputShowPasswordButton:
-                  'text-gray-400 hover:text-white',
-                formFieldAction: 'text-yellow-400 hover:text-yellow-300',
-                formResendCodeLink: 'text-yellow-400 hover:text-yellow-300',
+              // Divider styling
+              dividerLine: 'bg-gray-600/50',
+              dividerText: 'text-gray-400 bg-transparent px-4',
 
-                // Error styling
-                formFieldErrorText: 'text-red-400 text-sm mt-1',
-                alertClerkError:
-                  'bg-red-900/20 border border-red-500/30 text-red-400 rounded-xl p-3',
+              // OTP styling
+              otpCodeFieldInput: [
+                'bg-gray-800/50 border border-gray-600/50',
+                'rounded-lg text-white text-center',
+                'focus:border-yellow-500/50 focus:ring-2 focus:ring-yellow-500/20',
+                'transition-all duration-200',
+                'min-h-[48px] min-w-[48px]',
+              ].join(' '),
 
-                // Loading states
-                spinner: 'text-yellow-500',
+              // Additional form elements
+              formFieldInputShowPasswordButton:
+                'text-gray-400 hover:text-white',
+              formFieldAction: 'text-yellow-400 hover:text-yellow-300',
+              formResendCodeLink: 'text-yellow-400 hover:text-yellow-300',
 
-                // Mobile optimizations
-                formFieldRow: 'mb-4',
-                footer: 'mt-6 pt-6 border-t border-gray-700/50',
+              // Error styling
+              formFieldErrorText: 'text-red-400 text-sm mt-1',
+              alertClerkError:
+                'bg-red-900/20 border border-red-500/30 text-red-400 rounded-xl p-3',
 
-                // Footer links container - ensure proper alignment
-                footerPagesLink:
-                  'text-gray-400 hover:text-gray-300 transition-colors duration-200 text-sm',
-                footerPages:
-                  'flex justify-center items-center gap-6 mt-4 pt-4 border-t border-gray-700/30',
-              },
-              layout: {
-                socialButtonsPlacement: 'top',
-                socialButtonsVariant: 'blockButton',
-                termsPageUrl: '/terms',
-                privacyPageUrl: '/privacy',
-              },
-              variables: {
-                colorPrimary: '#eab308',
-                colorDanger: '#ef4444',
-                colorSuccess: '#10b981',
-                colorWarning: '#f59e0b',
-                colorNeutral: '#6b7280',
-                fontFamily: 'inherit',
-                borderRadius: '0.75rem',
-              },
-            }}
-          />
-        </div>
-      </div>
+              // Loading states
+              spinner: 'text-yellow-500',
 
-      {/* Custom Footer with properly aligned links */}
-      <div className='w-full max-w-md mx-auto mt-6'>
-        <div className='flex justify-center items-center gap-6 pb-4'>
-          <a
-            href='/privacy'
-            className='text-gray-400 hover:text-gray-300 transition-colors duration-200 text-sm font-medium'
-          >
-            Privacy
-          </a>
-          <a
-            href='/terms'
-            className='text-gray-400 hover:text-gray-300 transition-colors duration-200 text-sm font-medium'
-          >
-            Terms
-          </a>
-        </div>
-        <p className='text-gray-500 text-xs text-center'>
-          By creating an account, you agree to our{' '}
-          <a
-            href='/terms'
-            className='text-yellow-400 hover:text-yellow-300 transition-colors'
-          >
-            Terms of Service
-          </a>{' '}
-          and{' '}
-          <a
-            href='/privacy'
-            className='text-yellow-400 hover:text-yellow-300 transition-colors'
-          >
-            Privacy Policy
-          </a>
-        </p>
+              // Form field spacing
+              formFieldRow: 'mb-4',
+
+              // Footer links
+              footerPagesLink:
+                'text-gray-400 hover:text-gray-300 transition-colors duration-200 text-sm',
+              footerPages:
+                'flex justify-center items-center gap-6 mt-4 pt-4 border-t border-gray-700/30',
+            },
+            layout: {
+              socialButtonsPlacement: 'top',
+              socialButtonsVariant: 'blockButton',
+              helpPageUrl: undefined,
+              privacyPageUrl: '/privacy',
+              termsPageUrl: '/terms',
+              logoImageUrl: '/logo.png',
+              showOptionalFields: false,
+            },
+            variables: {
+              colorPrimary: '#eab308',
+              colorDanger: '#ef4444',
+              colorSuccess: '#10b981',
+              colorWarning: '#f59e0b',
+              colorNeutral: '#6b7280',
+              fontFamily: 'inherit',
+              borderRadius: '0.75rem',
+            },
+          }}
+        />
       </div>
     </div>
   );

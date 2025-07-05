@@ -25,14 +25,17 @@ if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       process.env.VAPID_PRIVATE_KEY
     );
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ [PUSH] VAPID details configured successfully');
-    }
+    // ✅ PERFORMANCE: Only log VAPID setup once, not on every import
+    // Note: VAPID configured successfully (no console output for performance)
   } catch (error) {
     console.error('❌ [PUSH] Failed to configure VAPID details:', error);
   }
 } else {
-  console.warn('⚠️ [PUSH] VAPID keys not found - push notifications disabled');
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(
+      '⚠️ [PUSH] VAPID keys not found - push notifications disabled'
+    );
+  }
 }
 
 export interface PushNotificationData {
@@ -78,9 +81,7 @@ export async function sendPushNotification(
       !profile.pushSubscriptions ||
       profile.pushSubscriptions.length === 0
     ) {
-      console.log(
-        `ℹ️ [PUSH] No push subscriptions found for user: ${data.userId}`
-      );
+      // ✅ PERFORMANCE: Skip logging for better performance
       return false;
     }
 
@@ -124,9 +125,7 @@ export async function sendPushNotification(
             urgency: data.type === 'SECURITY' ? 'high' : 'normal',
           });
 
-          console.log(
-            `✅ [PUSH] Notification sent to subscription ${index + 1} for user: ${data.userId}`
-          );
+          // ✅ PERFORMANCE: Notification sent (no console output for performance)
           successCount++;
           return true;
         } catch (error: any) {
@@ -159,9 +158,7 @@ export async function sendPushNotification(
 
     await Promise.all(sendPromises);
 
-    console.log(
-      `📊 [PUSH] Results for user ${data.userId}: ${successCount} success, ${failureCount} failures`
-    );
+    // ✅ PERFORMANCE: Push notification results (no console output for performance)
     return successCount > 0;
   } catch (error) {
     console.error('❌ [PUSH] Error sending push notification:', error);
@@ -195,13 +192,9 @@ export async function subscribeToPushNotifications(
       // Update existing subscription
       updatedSubscriptions = [...existingSubscriptions];
       updatedSubscriptions[existingIndex] = subscription;
-      console.log(
-        `🔄 [PUSH] Updated existing subscription for user: ${userId}`
-      );
     } else {
       // Add new subscription
       updatedSubscriptions = [...existingSubscriptions, subscription];
-      console.log(`➕ [PUSH] Added new subscription for user: ${userId}`);
     }
 
     await db.profile.update({
@@ -209,7 +202,6 @@ export async function subscribeToPushNotifications(
       data: { pushSubscriptions: updatedSubscriptions },
     });
 
-    console.log(`✅ [PUSH] Subscription saved for user: ${userId}`);
     return true;
   } catch (error) {
     console.error('❌ [PUSH] Error saving push subscription:', error);
@@ -240,7 +232,6 @@ export async function unsubscribeFromPushNotifications(
       data: { pushSubscriptions: updatedSubscriptions },
     });
 
-    console.log(`🗑️ [PUSH] Unsubscribed from endpoint for user: ${userId}`);
     return true;
   } catch (error) {
     console.error(

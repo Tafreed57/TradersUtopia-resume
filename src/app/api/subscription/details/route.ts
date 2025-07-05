@@ -22,10 +22,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    console.log(
-      `🔍 [SUBSCRIPTION DETAILS] Fetching for user: ${profile.email}`
-    );
-
     // ✅ ENHANCED: Get comprehensive subscription info from webhook-updated database
     const subscriptionInfo = {
       status: profile.subscriptionStatus,
@@ -51,10 +47,6 @@ export async function GET(request: NextRequest) {
     // ✅ ENHANCED: Enrich with Stripe data if customer ID exists
     if (profile.stripeCustomerId) {
       try {
-        console.log(
-          `🔗 [STRIPE API] Fetching data for customer: ${profile.stripeCustomerId}`
-        );
-
         // Get customer details
         const customer = (await stripe.customers.retrieve(
           profile.stripeCustomerId
@@ -80,7 +72,6 @@ export async function GET(request: NextRequest) {
               description: product.description,
               images: product.images,
             };
-            console.log(`📦 [PRODUCT] Retrieved: ${product.name}`);
           } catch (error) {
             console.error('❌ Error fetching product details:', error);
           }
@@ -93,10 +84,6 @@ export async function GET(request: NextRequest) {
           expand: ['data.discounts', 'data.discount.coupon'], // Expand discount information
         });
 
-        console.log(
-          `📊 [SUBSCRIPTIONS] Found ${subscriptions.data.length} subscription(s)`
-        );
-
         if (subscriptions.data.length > 0) {
           // Find the most relevant subscription
           const relevantSubscription =
@@ -108,9 +95,6 @@ export async function GET(request: NextRequest) {
             ) || subscriptions.data[0];
 
           let subscription = relevantSubscription as any;
-          console.log(
-            `✅ [ACTIVE SUB] Using: ${subscription.id} (${subscription.status})`
-          );
 
           // 🔍 ENHANCED: Get full subscription details with all discount information
           try {
@@ -121,25 +105,7 @@ export async function GET(request: NextRequest) {
               }
             );
             subscription = fullSubscription;
-            console.log(
-              `🔄 [ENHANCED] Retrieved full subscription details with discounts`
-            );
-          } catch (error) {
-            console.log(
-              `⚠️ [WARNING] Could not retrieve full subscription details, using list data`
-            );
-          }
-
-          // 🐛 DEBUG: Log raw discount data from Stripe
-          console.log(`🔍 [DEBUG] Raw subscription discount data:`, {
-            hasOldDiscount: !!subscription.discount,
-            oldDiscount: subscription.discount,
-            hasNewDiscounts: !!(
-              subscription.discounts && subscription.discounts.length > 0
-            ),
-            newDiscounts: subscription.discounts,
-            discountsLength: subscription.discounts?.length || 0,
-          });
+          } catch (error) {}
 
           // Get discount information from the new discounts array format
           const activeDiscount =
@@ -166,21 +132,6 @@ export async function GET(request: NextRequest) {
               discountedAmount = Math.max(0, originalAmount - discountAmount);
             }
           }
-
-          console.log(
-            `💰 [PRICING] Original: ${originalAmount}, Discounted: ${discountedAmount}, Discount: ${discountPercent}%`
-          );
-          console.log(`🔍 [DEBUG] Active discount object:`, activeDiscount);
-          console.log(`🔍 [DEBUG] Final pricing calculation:`, {
-            originalAmount,
-            discountedAmount,
-            discountPercent,
-            discountAmount,
-            hasActiveDiscount: !!activeDiscount?.coupon,
-            couponId: activeDiscount?.coupon?.id,
-            couponPercentOff: activeDiscount?.coupon?.percent_off,
-            couponAmountOff: activeDiscount?.coupon?.amount_off,
-          });
 
           // ✅ ENHANCED: Comprehensive subscription details for UI
           responseData.subscription.stripe = {
@@ -289,13 +240,6 @@ export async function GET(request: NextRequest) {
         : null,
       dataFreshness: responseData.dataSource,
     };
-
-    console.log(`✅ [SUCCESS] Subscription details prepared for UI:`, {
-      status: responseData.subscription.status,
-      dataSource: responseData.dataSource,
-      hasStripeData: !!responseData.subscription.stripe,
-      hasProductData: !!responseData.subscription.product,
-    });
 
     return NextResponse.json(responseData);
   } catch (error) {

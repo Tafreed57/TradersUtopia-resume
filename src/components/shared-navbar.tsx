@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
 import NextImage from 'next/image';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs';
 import { AuthHeader } from '@/components/auth-header';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
+import { useScrollPosition } from '@/hooks/use-scroll-position';
+import { useEffect, useState } from 'react';
 import {
   Home,
   Crown,
@@ -18,6 +20,7 @@ import {
   TrendingUp,
   MessageSquare,
   Shield,
+  Loader2,
 } from 'lucide-react';
 
 interface SharedNavbarProps {
@@ -25,185 +28,243 @@ interface SharedNavbarProps {
 }
 
 export function SharedNavbar({ currentPage }: SharedNavbarProps) {
+  const { isLoaded } = useUser();
+  const [isMounted, setIsMounted] = useState(false);
+  const { isScrolled } = useScrollPosition();
+  const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
+
+  // ✅ FIX: Prevent hydration mismatch by waiting for client-side mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // ✅ FIX: Use simple local loading state to avoid hydration errors
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
+
   return (
-    <div className='w-full px-4 sm:px-6 pt-4 sm:pt-6'>
-      <header className='flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-gray-700/30 shadow-2xl min-h-[72px]'>
-        {/* Left Side - Logo and Auth */}
-        <div className='flex items-center gap-3 sm:gap-6 h-full'>
-          {/* Enhanced Logo */}
-          <div className='flex items-center gap-2 sm:gap-4 h-full'>
-            <div className='w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg flex-shrink-0'>
-              <NextImage
-                src='/logo.png'
-                alt='TradersUtopia'
-                width={24}
-                height={24}
-                className='sm:w-7 sm:h-7'
-              />
+    <>
+      {/* Spacer div to prevent layout shift when navbar becomes fixed */}
+      {isScrolled && (
+        <div className='h-[88px] sm:h-[96px]' aria-hidden='true' />
+      )}
+
+      <div
+        className={`w-full transition-all duration-300 ease-in-out ${
+          isScrolled
+            ? 'fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-2'
+            : 'px-4 sm:px-6 pt-4 sm:pt-6'
+        }`}
+      >
+        <header
+          className={`flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto backdrop-blur-xl border min-h-[72px] transition-all duration-300 ease-in-out ${
+            isScrolled
+              ? 'bg-gray-900/95 border-gray-600/50 rounded-lg sm:rounded-xl shadow-2xl shadow-black/50 transform scale-[0.98]'
+              : 'bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 border-gray-700/30 rounded-xl sm:rounded-2xl shadow-2xl transform scale-100'
+          }`}
+        >
+          {/* Left Side - Logo and Auth */}
+          <div className='flex items-center gap-3 sm:gap-6 h-full'>
+            {/* Enhanced Logo */}
+            <div className='flex items-center gap-2 sm:gap-4 h-full'>
+              <div className='w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg flex-shrink-0'>
+                <NextImage
+                  src='/logo.png'
+                  alt='TradersUtopia'
+                  width={24}
+                  height={24}
+                  className='sm:w-7 sm:h-7'
+                />
+              </div>
+              <div className='hidden sm:flex sm:flex-col sm:justify-center'>
+                <span className='text-white text-lg sm:text-xl font-bold leading-tight'>
+                  TradersUtopia
+                </span>
+                <p className='text-gray-400 text-xs sm:text-sm leading-tight'>
+                  Premium Trading Signals
+                </p>
+              </div>
             </div>
-            <div className='hidden sm:flex sm:flex-col sm:justify-center'>
-              <span className='text-white text-lg sm:text-xl font-bold leading-tight'>
-                TradersUtopia
-              </span>
-              <p className='text-gray-400 text-xs sm:text-sm leading-tight'>
-                Premium Trading Signals
-              </p>
+
+            {/* Authentication Section */}
+            <div className='hidden lg:flex lg:items-center lg:h-full'>
+              <AuthHeader />
             </div>
           </div>
 
-          {/* Authentication Section */}
-          <div className='hidden lg:flex lg:items-center lg:h-full'>
-            <AuthHeader />
-          </div>
-        </div>
-
-        {/* Center Navigation Links */}
-        <nav className='hidden md:flex items-center gap-2 sm:gap-3 h-full'>
-          {currentPage === 'home' ? (
-            // Homepage Section Anchor Links
-            <>
-              <Link href='/dashboard'>
-                <Button
+          {/* Center Navigation Links */}
+          <nav className='hidden md:flex items-center gap-2 sm:gap-3 h-full'>
+            {currentPage === 'home' ? (
+              // Homepage Section Anchor Links
+              <>
+                <SubscriptionProtectedLink
+                  href='/dashboard'
                   variant='ghost'
-                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                  className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30 hover:scale-105 active:scale-95 ${
+                    isNavigatingToDashboard
+                      ? 'border-yellow-400/50 bg-yellow-400/10 opacity-75'
+                      : ''
+                  }`}
+                  onClick={() => {
+                    setIsNavigatingToDashboard(true);
+                    setIsLoadingDashboard(true);
+                    // Reset after a delay in case navigation fails
+                    setTimeout(() => {
+                      setIsNavigatingToDashboard(false);
+                      setIsLoadingDashboard(false);
+                    }, 5000);
+                  }}
+                >
+                  {isNavigatingToDashboard ? (
+                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                  ) : (
+                    <Crown className='w-4 h-4 mr-2' />
+                  )}
+                  <span className='hidden lg:inline'>
+                    {isNavigatingToDashboard ? 'Loading...' : 'Dashboard'}
+                  </span>
+                  <span className='lg:hidden'>
+                    {isNavigatingToDashboard ? 'Loading...' : 'App'}
+                  </span>
+                </SubscriptionProtectedLink>
+
+                <a href='#features'>
+                  <Button
+                    variant='ghost'
+                    className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                  >
+                    <Target className='w-4 h-4 mr-2' />
+                    <span className='hidden lg:inline'>Features</span>
+                  </Button>
+                </a>
+
+                <a href='#free-videos'>
+                  <Button
+                    variant='ghost'
+                    className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                  >
+                    <Video className='w-4 h-4 mr-2' />
+                    <span className='hidden lg:inline'>Free Videos</span>
+                    <span className='lg:hidden'>Videos</span>
+                  </Button>
+                </a>
+
+                <a href='#results'>
+                  <Button
+                    variant='ghost'
+                    className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                  >
+                    <TrendingUp className='w-4 h-4 mr-2' />
+                    <span className='hidden lg:inline'>Results</span>
+                  </Button>
+                </a>
+
+                <a href='#testimonials'>
+                  <Button
+                    variant='ghost'
+                    className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                  >
+                    <MessageSquare className='w-4 h-4 mr-2' />
+                    <span className='hidden lg:inline'>Reviews</span>
+                  </Button>
+                </a>
+
+                <a href='#pricing'>
+                  <Button
+                    variant='ghost'
+                    className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
+                  >
+                    <DollarSign className='w-4 h-4 mr-2' />
+                    <span className='hidden lg:inline'>Pricing</span>
+                  </Button>
+                </a>
+              </>
+            ) : (
+              // Regular Page Links
+              <>
+                <Link href='/'>
+                  <Button
+                    variant='ghost'
+                    className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200'
+                  >
+                    <Home className='w-4 h-4 mr-2' />
+                    <span className='hidden lg:inline'>Home</span>
+                  </Button>
+                </Link>
+
+                <Link href='/free-videos'>
+                  <Button
+                    variant='ghost'
+                    className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
+                      currentPage === 'free-videos'
+                        ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
+                        : ''
+                    }`}
+                  >
+                    <Play className='w-4 h-4 mr-2' />
+                    <span className='hidden lg:inline'>Free Videos</span>
+                    <span className='lg:hidden'>Videos</span>
+                  </Button>
+                </Link>
+
+                <Link href='/pricing'>
+                  <Button
+                    variant='ghost'
+                    className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
+                      currentPage === 'pricing'
+                        ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
+                        : ''
+                    }`}
+                  >
+                    <DollarSign className='w-4 h-4 mr-2' />
+                    <span className='hidden lg:inline'>Pricing</span>
+                  </Button>
+                </Link>
+
+                <SubscriptionProtectedLink
+                  href='/dashboard'
+                  variant='ghost'
+                  className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
+                    currentPage === 'dashboard'
+                      ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
+                      : ''
+                  }`}
                 >
                   <Crown className='w-4 h-4 mr-2' />
                   <span className='hidden lg:inline'>Dashboard</span>
                   <span className='lg:hidden'>App</span>
-                </Button>
-              </Link>
+                </SubscriptionProtectedLink>
+              </>
+            )}
+          </nav>
 
-              <a href='#features'>
-                <Button
-                  variant='ghost'
-                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
-                >
-                  <Target className='w-4 h-4 mr-2' />
-                  <span className='hidden lg:inline'>Features</span>
-                </Button>
-              </a>
+          {/* Right Side Actions */}
+          <div className='flex items-center gap-2 sm:gap-4 h-full'>
+            {/* Mobile Auth - ✅ FIX: Add hydration protection */}
+            {isMounted && isLoaded ? (
+              <SignedIn>
+                <div className='md:hidden flex items-center'>
+                  <UserButton
+                    appearance={{
+                      elements: {
+                        avatarBox: 'w-10 h-10',
+                      },
+                    }}
+                  />
+                </div>
+              </SignedIn>
+            ) : (
+              <div className='md:hidden flex items-center'>
+                <div className='w-10 h-10 bg-white/10 rounded-full animate-pulse'></div>
+              </div>
+            )}
 
-              <a href='#free-videos'>
-                <Button
-                  variant='ghost'
-                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
-                >
-                  <Video className='w-4 h-4 mr-2' />
-                  <span className='hidden lg:inline'>Free Videos</span>
-                  <span className='lg:hidden'>Videos</span>
-                </Button>
-              </a>
-
-              <a href='#results'>
-                <Button
-                  variant='ghost'
-                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
-                >
-                  <TrendingUp className='w-4 h-4 mr-2' />
-                  <span className='hidden lg:inline'>Results</span>
-                </Button>
-              </a>
-
-              <a href='#testimonials'>
-                <Button
-                  variant='ghost'
-                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
-                >
-                  <MessageSquare className='w-4 h-4 mr-2' />
-                  <span className='hidden lg:inline'>Reviews</span>
-                </Button>
-              </a>
-
-              <a href='#pricing'>
-                <Button
-                  variant='ghost'
-                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
-                >
-                  <DollarSign className='w-4 h-4 mr-2' />
-                  <span className='hidden lg:inline'>Pricing</span>
-                </Button>
-              </a>
-            </>
-          ) : (
-            // Regular Page Links
-            <>
-              <Link href='/'>
-                <Button
-                  variant='ghost'
-                  className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200'
-                >
-                  <Home className='w-4 h-4 mr-2' />
-                  <span className='hidden lg:inline'>Home</span>
-                </Button>
-              </Link>
-
-              <Link href='/free-videos'>
-                <Button
-                  variant='ghost'
-                  className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
-                    currentPage === 'free-videos'
-                      ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
-                      : ''
-                  }`}
-                >
-                  <Play className='w-4 h-4 mr-2' />
-                  <span className='hidden lg:inline'>Free Videos</span>
-                  <span className='lg:hidden'>Videos</span>
-                </Button>
-              </Link>
-
-              <Link href='/pricing'>
-                <Button
-                  variant='ghost'
-                  className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
-                    currentPage === 'pricing'
-                      ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
-                      : ''
-                  }`}
-                >
-                  <DollarSign className='w-4 h-4 mr-2' />
-                  <span className='hidden lg:inline'>Pricing</span>
-                </Button>
-              </Link>
-
-              <SubscriptionProtectedLink
-                href='/dashboard'
-                variant='ghost'
-                className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
-                  currentPage === 'dashboard'
-                    ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
-                    : ''
-                }`}
-              >
-                <Crown className='w-4 h-4 mr-2' />
-                <span className='hidden lg:inline'>Dashboard</span>
-                <span className='lg:hidden'>App</span>
-              </SubscriptionProtectedLink>
-            </>
-          )}
-        </nav>
-
-        {/* Right Side Actions */}
-        <div className='flex items-center gap-2 sm:gap-4 h-full'>
-          {/* Mobile Auth */}
-          <SignedIn>
+            {/* Mobile Menu */}
             <div className='md:hidden flex items-center'>
-              <UserButton
-                appearance={{
-                  elements: {
-                    avatarBox: 'w-10 h-10',
-                  },
-                }}
-              />
+              <GlobalMobileMenu currentPage={currentPage} />
             </div>
-          </SignedIn>
-
-          {/* Mobile Menu */}
-          <div className='md:hidden flex items-center'>
-            <GlobalMobileMenu currentPage={currentPage} />
           </div>
-        </div>
-      </header>
-    </div>
+        </header>
+      </div>
+    </>
   );
 }

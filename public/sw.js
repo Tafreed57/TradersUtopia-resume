@@ -1,5 +1,5 @@
 // Service Worker for Push Notifications
-const CACHE_NAME = 'tradersutopia-notifications-v1';
+const CACHE_NAME = 'tradersutopia-notifications-v2';
 
 // Install event
 self.addEventListener('install', (event) => {
@@ -10,7 +10,19 @@ self.addEventListener('install', (event) => {
 // Activate event
 self.addEventListener('activate', (event) => {
   console.log('✅ [SW] Service Worker activated');
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      // Clean up old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((cacheName) => cacheName !== CACHE_NAME)
+            .map((cacheName) => caches.delete(cacheName))
+        );
+      })
+    ])
+  );
 });
 
 // Push event - handle incoming push notifications
@@ -25,19 +37,32 @@ self.addEventListener('push', (event) => {
   try {
     const data = event.data.json();
     
+    // Enhanced notification options with better mobile support
     const options = {
       body: data.body || data.message,
       icon: data.icon || '/logo.svg',
       badge: data.badge || '/logo.svg',
       image: data.image,
       data: data.data || {},
-      actions: data.actions || [],
-      requireInteraction: data.requireInteraction || false,
+      actions: data.actions || [
+        {
+          action: 'open',
+          title: 'View',
+          icon: '/logo.svg',
+        },
+        {
+          action: 'dismiss',
+          title: 'Dismiss',
+        }
+      ],
+      requireInteraction: data.requireInteraction || data.type === 'SECURITY',
       silent: data.silent || false,
-      tag: data.tag || 'notification',
-      renotify: data.renotify || false,
-      vibrate: [200, 100, 200], // Vibration pattern for mobile
+      tag: data.tag || `notification-${Date.now()}`,
+      renotify: data.renotify !== false, // Default to true for better visibility
+      vibrate: data.type === 'MENTION' ? [200, 100, 200, 100, 200] : [200, 100, 200], // Stronger vibration for mentions
       timestamp: data.data?.timestamp || Date.now(),
+      // Add sound for different notification types
+      sound: data.type === 'MENTION' ? '/sounds/mention.wav' : '/sounds/message.wav',
     };
 
     // Show the notification
@@ -56,13 +81,19 @@ self.addEventListener('push', (event) => {
         body: 'You have a new notification',
         icon: '/logo.svg',
         badge: '/logo.svg',
-        tag: 'generic-notification'
+        tag: 'generic-notification',
+        actions: [
+          {
+            action: 'open',
+            title: 'View',
+          }
+        ]
       })
     );
   }
 });
 
-// Notification click event
+// Enhanced notification click event
 self.addEventListener('notificationclick', (event) => {
   console.log('🔔 [SW] Notification clicked');
   
@@ -72,50 +103,33 @@ self.addEventListener('notificationclick', (event) => {
   // Close the notification
   notification.close();
 
-  // Handle action clicks
-  if (event.action) {
-    console.log(`🎯 [SW] Action clicked: ${event.action}`);
-    
-    if (event.action === 'open') {
-      const urlToOpen = data.url || '/';
-      event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true })
-          .then((clientList) => {
-            // Check if there's already a window open
-            for (const client of clientList) {
-              if (client.url.includes(self.location.origin) && 'focus' in client) {
-                // Focus existing window and navigate
-                return client.focus().then(() => {
-                  if ('navigate' in client) {
-                    return client.navigate(urlToOpen);
-                  }
-                });
-              }
-            }
-            
-            // Open new window if none exists
-            if (clients.openWindow) {
-              return clients.openWindow(urlToOpen);
-            }
-          })
-      );
-    }
+  // Handle different action clicks
+  if (event.action === 'dismiss') {
+    console.log('❌ [SW] Notification dismissed');
     return;
   }
 
-  // Default click behavior - open the app
-  const urlToOpen = data.url || '/dashboard';
-  
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
+  if (event.action === 'open' || !event.action) {
+    const urlToOpen = data.url || '/dashboard';
+    
+    event.waitUntil(
+      clients.matchAll({ 
+        type: 'window', 
+        includeUncontrolled: true 
+      }).then((clientList) => {
         // Check if there's already a window open with the app
         for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if (client.url.includes(self.location.origin)) {
             // Focus existing window and navigate to the notification URL
             return client.focus().then(() => {
               if ('navigate' in client && data.url) {
                 return client.navigate(data.url);
+              } else {
+                // Fallback: post message to client to handle navigation
+                client.postMessage({
+                  type: 'NAVIGATE',
+                  url: data.url || '/dashboard'
+                });
               }
             });
           }
@@ -125,34 +139,43 @@ self.addEventListener('notificationclick', (event) => {
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }
-      })
-      .catch((error) => {
+      }).catch((error) => {
         console.error('❌ [SW] Error handling notification click:', error);
       })
-  );
+    );
+  }
 });
 
 // Notification close event
 self.addEventListener('notificationclose', (event) => {
   console.log('❌ [SW] Notification closed');
   
-  // You can track notification dismissals here if needed
   const data = event.notification.data || {};
   
-  // Optional: Send analytics about notification dismissal
+  // Track notification dismissals for analytics
   if (data.trackDismissal) {
-    // fetch('/api/analytics/notification-dismissed', { ... });
+    // Optional: Send analytics about notification dismissal
+    fetch('/api/analytics/notification-dismissed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        notificationId: data.notificationId,
+        type: data.type,
+        dismissedAt: Date.now()
+      })
+    }).catch((error) => {
+      console.log('📊 [SW] Analytics tracking failed:', error);
+    });
   }
 });
 
-// Background sync (for future use)
+// Background sync for offline notification delivery
 self.addEventListener('sync', (event) => {
   console.log('🔄 [SW] Background sync triggered');
   
   if (event.tag === 'notification-sync') {
     event.waitUntil(
-      // Sync any pending notifications
-      self.fetch('/api/notifications/sync', {
+      fetch('/api/notifications/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,7 +187,7 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Message event - communication with main thread
+// Enhanced message event handling
 self.addEventListener('message', (event) => {
   console.log('💬 [SW] Message received:', event.data);
   
@@ -175,9 +198,16 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: CACHE_NAME });
   }
+
+  if (event.data && event.data.type === 'CLOSE_NOTIFICATION') {
+    // Close specific notification by tag
+    self.registration.getNotifications({ tag: event.data.tag }).then(notifications => {
+      notifications.forEach(notification => notification.close());
+    });
+  }
 });
 
-// Error handling
+// Enhanced error handling
 self.addEventListener('error', (event) => {
   console.error('❌ [SW] Service Worker error:', event.error);
 });

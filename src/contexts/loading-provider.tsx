@@ -8,8 +8,8 @@ import {
   ReactNode,
   useCallback,
 } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
 import { LoadingScreen } from '@/components/ui/loading-screen';
+import { useRouter } from 'next/navigation';
 
 interface LoadingContextType {
   isLoading: boolean;
@@ -35,7 +35,6 @@ interface LoadingProviderProps {
 export function LoadingProvider({ children }: LoadingProviderProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>('Loading...');
-  const pathname = usePathname();
 
   // Memoize functions to prevent infinite loops
   const setLoading = useCallback((loading: boolean, message = 'Loading...') => {
@@ -45,35 +44,54 @@ export function LoadingProvider({ children }: LoadingProviderProps) {
     }
   }, []);
 
-  const startLoading = useCallback(
-    (message = 'Loading...') => {
-      setLoading(true, message);
-    },
-    [setLoading]
-  );
+  const startLoading = useCallback((message = 'Loading...') => {
+    setIsLoading(true);
+    setLoadingMessage(message);
+  }, []);
 
   const stopLoading = useCallback(() => {
-    setLoading(false);
-  }, [setLoading]);
-
-  // Auto-stop loading when pathname changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [pathname]);
+    setIsLoading(false);
+  }, []);
 
   // Auto-hide loading after maximum time to prevent infinite loading
   useEffect(() => {
     if (!isLoading) return;
 
     const maxLoadingTime = setTimeout(() => {
+      console.log('⚠️ Loading timeout - automatically stopping loading');
       setIsLoading(false);
     }, 10000);
 
     return () => clearTimeout(maxLoadingTime);
+  }, [isLoading]);
+
+  // Listen for navigation completion to auto-stop loading
+  useEffect(() => {
+    if (!isLoading) return;
+
+    // Auto-stop loading after reasonable time for navigation
+    const navigationTimeout = setTimeout(() => {
+      console.log('⚠️ Navigation timeout - automatically stopping loading');
+      setIsLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(navigationTimeout);
+  }, [isLoading]);
+
+  // Clear loading on page visibility change (e.g., when page is fully loaded)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isLoading) {
+        // Give it a moment for the page to settle, then clear loading
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isLoading]);
 
   return (

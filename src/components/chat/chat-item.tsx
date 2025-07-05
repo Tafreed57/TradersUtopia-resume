@@ -3,7 +3,7 @@
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/user/user-avatar';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store/store';
@@ -54,9 +54,17 @@ export function ChatItem({
   socketQuery,
 }: ChatItemProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const onOpen = useStore.use.onOpen();
+
+  // Always call navigation hooks at the top level
   const router = useRouter();
   const params = useParams();
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const isAdmin = currentMember.role === MemberRole.ADMIN;
   const isModerator = currentMember.role === MemberRole.MODERATOR;
@@ -102,24 +110,17 @@ export function ChatItem({
       await secureAxiosPatch(url, values);
       form.reset();
       setIsEditing(false);
+
       router.refresh();
     } catch (error) {
       console.log(error);
     }
   };
 
-  const onMemberClick = () => {
-    if (member?.id === currentMember.id) return;
-    router.push(`/servers/${params?.serverId}/conversations/${member.id}`);
-  };
-
   return (
     <div className='relative group flex items-start hover:bg-black/5 p-3 sm:p-4 transition w-full touch-manipulation'>
       <div className='group flex gap-x-2 sm:gap-x-3 items-start w-full'>
-        <div
-          onClick={onMemberClick}
-          className='transition cursor-pointer hover:drop-shadow-md flex-shrink-0'
-        >
+        <div className='flex-shrink-0'>
           <UserAvatar
             src={member.profile.imageUrl ?? undefined}
             className='h-8 w-8 sm:h-10 sm:w-10'
@@ -128,17 +129,14 @@ export function ChatItem({
         <div className='flex flex-col w-full min-w-0'>
           <div className='flex items-center gap-x-2 flex-wrap'>
             <div className='flex items-center gap-x-1'>
-              <p
-                onClick={onMemberClick}
-                className='font-semibold text-sm sm:text-base hover:underline cursor-pointer truncate'
-              >
+              <div className='font-semibold text-sm sm:text-base text-white truncate'>
                 {member.profile.name}
-              </p>
+              </div>
               <ActionTooltip label={member.role}>
                 {roleIconMap[member.role]}
               </ActionTooltip>
             </div>
-            <span className='text-xs text-zinc-500 flex-shrink-0'>
+            <span className='text-xs text-gray-400 flex-shrink-0'>
               {timestamp}
             </span>
           </div>
@@ -164,23 +162,23 @@ export function ChatItem({
               rel='noreferrer noopener'
               className='relative rounded-md mt-2 overflow-hidden border flex items-center bg-secondary h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 touch-manipulation'
             >
-              <FileText className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-zinc-500 m-auto' />
+              <FileText className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-gray-400 m-auto' />
             </a>
           )}
           {!fileUrl && !isEditing && (
-            <p
+            <div
               className={cn(
-                'text-sm sm:text-base text-zinc-600 break-words',
-                deleted && 'italic text-zinc-500 text-xs sm:text-sm mt-1'
+                'text-sm sm:text-base text-gray-200 break-words whitespace-pre-wrap',
+                deleted && 'italic text-gray-400 text-xs sm:text-sm mt-1'
               )}
             >
               {content}
               {isUpdated && !deleted && (
-                <span className='text-[10px] sm:text-xs text-zinc-500 ml-1'>
+                <span className='text-[10px] sm:text-xs text-gray-400 ml-1'>
                   (edited)
                 </span>
               )}
-            </p>
+            </div>
           )}
           {!fileUrl && isEditing && (
             <Form {...form}>
@@ -195,14 +193,30 @@ export function ChatItem({
                     <FormItem className='flex-1'>
                       <FormControl>
                         <div className='relative w-full'>
-                          <Input
+                          <Textarea
                             disabled={isLoading}
-                            className='p-2 sm:p-3 bg-zinc-200/90 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-600 text-sm sm:text-base min-h-[44px] touch-manipulation'
+                            className='p-2 sm:p-3 bg-zinc-200/90 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-800 text-sm sm:text-base min-h-[44px] touch-manipulation resize-none'
                             placeholder='Edited Message'
                             autoComplete='off'
-                            spellCheck={false}
-                            autoCorrect='off'
-                            autoCapitalize='off'
+                            spellCheck={true}
+                            autoCorrect='on'
+                            autoCapitalize='sentences'
+                            rows={1}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                form.handleSubmit(onSubmit)();
+                              }
+                              if (e.key === 'Escape') {
+                                setIsEditing(false);
+                              }
+                            }}
+                            onInput={e => {
+                              // Auto-resize functionality
+                              const target = e.target as HTMLTextAreaElement;
+                              target.style.height = 'auto';
+                              target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
+                            }}
                             {...field}
                           />
                         </div>
@@ -219,20 +233,21 @@ export function ChatItem({
                   Save
                 </Button>
               </form>
-              <span className='mt-1 text-[10px] sm:text-xs text-zinc-400'>
-                Press escape to cancel, enter to save
-              </span>
+              <div className='mt-1 text-[10px] sm:text-xs text-gray-400'>
+                Press escape to cancel • Enter to save • Shift+Enter for new
+                line
+              </div>
             </Form>
           )}
         </div>
       </div>
       {canDeleteMessage && (
-        <div className='hidden group-hover:flex items-center gap-x-1 sm:gap-x-2 absolute p-1 -top-2 right-3 sm:right-5 bg-gray-800 border rounded-sm shadow-lg'>
+        <div className='hidden group-hover:flex items-center gap-x-1 sm:gap-x-2 absolute p-1 -top-2 right-3 sm:right-5 bg-gradient-to-r from-gray-800/95 via-gray-700/95 to-gray-800/95 backdrop-blur-xl border border-gray-600/50 rounded-lg shadow-2xl'>
           {canEditMessage && (
             <ActionTooltip label='Edit'>
               <Edit
                 onClick={() => setIsEditing(true)}
-                className='cursor-pointer w-4 h-4 text-zinc-500 hover:text-zinc-600 transition touch-manipulation'
+                className='cursor-pointer w-4 h-4 text-gray-400 hover:text-white transition touch-manipulation'
               />
             </ActionTooltip>
           )}
@@ -244,7 +259,7 @@ export function ChatItem({
                   query: socketQuery,
                 })
               }
-              className='cursor-pointer w-4 h-4 text-zinc-500 hover:text-zinc-600 transition touch-manipulation'
+              className='cursor-pointer w-4 h-4 text-gray-400 hover:text-red-400 transition touch-manipulation'
             />
           </ActionTooltip>
         </div>

@@ -14,7 +14,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Shield, Eye, EyeOff, Check, X } from 'lucide-react';
+import { Shield, Eye, EyeOff, Check, X, Mail } from 'lucide-react';
+import { useAuth, useUser } from '@clerk/nextjs';
 
 export function PasswordManager() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -24,16 +25,20 @@ export function PasswordManager() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChanging, setIsChanging] = useState(false);
+  const [isRequestingReset, setIsRequestingReset] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Password validation
+  const { signOut } = useAuth();
+  const { user } = useUser();
+
+  // Password validation - Match backend requirements exactly
   const validatePassword = (password: string) => {
     const requirements = {
       length: password.length >= 8,
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
       number: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+      // Note: Special characters not required by backend validation
     };
     return requirements;
   };
@@ -42,26 +47,35 @@ export function PasswordManager() {
   const isValidPassword = Object.values(passwordRequirements).every(Boolean);
   const passwordsMatch =
     newPassword === confirmPassword && newPassword.length > 0;
-  const canSubmit =
-    currentPassword.length > 0 && isValidPassword && passwordsMatch;
+
+  // For first-time setup (no password enabled), don't require current password
+  const isFirstTimeSetup = user && !user.passwordEnabled;
+  const canSubmit = isFirstTimeSetup
+    ? isValidPassword && passwordsMatch
+    : currentPassword.length > 0 && isValidPassword && passwordsMatch;
 
   const handlePasswordChange = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      return;
+    }
 
     setIsChanging(true);
     setErrors({});
 
     try {
+      const requestBody = {
+        action: isFirstTimeSetup ? 'setup' : 'change',
+        currentPassword: isFirstTimeSetup ? undefined : currentPassword,
+        newPassword,
+        confirmPassword,
+      };
+
       const response = await fetch('/api/user/password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          action: 'change',
-          currentPassword,
-          newPassword,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -74,12 +88,23 @@ export function PasswordManager() {
           }, {});
           setErrors(errorMap);
         }
-        throw new Error(data.message || 'Failed to change password');
+
+        // Show specific error message or generic one
+        const errorMessage =
+          data.message || data.error || 'Failed to set up password';
+        throw new Error(errorMessage);
       }
 
-      toast.success('Password changed successfully!', {
-        description: 'Your password has been updated.',
-      });
+      toast.success(
+        isFirstTimeSetup
+          ? 'Password set up successfully!'
+          : 'Password changed successfully!',
+        {
+          description: isFirstTimeSetup
+            ? 'You can now use password authentication and cancel your subscription.'
+            : 'Your password has been updated.',
+        }
+      );
 
       // Clear form
       setCurrentPassword('');
@@ -95,6 +120,33 @@ export function PasswordManager() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!user?.primaryEmailAddress?.emailAddress) {
+      toast.error('Email not found', {
+        description: 'Unable to initiate password reset.',
+      });
+      return;
+    }
+
+    setIsRequestingReset(true);
+
+    try {
+      toast.info('Redirecting to password reset...', {
+        description: 'You will be taken to the password reset page.',
+      });
+
+      // Redirect to the dedicated forgot password page
+      window.location.href = '/forgot-password';
+    } catch (error: any) {
+      console.error('Password reset redirect error:', error);
+      toast.error('Navigation failed', {
+        description:
+          error.message || 'Unable to navigate to password reset page.',
+      });
+      setIsRequestingReset(false);
+    }
+  };
+
   return (
     <div className='w-full max-w-2xl mx-auto space-y-6'>
       <Card className='bg-gray-800/50 backdrop-blur-sm border border-gray-700/50'>
@@ -104,44 +156,83 @@ export function PasswordManager() {
               <Shield className='h-5 w-5 text-green-400' />
             </div>
             <div>
-              <CardTitle className='text-white'>Change Password</CardTitle>
+              <CardTitle className='text-white'>
+                {isFirstTimeSetup ? 'Set Up Password' : 'Change Password'}
+              </CardTitle>
               <CardDescription>
-                Update your password to keep your account secure
+                {isFirstTimeSetup
+                  ? 'Set up password authentication to enable subscription management and enhanced security'
+                  : 'Update your password to keep your account secure'}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className='space-y-6'>
-          {/* Current Password */}
-          <div className='space-y-2'>
-            <Label htmlFor='currentPassword'>Current Password</Label>
-            <div className='relative'>
-              <Input
-                id='currentPassword'
-                type={showCurrentPassword ? 'text' : 'password'}
-                placeholder='Enter your current password'
-                value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
-                className='pr-10 bg-gray-700/50 border-gray-600 text-white'
-              />
-              <Button
-                type='button'
-                variant='ghost'
-                size='sm'
-                className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
-                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              >
-                {showCurrentPassword ? (
-                  <EyeOff className='h-4 w-4 text-gray-400' />
-                ) : (
-                  <Eye className='h-4 w-4 text-gray-400' />
-                )}
-              </Button>
+          {/* First-time setup message */}
+          {isFirstTimeSetup && (
+            <Alert>
+              <Shield className='h-4 w-4' />
+              <AlertDescription>
+                You're setting up your first password. This will enable password
+                authentication for your account and allow you to cancel
+                subscriptions securely.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Current Password - Only show for existing password users */}
+          {!isFirstTimeSetup && (
+            <div className='space-y-2'>
+              <Label htmlFor='currentPassword'>Current Password</Label>
+              <div className='relative'>
+                <Input
+                  id='currentPassword'
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  placeholder='Enter your current password'
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  className='pr-10 bg-gray-700/50 border-gray-600 text-white'
+                />
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='sm'
+                  className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  {showCurrentPassword ? (
+                    <EyeOff className='h-4 w-4 text-gray-400' />
+                  ) : (
+                    <Eye className='h-4 w-4 text-gray-400' />
+                  )}
+                </Button>
+              </div>
+              {errors.currentPassword && (
+                <p className='text-sm text-red-400'>{errors.currentPassword}</p>
+              )}
+              <div className='flex justify-end'>
+                <Button
+                  type='button'
+                  variant='link'
+                  className='text-sm text-blue-400 hover:text-blue-300 p-0 h-auto flex items-center gap-1'
+                  onClick={handleForgotPassword}
+                  disabled={isRequestingReset}
+                >
+                  {isRequestingReset ? (
+                    <>
+                      <div className='w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin' />
+                      Redirecting...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className='w-3 h-3' />
+                      Forgot password?
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-            {errors.currentPassword && (
-              <p className='text-sm text-red-400'>{errors.currentPassword}</p>
-            )}
-          </div>
+          )}
 
           {/* New Password */}
           <div className='space-y-2'>
@@ -292,7 +383,13 @@ export function PasswordManager() {
             disabled={!canSubmit || isChanging}
             className='w-full bg-green-600 hover:bg-green-700 text-white'
           >
-            {isChanging ? 'Changing Password...' : 'Change Password'}
+            {isChanging
+              ? isFirstTimeSetup
+                ? 'Setting Up Password...'
+                : 'Changing Password...'
+              : isFirstTimeSetup
+                ? 'Set Up Password'
+                : 'Change Password'}
           </Button>
 
           {/* Security Note */}

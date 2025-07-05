@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Password change schema - Enhanced security validation
 export const passwordChangeSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Current password is required'),
+    currentPassword: z.string().optional(), // Optional for first-time password setup
     newPassword: z
       .string()
       .min(8, 'Password must be at least 8 characters')
@@ -17,6 +17,7 @@ export const passwordChangeSchema = z
         'Password must contain at least one uppercase letter, one lowercase letter, and one number'
       ),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
+    action: z.enum(['change', 'setup']).optional(), // Optional action field to distinguish between setup and change
   })
   .refine(data => data.newPassword === data.confirmPassword, {
     message: "Passwords don't match",
@@ -37,12 +38,6 @@ export const messageFileSchema = z.object({
 export const chatQuerySchema = z.object({
   cursor: z.string().optional(),
   channelId: z.string(),
-});
-
-// Direct message query schema
-export const directMessageQuerySchema = z.object({
-  cursor: z.string().optional(),
-  conversationId: z.string(),
 });
 
 // Server management schemas
@@ -74,15 +69,10 @@ export const serverUpdateSchema = z.object({
 });
 
 export const channelSchema = z.object({
-  name: z
-    .string()
-    .min(1, {
-      message: 'Channel name is required.',
-    })
-    .refine(name => name !== 'general', {
-      message: "Channel name cannot be 'general'",
-    }),
-  type: z.enum(['TEXT', 'AUDIO', 'VIDEO']),
+  name: z.string().min(1, {
+    message: 'Channel name is required.',
+  }),
+  type: z.enum(['TEXT']),
 });
 
 // Member management schemas

@@ -1,45 +1,40 @@
-import { ChatVideoButton } from '@/components/chat/chat-video-button';
-import { MobileToggle } from '@/components/mobile-toggle';
-import { UserAvatar } from '@/components/user/user-avatar';
 import { Hash } from 'lucide-react';
+import { MobileToggle } from '@/components/mobile-toggle';
+import { ServerWithMembersWithProfiles } from '@/types/server';
+import { MemberRole } from '@prisma/client';
+
 interface ChatHeaderProps {
-  name: string;
-  type: 'conversation' | 'channel';
-  imageUrl?: string;
   serverId: string;
+  name: string;
+  type: 'channel';
+  imageUrl?: string;
+  server?: ServerWithMembersWithProfiles;
+  role?: MemberRole;
+  servers?: Array<{
+    id: string;
+    name: string;
+    imageUrl: string;
+  }>;
 }
 
-export async function ChatHeader({
+export function ChatHeader({
+  serverId,
   name,
   type,
   imageUrl,
-  serverId,
+  server,
+  role,
+  servers,
 }: ChatHeaderProps) {
   return (
-    <div className='text-sm sm:text-md font-semibold px-3 sm:px-4 flex items-center h-14 sm:h-16 border-neutral-200 border-b-2 bg-[#313338]/95 backdrop-blur-sm touch-manipulation'>
-      <div className='flex items-center gap-2 sm:gap-3 flex-1 min-w-0'>
-        {await MobileToggle({ serverId })}
-        {type === 'channel' && (
-          <Hash className='w-4 h-4 sm:w-5 sm:h-5 text-zinc-500 flex-shrink-0' />
-        )}
-        {type === 'conversation' && (
-          <UserAvatar
-            src={imageUrl}
-            className='h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0'
-          />
-        )}
-        <p className='text-sm sm:text-md font-semibold text-black truncate'>
-          {type === 'channel' ? `#${name}` : name}
-        </p>
-      </div>
-
-      <div className='flex items-center gap-1 sm:gap-2 flex-shrink-0'>
-        {type === 'conversation' && (
-          <div className='hidden sm:block'>
-            <ChatVideoButton />
-          </div>
-        )}
-      </div>
+    <div className='text-md font-semibold px-3 flex items-center h-12 border-neutral-200 dark:border-neutral-800 border-b-2'>
+      {server ? (
+        <MobileToggle server={server} role={role} servers={servers} />
+      ) : (
+        <div className='md:hidden w-9 h-9' /> // Placeholder to maintain spacing
+      )}
+      <Hash className='w-5 h-5 text-zinc-500 dark:text-zinc-400 mr-2' />
+      <p className='font-semibold text-md text-black dark:text-white'>{name}</p>
     </div>
   );
 }

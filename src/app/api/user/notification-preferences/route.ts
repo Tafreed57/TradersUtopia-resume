@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
     const profile = await db.profile.findFirst({
       where: { userId: user.id },
       select: {
-        emailNotifications: true,
         pushNotifications: true,
       },
     });
@@ -34,14 +33,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       preferences: {
-        email: profile.emailNotifications || {
-          system: true,
-          security: true,
-          payment: true,
-          messages: true,
-          mentions: true,
-          serverUpdates: false,
-        },
         push: profile.pushNotifications || {
           system: true,
           security: true,
@@ -81,11 +72,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { preferences } = body;
 
-    if (!preferences || !preferences.email || !preferences.push) {
+    if (!preferences || !preferences.push) {
       return NextResponse.json(
         {
           error: 'Invalid preferences format',
-          message: 'Both email and push preferences are required',
+          message: 'Push preferences are required',
         },
         { status: 400 }
       );
@@ -95,7 +86,6 @@ export async function POST(request: NextRequest) {
     const updatedProfile = await db.profile.update({
       where: { userId: user.id },
       data: {
-        emailNotifications: preferences.email,
         pushNotifications: preferences.push,
       },
     });

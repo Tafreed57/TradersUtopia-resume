@@ -21,9 +21,9 @@ interface ChatMessagesProps {
   apiUrl: string;
   socketUrl: string;
   socketQuery: Record<string, string>;
-  paramKey: 'channelId' | 'conversationId';
+  paramKey: 'channelId';
   paramValue: string;
-  type: 'channel' | 'conversation';
+  type: 'channel';
 }
 
 export function ChatMessages({
@@ -91,43 +91,63 @@ export function ChatMessages({
 
   if (status === 'pending') {
     return (
-      <div className='flex-1 justify-center flex flex-col items-center p-4'>
-        <Loader2 className='h-6 w-6 sm:h-7 sm:w-7 text-zinc-500 animate-spin my-4' />
-        <p className='text-xs sm:text-sm text-zinc-500 text-center'>
+      <div className='flex-1 justify-center flex flex-col items-center p-6 sm:p-8'>
+        <div className='flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-400/30 backdrop-blur-sm mb-4'>
+          <Loader2 className='h-8 w-8 text-blue-400 animate-spin' />
+        </div>
+        <p className='text-sm sm:text-base text-gray-300 text-center font-medium'>
           Loading messages...
         </p>
-      </div>
-    );
-  }
-  if (status === 'error') {
-    return (
-      <div className='flex-1 justify-center flex flex-col items-center p-4'>
-        <ServerCrash className='h-6 w-6 sm:h-7 sm:w-7 text-zinc-500 my-4' />
-        <p className='text-xs sm:text-sm text-zinc-500 text-center'>
-          Failed to load messages.
+        <p className='text-xs text-gray-500 text-center mt-1'>
+          Please wait while we fetch your messages
         </p>
       </div>
     );
   }
+
+  if (status === 'error') {
+    return (
+      <div className='flex-1 justify-center flex flex-col items-center p-6 sm:p-8'>
+        <div className='flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500/20 to-rose-600/20 border border-red-400/30 backdrop-blur-sm mb-4'>
+          <ServerCrash className='h-8 w-8 text-red-400' />
+        </div>
+        <p className='text-sm sm:text-base text-gray-300 text-center font-medium'>
+          Failed to load messages
+        </p>
+        <p className='text-xs text-gray-500 text-center mt-1'>
+          There was an error loading the channel messages
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div ref={chatRef} className='flex-1 flex flex-col py-4 overflow-y-auto'>
+    <div
+      ref={chatRef}
+      className='flex-1 flex flex-col py-4 overflow-y-auto scrollbar-hide'
+    >
       {!hasNextPage && <div className='flex-1' />}
       {!hasNextPage && <ChatWelcome type={type} name={name} />}
       {hasNextPage && (
-        <div className='flex justify-center'>
+        <div className='flex justify-center mb-4'>
           {isFetchingNextPage ? (
-            <Loader2 className='h-6 w-6 text-zinc-500 animate-spin my-4' />
+            <div className='flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600/30 backdrop-blur-sm'>
+              <Loader2 className='h-4 w-4 text-blue-400 animate-spin' />
+              <span className='text-sm text-gray-300 font-medium'>
+                Loading...
+              </span>
+            </div>
           ) : (
             <button
               onClick={() => fetchNextPage()}
-              className='text-zinc-500 hover:text-zinc-600 text-xs my-4 transition'
+              className='group px-4 py-2 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-700/50 border border-gray-600/30 backdrop-blur-sm hover:from-blue-600/20 hover:to-purple-600/20 hover:border-blue-400/50 transition-all duration-300 text-sm text-gray-300 hover:text-white font-medium hover:shadow-lg hover:shadow-blue-400/10'
             >
               Load previous messages
             </button>
           )}
         </div>
       )}
-      <div className='flex flex-col-reverse mt-auto'>
+      <div className='flex flex-col-reverse mt-auto px-2'>
         {data?.pages?.map((group, index) => (
           <Fragment key={index}>
             {group.items.map((message: MessagesWithMemberWithProfile) => (

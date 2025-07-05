@@ -4,17 +4,34 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export function AutoRouteAfterSignIn() {
+function AutoRouteAfterSignInClient() {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [hasChecked, setHasChecked] = useState(false);
   const [isAutoRouting, setIsAutoRouting] = useState(false);
+  const [currentPath, setCurrentPath] = useState('');
+
+  // Safely get pathname after hydration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentPath(window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     const checkAndRoute = async () => {
       // Only run this check once per page load and only if user is signed in
       if (!isLoaded || !isSignedIn || hasChecked) {
+        return;
+      }
+
+      // Only run auto-routing when user is on the homepage
+      if (currentPath !== '/') {
+        console.log(
+          `🚫 Auto-route: Not on homepage (current: ${currentPath}), skipping auto-routing`
+        );
+        setHasChecked(true);
         return;
       }
 
@@ -80,23 +97,46 @@ export function AutoRouteAfterSignIn() {
     };
 
     checkAndRoute();
-  }, [isLoaded, isSignedIn, user, hasChecked, searchParams, router]);
+  }, [
+    isLoaded,
+    isSignedIn,
+    user,
+    hasChecked,
+    searchParams,
+    router,
+    currentPath,
+  ]);
 
-  // Show loading overlay when auto-routing
+  // Show loading overlay while auto-routing
   if (isAutoRouting) {
     return (
-      <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
-        <div className='bg-white dark:bg-gray-800 rounded-lg p-6 text-center max-w-sm'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4'></div>
-          <h3 className='text-lg font-semibold mb-2'>Welcome back!</h3>
-          <p className='text-gray-600 dark:text-gray-300'>
-            Checking your subscription and routing you to the right place...
+      <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50'>
+        <div className='bg-gray-900 rounded-lg p-8 shadow-2xl text-center'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4'></div>
+          <p className='text-white font-medium'>
+            Checking your subscription status...
+          </p>
+          <p className='text-gray-400 text-sm mt-2'>
+            This will only take a moment
           </p>
         </div>
       </div>
     );
   }
 
-  // This component doesn't render anything when not auto-routing
   return null;
+}
+
+export function AutoRouteAfterSignIn() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+
+  return <AutoRouteAfterSignInClient />;
 }

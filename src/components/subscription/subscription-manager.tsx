@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
+import {
+  ComponentLoading,
+  ApiLoading,
+  ButtonLoading,
+} from '@/components/ui/loading-components';
 import {
   Card,
   CardContent,
@@ -87,6 +93,7 @@ interface SubscriptionDetails {
 
 export function SubscriptionManager() {
   const { user } = useUser();
+  const apiLoading = useComprehensiveLoading('api');
   const [isLoading, setIsLoading] = useState(true);
   const [subscription, setSubscription] = useState<SubscriptionDetails | null>(
     null
@@ -253,28 +260,37 @@ export function SubscriptionManager() {
   };
 
   const fetchSubscriptionDetails = async () => {
-    setIsLoading(true);
     try {
-      console.log('🔍 Fetching subscription details...');
-      const response = await fetch('/api/subscription/details');
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📊 Subscription data received:', data);
+      const data = await apiLoading.withLoading(
+        async () => {
+          console.log('🔍 Fetching subscription details...');
+          const response = await fetch('/api/subscription/details');
 
-        // Log key status for debugging
-        if (!data.subscription?.stripe) {
-          console.log(
-            '⚠️ No Stripe subscription data found - Billing controls will be limited'
-          );
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch subscription details: ${response.status}`
+            );
+          }
+
+          const result = await response.json();
+          console.log('📊 Subscription data received:', result);
+
+          // Log key status for debugging
+          if (!result.subscription?.stripe) {
+            console.log(
+              '⚠️ No Stripe subscription data found - Billing controls will be limited'
+            );
+          }
+
+          return result;
+        },
+        {
+          loadingMessage: 'Loading subscription details...',
+          errorMessage: 'Failed to fetch subscription details',
         }
-        setSubscription(data.subscription);
-      } else {
-        console.error(
-          '❌ Failed to fetch subscription details:',
-          response.status
-        );
-        showToast.error('Error', 'Failed to fetch subscription details');
-      }
+      );
+
+      setSubscription(data.subscription);
     } catch (error) {
       console.error('❌ Error fetching subscription details:', error);
       showToast.error('Error', 'Failed to fetch subscription details');
@@ -284,46 +300,53 @@ export function SubscriptionManager() {
   };
 
   const refreshAndSync = async () => {
+    if (isLoading) return; // Prevent multiple simultaneous refreshes
+
     setIsLoading(true);
     try {
       console.log('🔄 Refreshing and syncing subscription with Stripe...');
 
-      // First, sync with Stripe to get the latest data
-      const syncResponse = await makeSecureRequest('/api/subscription/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // First, try to sync with Stripe to get the latest data
+      try {
+        const syncResponse = await makeSecureRequest('/api/subscription/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      if (syncResponse.ok) {
-        showToast.success(
-          '🔄 Refreshed!',
-          'Subscription data synchronized and updated'
+        if (syncResponse.ok) {
+          console.log('✅ Sync successful, fetching updated details...');
+          showToast.success('🔄 Synced', 'Subscription data synchronized!');
+        } else {
+          const syncData = await syncResponse.json();
+          console.log('⚠️ Sync failed, still refreshing local data...');
+          showToast.warning(
+            '⚠️ Partial Sync',
+            'Refreshing with available data...'
+          );
+        }
+      } catch (syncError) {
+        console.log(
+          '⚠️ Sync error, proceeding with refresh anyway...',
+          syncError
         );
-        console.log('✅ Sync successful, fetching updated details...');
-      } else {
-        const syncData = await syncResponse.json();
-        console.log('⚠️ Sync failed, still refreshing local data...');
-        showToast.warning(
-          '⚠️ Sync Warning',
-          `Couldn't sync with Stripe, but refreshed local data. ${syncData.error || ''}`
-        );
+        showToast.warning('⚠️ Sync Issue', 'Refreshing with available data...');
       }
 
       // Always fetch subscription details (even if sync failed)
       const response = await fetch('/api/subscription/details');
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📊 Updated subscription data received:', data);
-        setSubscription(data.subscription);
-      } else {
-        console.error(
-          '❌ Failed to fetch subscription details:',
-          response.status
+      if (!response.ok) {
+        throw new Error(
+          `Failed to refresh subscription details: ${response.status}`
         );
-        showToast.error('Error', 'Failed to refresh subscription details');
       }
+
+      const data = await response.json();
+      console.log('📊 Updated subscription data received:', data);
+      setSubscription(data.subscription);
+
+      showToast.success('✅ Refreshed', 'Subscription data updated!');
     } catch (error) {
       console.error('❌ Error refreshing subscription:', error);
       showToast.error(
@@ -546,7 +569,7 @@ This data comes directly from Stripe and shows the REAL status of your subscript
 
   useEffect(() => {
     if (user) {
-      refreshAndSync();
+      fetchSubscriptionDetails();
     }
   }, [user]);
 
@@ -607,14 +630,19 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                 onClick={refreshAndSync}
                 disabled={isLoading}
                 title='Refresh & sync with Stripe'
-                className='flex items-center gap-1.5'
+                className='flex items-center gap-1.5 hover:bg-gray-700/50 transition-colors'
               >
                 {isLoading ? (
-                  <Loader2 className='h-3 w-3 animate-spin' />
+                  <>
+                    <Loader2 className='h-3 w-3 animate-spin' />
+                    <span className='hidden sm:inline'>Syncing...</span>
+                  </>
                 ) : (
-                  <RefreshCw className='h-3 w-3' />
+                  <>
+                    <RefreshCw className='h-3 w-3' />
+                    <span className='hidden sm:inline'>Refresh</span>
+                  </>
                 )}
-                Refresh
               </Button>
             </div>
           </div>
@@ -828,21 +856,6 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                   <RefreshCw className='h-4 w-4' />
                   Auto-Renewal & Subscription Management
                 </h4>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={verifyAutoRenewalStatus}
-                  disabled={isLoading}
-                  title='Verify auto-renewal status directly with Stripe'
-                  className='flex items-center gap-1.5 text-blue-400 border-blue-600/50 hover:bg-blue-900/20'
-                >
-                  {isLoading ? (
-                    <Loader2 className='h-3 w-3 animate-spin' />
-                  ) : (
-                    <Eye className='h-3 w-3' />
-                  )}
-                  Verify Status
-                </Button>
               </div>
               <div
                 className={`p-4 rounded-lg border ${
@@ -1465,70 +1478,72 @@ This data comes directly from Stripe and shows the REAL status of your subscript
                     <AlertDialogTitle className='text-lg sm:text-xl md:text-2xl font-bold text-red-600 text-center leading-tight'>
                       Disable Auto-Renewal?
                     </AlertDialogTitle>
-                    <AlertDialogDescription className='text-center mt-3 sm:mt-4 px-2'>
-                      <div className='space-y-3 sm:space-y-4'>
-                        <p className='text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed'>
-                          This will disable auto-renewal for your subscription.
-                          Here's what happens:
-                        </p>
-                        <div className='bg-gradient-to-br from-gray-800/50 to-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-600'>
-                          <ul className='space-y-2 sm:space-y-3 text-left'>
-                            <li className='flex items-start gap-2 sm:gap-3'>
-                              <span className='text-green-500 text-sm sm:text-base'>
-                                ✅
-                              </span>
-                              <span className='text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed'>
-                                Your subscription stays{' '}
-                                <strong className='text-green-600'>
-                                  active
-                                </strong>{' '}
-                                until{' '}
-                                <strong className='text-blue-600'>
-                                  {subscription?.stripe?.currentPeriodEnd
-                                    ? new Date(
-                                        subscription.stripe.currentPeriodEnd
-                                      ).toLocaleDateString()
-                                    : new Date(
-                                        subscription.subscriptionEnd
-                                      ).toLocaleDateString()}
-                                </strong>
-                              </span>
-                            </li>
-                            <li className='flex items-start gap-2 sm:gap-3'>
-                              <span className='text-green-500 text-sm sm:text-base'>
-                                ✅
-                              </span>
-                              <span className='text-xs sm:text-sm md:text-base text-gray-700'>
-                                You keep all premium features until then
-                              </span>
-                            </li>
-                            <li className='flex items-start gap-2 sm:gap-3'>
-                              <span className='text-blue-500 text-sm sm:text-base'>
-                                🔄
-                              </span>
-                              <span className='text-xs sm:text-sm md:text-base text-gray-700'>
-                                <strong className='text-blue-600'>
-                                  You can re-enable auto-renewal anytime
-                                </strong>{' '}
-                                before expiration
-                              </span>
-                            </li>
-                            <li className='flex items-start gap-2 sm:gap-3'>
-                              <span className='text-orange-500 text-sm sm:text-base'>
-                                ⏹️
-                              </span>
-                              <span className='text-xs sm:text-sm md:text-base text-gray-700'>
-                                Only expires if auto-renewal stays disabled
-                              </span>
-                            </li>
-                          </ul>
-                        </div>
-                        <div className='bg-gradient-to-r from-blue-900/20 to-cyan-900/20 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-700'>
-                          <p className='text-xs sm:text-sm text-blue-300 font-medium'>
-                            💡 <strong>Pro Tip:</strong> This is reversible!
-                            Simply toggle auto-renewal back on to resume normal
-                            billing.
+                    <AlertDialogDescription asChild>
+                      <div className='text-center mt-3 sm:mt-4 px-2'>
+                        <div className='space-y-3 sm:space-y-4'>
+                          <p className='text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed'>
+                            This will disable auto-renewal for your
+                            subscription. Here's what happens:
                           </p>
+                          <div className='bg-gradient-to-br from-gray-800/50 to-slate-800/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-600'>
+                            <ul className='space-y-2 sm:space-y-3 text-left'>
+                              <li className='flex items-start gap-2 sm:gap-3'>
+                                <span className='text-green-500 text-sm sm:text-base'>
+                                  ✅
+                                </span>
+                                <span className='text-xs sm:text-sm md:text-base text-gray-700 leading-relaxed'>
+                                  Your subscription stays{' '}
+                                  <strong className='text-green-600'>
+                                    active
+                                  </strong>{' '}
+                                  until{' '}
+                                  <strong className='text-blue-600'>
+                                    {subscription?.stripe?.currentPeriodEnd
+                                      ? new Date(
+                                          subscription.stripe.currentPeriodEnd
+                                        ).toLocaleDateString()
+                                      : new Date(
+                                          subscription.subscriptionEnd
+                                        ).toLocaleDateString()}
+                                  </strong>
+                                </span>
+                              </li>
+                              <li className='flex items-start gap-2 sm:gap-3'>
+                                <span className='text-green-500 text-sm sm:text-base'>
+                                  ✅
+                                </span>
+                                <span className='text-xs sm:text-sm md:text-base text-gray-700'>
+                                  You keep all premium features until then
+                                </span>
+                              </li>
+                              <li className='flex items-start gap-2 sm:gap-3'>
+                                <span className='text-blue-500 text-sm sm:text-base'>
+                                  🔄
+                                </span>
+                                <span className='text-xs sm:text-sm md:text-base text-gray-700'>
+                                  <strong className='text-blue-600'>
+                                    You can re-enable auto-renewal anytime
+                                  </strong>{' '}
+                                  before expiration
+                                </span>
+                              </li>
+                              <li className='flex items-start gap-2 sm:gap-3'>
+                                <span className='text-orange-500 text-sm sm:text-base'>
+                                  ⏹️
+                                </span>
+                                <span className='text-xs sm:text-sm md:text-base text-gray-700'>
+                                  Only expires if auto-renewal stays disabled
+                                </span>
+                              </li>
+                            </ul>
+                          </div>
+                          <div className='bg-gradient-to-r from-blue-900/20 to-cyan-900/20 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-700'>
+                            <p className='text-xs sm:text-sm text-blue-300 font-medium'>
+                              💡 <strong>Pro Tip:</strong> This is reversible!
+                              Simply toggle auto-renewal back on to resume
+                              normal billing.
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </AlertDialogDescription>

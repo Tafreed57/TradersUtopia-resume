@@ -66,7 +66,8 @@ export default function HomePage() {
 
         {/* Hero Section - Mobile-Optimized */}
         <section
-          id='hero' className='max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-12 sm:pb-16'
+          id='hero'
+          className='max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-12 sm:pb-16'
         >
           <div className='text-center mb-16'>
             {/* Social Proof Badge - Mobile-Optimized */}
@@ -163,15 +164,23 @@ export default function HomePage() {
               </p>
             </div>
             <div className='relative max-w-5xl mx-auto'>
-              <div className='aspect-video bg-gradient-to-br from-gray-900 to-black rounded-xl sm:rounded-2xl flex items-center justify-center border border-gray-600/50 shadow-2xl relative overflow-hidden group hover:border-yellow-400/50 transition-all duration-500 touch-manipulation'>
-                {/* Video thumbnail effect */}
-                <div className='absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500'></div>
-                <div className='flex items-center gap-2 sm:gap-4 bg-black/90 rounded-full px-4 sm:px-6 md:px-8 py-3 sm:py-4 border border-yellow-400/30 hover:border-yellow-400/60 transition-all duration-300 hover:scale-105 cursor-pointer group-hover:shadow-lg group-hover:shadow-yellow-400/20'>
-                  <Play className='w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-yellow-400' />
-                  <span className='text-white font-semibold text-sm sm:text-base md:text-lg'>
-                    Watch 2-min Demo
-                  </span>
-                </div>
+              <div className='aspect-video bg-gradient-to-br from-gray-900 to-black rounded-xl sm:rounded-2xl border border-gray-600/50 shadow-2xl relative overflow-hidden group hover:border-yellow-400/50 transition-all duration-500'>
+                {/* YouTube Video Embed */}
+                <iframe
+                  className='w-full h-full rounded-xl sm:rounded-2xl'
+                  src='https://www.youtube.com/embed/XMW0WVYBbLY?rel=0&modestbranding=1&showinfo=0'
+                  title='TradersUtopia Demo - See Our Platform in Action'
+                  frameBorder='0'
+                  allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+                  allowFullScreen
+                ></iframe>
+              </div>
+              {/* Video Description */}
+              <div className='text-center mt-4'>
+                <p className='text-gray-400 text-sm'>
+                  🎯 See how our platform delivers real-time trading signals and
+                  market analysis
+                </p>
               </div>
             </div>
           </div>
@@ -179,7 +188,8 @@ export default function HomePage() {
 
         {/* Features Section - Mobile-Optimized */}
         <section
-          id='features' className='bg-gradient-to-b from-gray-900/50 to-black py-12 sm:py-16 md:py-20'
+          id='features'
+          className='bg-gradient-to-b from-gray-900/50 to-black py-12 sm:py-16 md:py-20'
         >
           <div className='max-w-7xl mx-auto px-4 sm:px-6'>
             <div className='text-center mb-16'>
@@ -448,7 +458,8 @@ export default function HomePage() {
 
                   <div className='pt-4'>
                     <Link
-                      href='/free-videos' className='inline-flex items-center gap-3 bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 hover:from-green-500 hover:via-blue-500 hover:to-purple-500 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 touch-manipulation'
+                      href='/free-videos'
+                      className='inline-flex items-center gap-3 bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 hover:from-green-500 hover:via-blue-500 hover:to-purple-500 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/25 touch-manipulation'
                     >
                       <Play className='w-5 h-5 sm:w-6 sm:h-6' />
                       <span className='text-sm sm:text-base'>
@@ -459,35 +470,30 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Right Side - Visual Preview */}
+                {/* Right Side - Video Preview */}
                 <div className='relative'>
                   <div className='aspect-video bg-gradient-to-br from-gray-900 to-black rounded-xl sm:rounded-2xl border border-gray-600/50 shadow-2xl overflow-hidden group hover:border-blue-400/50 transition-all duration-500'>
-                    {/* Video preview overlay */}
-                    <div className='absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500'></div>
-
-                    {/* Play button */}
-                    <div className='absolute inset-0 flex items-center justify-center'>
-                      <div className='w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-green-500 via-blue-500 to-purple-600 rounded-full flex items-center justify-center cursor-pointer group-hover:scale-110 transition-transform duration-300 shadow-lg'>
-                        <Play className='w-8 h-8 sm:w-10 sm:h-10 text-white ml-1' />
-                      </div>
-                    </div>
-
-                    {/* Preview text */}
-                    <div className='absolute bottom-4 left-4 right-4'>
-                      <div className='bg-black/80 rounded-lg p-3 backdrop-blur-sm'>
-                        <p className='text-white text-xs sm:text-sm font-medium'>
-                          🎯 Preview: "How to Identify High-Probability Trades"
-                        </p>
-                        <p className='text-gray-300 text-xs'>
-                          Duration: 15 minutes • Free Access
-                        </p>
-                      </div>
-                    </div>
+                    {/* YouTube Video Embed for Free Videos Preview */}
+                    <iframe
+                      className='w-full h-full rounded-xl sm:rounded-2xl'
+                      src='https://www.youtube.com/embed/TdPQNrQrpXw?rel=0&modestbranding=1&showinfo=0'
+                      title='TradersUtopia Free Trading Education Preview'
+                      frameBorder='0'
+                      allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+                      allowFullScreen
+                    ></iframe>
                   </div>
 
                   {/* Floating stats */}
                   <div className='absolute -top-4 -right-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-black text-xs sm:text-sm font-bold px-3 sm:px-4 py-2 rounded-full shadow-lg'>
-                    🔥 10K+ Views
+                    🔥 Free Access
+                  </div>
+
+                  {/* Video Description */}
+                  <div className='mt-4 text-center'>
+                    <p className='text-gray-400 text-xs sm:text-sm'>
+                      🎯 Preview: Professional Trading Education • Free Access
+                    </p>
                   </div>
                 </div>
               </div>
@@ -551,7 +557,8 @@ export default function HomePage() {
                   src='/phone.png'
                   alt='Mobile Trading Results'
                   width={200}
-                  height={300} className='mx-auto mb-6'
+                  height={300}
+                  className='mx-auto mb-6'
                 />
                 <div className='text-center'>
                   <h3 className='text-2xl font-bold mb-2'>
@@ -574,7 +581,8 @@ export default function HomePage() {
                   src='/laptop.png'
                   alt='Desktop Trading Platform'
                   width={300}
-                  height={200} className='mx-auto mb-6'
+                  height={200}
+                  className='mx-auto mb-6'
                 />
                 <div className='text-center'>
                   <h3 className='text-2xl font-bold mb-2'>
@@ -597,7 +605,8 @@ export default function HomePage() {
 
         {/* Testimonials Section */}
         <section
-          id='testimonials' className='bg-gradient-to-b from-gray-900/50 to-black py-20'
+          id='testimonials'
+          className='bg-gradient-to-b from-gray-900/50 to-black py-20'
         >
           <div className='max-w-7xl mx-auto px-6'>
             <div className='text-center mb-16'>
@@ -612,7 +621,8 @@ export default function HomePage() {
                 <div className='flex items-center gap-1 mb-4'>
                   {[...Array(5)].map((_, i) => (
                     <Star
-                      key={i} className='w-4 h-4 text-yellow-400 fill-current'
+                      key={i}
+                      className='w-4 h-4 text-yellow-400 fill-current'
                     />
                   ))}
                 </div>
@@ -639,7 +649,8 @@ export default function HomePage() {
                 <div className='flex items-center gap-1 mb-4'>
                   {[...Array(5)].map((_, i) => (
                     <Star
-                      key={i} className='w-4 h-4 text-yellow-400 fill-current'
+                      key={i}
+                      className='w-4 h-4 text-yellow-400 fill-current'
                     />
                   ))}
                 </div>
@@ -666,7 +677,8 @@ export default function HomePage() {
                 <div className='flex items-center gap-1 mb-4'>
                   {[...Array(5)].map((_, i) => (
                     <Star
-                      key={i} className='w-4 h-4 text-yellow-400 fill-current'
+                      key={i}
+                      className='w-4 h-4 text-yellow-400 fill-current'
                     />
                   ))}
                 </div>
@@ -698,9 +710,7 @@ export default function HomePage() {
               <div className='w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6'>
                 <Shield className='w-8 h-8 text-green-400' />
               </div>
-              <h2 className='text-3xl font-bold mb-4'>
-                100% Risk-Free Guarantee
-              </h2>
+              <h2 className='text-3xl font-bold mb-4'>Our Commitment to You</h2>
               <p className='text-xl text-gray-300 mb-6'>
                 Join TradersUtopia and access our proven trading strategies and
                 professional alerts.
@@ -729,7 +739,8 @@ export default function HomePage() {
 
         {/* Final CTA Section */}
         <section
-          id='pricing' className='bg-gradient-to-b from-gray-900/50 to-black py-20'
+          id='pricing'
+          className='bg-gradient-to-b from-gray-900/50 to-black py-20'
         >
           <div className='max-w-4xl mx-auto px-6 text-center'>
             <h2 className='text-4xl md:text-5xl font-bold mb-6'>
@@ -761,7 +772,8 @@ export default function HomePage() {
               <div className='space-y-4 mb-8'>
                 <Link href='/pricing'>
                   <Button
-                    size='lg' className='bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-800 text-white px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-2xl border border-blue-400/30 hover:border-purple-400/50 hover:shadow-purple-500/25 w-full sm:w-auto touch-manipulation min-h-[48px] sm:min-h-[52px] md:min-h-[56px]'
+                    size='lg'
+                    className='bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-800 text-white px-6 sm:px-8 md:px-12 py-4 sm:py-5 md:py-6 text-base sm:text-lg md:text-xl font-bold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-2xl border border-blue-400/30 hover:border-purple-400/50 hover:shadow-purple-500/25 w-full sm:w-auto touch-manipulation min-h-[48px] sm:min-h-[52px] md:min-h-[56px]'
                   >
                     <div className='flex items-center gap-2'>
                       <span className='text-lg sm:text-xl animate-pulse'>
@@ -839,17 +851,20 @@ export default function HomePage() {
                 <h4 className='text-white font-semibold mb-3'>Product</h4>
                 <div className='space-y-2 text-sm'>
                   <Link
-                    href='#features' className='text-gray-400 hover:text-white block'
+                    href='#features'
+                    className='text-gray-400 hover:text-white block'
                   >
                     Features
                   </Link>
                   <Link
-                    href='#pricing' className='text-gray-400 hover:text-white block'
+                    href='#pricing'
+                    className='text-gray-400 hover:text-white block'
                   >
                     Pricing
                   </Link>
                   <SubscriptionProtectedLink
-                    href='/dashboard' className='text-gray-400 hover:text-white block'
+                    href='/dashboard'
+                    className='text-gray-400 hover:text-white block'
                   >
                     Dashboard
                   </SubscriptionProtectedLink>
@@ -860,17 +875,20 @@ export default function HomePage() {
                 <h4 className='text-white font-semibold mb-3'>Support</h4>
                 <div className='space-y-2 text-sm'>
                   <Link
-                    href='#' className='text-gray-400 hover:text-white block'
+                    href='#'
+                    className='text-gray-400 hover:text-white block'
                   >
                     Help Center
                   </Link>
                   <Link
-                    href='#' className='text-gray-400 hover:text-white block'
+                    href='#'
+                    className='text-gray-400 hover:text-white block'
                   >
                     Contact Us
                   </Link>
                   <Link
-                    href='#' className='text-gray-400 hover:text-white block'
+                    href='#'
+                    className='text-gray-400 hover:text-white block'
                   >
                     Terms of Service
                   </Link>
@@ -881,17 +899,20 @@ export default function HomePage() {
                 <h4 className='text-white font-semibold mb-3'>Legal</h4>
                 <div className='space-y-2 text-sm'>
                   <Link
-                    href='#' className='text-gray-400 hover:text-white block'
+                    href='#'
+                    className='text-gray-400 hover:text-white block'
                   >
                     Privacy Policy
                   </Link>
                   <Link
-                    href='#' className='text-gray-400 hover:text-white block'
+                    href='#'
+                    className='text-gray-400 hover:text-white block'
                   >
                     Risk Disclosure
                   </Link>
                   <Link
-                    href='#' className='text-gray-400 hover:text-white block'
+                    href='#'
+                    className='text-gray-400 hover:text-white block'
                   >
                     SEC Compliance
                   </Link>

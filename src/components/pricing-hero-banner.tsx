@@ -29,7 +29,7 @@ export function PricingHeroBanner() {
           {/* Center - Countdown Timer */}
           <div className='flex items-center'>
             <div className='bg-gradient-to-r from-red-800/50 to-orange-800/50 rounded px-2 sm:px-3 py-1 sm:py-1.5 border border-red-300/30 backdrop-blur-sm'>
-              <CountdownTimer initialMinutes={47} initialSeconds={33} />
+              <CountdownTimer />
             </div>
           </div>
 

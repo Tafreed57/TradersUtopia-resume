@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/prismadb';
 import { v4 as uuidv4 } from 'uuid';
+import { MemberRole } from '@prisma/client';
 
 const DEFAULT_SERVER_NAME = 'Traders Utopia';
 const DEFAULT_INVITE_CODE = 'TRADERS-UTOPIA';
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find or create the user's profile
-    let profile = await db.profile.findFirst({
+    let profile = await prisma.profile.findFirst({
       where: { userId: user.id },
     });
 
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'No email found' }, { status: 400 });
       }
 
-      profile = await db.profile.create({
+      profile = await prisma.profile.create({
         data: {
           userId: user.id,
           name: `${user.firstName} ${user.lastName}`,
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if default server exists
-    let defaultServer = await db.server.findFirst({
+    let defaultServer = await prisma.server.findFirst({
       where: {
         name: DEFAULT_SERVER_NAME,
         inviteCode: DEFAULT_INVITE_CODE,
@@ -54,13 +55,13 @@ export async function POST(request: NextRequest) {
       console.log(`🏗️ Creating default server: ${DEFAULT_SERVER_NAME}`);
 
       // Find the first admin user to be the server owner, or use current profile
-      const adminProfile = await db.profile.findFirst({
+      const adminProfile = await prisma.profile.findFirst({
         where: { isAdmin: true },
       });
 
       const serverOwner = adminProfile || profile;
 
-      defaultServer = await db.server.create({
+      defaultServer = await prisma.server.create({
         data: {
           name: DEFAULT_SERVER_NAME,
           imageUrl: null,
@@ -103,8 +104,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is already a member
-    const existingMembership = await db.member.findFirst({
+    // Check if user is already a member of default server
+    const existingMembership = await prisma.member.findFirst({
       where: {
         profileId: profile.id,
         serverId: defaultServer.id,
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     if (!existingMembership) {
       // Auto-join user to the default server
-      await db.member.create({
+      await prisma.member.create({
         data: {
           profileId: profile.id,
           serverId: defaultServer.id,
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
       const expectedRole = profile.isAdmin ? 'ADMIN' : 'GUEST';
 
       if (currentRole !== expectedRole) {
-        await db.member.update({
+        await prisma.member.update({
           where: {
             id: existingMembership.id,
           },
@@ -145,8 +146,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ✅ NEW: Auto-join user to ALL admin-created servers
+    const adminServers = await prisma.server.findMany({
+      where: {
+        profile: {
+          isAdmin: true,
+        },
+        id: {
+          not: defaultServer.id, // Exclude default server (already handled above)
+        },
+      },
+      include: {
+        members: {
+          where: {
+            profileId: profile.id,
+          },
+        },
+      },
+    });
+
+    let serversJoined = 0;
+    for (const server of adminServers) {
+      // If user is not already a member, add them
+      if (server.members.length === 0) {
+        await prisma.member.create({
+          data: {
+            profileId: profile.id,
+            serverId: server.id,
+            role: profile.isAdmin ? MemberRole.ADMIN : MemberRole.GUEST,
+          },
+        });
+
+        serversJoined++;
+        // Only log when actually joining a new server
+        console.log(
+          `✅ Auto-joined user ${profile.email} to admin server "${server.name}" as ${profile.isAdmin ? 'ADMIN' : 'GUEST'}`
+        );
+      }
+    }
+
+    // Only log the summary if servers were actually joined
+    if (serversJoined > 0) {
+      console.log(
+        `🎉 User ${profile.email} joined ${serversJoined} additional admin-created servers!`
+      );
+    }
+
     // Get updated server with all members
-    const server = await db.server.findFirst({
+    const server = await prisma.server.findFirst({
       where: { id: defaultServer.id },
       include: {
         channels: {
@@ -165,7 +212,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       server: server,
-      message: `Successfully joined ${DEFAULT_SERVER_NAME}!`,
+      serversJoined: serversJoined + 1, // +1 for default server
+      message: `Successfully joined ${DEFAULT_SERVER_NAME}${serversJoined > 0 ? ` and ${serversJoined} other admin servers` : ''}!`,
     });
   } catch (error) {
     console.error('Error ensuring default server:', error);

@@ -31,7 +31,6 @@ export function getStripeInstance(): Stripe | null {
   try {
     stripe = new Stripe(secretKey);
 
-    console.log('✅ [STRIPE] Stripe SDK initialized successfully');
     return stripe;
   } catch (error) {
     stripeInitError = `Failed to initialize Stripe SDK: ${error instanceof Error ? error.message : 'Unknown error'}`;

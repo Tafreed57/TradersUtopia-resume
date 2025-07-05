@@ -1,4 +1,5 @@
-import { Channel, ChannelType, Server } from '@prisma/client';
+import { Channel, ChannelType, Section, Server } from '@prisma/client';
+import { ServerWithMembersWithProfiles } from '@/types/server';
 import { StateCreator } from 'zustand';
 
 export type ModalType =
@@ -11,23 +12,33 @@ export type ModalType =
   | 'createChannel'
   | 'editChannel'
   | 'deleteChannel'
+  | 'createSection'
+  | 'editSection'
+  | 'editDefaultSection'
   | 'messageFile'
   | 'deleteMessage';
 
-export interface ModelData {
-  server?: Server;
+export interface ModalData {
+  server?: Server | ServerWithMembersWithProfiles;
   channel?: Channel;
+  section?: Section & { channels?: Channel[] };
   channelType?: ChannelType;
   apiUrl?: string;
   query?: Record<string, any>;
 }
-export interface ModalSlice {
+
+export interface ModalState {
   type: ModalType | null;
-  data: ModelData;
+  data: ModalData;
   isOpen: boolean;
-  onOpen: (type: ModalType, data?: ModelData) => void;
+}
+
+export interface ModalActions {
+  onOpen: (type: ModalType, data?: ModalData) => void;
   onClose: () => void;
 }
+
+export type ModalSlice = ModalState & ModalActions;
 
 export type SliceCreator<S> = StateCreator<
   S,

@@ -5,6 +5,8 @@ import { clerkClient } from '@clerk/nextjs/server';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import Stripe from 'stripe';
 
+export const dynamic = 'force-dynamic';
+
 // Cache for product data to avoid repeated API calls
 const productCache = new Map<string, string>();
 

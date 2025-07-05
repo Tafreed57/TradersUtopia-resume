@@ -70,7 +70,15 @@ export class ErrorBoundary extends React.Component<
   };
 
   handleGoHome = () => {
-    window.location.href = '/';
+    // Only redirect to home if user explicitly clicks the button
+    // Don't automatically redirect on errors
+    if (
+      window.confirm(
+        'Are you sure you want to go to the homepage? You will lose your current page.'
+      )
+    ) {
+      window.location.href = '/';
+    }
   };
 
   render() {
@@ -88,7 +96,7 @@ export class ErrorBoundary extends React.Component<
 
       // Default error UI
       return (
-        <div className='min-h-screen flex items-center justify-center p-4 bg-gray-900'>
+        <div className='min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95'>
           <Card className='w-full max-w-md'>
             <CardHeader className='text-center'>
               <div className='mx-auto mb-4 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center'>
@@ -102,7 +110,7 @@ export class ErrorBoundary extends React.Component<
             </CardHeader>
             <CardContent className='space-y-4'>
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className='p-3 bg-gray-800 rounded-lg'>
+                <div className='p-3 bg-gradient-to-r from-gray-800/80 via-gray-700/80 to-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-600/30'>
                   <p className='text-sm font-mono text-red-600'>
                     {this.state.error.message}
                   </p>

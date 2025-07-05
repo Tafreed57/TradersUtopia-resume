@@ -17,18 +17,17 @@ import { showToast } from '@/lib/notifications-client';
 import {
   Bell,
   BellRing,
-  Settings,
-  MessageSquare,
-  Shield,
-  CreditCard,
-  Users,
-  Gauge,
-  X,
   ChevronDown,
   ChevronUp,
-  Mail,
-  Smartphone,
+  CreditCard,
+  Gauge,
+  MessageSquare,
   Monitor,
+  Settings,
+  Shield,
+  Smartphone,
+  Users,
+  X,
 } from 'lucide-react';
 
 interface NotificationPreferences {
@@ -41,7 +40,6 @@ interface NotificationPreferences {
 }
 
 interface NotificationSettings {
-  email: NotificationPreferences;
   push: NotificationPreferences;
 }
 
@@ -53,16 +51,9 @@ export function NotificationSettings() {
   const [pushSupported, setPushSupported] = useState(false);
   const [pushPermission, setPushPermission] =
     useState<NotificationPermission>('default');
+  const [isClient, setIsClient] = useState(false);
 
   const [settings, setSettings] = useState<NotificationSettings>({
-    email: {
-      system: true,
-      security: true,
-      payment: true,
-      messages: true,
-      mentions: true,
-      serverUpdates: false,
-    },
     push: {
       system: true,
       security: true,
@@ -73,20 +64,61 @@ export function NotificationSettings() {
     },
   });
 
-  // Check if push notifications are supported
+  // Check if we're on the client side
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setPushSupported('serviceWorker' in navigator && 'PushManager' in window);
-      setPushPermission(Notification.permission);
-    }
+    setIsClient(true);
   }, []);
+
+  // Check if push notifications are supported with proper error handling
+  useEffect(() => {
+    if (!isClient) return;
+
+    try {
+      if (typeof window !== 'undefined') {
+        // Safely check for service worker and push manager support
+        let serviceWorkerSupported = false;
+        let pushManagerSupported = false;
+        let notificationPermission: NotificationPermission = 'default';
+
+        try {
+          serviceWorkerSupported = 'serviceWorker' in navigator;
+        } catch (e) {
+          console.warn('Service Worker check failed:', e);
+        }
+
+        try {
+          pushManagerSupported = 'PushManager' in window;
+        } catch (e) {
+          console.warn('PushManager check failed:', e);
+        }
+
+        try {
+          if (typeof Notification !== 'undefined' && Notification.permission) {
+            notificationPermission = Notification.permission;
+          }
+        } catch (e) {
+          console.warn('Notification permission check failed:', e);
+        }
+
+        setPushSupported(serviceWorkerSupported && pushManagerSupported);
+        setPushPermission(notificationPermission);
+      }
+    } catch (error) {
+      console.warn(
+        'Browser API check failed, disabling push notifications:',
+        error
+      );
+      setPushSupported(false);
+      setPushPermission('denied');
+    }
+  }, [isClient]);
 
   // Load user preferences
   useEffect(() => {
-    if (user) {
+    if (user && isClient) {
       loadPreferences();
     }
-  }, [user]);
+  }, [user, isClient]);
 
   const loadPreferences = async () => {
     try {
@@ -131,7 +163,7 @@ export function NotificationSettings() {
   };
 
   const togglePreference = (
-    category: 'email' | 'push',
+    category: 'push',
     key: keyof NotificationPreferences
   ) => {
     setSettings(prev => ({
@@ -143,20 +175,29 @@ export function NotificationSettings() {
     }));
   };
 
-  // Utility function to convert base64 VAPID key to Uint8Array
+  // Utility function to convert base64 VAPID key to Uint8Array with error handling
   const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+    try {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
 
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
+      if (typeof window === 'undefined' || typeof window.atob !== 'function') {
+        throw new Error('atob is not available');
+      }
 
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    } catch (error) {
+      console.error('Failed to convert VAPID key:', error);
+      throw new Error('Invalid VAPID key format');
     }
-    return outputArray;
   };
 
   const enablePushNotifications = async () => {
@@ -180,38 +221,70 @@ export function NotificationSettings() {
         return;
       }
 
-      const permission = await Notification.requestPermission();
+      let permission: NotificationPermission = 'default';
+
+      try {
+        if (
+          typeof Notification !== 'undefined' &&
+          Notification.requestPermission
+        ) {
+          permission = await Notification.requestPermission();
+        } else {
+          throw new Error('Notification API not available');
+        }
+      } catch (error) {
+        console.error('Failed to request notification permission:', error);
+        showToast.error('Error', 'Failed to request notification permission');
+        return;
+      }
+
       setPushPermission(permission);
 
       if (permission === 'granted') {
-        // Register service worker and subscribe to push notifications
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        try {
+          // Register service worker and subscribe to push notifications
+          if (!navigator.serviceWorker) {
+            throw new Error('Service Worker not available');
+          }
 
-        // Wait for service worker to be ready
-        await navigator.serviceWorker.ready;
+          const registration = await navigator.serviceWorker.register('/sw.js');
 
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-        });
+          // Wait for service worker to be ready
+          await navigator.serviceWorker.ready;
 
-        // Send subscription to backend
-        const response = await fetch('/api/notifications/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscription }),
-        });
+          if (!registration.pushManager) {
+            throw new Error('Push Manager not available');
+          }
 
-        if (response.ok) {
-          showToast.success(
-            'Push notifications enabled',
-            'You will now receive push notifications'
-          );
-        } else {
-          const errorData = await response.json();
-          console.error('Push subscription API error:', errorData);
-          throw new Error(
-            errorData.message || 'Failed to save push subscription'
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
+
+          // Send subscription to backend
+          const response = await fetch('/api/notifications/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription }),
+          });
+
+          if (response.ok) {
+            showToast.success(
+              'Push notifications enabled',
+              'You will now receive push notifications'
+            );
+          } else {
+            const errorData = await response.json();
+            console.error('Push subscription API error:', errorData);
+            throw new Error(
+              errorData.message || 'Failed to save push subscription'
+            );
+          }
+        } catch (error) {
+          console.error('Service Worker/Push subscription error:', error);
+          showToast.error(
+            'Error',
+            'Failed to enable push notifications. This feature may not be available on your device.'
           );
         }
       } else {
@@ -223,32 +296,6 @@ export function NotificationSettings() {
     } catch (error) {
       console.error('Failed to enable push notifications:', error);
       showToast.error('Error', 'Failed to enable push notifications');
-    }
-  };
-
-  const testEmailNotification = async () => {
-    try {
-      setIsSaving(true);
-      const response = await fetch('/api/test-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        showToast.success(
-          'Test email sent!',
-          'Check your inbox for the test notification email'
-        );
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to send test email');
-      }
-    } catch (error) {
-      console.error('Failed to send test email:', error);
-      showToast.error('Error', 'Failed to send test email');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -276,8 +323,8 @@ export function NotificationSettings() {
     },
     {
       key: 'messages' as const,
-      title: 'Direct Messages',
-      description: 'New messages and conversation updates',
+      title: 'Channel Messages',
+      description: 'New channel messages and updates',
       icon: MessageSquare,
       color: 'bg-purple-500',
     },
@@ -297,12 +344,29 @@ export function NotificationSettings() {
     },
   ];
 
+  // Don't render until we're on the client to prevent hydration mismatches
+  if (!isClient) {
+    return (
+      <div className='w-full'>
+        <Card className='border-gray-600/30 bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-md'>
+          <CardContent className='flex items-center justify-center py-6'>
+            <div className='flex items-center gap-2'>
+              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400'></div>
+              <span>Loading notification settings...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!isExpanded) {
     return (
       <Button
         variant='outline'
         size='sm'
-        onClick={() => setIsExpanded(true)} className='flex items-center gap-2 border-yellow-400/30 text-yellow-300 hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all duration-300'
+        onClick={() => setIsExpanded(true)}
+        className='flex items-center gap-2 border-yellow-400/30 text-yellow-300 hover:bg-yellow-500/20 hover:border-yellow-400/50 transition-all duration-300'
       >
         <Settings className='h-4 w-4' />
         View Settings
@@ -327,7 +391,8 @@ export function NotificationSettings() {
             <Button
               variant='ghost'
               size='sm'
-              onClick={() => setIsExpanded(false)} className='h-8 w-8 p-0 text-gray-400 hover:text-white'
+              onClick={() => setIsExpanded(false)}
+              className='h-8 w-8 p-0 text-gray-400 hover:text-white'
             >
               <X className='h-4 w-4' />
             </Button>
@@ -348,70 +413,6 @@ export function NotificationSettings() {
             </div>
           ) : (
             <>
-              {/* Email Notifications Section */}
-              <div>
-                <div className='flex items-center justify-between mb-6'>
-                  <div className='flex items-center gap-3'>
-                    <div className='w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center'>
-                      <Mail className='h-5 w-5 text-blue-400' />
-                    </div>
-                    <div>
-                      <h3 className='font-semibold text-lg text-white'>
-                        Email Notifications
-                      </h3>
-                      <Badge
-                        variant='outline' className='text-xs mt-1 border-blue-400/30 text-blue-300'
-                      >
-                        {Object.values(settings.email).filter(Boolean).length}{' '}
-                        enabled
-                      </Badge>
-                    </div>
-                  </div>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={testEmailNotification}
-                    disabled={isSaving} className='text-xs px-3 py-2 h-8 border-blue-400/30 text-blue-300 hover:bg-blue-500/20'
-                  >
-                    Test Email
-                  </Button>
-                </div>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  {notificationTypes.map(type => {
-                    const IconComponent = type.icon;
-                    return (
-                      <div
-                        key={`email-${type.key}`} className='flex items-center justify-between p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300'
-                      >
-                        <div className='flex items-center gap-3'>
-                          <div
-                            className={`p-2 rounded-lg ${type.color} bg-opacity-10`}
-                          >
-                            <IconComponent className='h-4 w-4' />
-                          </div>
-                          <div className='flex-1'>
-                            <h4 className='font-medium text-sm text-white'>
-                              {type.title}
-                            </h4>
-                            <p className='text-xs text-gray-400 mt-0.5'>
-                              {type.description}
-                            </p>
-                          </div>
-                        </div>
-                        <Switch
-                          checked={settings.email[type.key]}
-                          onCheckedChange={() =>
-                            togglePreference('email', type.key)
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <Separator className='bg-gray-600/30' />
-
               {/* Push Notifications Section */}
               <div>
                 <div className='flex items-center gap-3 mb-6'>
@@ -448,7 +449,8 @@ export function NotificationSettings() {
                       </div>
                       <Button
                         size='sm'
-                        onClick={enablePushNotifications} className='bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg'
+                        onClick={enablePushNotifications}
+                        className='bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg'
                       >
                         Enable
                       </Button>
@@ -500,13 +502,6 @@ export function NotificationSettings() {
                 <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
                   <div className='text-sm text-gray-300 space-y-2'>
                     <p className='flex items-center gap-2'>
-                      <span className='w-2 h-2 bg-blue-400 rounded-full'></span>
-                      Email:{' '}
-                      {
-                        Object.values(settings.email).filter(Boolean).length
-                      } of {notificationTypes.length} enabled
-                    </p>
-                    <p className='flex items-center gap-2'>
                       <span className='w-2 h-2 bg-green-400 rounded-full'></span>
                       Push:{' '}
                       {Object.values(settings.push).filter(Boolean).length} of{' '}
@@ -517,7 +512,8 @@ export function NotificationSettings() {
                     <Button
                       variant='outline'
                       size='sm'
-                      onClick={() => setIsExpanded(false)} className='border-gray-600/50 text-gray-300 hover:bg-gray-700/50 h-10 sm:h-8 touch-manipulation w-full sm:w-auto'
+                      onClick={() => setIsExpanded(false)}
+                      className='border-gray-600/50 text-gray-300 hover:bg-gray-700/50 h-10 sm:h-8 touch-manipulation w-full sm:w-auto'
                     >
                       <ChevronUp className='h-4 w-4 mr-2' />
                       Collapse
@@ -525,7 +521,8 @@ export function NotificationSettings() {
                     <Button
                       size='sm'
                       onClick={savePreferences}
-                      disabled={isSaving} className='bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg h-10 sm:h-8 touch-manipulation font-semibold w-full sm:w-auto min-w-[120px]'
+                      disabled={isSaving}
+                      className='bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white shadow-lg h-10 sm:h-8 touch-manipulation font-semibold w-full sm:w-auto min-w-[120px]'
                     >
                       {isSaving ? (
                         <div className='flex items-center gap-2'>
