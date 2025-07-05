@@ -68,7 +68,6 @@ export async function GET(
       stripeProductId: null,
       backupCodes: [],
       isAdmin: false,
-      emailNotifications: null,
       pushNotifications: null,
       pushSubscriptions: [],
     };

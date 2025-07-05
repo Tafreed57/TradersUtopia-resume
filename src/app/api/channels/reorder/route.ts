@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Authentication
-    const { userId } = auth();
+    const userId = (await auth()).userId;
     if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }

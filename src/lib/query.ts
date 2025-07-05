@@ -88,7 +88,7 @@ export async function initProfile() {
 
   try {
     const user = await currentUser();
-    if (!user) return auth().redirectToSignIn();
+    if (!user) return (await auth()).redirectToSignIn();
 
     const userEmail = user.primaryEmailAddress?.emailAddress;
 
@@ -193,13 +193,13 @@ Happy Trading! 📈
     console.error('❌ [initProfile] Clerk authentication error:', error);
 
     // If Clerk authentication fails, redirect to sign in
-    return auth().redirectToSignIn();
+    return (await auth()).redirectToSignIn();
   }
 }
 
 // ✅ PERFORMANCE: Lightweight auth function for frequent API calls (NO login sync)
 export async function getCurrentProfileForAuth() {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     throw new Error('Unauthorized');
@@ -222,7 +222,7 @@ export async function getCurrentProfileForAuth() {
 export async function getCurrentProfileWithSync() {
   try {
     const user = await currentUser();
-    if (!user) return auth().redirectToSignIn();
+    if (!user) return (await auth()).redirectToSignIn();
 
     const userEmail = user.primaryEmailAddress?.emailAddress;
     const name =
@@ -299,7 +299,7 @@ export async function getCurrentProfileWithSync() {
 
     // Check if user is actually authenticated but there's just a temporary issue
     try {
-      const { userId } = auth();
+      const { userId } = await auth();
       if (userId) {
         console.error(
           '🔴 [Profile Error] User is authenticated but profile loading failed. This might be a temporary database issue.'
@@ -314,12 +314,12 @@ export async function getCurrentProfileWithSync() {
     }
 
     // Only redirect to sign-in if user is actually not authenticated
-    return auth().redirectToSignIn();
+    return (await auth()).redirectToSignIn();
   }
 }
 
 export async function getCurrentProfile() {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return null;

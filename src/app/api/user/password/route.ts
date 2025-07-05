@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     // Handle first-time password setup for OAuth users
     if (!user.passwordEnabled) {
       // For first-time setup, we don't need current password verification
-      await clerkClient.users.updateUser(userId, {
+      await clerk.users.updateUser(userId, {
         password: newPassword,
       });
       return NextResponse.json({
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     try {
       // Note: Clerk doesn't provide direct password verification,
       // so we rely on the update operation to validate the current password
-      await clerkClient.users.updateUser(userId, {
+      await clerk.users.updateUser(userId, {
         password: newPassword,
       });
       return NextResponse.json({
