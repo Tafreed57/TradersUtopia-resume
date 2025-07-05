@@ -2,13 +2,15 @@
 
 import { ChatItem } from '@/components/chat/chat-item';
 import { ChatWelcome } from '@/components/chat/chat-welcome';
-import { useChatQuery } from '@/hooks/use-chat-query';
 import { useChatScroll } from '@/hooks/use-chat-scroll';
+import { sourceChannelMap } from '@/lib/channel-mapping';
 import { MessagesWithMemberWithProfile } from '@/types/server';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Member } from '@prisma/client';
 import { format } from 'date-fns';
 import { Loader2, ServerCrash } from 'lucide-react';
 import { ElementRef, Fragment, useRef } from 'react';
+import qs from 'query-string';
 
 const DATE_FORMAT = 'd MMM yyyy, HH:mm';
 
@@ -41,12 +43,39 @@ export function ChatMessages({
   const chatRef = useRef<ElementRef<'div'>>(null);
   const bottomRef = useRef<ElementRef<'div'>>(null);
 
+  const isSourceChannel = Object.keys(sourceChannelMap).includes(name);
+
+  const fetchMessages = async ({ pageParam = undefined }) => {
+    const url = isSourceChannel
+      ? qs.stringifyUrl({
+          url: `/api/source-messages/${name}`,
+          query: {
+            cursor: pageParam,
+          },
+        })
+      : qs.stringifyUrl(
+          {
+            url: apiUrl,
+            query: {
+              [paramKey]: paramValue,
+              cursor: pageParam,
+            },
+          },
+          { skipNull: true }
+        );
+
+    const res = await fetch(url);
+    return res.json();
+  };
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
-    useChatQuery({
-      apiUrl,
-      paramKey,
-      paramValue,
-      queryKey: `chat:${chatId}`,
+    useInfiniteQuery({
+      initialPageParam: undefined,
+      queryKey: [isSourceChannel ? `${queryKey}:source` : queryKey],
+      queryFn: fetchMessages,
+      getNextPageParam: lastPage => lastPage?.nextCursor,
+      refetchInterval: isSourceChannel ? 30000 : 5000,
+      staleTime: 1000,
     });
 
   const latestMessageId =
@@ -90,7 +119,8 @@ export function ChatMessages({
             <Loader2 className='h-6 w-6 text-zinc-500 animate-spin my-4' />
           ) : (
             <button
-              onClick={() => fetchNextPage()} className='text-zinc-500 hover:text-zinc-600 text-xs my-4 transition'
+              onClick={() => fetchNextPage()}
+              className='text-zinc-500 hover:text-zinc-600 text-xs my-4 transition'
             >
               Load previous messages
             </button>
