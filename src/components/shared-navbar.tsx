@@ -20,6 +20,7 @@ import {
   TrendingUp,
   MessageSquare,
   Shield,
+  Loader2,
 } from 'lucide-react';
 
 interface SharedNavbarProps {
@@ -30,11 +31,15 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
   const { isLoaded } = useUser();
   const [isMounted, setIsMounted] = useState(false);
   const { isScrolled } = useScrollPosition();
+  const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
 
   // ✅ FIX: Prevent hydration mismatch by waiting for client-side mount
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // ✅ FIX: Use simple local loading state to avoid hydration errors
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
 
   return (
     <>
@@ -91,16 +96,36 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
             {currentPage === 'home' ? (
               // Homepage Section Anchor Links
               <>
-                <Link href='/dashboard'>
-                  <Button
-                    variant='ghost'
-                    className='h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30'
-                  >
+                <SubscriptionProtectedLink
+                  href='/dashboard'
+                  variant='ghost'
+                  className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30 hover:scale-105 active:scale-95 ${
+                    isNavigatingToDashboard
+                      ? 'border-yellow-400/50 bg-yellow-400/10 opacity-75'
+                      : ''
+                  }`}
+                  onClick={() => {
+                    setIsNavigatingToDashboard(true);
+                    setIsLoadingDashboard(true);
+                    // Reset after a delay in case navigation fails
+                    setTimeout(() => {
+                      setIsNavigatingToDashboard(false);
+                      setIsLoadingDashboard(false);
+                    }, 5000);
+                  }}
+                >
+                  {isNavigatingToDashboard ? (
+                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                  ) : (
                     <Crown className='w-4 h-4 mr-2' />
-                    <span className='hidden lg:inline'>Dashboard</span>
-                    <span className='lg:hidden'>App</span>
-                  </Button>
-                </Link>
+                  )}
+                  <span className='hidden lg:inline'>
+                    {isNavigatingToDashboard ? 'Loading...' : 'Dashboard'}
+                  </span>
+                  <span className='lg:hidden'>
+                    {isNavigatingToDashboard ? 'Loading...' : 'App'}
+                  </span>
+                </SubscriptionProtectedLink>
 
                 <a href='#features'>
                   <Button

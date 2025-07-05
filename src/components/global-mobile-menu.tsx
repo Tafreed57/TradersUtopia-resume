@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import {
   Menu,
   Home,
@@ -15,6 +16,7 @@ import {
   Video,
   TrendingUp,
   MessageSquare,
+  Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSmartRouting } from '@/lib/smart-routing';
@@ -29,6 +31,7 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isNavProcessing, setIsNavProcessing] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
   const router = useRouter();
   const { isLoaded } = useUser();
 
@@ -228,6 +231,39 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
           <nav className='flex flex-col gap-2 mb-8 flex-1'>
             {navigationItems.map(item => {
               const Icon = item.icon;
+
+              // Special handling for Dashboard button with comprehensive loading
+              if (item.id === 'dashboard') {
+                return (
+                  <SubscriptionProtectedLink
+                    key={item.id}
+                    href='/dashboard'
+                    variant='ghost'
+                    className={`w-full justify-start text-white hover:bg-white/10 hover:text-yellow-400 transition-all duration-200 py-3 px-4 ${
+                      isNavigatingToDashboard
+                        ? 'bg-yellow-400/10 text-yellow-400 opacity-75'
+                        : ''
+                    }`}
+                    onClick={() => {
+                      setIsNavigatingToDashboard(true);
+                      setIsOpen(false); // Close mobile menu
+                      // Reset after a delay in case navigation fails
+                      setTimeout(() => {
+                        setIsNavigatingToDashboard(false);
+                      }, 5000);
+                    }}
+                  >
+                    {isNavigatingToDashboard ? (
+                      <Loader2 className='w-4 h-4 mr-3 animate-spin' />
+                    ) : (
+                      <Icon className='w-4 h-4 mr-3' />
+                    )}
+                    {isNavigatingToDashboard ? 'Loading...' : item.label}
+                  </SubscriptionProtectedLink>
+                );
+              }
+
+              // Regular button for all other items
               return (
                 <Button
                   key={item.id}

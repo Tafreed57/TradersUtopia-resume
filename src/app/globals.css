@@ -227,22 +227,6 @@ body,
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* Mobile-specific optimizations for auth pages */
-@media (max-width: 767px) {
-  .glass {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-
-  /* Ensure proper touch targets on mobile */
-  button,
-  a,
-  [role='button'] {
-    min-height: 44px !important;
-    min-width: 44px !important;
-  }
-}
-
 /* Mobile-first responsive spacing */
 .space-mobile {
   @apply space-y-4 sm:space-y-6 md:space-y-8;
@@ -334,8 +318,98 @@ body,
   clip-path: unset !important;
 }
 
-/* Mobile device optimizations */
+/* Mobile device optimizations - FIXED VERSION */
 @media (max-width: 767px) {
+  /* Prevent horizontal scroll while allowing proper content flow */
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Dashboard specific mobile fixes */
+  .dashboard-mobile-container {
+    max-width: 100vw;
+    overflow-x: hidden;
+    padding: 0.75rem; /* Mobile padding */
+  }
+
+  /* Ensure proper grid behavior on mobile */
+  .grid-mobile-safe {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Card content mobile optimization */
+  .card-mobile-safe {
+    overflow: hidden;
+    word-wrap: break-word;
+    word-break: break-word;
+    min-height: auto; /* Allow natural height expansion */
+  }
+
+  /* Tab content specific fixes - SIMPLIFIED */
+  .tab-content-mobile {
+    width: 100%;
+    overflow: visible;
+  }
+
+  /* Text truncation fixes */
+  .truncate-mobile {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Flex container mobile fixes */
+  .flex-mobile-safe {
+    min-width: 0;
+  }
+
+  .flex-1-mobile-safe {
+    min-width: 0;
+    overflow: hidden;
+    flex: 1 1 0%;
+  }
+
+  /* Enhanced mobile spacing for better UX - SIMPLIFIED */
+  .mobile-spacing-enhanced {
+    padding: 1rem; /* 16px */
+    margin-bottom: 1rem; /* 16px */
+  }
+
+  /* Mobile header improvements */
+  .mobile-header-spacing {
+    padding: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Glass effect mobile optimization */
+  .glass {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    margin: 0.75rem;
+    padding: 1.5rem;
+  }
+
+  /* Ensure proper touch targets on mobile */
+  button,
+  a,
+  [role='button'] {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Mobile input optimization */
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
   /* Reduce motion for better mobile performance */
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -345,26 +419,6 @@ body,
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
-  }
-
-  /* Optimize font sizes for small screens */
-  .text-hero {
-    @apply text-2xl leading-tight;
-  }
-
-  /* Ensure all interactive elements are touch-friendly */
-  button,
-  input,
-  select,
-  textarea {
-    min-height: 44px;
-    font-size: 16px; /* Prevents zoom on iOS */
-  }
-
-  /* Auth page mobile optimizations */
-  .glass {
-    margin: 0.5rem;
-    padding: 1.5rem !important;
   }
 }
 
