@@ -115,14 +115,14 @@ export function AutoRouteAfterSignIn() {
     isClient,
   ]);
 
-  // Show loading overlay when auto-routing
+  // Show loading overlay when auto-routing (with lower z-index than main loading screen)
   if (isAutoRouting) {
     return (
-      <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
-        <div className='bg-white dark:bg-gradient-to-br dark:from-gray-800/90 dark:via-gray-700/85 dark:to-gray-800/90 dark:backdrop-blur-xl dark:border dark:border-gray-700/50 rounded-lg p-6 text-center max-w-sm'>
+      <div className='fixed inset-0 bg-black/30 flex items-center justify-center z-40'>
+        <div className='bg-white dark:bg-gradient-to-br dark:from-gray-800/90 dark:via-gray-700/85 dark:to-gray-800/90 dark:backdrop-blur-xl dark:border dark:border-gray-700/50 rounded-lg p-6 text-center max-w-sm mx-4'>
           <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4'></div>
           <h3 className='text-lg font-semibold mb-2'>Welcome back!</h3>
-          <p className='text-gray-600 dark:text-gray-300'>
+          <p className='text-gray-600 dark:text-gray-300 text-sm'>
             Checking your subscription and routing you to the right place...
           </p>
         </div>
