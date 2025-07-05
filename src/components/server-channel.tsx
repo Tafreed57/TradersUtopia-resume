@@ -2,7 +2,7 @@
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { cn } from '@/lib/utils';
 import { Channel, ChannelType, MemberRole, Server } from '@prisma/client';
-import { Edit, Hash, Trash, Lock, GripVertical } from 'lucide-react';
+import { Edit, Hash, Trash, GripVertical } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import React, {
   useMemo,
@@ -16,7 +16,7 @@ import { ModalType } from '@/types/store';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-interface ServerChannelParams {
+interface ServerChannelProps {
   channel: Channel;
   server: Server;
   role?: MemberRole;
@@ -27,23 +27,30 @@ const iconMap = {
   [ChannelType.TEXT]: Hash,
 };
 
-export function ServerChannel({ channel, server, role }: ServerChannelParams) {
+export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const onOpen = useStore.use.onOpen();
   const router = useRouter();
   const params = useParams();
   const [isPending, startTransition] = useTransition();
   const [optimisticActive, setOptimisticActive] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Prevent hydration mismatch by ensuring component only renders on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // ✅ SIMPLIFIED: Always Hash icon since we only support TEXT channels
   const Icon = iconMap[channel.type] || Hash;
-  const isActive = params?.channelId === channel.id || optimisticActive;
+  const isActive =
+    (isMounted && params?.channelId === channel.id) || optimisticActive;
 
   // ✅ UPDATED: Allow admins and moderators to edit any channel including general
-  const canManageChannel = role !== MemberRole.GUEST;
+  const canModify = role !== MemberRole.GUEST;
 
   // Enable drag and drop for channels when user can manage them
-  const isDraggable = canManageChannel;
+  const isDraggable = canModify;
 
   const {
     attributes,
@@ -56,7 +63,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
     id: `channel-${channel.id}`,
     disabled: !isDraggable,
     data: {
-      type: 'channel',
+      type: 'Channel',
       channel,
       serverId: server.id,
       position: channel.position,
@@ -84,25 +91,30 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
 
   // Optimistic navigation with instant UI feedback
   const onClick = useCallback(() => {
+    if (!isMounted) return;
     if (params?.channelId !== channel.id) {
       // Optimistically update the UI immediately
       setOptimisticActive(true);
 
-      // Then perform the actual navigation
+      // Use startTransition for better UX
       startTransition(() => {
         router.push(`/servers/${params?.serverId}/channels/${channel.id}`);
       });
+
+      // Reset optimistic state after navigation
+      setTimeout(() => {
+        setOptimisticActive(false);
+      }, 1000);
     }
-  }, [router, params?.serverId, params?.channelId, channel.id]);
+  }, [router, params?.serverId, params?.channelId, channel.id, isMounted]);
 
   // Memoize the action handler to prevent unnecessary re-renders
   const onAction = useCallback(
     (e: React.MouseEvent, action: ModalType) => {
       e.stopPropagation();
-      e.preventDefault();
-      onOpen(action, { server, channel });
+      onOpen(action, { channel, server });
     },
-    [onOpen, server, channel]
+    [onOpen, channel, server]
   );
 
   // Memoize the button classes
@@ -143,6 +155,21 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
       ),
     [isActive]
   );
+
+  if (isDragging) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className='bg-gray-800/50 border border-gray-600/50 rounded-md p-2 opacity-50 mb-1'
+      >
+        <div className='flex items-center gap-x-2'>
+          <Icon className='w-5 h-5 text-gray-400' />
+          <span className='text-sm text-gray-400'>{channel.name}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -195,7 +222,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
       </div>
 
       {/* Edit and Delete buttons with much higher z-index */}
-      {canManageChannel && (
+      {canModify && (
         <div
           className={cn(
             'absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 z-[70]',

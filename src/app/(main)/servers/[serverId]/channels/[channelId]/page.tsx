@@ -6,6 +6,8 @@ import {
   getCurrentProfile,
   getGeneralServer,
   getMember,
+  getServer,
+  getAllServers,
 } from '@/lib/query';
 import { cn } from '@/lib/utils';
 import { auth } from '@clerk/nextjs/server';
@@ -49,6 +51,10 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
     return redirect('/');
   }
 
+  // Fetch server data for mobile navigation
+  const server = await getServer(params.serverId, profile.id);
+  const servers = await getAllServers(profile.id);
+
   return (
     <Suspense fallback={<ChannelLoadingState />}>
       <div className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full relative overflow-visible'>
@@ -67,6 +73,13 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
           name={channel?.name}
           serverId={channel?.serverId}
           type='channel'
+          server={server || undefined}
+          role={member?.role}
+          servers={servers?.map(server => ({
+            id: server.id,
+            name: server.name,
+            imageUrl: server.imageUrl || '',
+          }))}
         />
 
         {/* ✅ SIMPLIFIED: Only handle TEXT channels */}

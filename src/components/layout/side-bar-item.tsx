@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { cn } from '@/lib/utils';
 import NextImage from 'next/image';
@@ -13,14 +14,23 @@ interface SideBarItemProps {
 export function SideBarItem({ name, id, imageUrl }: SideBarItemProps) {
   const router = useRouter();
   const params = useParams();
+  const [isMounted, setIsMounted] = useState(false);
 
-  const isActive = params?.serverId === id;
+  // Prevent hydration mismatch by ensuring component only renders on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Only check active state when mounted to prevent hydration issues
+  const isActive = isMounted && params?.serverId === id;
 
   return (
     <ActionTooltip side='right' align='center' label={name}>
       <button
         onClick={() => {
-          router.push(`/servers/${id}`);
+          if (isMounted) {
+            router.push(`/servers/${id}`);
+          }
         }}
         className='relative group flex items-center justify-center touch-manipulation p-2 w-full'
       >
