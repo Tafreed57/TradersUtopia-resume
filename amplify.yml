@@ -15,7 +15,7 @@ frontend:
         # - pnpm config set store-dir /tmp/pnpm-store
         # - pnpm config set node-linker hoisted
         # - pnpm config set shamefully-hoist true
-        - npm install
+        - npm ci
     build:
       commands:
         - echo "Building for production..."
