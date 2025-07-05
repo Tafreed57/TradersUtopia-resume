@@ -388,6 +388,28 @@ export async function getServer(serverId: string, profileId: string) {
               position: 'asc',
             },
           },
+          parent: true,
+          children: {
+            include: {
+              channels: {
+                orderBy: {
+                  position: 'asc',
+                },
+              },
+              children: {
+                include: {
+                  channels: {
+                    orderBy: {
+                      position: 'asc',
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: {
+              position: 'asc',
+            },
+          },
         },
         orderBy: {
           position: 'asc',

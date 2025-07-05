@@ -11,7 +11,6 @@ import { secureAxiosPost } from '@/lib/csrf-client';
 import qs from 'query-string';
 import { useStore } from '@/store/store';
 import { EmojiPicker } from '@/components/ui/emoji-picker';
-import { useRouter } from 'next/navigation';
 import { Member, MemberRole } from '@prisma/client';
 
 interface ChatInputProps {
@@ -33,7 +32,6 @@ export function ChatInput({
   type,
   member,
 }: ChatInputProps) {
-  const router = useRouter();
   const onOpen = useStore.use.onOpen();
 
   // ✅ FIX: Move useForm hook call BEFORE any conditional returns

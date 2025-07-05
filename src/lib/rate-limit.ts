@@ -121,6 +121,13 @@ export const RATE_LIMITS = {
     windowMs: 15 * 60 * 1000, // 15 minutes
     message: 'Too many media/token requests. Please wait 15 minutes.',
   },
+
+  // ✅ NEW: Drag and Drop operations - Very generous for smooth UX
+  DRAG_DROP_OPERATIONS: {
+    maxRequests: 500, // Very high limit for smooth drag and drop
+    windowMs: 5 * 60 * 1000, // 5 minutes (shorter window)
+    message: 'Too many drag and drop operations. Please wait a moment.',
+  },
 } as const;
 
 // ==============================================
@@ -260,6 +267,8 @@ export const rateLimitNotification = () =>
   rateLimit(RATE_LIMITS.NOTIFICATION_OPERATIONS, 'notification');
 export const rateLimitMedia = () =>
   rateLimit(RATE_LIMITS.MEDIA_OPERATIONS, 'media');
+export const rateLimitDragDrop = () =>
+  rateLimit(RATE_LIMITS.DRAG_DROP_OPERATIONS, 'dragdrop');
 
 // ==============================================
 // 🛡️ SECURITY MONITORING
@@ -380,6 +389,7 @@ export default {
   rateLimitWebhook,
   rateLimitNotification,
   rateLimitMedia,
+  rateLimitDragDrop,
   trackSuspiciousActivity,
   getRateLimitInfo,
   clearRateLimit,

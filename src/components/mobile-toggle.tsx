@@ -1,11 +1,11 @@
+'use client';
+
 import React from 'react';
 import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { SideBar } from '@/components/layout/side-bar';
-import { ServerSideBar } from '@/components/layout/server-side-bar';
 
-export async function MobileToggle({ serverId }: { serverId: string }) {
+export function MobileToggle({ serverId }: { serverId: string }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -24,14 +24,10 @@ export async function MobileToggle({ serverId }: { serverId: string }) {
         side='left'
         className='p-0 flex gap-0 w-auto max-w-[90vw] bg-gradient-to-br from-gray-900/98 via-gray-800/95 to-gray-900/98 border-r border-gray-700/50 backdrop-blur-xl shadow-2xl shadow-black/50 overflow-visible'
       >
-        {/* Main server sidebar */}
-        <div className='w-[96px] border-r border-gray-700/50 bg-gradient-to-b from-gray-800/50 to-gray-900/50 overflow-visible'>
-          {await SideBar()}
-        </div>
-
-        {/* Channel sidebar */}
-        <div className='flex-1 min-w-0 max-w-[280px] sm:max-w-[320px] overflow-visible'>
-          {await ServerSideBar({ serverId })}
+        <div className='flex-1 p-4'>
+          <p className='text-center text-gray-400 text-sm'>
+            Mobile navigation is being updated...
+          </p>
         </div>
       </SheetContent>
     </Sheet>

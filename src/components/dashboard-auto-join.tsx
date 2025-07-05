@@ -27,6 +27,20 @@ export function DashboardAutoJoin({
   const [hasAttempted, setHasAttempted] = useState(false);
   const [showRefreshButton, setShowRefreshButton] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [currentPathname, setCurrentPathname] = useState('');
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Update current pathname when client-side and pathname is available
+  useEffect(() => {
+    if (isClient && pathname) {
+      setCurrentPathname(pathname);
+    }
+  }, [isClient, pathname]);
 
   // Add debug function to window for troubleshooting
   useEffect(() => {
@@ -81,7 +95,7 @@ export function DashboardAutoJoin({
       }
 
       // Skip auto-join if user is already on dashboard (refreshing page)
-      if (pathname === '/dashboard') {
+      if (currentPathname === '/dashboard') {
         console.log(
           '🚫 User is on dashboard, skipping auto-join (likely a page refresh)'
         );
@@ -153,7 +167,7 @@ export function DashboardAutoJoin({
     };
 
     // Only run auto-join if user has no servers and hasn't attempted before
-    if (!hasServers && !hasAttempted && userId) {
+    if (!hasServers && !hasAttempted && userId && isClient) {
       console.log('⚡ Auto-join conditions met, starting in 500ms...');
       // ✅ IMPROVED: Reduced delay from 1500ms to 500ms
       const timeoutId = setTimeout(autoJoinServer, 500);
@@ -174,7 +188,7 @@ export function DashboardAutoJoin({
     return () => {
       mounted = false;
     };
-  }, [hasServers, hasAttempted, userId, router, pathname]);
+  }, [hasServers, hasAttempted, userId, router, currentPathname, isClient]);
 
   // Render refresh button if servers haven't loaded
   if (showRefreshButton && !hasServers) {

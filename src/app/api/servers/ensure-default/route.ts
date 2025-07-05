@@ -147,10 +147,6 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ NEW: Auto-join user to ALL admin-created servers
-    console.log(
-      `🔍 Checking if user ${profile.email} needs to join admin-created servers...`
-    );
-
     const adminServers = await prisma.server.findMany({
       where: {
         profile: {
@@ -182,12 +178,14 @@ export async function POST(request: NextRequest) {
         });
 
         serversJoined++;
+        // Only log when actually joining a new server
         console.log(
           `✅ Auto-joined user ${profile.email} to admin server "${server.name}" as ${profile.isAdmin ? 'ADMIN' : 'GUEST'}`
         );
       }
     }
 
+    // Only log the summary if servers were actually joined
     if (serversJoined > 0) {
       console.log(
         `🎉 User ${profile.email} joined ${serversJoined} additional admin-created servers!`

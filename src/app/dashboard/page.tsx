@@ -33,6 +33,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { AdminButton } from '@/components/admin-button';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
@@ -260,9 +261,11 @@ export default async function Dashboard() {
                         <div className='flex items-center gap-4'>
                           {server.imageUrl ? (
                             <div className='w-14 h-14 rounded-2xl overflow-hidden border-2 border-gray-600 group-hover:border-yellow-400/50 transition-all duration-300'>
-                              <img
+                              <Image
                                 src={server.imageUrl}
                                 alt={server.name}
+                                width={56}
+                                height={56}
                                 className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-300'
                               />
                             </div>
@@ -525,16 +528,19 @@ export default async function Dashboard() {
     profile.subscriptionStatus === 'ACTIVE' ||
     (profile.subscriptionEnd && new Date(profile.subscriptionEnd) > new Date()); // Valid subscription not yet expired
 
-  console.log('🔍 [Dashboard Security Check]:', {
-    email: profile.email,
-    isAdmin: profile.isAdmin,
-    subscriptionStatus: profile.subscriptionStatus,
-    subscriptionEnd: profile.subscriptionEnd,
-    subscriptionEndValid: profile.subscriptionEnd
-      ? new Date(profile.subscriptionEnd) > new Date()
-      : false,
-    shouldBypassGate,
-  });
+  // Only log when access is being restricted
+  if (!shouldBypassGate) {
+    console.log('🔒 [Dashboard Access Restricted]:', {
+      email: profile.email,
+      isAdmin: profile.isAdmin,
+      subscriptionStatus: profile.subscriptionStatus,
+      subscriptionEnd: profile.subscriptionEnd,
+      subscriptionEndValid: profile.subscriptionEnd
+        ? new Date(profile.subscriptionEnd) > new Date()
+        : false,
+      reason: 'User does not have valid subscription or admin access',
+    });
+  }
 
   return shouldBypassGate ? (
     dashboardContent

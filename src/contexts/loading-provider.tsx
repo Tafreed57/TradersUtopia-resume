@@ -8,7 +8,6 @@ import {
   ReactNode,
   useCallback,
 } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
 import { LoadingScreen } from '@/components/ui/loading-screen';
 
 interface LoadingContextType {
@@ -35,7 +34,6 @@ interface LoadingProviderProps {
 export function LoadingProvider({ children }: LoadingProviderProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>('Loading...');
-  const pathname = usePathname();
 
   // Memoize functions to prevent infinite loops
   const setLoading = useCallback((loading: boolean, message = 'Loading...') => {
@@ -55,15 +53,6 @@ export function LoadingProvider({ children }: LoadingProviderProps) {
     // ✅ IMMEDIATE FEEDBACK: Stop loading immediately
     setIsLoading(false);
   }, []);
-
-  // Auto-stop loading when pathname changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [pathname]);
 
   // Auto-hide loading after maximum time to prevent infinite loading
   useEffect(() => {

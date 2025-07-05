@@ -24,17 +24,11 @@ export function useSmartRouting(options: SmartRoutingOptions = {}) {
 
       // If user is not signed in, redirect to sign-in page
       if (!isSignedIn) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📍 User not signed in, redirecting to sign-in...');
-        }
         router.push('/sign-in');
         return;
       }
 
       // User is signed in - check subscription status
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 User signed in, checking subscription status...');
-      }
 
       const response = await fetch('/api/check-product-subscription', {
         method: 'POST',
@@ -47,29 +41,17 @@ export function useSmartRouting(options: SmartRoutingOptions = {}) {
       });
 
       if (!response.ok) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('❌ API response not ok, redirecting to pricing...');
-        }
         router.push('/pricing');
         return;
       }
 
       const result = await response.json();
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📊 [SmartRouting] Subscription check result:', result);
-      }
 
       if (result.hasAccess) {
         // User has subscription - go to dashboard
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ User has subscription, redirecting to dashboard...');
-        }
         router.push('/dashboard');
       } else {
         // User doesn't have subscription - go to pricing
-        if (process.env.NODE_ENV === 'development') {
-          console.log('❌ User needs subscription, redirecting to pricing...');
-        }
         router.push('/pricing');
       }
     } catch (error) {

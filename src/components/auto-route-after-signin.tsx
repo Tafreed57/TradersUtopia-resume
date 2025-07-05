@@ -11,18 +11,32 @@ export function AutoRouteAfterSignIn() {
   const pathname = usePathname();
   const [hasChecked, setHasChecked] = useState(false);
   const [isAutoRouting, setIsAutoRouting] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [currentPathname, setCurrentPathname] = useState('');
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Update current pathname when client-side and pathname is available
+  useEffect(() => {
+    if (isClient && pathname) {
+      setCurrentPathname(pathname);
+    }
+  }, [isClient, pathname]);
 
   useEffect(() => {
     const checkAndRoute = async () => {
       // Only run this check once per page load and only if user is signed in
-      if (!isLoaded || !isSignedIn || hasChecked) {
+      if (!isLoaded || !isSignedIn || hasChecked || !isClient) {
         return;
       }
 
       // Only run auto-routing when user is on the homepage
-      if (pathname !== '/') {
+      if (currentPathname !== '/') {
         console.log(
-          `🚫 Auto-route: Not on homepage (current: ${pathname}), skipping auto-routing`
+          `🚫 Auto-route: Not on homepage (current: ${currentPathname}), skipping auto-routing`
         );
         setHasChecked(true);
         return;
@@ -90,7 +104,16 @@ export function AutoRouteAfterSignIn() {
     };
 
     checkAndRoute();
-  }, [isLoaded, isSignedIn, user, hasChecked, searchParams, router, pathname]);
+  }, [
+    isLoaded,
+    isSignedIn,
+    user,
+    hasChecked,
+    searchParams,
+    router,
+    currentPathname,
+    isClient,
+  ]);
 
   // Show loading overlay when auto-routing
   if (isAutoRouting) {

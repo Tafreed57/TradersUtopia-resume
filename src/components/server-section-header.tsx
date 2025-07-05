@@ -11,6 +11,7 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
+  GripVertical,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -20,6 +21,9 @@ import {
   DropdownMenuPortal,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { cn } from '@/lib/utils';
 
 interface ServerSectionHeaderProps {
   label: string;
@@ -30,6 +34,7 @@ interface ServerSectionHeaderProps {
   section?: Section & { channels: Channel[] };
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  position?: number;
 }
 
 export function ServerSectionHeader({
@@ -41,24 +46,88 @@ export function ServerSectionHeader({
   section,
   isCollapsed = false,
   onToggleCollapse,
+  position,
 }: ServerSectionHeaderProps) {
   const onOpen = useStore.use.onOpen();
   const [isHovered, setIsHovered] = useState(false);
 
   const canManage = role !== MemberRole.GUEST;
 
+  // Enable drag and drop for both regular sections and the default "channels" section
+  const isDraggable =
+    canManage &&
+    ((sectionType === 'section' && section) || sectionType === 'channels');
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: isDraggable
+      ? sectionType === 'section'
+        ? `section-${section?.id || 'unknown'}`
+        : 'default-section'
+      : `non-draggable-${section?.id || 'default'}`,
+    disabled: !isDraggable,
+    data: {
+      type: sectionType === 'channels' ? 'default-section' : 'section',
+      section: sectionType === 'section' ? section : null,
+      serverId: server?.id,
+      position: position !== undefined ? position : section?.position || 0,
+      parentId: null,
+      name: label,
+      isDefaultSection: sectionType === 'channels',
+    },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   return (
     <div className='relative mb-2 z-20'>
       <div
-        className='flex items-center justify-between px-3 py-2 bg-gradient-to-r from-gray-800/30 to-gray-700/30 rounded-xl border border-gray-700/30 backdrop-blur-sm hover:bg-gradient-to-r hover:from-gray-700/40 hover:to-gray-600/40 transition-all duration-200 group cursor-pointer'
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          'flex items-center justify-between px-3 py-2 bg-gradient-to-r from-gray-800/30 to-gray-700/30 rounded-xl border border-gray-700/30 backdrop-blur-sm hover:bg-gradient-to-r hover:from-gray-700/40 hover:to-gray-600/40 transition-all duration-200 group cursor-pointer',
+          isDragging && 'opacity-50 scale-95',
+          isDraggable && 'hover:border-blue-400/30'
+        )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div
-          className='flex items-center text-xs font-bold uppercase tracking-wider text-gray-300 gap-2 flex-1 min-w-0 mr-2'
-          onClick={onToggleCollapse}
-        >
-          <div className='relative flex-shrink-0 z-[60]'>
+        <div className='flex items-center text-xs font-bold uppercase tracking-wider text-gray-300 gap-2 flex-1 min-w-0 mr-2'>
+          {isDraggable && (
+            <div
+              {...attributes}
+              {...listeners}
+              className='relative flex-shrink-0 z-[60] cursor-grab active:cursor-grabbing'
+              onClick={e => {
+                // Prevent the drag handle from triggering the collapse toggle
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              <ActionTooltip label='Drag to reorder section' side='top'>
+                <div className='p-1 rounded transition-all duration-200 hover:bg-gray-600/30 relative z-[60]'>
+                  <GripVertical className='w-3 h-3 text-gray-400 group-hover:text-blue-400 transition-colors' />
+                </div>
+              </ActionTooltip>
+            </div>
+          )}
+
+          <div
+            className='relative flex-shrink-0 z-[60] cursor-pointer'
+            onClick={e => {
+              e.stopPropagation();
+              onToggleCollapse?.();
+            }}
+          >
             <ActionTooltip
               label={isCollapsed ? 'Expand Section' : 'Collapse Section'}
               side='top'

@@ -1,6 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -87,9 +88,11 @@ export function UserDetails() {
         <CardContent className='p-6'>
           <div className='flex items-center gap-6'>
             <div className='relative'>
-              <img
+              <Image
                 src={user.imageUrl}
                 alt={`${user.firstName} ${user.lastName} profile picture`}
+                width={80}
+                height={80}
                 className='w-20 h-20 rounded-full border-3 border-yellow-400/50 shadow-lg'
               />
               <div className='absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-gray-800 flex items-center justify-center'>

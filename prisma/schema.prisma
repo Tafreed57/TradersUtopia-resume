@@ -68,6 +68,7 @@ model Section {
   name      String
   serverId  String
   profileId String
+  parentId  String?
   position  Int       @default(0)
   collapsed Boolean   @default(false)
   createdAt DateTime  @default(now())
@@ -75,9 +76,12 @@ model Section {
   channels  Channel[]
   server    Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
   profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  parent    Section?  @relation("SectionParent", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Section[] @relation("SectionParent")
 
   @@index([serverId])
   @@index([profileId])
+  @@index([parentId])
 }
 
 model Member {

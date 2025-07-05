@@ -366,11 +366,15 @@ export function ProductPaymentGate({
     user?.publicMetadata?.isAdmin || user?.unsafeMetadata?.isAdmin;
   const isDev = process.env.NODE_ENV === 'development';
 
-  console.log('🔍 [ProductPaymentGate] Access check (after adminBypass):', {
-    clerkAdmin: isAdminFromClerk,
-    hasAccess: accessStatus?.hasAccess,
-    loading,
-  });
+  // Only log when there's an access issue, not for every successful access
+  if (!accessStatus?.hasAccess && !isAdminFromClerk) {
+    console.log('🔒 [ProductPaymentGate] Access denied:', {
+      clerkAdmin: isAdminFromClerk,
+      hasAccess: accessStatus?.hasAccess,
+      reason: accessStatus?.reason || 'No access status available',
+      productName,
+    });
+  }
 
   if (!accessStatus?.hasAccess && !isAdminFromClerk) {
     return (

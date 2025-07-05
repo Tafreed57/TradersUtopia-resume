@@ -54,9 +54,17 @@ export function ChatItem({
   socketQuery,
 }: ChatItemProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const onOpen = useStore.use.onOpen();
+
+  // Always call navigation hooks at the top level
   const router = useRouter();
   const params = useParams();
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const isAdmin = currentMember.role === MemberRole.ADMIN;
   const isModerator = currentMember.role === MemberRole.MODERATOR;
@@ -102,6 +110,7 @@ export function ChatItem({
       await secureAxiosPatch(url, values);
       form.reset();
       setIsEditing(false);
+
       router.refresh();
     } catch (error) {
       console.log(error);

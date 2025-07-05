@@ -2,7 +2,7 @@
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { cn } from '@/lib/utils';
 import { Channel, ChannelType, MemberRole, Server } from '@prisma/client';
-import { Edit, Hash, Trash, Lock } from 'lucide-react';
+import { Edit, Hash, Trash, Lock, GripVertical } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import React, {
   useMemo,
@@ -13,6 +13,8 @@ import React, {
 } from 'react';
 import { useStore } from '@/store/store';
 import { ModalType } from '@/types/store';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ServerChannelParams {
   channel: Channel;
@@ -39,6 +41,34 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
 
   // ✅ UPDATED: Allow admins and moderators to edit any channel including general
   const canManageChannel = role !== MemberRole.GUEST;
+
+  // Enable drag and drop for channels when user can manage them
+  const isDraggable = canManageChannel;
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: `channel-${channel.id}`,
+    disabled: !isDraggable,
+    data: {
+      type: 'channel',
+      channel,
+      serverId: server.id,
+      position: channel.position,
+      sectionId: channel.sectionId,
+      name: channel.name,
+    },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   // Prefetch the channel route for faster navigation
   useEffect(() => {
@@ -87,9 +117,11 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
         isActive
           ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-blue-400/40 shadow-md shadow-blue-900/20 transform translate-x-0.5'
           : 'hover:border-gray-500/30',
-        isPending && 'opacity-70 cursor-wait'
+        isPending && 'opacity-70 cursor-wait',
+        isDragging && 'opacity-50 scale-95',
+        isDraggable && 'hover:border-blue-400/30'
       ),
-    [isActive, isPending]
+    [isActive, isPending, isDragging, isDraggable]
   );
 
   const iconClasses = useMemo(
@@ -114,31 +146,53 @@ export function ServerChannel({ channel, server, role }: ServerChannelParams) {
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className='relative mb-1.5 mr-3 group'
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <button
-        onClick={onClick}
-        className={buttonClasses}
-        title={channel.name}
-        disabled={isPending}
-      >
-        <Icon className={iconClasses} />
-        <span className={textClasses}>{channel.name}</span>
-
-        {/* Active channel indicator */}
-        {isActive && (
-          <div className='absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-400 to-purple-500 rounded-r-full' />
-        )}
-
-        {/* Loading indicator */}
-        {isPending && (
-          <div className='absolute inset-0 bg-gray-900/20 rounded-xl flex items-center justify-center'>
-            <div className='w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin' />
+      <div className='flex items-center'>
+        {/* Drag handle outside the button */}
+        {isDraggable && (
+          <div
+            {...attributes}
+            {...listeners}
+            className='flex-shrink-0 cursor-grab active:cursor-grabbing p-1 rounded transition-all duration-200 hover:bg-gray-600/30 mr-1'
+            onClick={e => {
+              // Prevent the drag handle from triggering the button click
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            <GripVertical className='w-3 h-3 text-gray-400 group-hover:text-blue-400 transition-colors' />
           </div>
         )}
-      </button>
+
+        {/* Channel button */}
+        <button
+          onClick={onClick}
+          className={buttonClasses}
+          title={channel.name}
+          disabled={isPending}
+          style={{ width: '100%' }}
+        >
+          <Icon className={iconClasses} />
+          <span className={textClasses}>{channel.name}</span>
+
+          {/* Active channel indicator */}
+          {isActive && (
+            <div className='absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-400 to-purple-500 rounded-r-full' />
+          )}
+
+          {/* Loading indicator */}
+          {isPending && (
+            <div className='absolute inset-0 bg-gray-900/20 rounded-xl flex items-center justify-center'>
+              <div className='w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin' />
+            </div>
+          )}
+        </button>
+      </div>
 
       {/* Edit and Delete buttons with much higher z-index */}
       {canManageChannel && (

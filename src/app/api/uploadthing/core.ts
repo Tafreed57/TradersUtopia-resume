@@ -56,14 +56,6 @@ const secureFileValidation = async (
   try {
     const scanResult = await simulateVirusScan(file);
 
-    console.log(`🔍 [UPLOAD] Virus scan completed for user: ${userId}`, {
-      fileName: file.name,
-      clean: scanResult.clean,
-      scanTime: scanResult.scanTime,
-      confidence: scanResult.confidence,
-      threats: scanResult.threats,
-    });
-
     if (!scanResult.clean) {
       console.error(`🚨 [UPLOAD] Virus scan failed for user: ${userId}`, {
         fileName: file.name,
@@ -74,16 +66,16 @@ const secureFileValidation = async (
       throw new UploadThingError('File failed security scan. Upload rejected.');
     }
 
-    // ✅ SECURITY: Log successful security validation
-    console.log(
-      `✅ [UPLOAD] File security validation passed for user: ${userId}`,
-      {
+    // ✅ SECURITY: Only log if there were threats detected during scan
+    if (scanResult.threats && scanResult.threats.length > 0) {
+      console.log(`🔍 [UPLOAD] Virus scan completed for user: ${userId}`, {
         fileName: file.name,
-        fileSize: file.size,
-        mimeType: file.type,
+        clean: scanResult.clean,
         scanTime: scanResult.scanTime,
-      }
-    );
+        confidence: scanResult.confidence,
+        threats: scanResult.threats,
+      });
+    }
   } catch (scanError) {
     console.error(
       `❌ [UPLOAD] Virus scan error for user: ${userId}:`,
@@ -126,15 +118,6 @@ export const ourFileRouter = {
       return auth;
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      // ✅ SECURITY: Enhanced logging with security details
-      console.log('✅ [UPLOAD] Server image upload complete', {
-        userId: metadata.userId,
-        fileName: file.name,
-        fileSize: file.size,
-        fileUrl: file.url,
-        uploadTime: new Date().toISOString(),
-      });
-
       // ✅ SECURITY: Additional post-upload verification could go here
       // In production: scan uploaded file from URL, update database, etc.
 
@@ -180,16 +163,6 @@ export const ourFileRouter = {
       return auth;
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      // ✅ SECURITY: Enhanced logging for message files
-      console.log('✅ [UPLOAD] Message file upload complete', {
-        userId: metadata.userId,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        fileUrl: file.url,
-        uploadTime: new Date().toISOString(),
-      });
-
       // ✅ SECURITY: Message files require additional verification
       // In production: content analysis, OCR scanning, metadata extraction
 

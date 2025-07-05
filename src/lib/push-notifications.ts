@@ -192,13 +192,9 @@ export async function subscribeToPushNotifications(
       // Update existing subscription
       updatedSubscriptions = [...existingSubscriptions];
       updatedSubscriptions[existingIndex] = subscription;
-      console.log(
-        `🔄 [PUSH] Updated existing subscription for user: ${userId}`
-      );
     } else {
       // Add new subscription
       updatedSubscriptions = [...existingSubscriptions, subscription];
-      console.log(`➕ [PUSH] Added new subscription for user: ${userId}`);
     }
 
     await db.profile.update({
@@ -206,7 +202,6 @@ export async function subscribeToPushNotifications(
       data: { pushSubscriptions: updatedSubscriptions },
     });
 
-    console.log(`✅ [PUSH] Subscription saved for user: ${userId}`);
     return true;
   } catch (error) {
     console.error('❌ [PUSH] Error saving push subscription:', error);
@@ -237,7 +232,6 @@ export async function unsubscribeFromPushNotifications(
       data: { pushSubscriptions: updatedSubscriptions },
     });
 
-    console.log(`🗑️ [PUSH] Unsubscribed from endpoint for user: ${userId}`);
     return true;
   } catch (error) {
     console.error(

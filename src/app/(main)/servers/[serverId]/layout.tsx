@@ -32,18 +32,21 @@ export default async function ServerIdLayout({
     profile.subscriptionStatus === 'ACTIVE' ||
     (profile.subscriptionEnd && new Date(profile.subscriptionEnd) > new Date()); // Valid subscription not yet expired
 
-  console.log('🔍 [Server Access Security Check]:', {
-    serverId: params.serverId,
-    serverName: server.name,
-    email: profile.email,
-    isAdmin: profile.isAdmin,
-    subscriptionStatus: profile.subscriptionStatus,
-    subscriptionEnd: profile.subscriptionEnd,
-    subscriptionEndValid: profile.subscriptionEnd
-      ? new Date(profile.subscriptionEnd) > new Date()
-      : false,
-    shouldBypassGate,
-  });
+  // Only log security checks when access is being restricted or when there's a potential issue
+  if (!shouldBypassGate) {
+    console.log('🔒 [Server Access Restricted]:', {
+      serverId: params.serverId,
+      serverName: server.name,
+      email: profile.email,
+      isAdmin: profile.isAdmin,
+      subscriptionStatus: profile.subscriptionStatus,
+      subscriptionEnd: profile.subscriptionEnd,
+      subscriptionEndValid: profile.subscriptionEnd
+        ? new Date(profile.subscriptionEnd) > new Date()
+        : false,
+      reason: 'User does not have valid subscription or admin access',
+    });
+  }
 
   const serverContent = (
     <section className='h-full overflow-visible'>

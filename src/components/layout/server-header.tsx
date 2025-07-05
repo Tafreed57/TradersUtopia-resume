@@ -20,6 +20,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface ServerHeaderProps {
   server: ServerWithMembersWithProfiles;
@@ -64,9 +65,11 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
             <div className='flex items-center gap-3 flex-1 min-w-0'>
               {server?.imageUrl ? (
                 <div className='w-8 h-8 rounded-xl overflow-hidden border border-gray-600/50 transition-colors duration-300 flex-shrink-0'>
-                  <img
+                  <Image
                     src={server.imageUrl}
                     alt={server.name}
+                    width={32}
+                    height={32}
                     className='w-full h-full object-cover transition-transform duration-300'
                   />
                 </div>
@@ -103,9 +106,11 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
               <div className='flex items-center gap-3 flex-1 min-w-0'>
                 {server?.imageUrl ? (
                   <div className='w-8 h-8 rounded-xl overflow-hidden border border-gray-600/50 group-hover:border-blue-400/50 transition-colors duration-300 flex-shrink-0'>
-                    <img
+                    <Image
                       src={server.imageUrl}
                       alt={server.name}
+                      width={32}
+                      height={32}
                       className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-300'
                     />
                   </div>

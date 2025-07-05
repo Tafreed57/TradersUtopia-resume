@@ -63,11 +63,11 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
           <div className='absolute bottom-1/3 right-1/4 w-48 h-48 bg-purple-500/3 rounded-full blur-2xl animate-pulse delay-1000' />
         </div>
 
-        {await ChatHeader({
-          name: channel?.name,
-          serverId: channel?.serverId,
-          type: 'channel',
-        })}
+        <ChatHeader
+          name={channel?.name}
+          serverId={channel?.serverId}
+          type='channel'
+        />
 
         {/* ✅ SIMPLIFIED: Only handle TEXT channels */}
         <div className='flex-1 relative z-10 overflow-visible'>
