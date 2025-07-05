@@ -1,5 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ✅ MEMORY: Optimize build performance and memory usage
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  // ✅ MEMORY: Optimize output and reduce memory footprint
+  output: 'standalone',
+  generateEtags: false,
+  trailingSlash: false,
+
+  // ✅ MEMORY: Reduce bundle analyzer overhead
+  productionBrowserSourceMaps: false,
+
   // ✅ SECURITY: Comprehensive security headers
   async headers() {
     return [
@@ -72,8 +86,42 @@ const nextConfig = {
     ];
   },
 
-  // ✅ WEBPACK: Handle server-only modules
-  webpack: (config, { isServer }) => {
+  // ✅ WEBPACK: Handle server-only modules and optimize memory
+  webpack: (config, { isServer, dev }) => {
+    // ✅ MEMORY: Optimize webpack for production builds only
+    if (!dev && !isServer) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          maxInitialRequests: 25,
+          maxSize: 244000,
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Vendor chunk
+            vendor: {
+              name: 'vendors',
+              chunks: 'all',
+              test: /node_modules/,
+              priority: 20,
+            },
+            // Common chunk
+            common: {
+              name: 'common',
+              chunks: 'all',
+              minChunks: 2,
+              priority: 10,
+              reuseExistingChunk: true,
+            },
+          },
+        },
+      };
+
+      // ✅ MEMORY: Reduce memory usage with minimal stats
+      config.stats = 'errors-warnings';
+    }
+
     // Exclude server-only modules from client bundle
     if (!isServer) {
       config.resolve.fallback = {
@@ -87,10 +135,11 @@ const nextConfig = {
         'web-push': false,
       };
     }
+
     return config;
   },
 
-  // ✅ EXPERIMENTAL: Server components external packages
+  // ✅ EXPERIMENTAL: Only stable features
   experimental: {
     serverComponentsExternalPackages: ['web-push', 'resend'],
   },
@@ -105,7 +154,6 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'utfs.io',
-        // pathname: `/a/${process.env.UPLOADTHING_APP_ID}/*`,
       },
       {
         protocol: 'https',
@@ -114,16 +162,9 @@ const nextConfig = {
         pathname: '**',
       },
     ],
-    // AWS Amplify image optimization
-    domains: ['img.clerk.com', 'utfs.io', 'i.imgur.com'],
   },
 
-  // AWS Amplify configuration
-  trailingSlash: false,
-  generateEtags: false,
-  output: 'standalone', // ✅ This can help with AWS environment variable issues
-
-  // ✅ AWS AMPLIFY: Force environment variables to be available
+  // ✅ AWS AMPLIFY: Environment variables
   env: {
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:

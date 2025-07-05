@@ -1,14 +1,4 @@
 version: 1
-backend:
-  phases:
-    build:
-      commands:
-        - npm ci --cache .npm --prefer-offline
-        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
-  artifacts:
-    baseDirectory: dist
-    files:
-      - '**/*'
 frontend:
   phases:
     preBuild:
@@ -39,7 +29,15 @@ frontend:
     baseDirectory: .next
     files:
       - '**/*'
+    # Exclude heavy files to reduce artifact size
+    exclude:
+      - node_modules/**/*
+      - .git/**/*
+      - '*.log'
+      - docs/**/*
+      - '.env*'
   cache:
     paths:
       - node_modules/**/*
       - .next/cache/**/*
+      - /tmp/pnpm-store/**/*
