@@ -88,9 +88,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ✅ SECURITY: Log admin access grant with details
+    // ✅ SECURITY: Log admin access grant with details (no personal data exposed)
     console.log(
-      `🔑 [ADMIN] Access granted to user: ${profile.email} (${user.id})`
+      `🔑 [ADMIN] Access granted to authenticated user (details masked for security)`
     );
     console.log(
       `📝 [ADMIN] Reason: ${sanitizedReason?.clean || 'No reason provided'}`
@@ -98,9 +98,7 @@ export async function POST(request: NextRequest) {
     console.log(
       `📍 [ADMIN] IP: ${request.headers.get('x-forwarded-for') || 'unknown'}`
     );
-    console.log(
-      `🖥️ [ADMIN] User Agent: ${request.headers.get('user-agent')?.slice(0, 100) || 'unknown'}`
-    );
+    console.log(`🖥️ [ADMIN] User Agent: [MASKED_FOR_SECURITY]`);
 
     return NextResponse.json({
       success: true,

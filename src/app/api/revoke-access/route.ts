@@ -52,17 +52,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ SECURITY: Enhanced logging for access revocation
+    // ✅ SECURITY: Enhanced logging for access revocation (no sensitive data exposed)
     console.log(
-      `🚫 [REVOKE] Revoking access for user: ${user.emailAddresses[0]?.emailAddress || user.id}`
+      `🚫 [REVOKE] Revoking access for user (ID masked for security)`
     );
     console.log(`📝 [REVOKE] Reason: ${reasonCheck.clean}`);
     console.log(
       `📍 [REVOKE] IP: ${request.headers.get('x-forwarded-for') || 'unknown'}`
     );
-    console.log(
-      `🖥️ [REVOKE] User Agent: ${request.headers.get('user-agent')?.slice(0, 100) || 'unknown'}`
-    );
+    // ✅ SECURITY: User agent logging limited to prevent fingerprinting
+    console.log(`🖥️ [REVOKE] User Agent: [MASKED_FOR_SECURITY]`);
 
     // Find the user's profile
     const profile = await db.profile.findFirst({
@@ -108,8 +107,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ SECURITY: Log successful revocation
-    console.log(`✅ [REVOKE] Access revoked for user: ${updatedProfile.email}`);
+    // ✅ SECURITY: Log successful revocation (no personal data exposed)
+    console.log(
+      `✅ [REVOKE] Access revoked for user (details masked for security)`
+    );
     console.log(
       `📅 [REVOKE] Subscription marked as expired at: ${updatedProfile.subscriptionEnd}`
     );

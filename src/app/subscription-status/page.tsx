@@ -118,35 +118,6 @@ export default function SubscriptionStatusPage() {
               Checking if all required environment variables are set
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {envStatus && (
-              <div className='space-y-2'>
-                <p>
-                  <strong>Stripe Secret Key:</strong>{' '}
-                  {envStatus.environment_check.STRIPE_SECRET_KEY}
-                </p>
-                <p>
-                  <strong>Webhook Secret:</strong>{' '}
-                  {envStatus.environment_check.STRIPE_WEBHOOK_SECRET}
-                </p>
-                <p>
-                  <strong>Database URL:</strong>{' '}
-                  {envStatus.environment_check.DATABASE_URL}
-                </p>
-
-                {envStatus.stripe_key_preview && (
-                  <p className='text-sm text-gray-600'>
-                    Stripe Key Preview: {envStatus.stripe_key_preview}
-                  </p>
-                )}
-                {envStatus.webhook_secret_preview && (
-                  <p className='text-sm text-gray-600'>
-                    Webhook Secret Preview: {envStatus.webhook_secret_preview}
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
         </Card>
 
         {/* Payment Status */}

@@ -56,11 +56,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ SECURITY: Enhanced logging for payment processing
+    // ✅ SECURITY: Enhanced logging for payment processing (no sensitive data exposed)
     console.log(
-      `💳 [ACTIVATION] Processing payment activation for user: ${user.id}`
+      `💳 [ACTIVATION] Processing payment activation for authenticated user`
     );
-    console.log(`🔢 [ACTIVATION] Payment ID: ${paymentId.substring(0, 10)}...`); // Only log first 10 chars
+    console.log(`🔢 [ACTIVATION] Payment ID: [MASKED_FOR_SECURITY]`);
     console.log(
       `📍 [ACTIVATION] IP: ${request.headers.get('x-forwarded-for') || 'unknown'}`
     );

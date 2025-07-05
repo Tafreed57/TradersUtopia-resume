@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     const actionPast = grantAdmin ? 'granted' : 'revoked';
 
     console.log(
-      `👑 [ADMIN] Admin ${adminProfile.email} is ${action} admin privileges ${grantAdmin ? 'to' : 'from'} ${targetProfile.email} (${userId})`
+      `👑 [ADMIN] Admin user is ${action} admin privileges ${grantAdmin ? 'to' : 'from'} target user (details masked for security)`
     );
 
     // Use safe admin granting to handle potential duplicates
@@ -102,13 +102,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(
-      `🗄️ [ADMIN] Updated admin status for user ${userId} to ${grantAdmin}`
-    );
+    console.log(`🗄️ [ADMIN] Updated admin status for user to ${grantAdmin}`);
 
     // Log this significant action
     console.log(
-      `✅ [ADMIN] Successfully ${actionPast} admin privileges ${grantAdmin ? 'to' : 'from'} ${targetProfile.email} by admin ${adminProfile.email}`
+      `✅ [ADMIN] Successfully ${actionPast} admin privileges (details masked for security)`
     );
 
     return NextResponse.json({

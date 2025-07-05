@@ -6,7 +6,7 @@ export async function GET() {
     // Check database connectivity
     await prisma.$queryRaw`SELECT 1`;
 
-    // Check environment variables
+    // ✅ SECURITY: Check environment variables without exposing which ones are missing
     const requiredEnvVars = [
       'DATABASE_URL',
       'CLERK_SECRET_KEY',
@@ -18,11 +18,11 @@ export async function GET() {
     );
 
     if (missingEnvVars.length > 0) {
+      // ✅ SECURITY: Don't expose which environment variables are missing
       return NextResponse.json(
         {
           status: 'error',
-          message: 'Missing required environment variables',
-          missing: missingEnvVars,
+          message: 'Application configuration incomplete',
           timestamp: new Date().toISOString(),
         },
         { status: 500 }
@@ -33,18 +33,16 @@ export async function GET() {
       status: 'healthy',
       message: 'Application is running correctly',
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      version: process.env.npm_package_version || '1.0.0',
+      // ✅ SECURITY: Only expose safe, non-sensitive information
       database: 'connected',
     });
   } catch (error) {
-    console.error('Health check failed:', error);
+    // ✅ SECURITY: Don't expose error details that could reveal system information
 
     return NextResponse.json(
       {
         status: 'error',
         message: 'Health check failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

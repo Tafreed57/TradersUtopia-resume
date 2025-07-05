@@ -44,9 +44,9 @@ export async function GET(req: NextRequest) {
     const at = new AccessToken(apiKey, apiSecret, { identity: username });
     at.addGrant({ room, roomJoin: true, canPublish: true, canSubscribe: true });
 
-    // ✅ SECURITY: Log successful token generation
+    // ✅ SECURITY: Log successful token generation (no sensitive data exposed)
     console.log(
-      `🎥 [MEDIA] Token generated for user: "${username}" in room: "${room}"`
+      `🎥 [MEDIA] Token generated for authenticated user in room session`
     );
     console.log(
       `📍 [MEDIA] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
