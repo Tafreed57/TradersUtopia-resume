@@ -2,23 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 function AutoRouteAfterSignInClient() {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const [hasChecked, setHasChecked] = useState(false);
   const [isAutoRouting, setIsAutoRouting] = useState(false);
-  const [currentPathname, setCurrentPathname] = useState('');
+  const [currentPath, setCurrentPath] = useState('');
 
-  // Update current pathname when pathname is available
+  // Safely get pathname after hydration
   useEffect(() => {
-    if (pathname) {
-      setCurrentPathname(pathname);
+    if (typeof window !== 'undefined') {
+      setCurrentPath(window.location.pathname);
     }
-  }, [pathname]);
+  }, []);
 
   useEffect(() => {
     const checkAndRoute = async () => {
@@ -28,9 +27,9 @@ function AutoRouteAfterSignInClient() {
       }
 
       // Only run auto-routing when user is on the homepage
-      if (currentPathname !== '/') {
+      if (currentPath !== '/') {
         console.log(
-          `🚫 Auto-route: Not on homepage (current: ${currentPathname}), skipping auto-routing`
+          `🚫 Auto-route: Not on homepage (current: ${currentPath}), skipping auto-routing`
         );
         setHasChecked(true);
         return;
@@ -105,37 +104,37 @@ function AutoRouteAfterSignInClient() {
     hasChecked,
     searchParams,
     router,
-    currentPathname,
+    currentPath,
   ]);
 
-  // Show loading overlay when auto-routing (with lower z-index than main loading screen)
+  // Show loading overlay while auto-routing
   if (isAutoRouting) {
     return (
-      <div className='fixed inset-0 bg-black/30 flex items-center justify-center z-40'>
-        <div className='bg-white dark:bg-gradient-to-br dark:from-gray-800/90 dark:via-gray-700/85 dark:to-gray-800/90 dark:backdrop-blur-xl dark:border dark:border-gray-700/50 rounded-lg p-6 text-center max-w-sm mx-4'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4'></div>
-          <h3 className='text-lg font-semibold mb-2'>Welcome back!</h3>
-          <p className='text-gray-600 dark:text-gray-300 text-sm'>
-            Checking your subscription and routing you to the right place...
+      <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50'>
+        <div className='bg-gray-900 rounded-lg p-8 shadow-2xl text-center'>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4'></div>
+          <p className='text-white font-medium'>
+            Checking your subscription status...
+          </p>
+          <p className='text-gray-400 text-sm mt-2'>
+            This will only take a moment
           </p>
         </div>
       </div>
     );
   }
 
-  // This component doesn't render anything when not auto-routing
   return null;
 }
 
 export function AutoRouteAfterSignIn() {
-  const [isClient, setIsClient] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
+    setIsMounted(true);
   }, []);
 
-  // Only render the actual component after hydration
-  if (!isClient) {
+  if (!isMounted) {
     return null;
   }
 

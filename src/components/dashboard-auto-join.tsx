@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { makeSecureRequest } from '@/lib/csrf-client';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
@@ -23,32 +23,35 @@ function DashboardAutoJoinClient({
   userId,
 }: DashboardAutoJoinProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const [hasAttempted, setHasAttempted] = useState(false);
   const [showRefreshButton, setShowRefreshButton] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [currentPathname, setCurrentPathname] = useState('');
+  const [currentPath, setCurrentPath] = useState('');
 
-  // Update current pathname when pathname is available
+  // Safely get pathname after hydration
   useEffect(() => {
-    if (pathname) {
-      setCurrentPathname(pathname);
+    if (typeof window !== 'undefined') {
+      setCurrentPath(window.location.pathname);
     }
-  }, [pathname]);
+  }, []);
 
   // Add debug function to window for troubleshooting
   useEffect(() => {
-    window.clearAutoJoinFlag = (targetUserId?: string) => {
-      const userIdToUse = targetUserId || userId;
-      if (userIdToUse) {
-        const storageKey = `auto-join-attempted-${userIdToUse}`;
-        localStorage.removeItem(storageKey);
-        console.log(`🧹 Cleared auto-join flag for user: ${userIdToUse}`);
-        console.log('You can now refresh the page to trigger auto-join again.');
-      } else {
-        console.log('❌ No userId provided');
-      }
-    };
+    if (typeof window !== 'undefined') {
+      window.clearAutoJoinFlag = (targetUserId?: string) => {
+        const userIdToUse = targetUserId || userId;
+        if (userIdToUse) {
+          const storageKey = `auto-join-attempted-${userIdToUse}`;
+          localStorage.removeItem(storageKey);
+          console.log(`🧹 Cleared auto-join flag for user: ${userIdToUse}`);
+          console.log(
+            'You can now refresh the page to trigger auto-join again.'
+          );
+        } else {
+          console.log('❌ No userId provided');
+        }
+      };
+    }
   }, [userId]);
 
   // Show refresh button if user has no servers after a delay
@@ -62,68 +65,30 @@ function DashboardAutoJoinClient({
     }
   }, [hasServers, userId]);
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      // Clear the auto-join flag so it can run again
-      if (userId) {
-        localStorage.removeItem(`auto-join-attempted-${userId}`);
-      }
-
-      // Refresh the page to retry
-      window.location.reload();
-    } catch (error) {
-      console.error('Error refreshing:', error);
-      setIsRefreshing(false);
-    }
-  };
-
+  // Auto-join logic
   useEffect(() => {
-    let mounted = true;
+    if (!userId || hasServers || hasAttempted || currentPath !== '/dashboard') {
+      return;
+    }
 
-    const autoJoinServer = async () => {
-      // Exit early if user already has servers
-      if (hasServers) {
-        console.log('✅ User already has servers, skipping auto-join');
-        return;
-      }
-
-      // Skip auto-join if user is already on dashboard (refreshing page)
-      if (currentPathname === '/dashboard') {
-        console.log(
-          '🚫 User is on dashboard, skipping auto-join (likely a page refresh)'
-        );
-        return;
-      }
-
-      // Check if we've already attempted auto-join for this user
-      const storageKey = `auto-join-attempted-${userId}`;
-      const alreadyAttempted = localStorage.getItem(storageKey);
-
-      if (alreadyAttempted) {
-        console.log('ℹ️ Auto-join already attempted for this user, skipping');
-        console.log('💡 To reset: Run clearAutoJoinFlag() in browser console');
-        return;
-      }
-
-      // Prevent multiple simultaneous attempts
-      if (hasAttempted) {
-        console.log('⏳ Auto-join already in progress, skipping');
-        return;
-      }
-
-      setHasAttempted(true);
-
+    const attemptAutoJoin = async () => {
       try {
-        console.log('🚀 Auto-joining new user to default server...');
-        console.log('👤 User ID:', userId);
-        console.log('📊 Has servers:', hasServers);
+        const storageKey = `auto-join-attempted-${userId}`;
+        const hasAttemptedBefore = localStorage.getItem(storageKey);
 
-        // Mark that we've attempted auto-join for this user
+        if (hasAttemptedBefore) {
+          console.log('⏭️ Auto-join already attempted for this user');
+          return;
+        }
+
+        console.log(
+          '🔄 [Auto-Join] Attempting to join admin-created servers...'
+        );
+        setHasAttempted(true);
         localStorage.setItem(storageKey, 'true');
 
         const response = await makeSecureRequest(
-          '/api/servers/ensure-default',
+          '/api/servers/ensure-all-users',
           {
             method: 'POST',
             headers: {
@@ -132,97 +97,73 @@ function DashboardAutoJoinClient({
           }
         );
 
-        if (!mounted) return;
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ [Auto-Join] Success:', result);
 
-        const result = await response.json();
-
-        if (result.success && result.server) {
-          console.log('✅ Successfully joined server:', result.server.name);
-          console.log(`🎉 Joined ${result.serversJoined || 1} servers total`);
-
-          // ✅ IMPROVED: Force page refresh to show servers immediately
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
+          if (result.joinedServers && result.joinedServers.length > 0) {
+            // Give a moment for the database to update
+            setTimeout(() => {
+              router.refresh();
+            }, 1000);
+          }
         } else {
-          console.error('❌ Failed to join default server:', result);
-          // Remove the attempted flag if it failed so they can try again
-          localStorage.removeItem(storageKey);
-          setHasAttempted(false);
+          console.error('❌ [Auto-Join] Failed:', response.status);
         }
       } catch (error) {
-        console.error('❌ Error auto-joining server:', error);
-        // Remove the attempted flag if it failed so they can try again
-        if (userId) {
-          localStorage.removeItem(`auto-join-attempted-${userId}`);
-        }
-        setHasAttempted(false);
+        console.error('❌ [Auto-Join] Error:', error);
       }
     };
 
-    // Only run auto-join if user has no servers and hasn't attempted before
-    if (!hasServers && !hasAttempted && userId) {
-      console.log('⚡ Auto-join conditions met, starting in 500ms...');
-      // ✅ IMPROVED: Reduced delay from 1500ms to 500ms
-      const timeoutId = setTimeout(autoJoinServer, 500);
+    attemptAutoJoin();
+  }, [userId, hasServers, hasAttempted, currentPath, router]);
 
-      return () => {
-        mounted = false;
-        clearTimeout(timeoutId);
-      };
-    } else {
-      if (hasServers) {
-        console.log('ℹ️ User has servers, auto-join not needed');
-      }
-      if (!userId) {
-        console.log('⚠️ No userId provided to auto-join component');
-      }
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      router.refresh();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 2000);
     }
+  };
 
-    return () => {
-      mounted = false;
-    };
-  }, [hasServers, hasAttempted, userId, router, currentPathname]);
-
-  // Render refresh button if servers haven't loaded
-  if (showRefreshButton && !hasServers) {
-    return (
-      <div className='fixed bottom-4 right-4 z-50'>
-        <div className='bg-gray-800/90 backdrop-blur-sm border border-gray-600/50 rounded-lg p-4 shadow-xl'>
-          <p className='text-sm text-gray-300 mb-2'>
-            Servers taking longer than expected?
-          </p>
-          <Button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            size='sm'
-            className='w-full bg-blue-600 hover:bg-blue-700'
-          >
-            {isRefreshing ? (
-              <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
-            ) : (
-              <RefreshCw className='w-4 h-4 mr-2' />
-            )}
-            {isRefreshing ? 'Refreshing...' : 'Refresh Page'}
-          </Button>
-        </div>
-      </div>
-    );
+  if (hasServers || !showRefreshButton) {
+    return null;
   }
 
-  // This component doesn't render anything normally
-  return null;
+  return (
+    <div className='flex flex-col items-center justify-center p-8 text-center'>
+      <div className='mb-4'>
+        <h3 className='text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2'>
+          No servers found
+        </h3>
+        <p className='text-gray-600 dark:text-gray-400'>
+          If you expected to see servers, try refreshing the page.
+        </p>
+      </div>
+
+      <Button
+        onClick={handleRefresh}
+        disabled={isRefreshing}
+        className='flex items-center gap-2'
+      >
+        <RefreshCw
+          className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+        />
+        {isRefreshing ? 'Refreshing...' : 'Refresh Page'}
+      </Button>
+    </div>
+  );
 }
 
 export function DashboardAutoJoin(props: DashboardAutoJoinProps) {
-  const [isClient, setIsClient] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
+    setIsMounted(true);
   }, []);
 
-  // Only render the actual component after hydration
-  if (!isClient) {
+  if (!isMounted) {
     return null;
   }
 

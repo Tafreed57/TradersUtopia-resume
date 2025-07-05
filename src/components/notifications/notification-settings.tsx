@@ -51,6 +51,7 @@ export function NotificationSettings() {
   const [pushSupported, setPushSupported] = useState(false);
   const [pushPermission, setPushPermission] =
     useState<NotificationPermission>('default');
+  const [isClient, setIsClient] = useState(false);
 
   const [settings, setSettings] = useState<NotificationSettings>({
     push: {
@@ -63,20 +64,61 @@ export function NotificationSettings() {
     },
   });
 
-  // Check if push notifications are supported
+  // Check if we're on the client side
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setPushSupported('serviceWorker' in navigator && 'PushManager' in window);
-      setPushPermission(Notification.permission);
-    }
+    setIsClient(true);
   }, []);
+
+  // Check if push notifications are supported with proper error handling
+  useEffect(() => {
+    if (!isClient) return;
+
+    try {
+      if (typeof window !== 'undefined') {
+        // Safely check for service worker and push manager support
+        let serviceWorkerSupported = false;
+        let pushManagerSupported = false;
+        let notificationPermission: NotificationPermission = 'default';
+
+        try {
+          serviceWorkerSupported = 'serviceWorker' in navigator;
+        } catch (e) {
+          console.warn('Service Worker check failed:', e);
+        }
+
+        try {
+          pushManagerSupported = 'PushManager' in window;
+        } catch (e) {
+          console.warn('PushManager check failed:', e);
+        }
+
+        try {
+          if (typeof Notification !== 'undefined' && Notification.permission) {
+            notificationPermission = Notification.permission;
+          }
+        } catch (e) {
+          console.warn('Notification permission check failed:', e);
+        }
+
+        setPushSupported(serviceWorkerSupported && pushManagerSupported);
+        setPushPermission(notificationPermission);
+      }
+    } catch (error) {
+      console.warn(
+        'Browser API check failed, disabling push notifications:',
+        error
+      );
+      setPushSupported(false);
+      setPushPermission('denied');
+    }
+  }, [isClient]);
 
   // Load user preferences
   useEffect(() => {
-    if (user) {
+    if (user && isClient) {
       loadPreferences();
     }
-  }, [user]);
+  }, [user, isClient]);
 
   const loadPreferences = async () => {
     try {
@@ -133,20 +175,29 @@ export function NotificationSettings() {
     }));
   };
 
-  // Utility function to convert base64 VAPID key to Uint8Array
+  // Utility function to convert base64 VAPID key to Uint8Array with error handling
   const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
+    try {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
 
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
+      if (typeof window === 'undefined' || typeof window.atob !== 'function') {
+        throw new Error('atob is not available');
+      }
 
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    } catch (error) {
+      console.error('Failed to convert VAPID key:', error);
+      throw new Error('Invalid VAPID key format');
     }
-    return outputArray;
   };
 
   const enablePushNotifications = async () => {
@@ -170,38 +221,70 @@ export function NotificationSettings() {
         return;
       }
 
-      const permission = await Notification.requestPermission();
+      let permission: NotificationPermission = 'default';
+
+      try {
+        if (
+          typeof Notification !== 'undefined' &&
+          Notification.requestPermission
+        ) {
+          permission = await Notification.requestPermission();
+        } else {
+          throw new Error('Notification API not available');
+        }
+      } catch (error) {
+        console.error('Failed to request notification permission:', error);
+        showToast.error('Error', 'Failed to request notification permission');
+        return;
+      }
+
       setPushPermission(permission);
 
       if (permission === 'granted') {
-        // Register service worker and subscribe to push notifications
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        try {
+          // Register service worker and subscribe to push notifications
+          if (!navigator.serviceWorker) {
+            throw new Error('Service Worker not available');
+          }
 
-        // Wait for service worker to be ready
-        await navigator.serviceWorker.ready;
+          const registration = await navigator.serviceWorker.register('/sw.js');
 
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-        });
+          // Wait for service worker to be ready
+          await navigator.serviceWorker.ready;
 
-        // Send subscription to backend
-        const response = await fetch('/api/notifications/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscription }),
-        });
+          if (!registration.pushManager) {
+            throw new Error('Push Manager not available');
+          }
 
-        if (response.ok) {
-          showToast.success(
-            'Push notifications enabled',
-            'You will now receive push notifications'
-          );
-        } else {
-          const errorData = await response.json();
-          console.error('Push subscription API error:', errorData);
-          throw new Error(
-            errorData.message || 'Failed to save push subscription'
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
+
+          // Send subscription to backend
+          const response = await fetch('/api/notifications/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscription }),
+          });
+
+          if (response.ok) {
+            showToast.success(
+              'Push notifications enabled',
+              'You will now receive push notifications'
+            );
+          } else {
+            const errorData = await response.json();
+            console.error('Push subscription API error:', errorData);
+            throw new Error(
+              errorData.message || 'Failed to save push subscription'
+            );
+          }
+        } catch (error) {
+          console.error('Service Worker/Push subscription error:', error);
+          showToast.error(
+            'Error',
+            'Failed to enable push notifications. This feature may not be available on your device.'
           );
         }
       } else {
@@ -260,6 +343,22 @@ export function NotificationSettings() {
       color: 'bg-indigo-500',
     },
   ];
+
+  // Don't render until we're on the client to prevent hydration mismatches
+  if (!isClient) {
+    return (
+      <div className='w-full'>
+        <Card className='border-gray-600/30 bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-md'>
+          <CardContent className='flex items-center justify-center py-6'>
+            <div className='flex items-center gap-2'>
+              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400'></div>
+              <span>Loading notification settings...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!isExpanded) {
     return (
