@@ -3,7 +3,6 @@
 import { ChatItem } from '@/components/chat/chat-item';
 import { ChatWelcome } from '@/components/chat/chat-welcome';
 import { useChatScroll } from '@/hooks/use-chat-scroll';
-import { sourceChannelMap } from '@/lib/channel-mapping';
 import { MessagesWithMemberWithProfile } from '@/types/server';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Member } from '@prisma/client';
@@ -11,6 +10,7 @@ import { format } from 'date-fns';
 import { Loader2, ServerCrash } from 'lucide-react';
 import { ElementRef, Fragment, useRef } from 'react';
 import qs from 'query-string';
+import { sourceChannelMap } from '@/types/database-types';
 
 const DATE_FORMAT = 'd MMM yyyy, HH:mm';
 

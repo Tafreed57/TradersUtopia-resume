@@ -110,6 +110,7 @@ export async function GET(request: NextRequest) {
     const profile = await db.profile.findFirst({
       where: { userId: user.id },
     });
+    console.log(profile);
 
     if (!profile || !profile.isAdmin) {
       trackSuspiciousActivity(request, 'NON_ADMIN_USERS_ACCESS_ATTEMPT');

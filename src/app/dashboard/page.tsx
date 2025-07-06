@@ -1,13 +1,7 @@
-import { OrganizationSwitcher, UserButton } from '@clerk/nextjs';
-import { DiscordProfile } from '@/components/user/discord-profile';
-
+import { UserButton } from '@clerk/nextjs';
 import { NotificationBell } from '@/components/notifications/notification-bell';
-import { NotificationSettings } from '@/components/notifications/notification-settings';
-import { SubscriptionManager } from '@/components/subscription/subscription-manager';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { getCurrentProfileWithSync, getAllServers } from '@/lib/query';
-import { redirect } from 'next/navigation';
-import { ProductPaymentGate } from '@/components/product-payment-gate';
 import {
   Card,
   CardContent,
@@ -20,29 +14,26 @@ import {
   Shield,
   User,
   Settings,
-  MessageSquare,
   Crown,
   Users,
   Sparkles,
   Activity,
   TrendingUp,
-  BarChart3,
   Home,
   Bell,
   UserCog,
-  CheckCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { AdminButton } from '@/components/admin-button';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
-import { UserManagement } from '@/components/admin/user-management';
-import { UserDetails } from '@/components/user/user-details';
-import { PasswordManager } from '@/components/user/password-manager';
-import { Badge } from '@/components/ui/badge';
-import { ImmediateLoadingDemo } from '@/components/immediate-loading-demo';
 import { DashboardAutoJoin } from '@/components/dashboard-auto-join';
+import { UserManagement } from '@/components/admin/user-management';
+import { NotificationSettings } from '@/components/notifications/notification-settings';
+import { ProductPaymentGate } from '@/components/product-payment-gate';
+import { SubscriptionManager } from '@/components/subscription/subscription-manager';
+import { PasswordManager } from '@/components/user/password-manager';
+import { UserDetails } from '@/components/user/user-details';
 
 export default async function Dashboard() {
   const profile = await getCurrentProfileWithSync();

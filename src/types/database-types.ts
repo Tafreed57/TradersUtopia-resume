@@ -11,24 +11,24 @@ export interface BaseMessage {
   created_at: Date;
 }
 
-export interface BitcoinBulletsMessage extends BaseMessage {}
-export interface BinanceKillersMessage extends BaseMessage {}
-export interface AlwaysWinningMessage extends BaseMessage {}
-export interface RussianInsidersMessage extends BaseMessage {}
-export interface Binance360Message extends BaseMessage {}
-export interface CryptoMuskMessage extends BaseMessage {}
-export interface TestMessage extends BaseMessage {}
+// export interface BitcoinBulletsMessage extends BaseMessage {}
+// export interface BinanceKillersMessage extends BaseMessage {}
+// export interface AlwaysWinningMessage extends BaseMessage {}
+// export interface RussianInsidersMessage extends BaseMessage {}
+// export interface Binance360Message extends BaseMessage {}
+// export interface CryptoMuskMessage extends BaseMessage {}
+// export interface TestMessage extends BaseMessage {}
 
-// Input types for creating messages (excluding auto-generated fields)
-export interface CreateMessageInput {
-  msg_id: string;
-  content?: string | null;
-  attachments?: any;
-  reference_msg?: any;
-  image_url?: any;
-  timestamp?: Date | null;
-  relayed?: number;
-}
+// // Input types for creating messages (excluding auto-generated fields)
+// export interface CreateMessageInput {
+//   msg_id: string;
+//   content?: string | null;
+//   attachments?: any;
+//   reference_msg?: any;
+//   image_url?: any;
+//   timestamp?: Date | null;
+//   relayed?: number;
+// }
 
 // Table names
 export const TABLE_NAMES = {
@@ -41,16 +41,20 @@ export const TABLE_NAMES = {
   TEST: 'test',
 } as const;
 
-// Channel to table mapping
-export const CHANNEL_TABLE_MAP = {
-  bitcoinBullets: TABLE_NAMES.BITCOIN_BULLETS,
-  binanceKillers: TABLE_NAMES.BINANCE_KILLERS,
-  alwaysWinning: TABLE_NAMES.ALWAYS_WINNING,
-  russianInsiders: TABLE_NAMES.RUSSIAN_INSIDERS,
-  binance360: TABLE_NAMES.BINANCE_360,
-  cryptoMusk: TABLE_NAMES.CRYPTO_MUSK,
-  test: TABLE_NAMES.TEST,
-} as const;
+export const sourceChannelMap: Record<string, string> = {
+  crypto1: TABLE_NAMES.BITCOIN_BULLETS,
+  crypto2: TABLE_NAMES.BINANCE_KILLERS,
+  crypto3: TABLE_NAMES.ALWAYS_WINNING,
+  dailyBTCUpdate: TABLE_NAMES.RUSSIAN_INSIDERS,
+  crypto5: TABLE_NAMES.BINANCE_360,
+  crypto6: TABLE_NAMES.CRYPTO_MUSK,
+};
 
-export type ChannelName = keyof typeof CHANNEL_TABLE_MAP;
-export type TableName = typeof TABLE_NAMES[keyof typeof TABLE_NAMES]; 
+export const sourceChannelNameMap: Record<string, string> = {
+  crypto1: 'Bitcoin Bullets',
+  crypto2: 'Binance Killers',
+  crypto3: 'Always Winning',
+  dailyBTCUpdate: 'Russian Insiders',
+  crypto5: 'Binance 360',
+  crypto6: 'Crypto Musk',
+};

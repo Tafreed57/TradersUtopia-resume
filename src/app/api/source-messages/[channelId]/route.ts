@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
-import { sourceChannelMap, sourceChannelNameMap } from '@/lib/channel-mapping';
 import sql from '@/lib/source-db';
-import { BaseMessage } from '@/types/database-types';
+import {
+  BaseMessage,
+  sourceChannelMap,
+  sourceChannelNameMap,
+} from '@/types/database-types';
 import { Member, Profile, SubscriptionStatus } from '@prisma/client';
 
 const MESSAGES_BATCH = 10;
