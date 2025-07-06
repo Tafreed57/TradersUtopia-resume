@@ -1,4 +1,3 @@
-// Database table interfaces
 export interface BaseMessage {
   id: number;
   msg_id: string;
@@ -10,25 +9,6 @@ export interface BaseMessage {
   relayed: number;
   created_at: Date;
 }
-
-// export interface BitcoinBulletsMessage extends BaseMessage {}
-// export interface BinanceKillersMessage extends BaseMessage {}
-// export interface AlwaysWinningMessage extends BaseMessage {}
-// export interface RussianInsidersMessage extends BaseMessage {}
-// export interface Binance360Message extends BaseMessage {}
-// export interface CryptoMuskMessage extends BaseMessage {}
-// export interface TestMessage extends BaseMessage {}
-
-// // Input types for creating messages (excluding auto-generated fields)
-// export interface CreateMessageInput {
-//   msg_id: string;
-//   content?: string | null;
-//   attachments?: any;
-//   reference_msg?: any;
-//   image_url?: any;
-//   timestamp?: Date | null;
-//   relayed?: number;
-// }
 
 // Table names
 export const TABLE_NAMES = {
