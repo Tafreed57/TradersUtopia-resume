@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prismadb';
+import { clerkClient } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { auth } from '@clerk/nextjs/server';
 import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
-const emailValidationSchema = z.object({
-  email: z.string().email('Invalid email format'),
+const validateEmailSchema = z.object({
+  email: z.string().email('Invalid email address'),
 });
+
+// Add a simple GET method to test if the route is being recognized
+export async function GET(request: NextRequest) {
+  return NextResponse.json({
+    message: 'Email validation API is working',
+    timestamp: new Date().toISOString(),
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,35 +33,43 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email } = emailValidationSchema.parse(body);
+    const { email } = validateEmailSchema.parse(body);
 
-    // Check if a profile exists with this email
-    const profile = await prisma.profile.findFirst({
-      where: {
-        email: {
-          equals: email,
-          mode: 'insensitive', // Case-insensitive search
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-      },
-    });
+    // Use Clerk's API to check if a user exists with this email
+    try {
+      const users = await clerkClient.users.getUserList({
+        emailAddress: [email],
+      });
 
-    return NextResponse.json({
-      exists: !!profile,
-      email: email,
-    });
-  } catch (error: any) {
-    console.error('Email validation error:', error);
+      const userExists = users.data.length > 0;
 
-    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        exists: userExists,
+        message: userExists
+          ? 'Email found in system'
+          : 'No account found with this email address',
+      });
+    } catch (clerkError: any) {
+      console.error('[VALIDATE_EMAIL] Clerk API error:', clerkError);
+
+      // If Clerk API fails, return a generic error but don't expose details
       return NextResponse.json(
         {
-          error: 'Invalid input',
+          exists: false,
+          message: 'Unable to validate email at this time. Please try again.',
+        },
+        { status: 500 }
+      );
+    }
+  } catch (error: any) {
+    console.error('[VALIDATE_EMAIL] Error:', error);
+
+    // Handle validation errors
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        {
+          error: 'Invalid email format',
           message: 'Please provide a valid email address',
-          details: error.errors,
         },
         { status: 400 }
       );
@@ -61,8 +77,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: 'Email validation failed',
-        message: 'Unable to validate email address',
+        error: 'Internal server error',
+        message: 'Unable to validate email at this time',
       },
       { status: 500 }
     );

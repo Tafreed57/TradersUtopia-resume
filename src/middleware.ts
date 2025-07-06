@@ -7,6 +7,22 @@ const isPublicRoute = createRouteMatcher([
   '/privacy',
   '/api/webhooks/stripe',
   '/api/health',
+  '/pricing',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/forgot-password',
+  '/2fa-verify',
+  '/api/uploadthing',
+  '/api/health', // Health check endpoint for monitoring
+  '/api/debug-runtime-env', // TEMPORARY: For debugging production environment issues
+  '/api/user/validate-email', // Email validation for forgot password flow
+
+  '/api/webhooks(.*)',
+  '/api/sync-profiles',
+  '/api/verify-stripe-payment',
+  '/api/2fa/verify-login',
+  '/api/2fa/status',
+  '/api/auth/signout',
   '/api/csrf-token',
   '/api/user/validate-email',
   '/api/auth/signout',

@@ -27,6 +27,7 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [needsSignOut, setNeedsSignOut] = useState(false);
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
 
   const router = useRouter();
   const { isSignedIn, signOut } = useAuth();
@@ -40,16 +41,12 @@ export default function ForgotPasswordPage() {
     }
   }, [isLoaded, isSignedIn]);
 
-  // Block access for users who already have passwords
+  // Determine if this is a password reset or password setup scenario
   useEffect(() => {
     if (isLoaded && user && user.passwordEnabled) {
-      toast.error('Password already set', {
-        description:
-          'Use the security settings to change your existing password.',
-      });
-      router.push('/dashboard');
+      setIsPasswordReset(true);
     }
-  }, [isLoaded, user, router]);
+  }, [isLoaded, user]);
 
   // Handle persistence across sign-out
   useEffect(() => {
@@ -79,7 +76,7 @@ export default function ForgotPasswordPage() {
         localStorage.removeItem('forgot-password-flow');
       }
     }
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-fill email for signed-in users
   useEffect(() => {
@@ -126,7 +123,9 @@ export default function ForgotPasswordPage() {
       localStorage.setItem('forgot-password-flow', 'reset-initiated');
 
       toast.info('Signing you out...', {
-        description: 'Required for password reset process',
+        description: isPasswordReset
+          ? 'Required for password reset process'
+          : 'Required for password setup process',
       });
 
       // Sign out the user and redirect back to this page
@@ -181,7 +180,7 @@ export default function ForgotPasswordPage() {
         description: 'Check your email for the verification code.',
       });
     } catch (err: any) {
-      console.error('Password setup error:', err);
+      console.error('Password reset error:', err);
       const errorMessage =
         err.errors?.[0]?.longMessage ||
         err.message ||
@@ -237,9 +236,16 @@ export default function ForgotPasswordPage() {
         localStorage.removeItem('forgot-password-email');
         localStorage.removeItem('forgot-password-flow');
 
-        toast.success('Password created successfully!', {
-          description: 'You can now sign in with your email and password.',
-        });
+        toast.success(
+          isPasswordReset
+            ? 'Password reset successfully!'
+            : 'Password created successfully!',
+          {
+            description: isPasswordReset
+              ? 'Your password has been updated. You can now sign in with your new password.'
+              : 'You can now sign in with your email and password.',
+          }
+        );
         router.push('/dashboard');
       } else if (result?.status === 'needs_second_factor') {
         toast.error('2FA required', {
@@ -248,18 +254,27 @@ export default function ForgotPasswordPage() {
         router.push('/sign-in');
       } else {
         console.error('Unexpected result:', result);
-        setError('Password creation failed. Please try again.');
+        setError(
+          isPasswordReset
+            ? 'Password reset failed. Please try again.'
+            : 'Password creation failed. Please try again.'
+        );
       }
     } catch (err: any) {
-      console.error('Password setup error:', err);
+      console.error('Password reset error:', err);
       const errorMessage =
         err.errors?.[0]?.longMessage ||
         err.message ||
-        'Failed to create password';
+        (isPasswordReset
+          ? 'Failed to reset password'
+          : 'Failed to create password');
       setError(errorMessage);
-      toast.error('Password creation failed', {
-        description: errorMessage,
-      });
+      toast.error(
+        isPasswordReset ? 'Password reset failed' : 'Password creation failed',
+        {
+          description: errorMessage,
+        }
+      );
     } finally {
       setIsLoading(false);
     }
@@ -270,12 +285,14 @@ export default function ForgotPasswordPage() {
       {/* Header */}
       <div className='w-full max-w-md mx-auto mb-8 text-center'>
         <h1 className='text-2xl sm:text-3xl font-bold text-white mb-2'>
-          Set Up Your Password
+          {isPasswordReset ? 'Reset Your Password' : 'Set Up Your Password'}
         </h1>
         <p className='text-gray-400 text-sm sm:text-base'>
           {successfulCreation
-            ? 'Enter the code sent to your email and create your password'
-            : 'Create a password for your account to enable password-based sign-in'}
+            ? `Enter the code sent to your email and ${isPasswordReset ? 'reset' : 'create'} your password`
+            : isPasswordReset
+              ? 'Enter your email to receive a password reset code'
+              : 'Create a password for your account to enable password-based sign-in'}
         </p>
       </div>
 
@@ -288,12 +305,20 @@ export default function ForgotPasswordPage() {
             ) : (
               <Mail className='w-5 h-5' />
             )}
-            {successfulCreation ? 'Create Your Password' : 'Password Setup'}
+            {successfulCreation
+              ? isPasswordReset
+                ? 'Reset Your Password'
+                : 'Create Your Password'
+              : isPasswordReset
+                ? 'Password Reset'
+                : 'Password Setup'}
           </CardTitle>
           <CardDescription>
             {successfulCreation
               ? 'We sent a verification code to your email'
-              : "We'll send you a code to verify your email and set up your password"}
+              : isPasswordReset
+                ? "We'll send you a code to reset your password"
+                : "We'll send you a code to verify your email and set up your password"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -304,7 +329,8 @@ export default function ForgotPasswordPage() {
                 <Alert className='mb-4 bg-blue-900/20 border-blue-500/30'>
                   <Info className='h-4 w-4 text-blue-400' />
                   <AlertDescription className='text-blue-300'>
-                    You'll be signed out first to complete the password setup
+                    You'll be signed out first to complete the{' '}
+                    {isPasswordReset ? 'password reset' : 'password setup'}{' '}
                     process. This is required by the security system.
                   </AlertDescription>
                 </Alert>
@@ -385,12 +411,16 @@ export default function ForgotPasswordPage() {
 
               <div className='space-y-2'>
                 <Label htmlFor='password' className='text-gray-300'>
-                  New Password
+                  {isPasswordReset ? 'New Password' : 'Password'}
                 </Label>
                 <Input
                   id='password'
                   type='password'
-                  placeholder='Create your password'
+                  placeholder={
+                    isPasswordReset
+                      ? 'Enter your new password'
+                      : 'Create your password'
+                  }
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   className='bg-gray-700/50 border-gray-600 text-white'
@@ -414,8 +444,12 @@ export default function ForgotPasswordPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                    Creating Password...
+                    {isPasswordReset
+                      ? 'Resetting Password...'
+                      : 'Creating Password...'}
                   </>
+                ) : isPasswordReset ? (
+                  'Reset Password'
                 ) : (
                   'Create Password'
                 )}

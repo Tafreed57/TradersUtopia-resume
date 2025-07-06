@@ -35,6 +35,9 @@ import { SubscriptionManager } from '@/components/subscription/subscription-mana
 import { PasswordManager } from '@/components/user/password-manager';
 import { UserDetails } from '@/components/user/user-details';
 
+// Force dynamic rendering for this page since it uses user authentication
+export const dynamic = 'force-dynamic';
+
 export default async function Dashboard() {
   const profile = await getCurrentProfileWithSync();
 
