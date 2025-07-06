@@ -19,14 +19,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  UniqueIdentifier,
 } from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -476,7 +470,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
         {children}
         <DragOverlay>
           {dragItem && (
-            <div className='bg-gray-800 p-2 rounded-md shadow-lg border border-gray-600'>
+            <div className='bg-gray-700 p-2 shadow-lg border border-gray-300'>
               <span className='text-white text-sm'>
                 {dragItem.type === 'channel' ? '📝' : '📁'}{' '}
                 {dragItem.data?.name || 'Moving item...'}

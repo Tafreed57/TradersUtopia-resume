@@ -89,7 +89,7 @@ export function ServerSectionHeader({
   };
 
   return (
-    <div className='relative mb-2 z-20'>
+    <div className='relative mb-1 z-20'>
       <div
         ref={setNodeRef}
         style={style}
@@ -107,6 +107,10 @@ export function ServerSectionHeader({
               {...attributes}
               {...listeners}
               className='relative flex-shrink-0 z-[60] cursor-grab active:cursor-grabbing'
+              style={{
+                minWidth: '16px',
+                minHeight: '16px',
+              }}
               onClick={e => {
                 // Prevent the drag handle from triggering the collapse toggle
                 e.stopPropagation();
@@ -155,28 +159,6 @@ export function ServerSectionHeader({
 
         {canManage && (
           <div className='flex items-center gap-1 flex-shrink-0'>
-            <div className='relative z-[55]'>
-              <ActionTooltip label='Create Channel' side='top'>
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    onOpen('createChannel', {
-                      channelType,
-                      server,
-                      section: sectionType === 'section' ? section : undefined,
-                    });
-                  }}
-                  className={`flex items-center justify-center w-6 h-6 text-gray-400 hover:text-blue-400 transition-all duration-200 rounded-md hover:bg-blue-600/20 border border-transparent hover:border-blue-400/30 relative z-[55] ${
-                    isHovered
-                      ? 'opacity-100'
-                      : 'opacity-0 group-hover:opacity-100'
-                  }`}
-                >
-                  <Plus className='h-3 w-3' />
-                </button>
-              </ActionTooltip>
-            </div>
-
             <div className='relative z-[100]'>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -186,6 +168,10 @@ export function ServerSectionHeader({
                         ? 'opacity-100'
                         : 'opacity-0 group-hover:opacity-100'
                     }`}
+                    style={{
+                      minWidth: '20px',
+                      minHeight: '20px',
+                    }}
                     onClick={e => e.stopPropagation()}
                   >
                     <MoreHorizontal className='h-3 w-3' />
@@ -201,6 +187,23 @@ export function ServerSectionHeader({
                     sideOffset={8}
                     alignOffset={-8}
                   >
+                    {/* Create Channel option for both section types */}
+                    <DropdownMenuItem
+                      onClick={e => {
+                        e.stopPropagation();
+                        onOpen('createChannel', {
+                          channelType,
+                          server,
+                          section:
+                            sectionType === 'section' ? section : undefined,
+                        });
+                      }}
+                      className='flex items-center gap-2 text-gray-300 hover:text-blue-400 hover:bg-blue-600/10 cursor-pointer px-3 py-2'
+                    >
+                      <Plus className='h-3 w-3' />
+                      Create Channel
+                    </DropdownMenuItem>
+
                     {sectionType === 'channels' && (
                       <>
                         <DropdownMenuItem
@@ -243,8 +246,7 @@ export function ServerSectionHeader({
                         <DropdownMenuItem
                           onClick={e => {
                             e.stopPropagation();
-                            // TODO: Add delete section functionality
-                            console.log('Delete section:', section.id);
+                            onOpen('deleteSection', { server, section });
                           }}
                           className='flex items-center gap-2 text-gray-300 hover:text-red-400 hover:bg-red-600/10 cursor-pointer px-3 py-2'
                         >

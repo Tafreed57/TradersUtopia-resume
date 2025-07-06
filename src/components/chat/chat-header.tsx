@@ -27,7 +27,7 @@ export function ChatHeader({
   servers,
 }: ChatHeaderProps) {
   return (
-    <div className='text-md font-semibold px-3 flex items-center h-12 border-neutral-200 dark:border-neutral-800 border-b-2'>
+    <div className='sticky top-0 z-50 text-md font-semibold px-3 flex items-center h-12 border-neutral-200 dark:border-neutral-800 border-b-2 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl'>
       {server ? (
         <MobileToggle server={server} role={role} servers={servers} />
       ) : (

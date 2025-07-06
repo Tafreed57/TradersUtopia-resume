@@ -36,7 +36,6 @@ export function CreateServerModal() {
   const router = useRouter();
   const type = useStore.use.type();
   const isOpen = useStore.use.isOpen();
-  const onOpen = useStore.use.onOpen();
   const onClose = useStore.use.onClose();
 
   const isModelOpen = isOpen && type === 'createServer';
@@ -49,9 +48,7 @@ export function CreateServerModal() {
     },
   });
 
-  const { register, handleSubmit, formState, watch } = form;
-
-  const isLoading = formState.isSubmitting;
+  const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {

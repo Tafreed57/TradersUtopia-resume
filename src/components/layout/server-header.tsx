@@ -56,6 +56,11 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
     onOpen('createChannel', { server });
   }
 
+  function handleCreateSectionClick() {
+    setIsDropdownOpen(false);
+    onOpen('createSection', { server });
+  }
+
   // ✅ UPDATED: Simple header for non-admin users (no dropdown, no member count)
   if (!isAdmin) {
     return (
@@ -176,7 +181,17 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
               </DropdownMenuItem>
             )}
 
-            {isModerator && (
+            {(isModerator || isAdmin) && (
+              <DropdownMenuItem
+                onClick={handleCreateSectionClick}
+                className='text-green-400 hover:text-green-300 text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-green-600/20 transition-all duration-200 flex items-center gap-3'
+              >
+                <PlusCircle className='w-4 h-4' />
+                <span className='font-medium'>Create Section</span>
+              </DropdownMenuItem>
+            )}
+
+            {(isModerator || isAdmin) && (
               <DropdownMenuSeparator className='bg-gray-700/50 my-2' />
             )}
 

@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useNavigationLoading } from '@/hooks/use-navigation-loading';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
 import { ButtonLoading } from '@/components/ui/loading-components';
-import { Loader2 } from 'lucide-react';
 
 interface SubscriptionProtectedLinkProps {
   href: string;
@@ -44,7 +43,6 @@ export const SubscriptionProtectedLink = forwardRef<
   const { user, isLoaded } = useUser();
   const { navigate } = useNavigationLoading();
   const loading = useComprehensiveLoading('api');
-  const [isChecking, setIsChecking] = useState(false);
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();

@@ -9,9 +9,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { useDragDrop } from '@/contexts/drag-drop-provider';
-import { CSS } from '@dnd-kit/utilities';
-import { AnimatePresence, motion } from 'framer-motion';
-import { GripVertical } from 'lucide-react';
 import { DragStartEvent, DragOverEvent, DragEndEvent } from '@dnd-kit/core';
 
 interface SectionContentProps {
@@ -64,7 +61,7 @@ function SectionItem({
         />
       </div>
       {!isCollapsed && (
-        <div className='flex flex-col space-y-1 ml-4 overflow-visible relative z-10'>
+        <div className='flex flex-col space-y-0.5 ml-4 overflow-visible relative z-10'>
           {/* Render child sections first */}
           {section.children && section.children.length > 0 && (
             <SortableContext
@@ -133,6 +130,15 @@ export function SectionContent({
   const [isTextChannelsCollapsed, setIsTextChannelsCollapsed] = useState(false);
   const [defaultSectionPosition, setDefaultSectionPosition] = useState(0);
 
+  // Debug logging
+  useEffect(() => {}, [
+    channelsWithoutSection,
+    sectionsWithChannels,
+    server,
+    role,
+    isTextChannelsCollapsed,
+  ]);
+
   useEffect(() => {
     setLocalChannelsWithoutSection(channelsWithoutSection);
     setLocalSectionsWithChannels(sectionsWithChannels);
@@ -160,11 +166,15 @@ export function SectionContent({
         const isCollapsed = localStorage.getItem(
           `text-channels-collapsed-${server.id}`
         );
-        if (isCollapsed) {
+        if (isCollapsed !== null) {
           setIsTextChannelsCollapsed(JSON.parse(isCollapsed));
+        } else {
+          // Default to expanded (false) if no saved state
+          setIsTextChannelsCollapsed(false);
         }
       } catch (error) {
-        // Fallback for parsing errors
+        // Fallback to expanded state on error
+        setIsTextChannelsCollapsed(false);
       }
     }
   }, [server]);
@@ -186,57 +196,170 @@ export function SectionContent({
 
   const saveCollapsedState = useCallback(
     (newState: Set<string>) => {
-      // ... existing code ...
+      if (typeof window !== 'undefined' && server) {
+        try {
+          localStorage.setItem(
+            `collapsed-sections-${server.id}`,
+            JSON.stringify(Array.from(newState))
+          );
+        } catch (error) {
+          console.error('Failed to save collapsed state:', error);
+        }
+      }
     },
     [server]
   );
 
   const saveTextChannelsCollapsedState = useCallback(
     (isCollapsed: boolean) => {
-      // ... existing code ...
+      if (typeof window !== 'undefined' && server) {
+        try {
+          localStorage.setItem(
+            `text-channels-collapsed-${server.id}`,
+            JSON.stringify(isCollapsed)
+          );
+        } catch (error) {
+          console.error('Failed to save text channels collapsed state:', error);
+        }
+      }
     },
     [server]
   );
 
   const saveDefaultSectionPosition = useCallback(
     (position: number) => {
-      // ... existing code ...
+      if (typeof window !== 'undefined' && server) {
+        try {
+          localStorage.setItem(
+            `default-section-pos-${server.id}`,
+            JSON.stringify(position)
+          );
+        } catch (error) {
+          console.error('Failed to save default section position:', error);
+        }
+      }
     },
     [server]
   );
 
   const toggleSection = useCallback(
     (sectionId: string) => {
-      // ... existing code ...
+      setCollapsedSections(prev => {
+        const newState = new Set(prev);
+        if (newState.has(sectionId)) {
+          newState.delete(sectionId);
+        } else {
+          newState.add(sectionId);
+        }
+        saveCollapsedState(newState);
+        return newState;
+      });
     },
-    [collapsedSections, saveCollapsedState]
+    [saveCollapsedState]
   );
 
   const toggleTextChannels = useCallback(() => {
-    // ... existing code ...
-  }, [isTextChannelsCollapsed, saveTextChannelsCollapsedState]);
+    setIsTextChannelsCollapsed(prev => {
+      const newState = !prev;
+      saveTextChannelsCollapsedState(newState);
+      return newState;
+    });
+  }, [saveTextChannelsCollapsedState]);
 
   // DND Handlers
   const handleDragStart = (event: DragStartEvent) => {
-    // ... existing code ...
+    const { active } = event;
+    // Store the active item for drag operations
+    console.log('Drag start:', active.id);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    // ... existing code ...
+    const { active, over } = event;
+    if (!over) return;
+
+    // Handle drag over logic
+    console.log('Drag over:', active.id, 'over:', over.id);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    // ... existing code ...
+    const { active, over } = event;
+    if (!over) return;
+
+    // Handle drag end logic - reorder items
+    console.log('Drag end:', active.id, 'over:', over.id);
   };
+
+  // Register drag and drop handlers with provider
+  useEffect(() => {
+    setOptimisticCallbacks({
+      onChannelReorder: (
+        channelId: string,
+        newPosition: number,
+        newSectionId?: string | null
+      ) => {
+        console.log('Channel reorder:', channelId, newPosition, newSectionId);
+        // Handle channel reordering logic here
+      },
+      onSectionReorder: (
+        sectionId: string,
+        newPosition: number,
+        newParentId?: string | null
+      ) => {
+        console.log('Section reorder:', sectionId, newPosition, newParentId);
+        // Handle section reordering logic here
+      },
+    });
+  }, [setOptimisticCallbacks]);
 
   // Memoized components for rendering
   const textChannelsComponent = useMemo(
     () => ({
       id: 'text-channels',
       position: defaultSectionPosition,
-      component: <div key='text-channels'>{/* Text channels content */}</div>,
+      component: (
+        <div key='text-channels' className='overflow-visible'>
+          {localChannelsWithoutSection.length > 0 && (
+            <div className='overflow-visible'>
+              <ServerSectionHeader
+                sectionType='channels'
+                role={role}
+                label='Text Channels'
+                server={server}
+                channelType={ChannelType.TEXT}
+                isCollapsed={isTextChannelsCollapsed}
+                onToggleCollapse={toggleTextChannels}
+              />
+              <div className='flex flex-col space-y-0.5 ml-4 overflow-visible relative z-10'>
+                <SortableContext
+                  items={localChannelsWithoutSection.map(
+                    (channel: any) => `channel-${channel.id}`
+                  )}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {localChannelsWithoutSection.map((channel: any) => (
+                    <div key={channel.id} className='overflow-visible'>
+                      <ServerChannel
+                        channel={channel}
+                        server={server}
+                        role={role}
+                      />
+                    </div>
+                  ))}
+                </SortableContext>
+              </div>
+            </div>
+          )}
+        </div>
+      ),
     }),
-    [defaultSectionPosition]
+    [
+      defaultSectionPosition,
+      localChannelsWithoutSection,
+      role,
+      server,
+      isTextChannelsCollapsed,
+      toggleTextChannels,
+    ]
   );
 
   const sectionComponents = useMemo(
@@ -272,7 +395,7 @@ export function SectionContent({
   );
 
   return (
-    <div className='space-y-3 overflow-visible'>
+    <div className='space-y-1.5 overflow-visible'>
       {/* Combined sortable context for all sections including default */}
       <SortableContext
         items={allSortableIds}

@@ -3,10 +3,8 @@ import { getCurrentProfile } from '@/lib/query';
 import { getServer } from '@/lib/query';
 import { ServerHeader } from '@/components/layout/server-header';
 import { Separator } from '@/components/ui/separator';
-import { Hash, ShieldAlert, ShieldCheck } from 'lucide-react';
-import { ChannelType, MemberRole } from '@prisma/client';
-import { ServerSectionHeader } from '@/components/server-section-header';
-import { ServerChannel } from '@/components/server-channel';
+import { Hash } from 'lucide-react';
+import { ChannelType } from '@prisma/client';
 import { ServerSearch } from '@/components/server-search';
 import { SectionContent } from '@/components/section-content';
 import { DragDropProvider } from '@/contexts/drag-drop-provider';
@@ -17,14 +15,6 @@ interface ServerSideBarProps {
 
 const iconMap = {
   [ChannelType.TEXT]: <Hash className='mr-2 h-4 w-4' />,
-};
-
-const roleIconMap = {
-  [MemberRole.GUEST]: null,
-  [MemberRole.ADMIN]: <ShieldAlert className='text-rose-500 mr-2 h-4 w-4' />,
-  [MemberRole.MODERATOR]: (
-    <ShieldCheck className='text-indigo-500 mr-2 h-4 w-4' />
-  ),
 };
 
 export async function ServerSideBar({ serverId }: ServerSideBarProps) {

@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { SmartEntryButton } from '@/components/smart-entry-button';
 import { AutoRouteAfterSignIn } from '@/components/auto-route-after-signin';
-import { CountdownTimer } from '@/components/countdown-timer';
 import { SharedNavbar } from '@/components/shared-navbar';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { HeroBanner } from '@/components/hero-banner';

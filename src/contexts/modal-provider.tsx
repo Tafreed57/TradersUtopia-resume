@@ -14,6 +14,7 @@ import { DeleteMessageModal } from '@/components/modals/delete-message-modal';
 import { CreateSectionModal } from '@/components/modals/create-section-modal';
 import { EditSectionModal } from '@/components/modals/edit-section-modal';
 import { EditDefaultSectionModal } from '@/components/modals/edit-default-section-modal';
+import { DeleteSectionModal } from '@/components/modals/delete-section-modal';
 import { useEffect, useState } from 'react';
 
 export function ModalProvider() {
@@ -43,6 +44,7 @@ export function ModalProvider() {
       <CreateSectionModal />
       <EditSectionModal />
       <EditDefaultSectionModal />
+      <DeleteSectionModal />
     </>
   );
 }

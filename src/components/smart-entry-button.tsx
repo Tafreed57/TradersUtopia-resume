@@ -1,20 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { useUser, useSignIn } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 import { useNavigationLoading } from '@/hooks/use-navigation-loading';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
-import { ButtonLoading } from '@/components/ui/loading-components';
-import { Shield, LogIn, Loader2, Zap, Crown } from 'lucide-react';
+import { LogIn, Loader2, Zap, Crown } from 'lucide-react';
 import { makeSecureRequest } from '@/lib/csrf-client';
 
 export function SmartEntryButton() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const { signIn, setActive } = useSignIn();
   const { navigate } = useNavigationLoading();
   const loading = useComprehensiveLoading('api');
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleEntryClick = async () => {
     console.log('🎯 Smart entry button clicked');

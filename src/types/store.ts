@@ -15,6 +15,7 @@ export type ModalType =
   | 'createSection'
   | 'editSection'
   | 'editDefaultSection'
+  | 'deleteSection'
   | 'messageFile'
   | 'deleteMessage';
 

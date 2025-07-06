@@ -1,8 +1,13 @@
 'use client';
-import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { cn } from '@/lib/utils';
 import { Channel, ChannelType, MemberRole, Server } from '@prisma/client';
-import { Edit, Hash, Trash, GripVertical } from 'lucide-react';
+import { Edit, Hash, Trash, GripVertical, MoreHorizontal } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useParams, useRouter } from 'next/navigation';
 import React, {
   useMemo,
@@ -34,6 +39,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const [isPending, startTransition] = useTransition();
   const [optimisticActive, setOptimisticActive] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   // Prevent hydration mismatch by ensuring component only renders on client
@@ -117,6 +123,18 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
     [onOpen, channel, server]
   );
 
+  // Handle mouse enter/leave with dropdown state consideration
+  const handleMouseEnter = useCallback(() => {
+    setShowActions(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    // Only hide actions if dropdown is not open
+    if (!isDropdownOpen) {
+      setShowActions(false);
+    }
+  }, [isDropdownOpen]);
+
   // Memoize the button classes
   const buttonClasses = useMemo(
     () =>
@@ -175,9 +193,9 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className='relative mb-1.5 mr-3 group'
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
+      className='relative mb-0.5 mr-3 group'
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className='flex items-center'>
         {/* Drag handle outside the button */}
@@ -185,11 +203,15 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
           <div
             {...attributes}
             {...listeners}
-            className='flex-shrink-0 cursor-grab active:cursor-grabbing p-1 rounded transition-all duration-200 hover:bg-gray-600/30 mr-1'
+            className='cursor-grab active:cursor-grabbing p-1 rounded transition-all duration-200 hover:bg-gray-600/30 mr-1 flex items-center justify-center'
             onClick={e => {
               // Prevent the drag handle from triggering the button click
               e.stopPropagation();
               e.preventDefault();
+            }}
+            style={{
+              minWidth: '20px',
+              minHeight: '20px',
             }}
           >
             <GripVertical className='w-3 h-3 text-gray-400 group-hover:text-blue-400 transition-colors' />
@@ -221,37 +243,60 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
         </button>
       </div>
 
-      {/* Edit and Delete buttons with much higher z-index */}
+      {/* 3-dots dropdown menu for channel actions */}
       {canModify && (
         <div
           className={cn(
-            'absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 transition-all duration-200 z-[70]',
-            showActions ? 'opacity-100 visible' : 'opacity-0 invisible'
+            'absolute right-1 top-1/2 transform -translate-y-1/2 transition-all duration-200 z-[70]',
+            showActions || isDropdownOpen
+              ? 'opacity-100 visible'
+              : 'opacity-0 invisible'
           )}
         >
-          <div className='relative z-[70]'>
-            <ActionTooltip label='Edit' side='top'>
+          <DropdownMenu onOpenChange={setIsDropdownOpen}>
+            <DropdownMenuTrigger asChild>
               <button
-                onClick={e => onAction(e, 'editChannel')}
-                className='p-1.5 rounded-md hover:bg-blue-600/20 transition-all duration-200 group/edit flex items-center justify-center backdrop-blur-sm border border-transparent hover:border-blue-400/30 relative z-[70]'
-                title='Edit Channel'
+                style={{
+                  minWidth: '20px',
+                  minHeight: '20px',
+                }}
+                className='p-1.5 rounded-md hover:bg-gray-600/20 transition-all duration-200 flex items-center justify-center backdrop-blur-sm border border-transparent hover:border-gray-400/30 relative z-[70]'
+                title='Channel Options'
+                onClick={e => e.stopPropagation()}
               >
-                <Edit className='w-3 h-3 text-gray-400 group-hover/edit:text-blue-400 transition-colors duration-200' />
+                <MoreHorizontal className='w-3 h-3 text-gray-400 hover:text-gray-200 transition-colors duration-200' />
               </button>
-            </ActionTooltip>
-          </div>
-
-          <div className='relative z-[70]'>
-            <ActionTooltip label='Delete' side='top'>
-              <button
-                onClick={e => onAction(e, 'deleteChannel')}
-                className='p-1.5 rounded-md hover:bg-red-600/20 transition-all duration-200 group/delete flex items-center justify-center backdrop-blur-sm border border-transparent hover:border-red-400/30 relative z-[70]'
-                title='Delete Channel'
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align='end'
+              className='w-48 bg-gray-800 border-gray-700 z-[80]'
+              onCloseAutoFocus={e => {
+                // Prevent auto-focus after closing to avoid unwanted behavior
+                e.preventDefault();
+              }}
+            >
+              <DropdownMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                  onAction(e, 'editChannel');
+                }}
+                className='flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-blue-600/20 hover:text-blue-400 cursor-pointer'
               >
-                <Trash className='w-3 h-3 text-gray-400 group-hover/delete:text-red-400 transition-colors duration-200' />
-              </button>
-            </ActionTooltip>
-          </div>
+                <Edit className='w-4 h-4' />
+                Edit Channel
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                  onAction(e, 'deleteChannel');
+                }}
+                className='flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-red-600/20 hover:text-red-400 cursor-pointer'
+              >
+                <Trash className='w-4 h-4' />
+                Delete Channel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
     </div>
