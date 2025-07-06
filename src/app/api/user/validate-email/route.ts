@@ -36,8 +36,9 @@ export async function POST(request: NextRequest) {
     const { email } = validateEmailSchema.parse(body);
 
     // Use Clerk's API to check if a user exists with this email
+    const client = await clerkClient();
     try {
-      const users = await clerkClient.users.getUserList({
+      const users = await client.users.getUserList({
         emailAddress: [email],
       });
 
