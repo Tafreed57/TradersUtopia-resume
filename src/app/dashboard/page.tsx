@@ -44,6 +44,9 @@ import { Badge } from '@/components/ui/badge';
 import { ImmediateLoadingDemo } from '@/components/immediate-loading-demo';
 import { DashboardAutoJoin } from '@/components/dashboard-auto-join';
 
+// Force dynamic rendering for this page since it uses user authentication
+export const dynamic = 'force-dynamic';
+
 export default async function Dashboard() {
   const profile = await getCurrentProfileWithSync();
 

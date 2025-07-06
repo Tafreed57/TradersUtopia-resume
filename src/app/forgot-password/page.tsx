@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
         localStorage.removeItem('forgot-password-flow');
       }
     }
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pre-fill email for signed-in users
   useEffect(() => {
