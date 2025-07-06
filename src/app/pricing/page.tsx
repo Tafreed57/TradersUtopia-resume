@@ -1,16 +1,8 @@
 import { SignedIn, SignedOut } from '@clerk/nextjs';
-import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { SharedNavbar } from '@/components/shared-navbar';
 import { HeroBanner } from '@/components/hero-banner';
 import { ComprehensivePricingSection } from '@/components/comprehensive-pricing-section';
-import {
-  Sparkles,
-  CheckCircle,
-  Crown,
-  Users,
-  TrendingUp,
-  Shield,
-} from 'lucide-react';
+import { Users, TrendingUp, Shield } from 'lucide-react';
 
 export default function PricingPage() {
   return (

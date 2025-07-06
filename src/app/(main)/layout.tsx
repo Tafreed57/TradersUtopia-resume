@@ -1,5 +1,4 @@
 import { SideBar } from '@/components/layout/side-bar';
-import { ServerHeader } from '@/components/layout/server-header';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

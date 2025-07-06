@@ -1,14 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
-import {
-  ComponentLoading,
-  ApiLoading,
-  ButtonLoading,
-} from '@/components/ui/loading-components';
 import {
   Card,
   CardContent,
@@ -16,45 +11,18 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import {
   CreditCard,
-  Calendar,
-  DollarSign,
-  Shield,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
   RefreshCw,
   Loader2,
-  Eye,
-  EyeOff,
-  Clock,
-  AlertCircle,
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  Gift,
   Lock,
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
-import { formatDistanceToNow } from 'date-fns';
 import { makeSecureRequest } from '@/lib/csrf-client';
-import { Fragment } from 'react';
 
 interface SubscriptionDetails {
   status: string;
@@ -227,51 +195,6 @@ export function SubscriptionManager() {
     }
   };
 
-  const handleImmediateCancel = async () => {
-    // Close all modals and proceed directly to cancellation
-    setShowFinalOffer(false);
-    setShowOfferModal(false);
-    setShowCancelDialog(false);
-
-    // Perform immediate cancellation without password
-    setIsCancelling(true);
-    try {
-      const response = await makeSecureRequest('/api/subscription/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          password: 'IMMEDIATE_CANCEL', // Special flag for immediate cancellation
-          confirmCancel: true,
-          reason: 'Rejected all offers',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        showToast.success(
-          '✅ Subscription Cancelled',
-          'Your subscription has been cancelled immediately.'
-        );
-        await fetchSubscriptionDetails();
-      } else {
-        showToast.error('Cancellation Error', data.error);
-        // If immediate cancel fails, fall back to normal flow
-        setCancelStep('auth');
-        setShowCancelDialog(true);
-      }
-    } catch (error) {
-      showToast.error('Error', 'Failed to cancel subscription');
-      // If immediate cancel fails, fall back to normal flow
-      setCancelStep('auth');
-      setShowCancelDialog(true);
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
   const fetchSubscriptionDetails = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
@@ -353,17 +276,6 @@ export function SubscriptionManager() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleAutoRenewToggle = async (autoRenew: boolean) => {
-    // If user is trying to turn OFF auto-renewal, show cancellation confirmation
-    if (!autoRenew) {
-      setShowCancelDialog(true);
-      return;
-    }
-
-    // If turning ON auto-renewal, proceed directly
-    await toggleAutoRenew(true);
   };
 
   const toggleAutoRenew = async (autoRenew: boolean) => {
@@ -542,26 +454,6 @@ This data comes directly from Stripe and shows the REAL status of your subscript
       style: 'currency',
       currency: currency.toUpperCase(),
     }).format(amount / 100);
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      ACTIVE: { color: 'default', icon: CheckCircle, text: 'Active' },
-      CANCELLED: { color: 'destructive', icon: XCircle, text: 'Cancelled' },
-      EXPIRED: { color: 'secondary', icon: XCircle, text: 'Expired' },
-      FREE: { color: 'secondary', icon: Shield, text: 'Free' },
-    } as const;
-
-    const config =
-      statusConfig[status as keyof typeof statusConfig] || statusConfig.FREE;
-    const Icon = config.icon;
-
-    return (
-      <Badge variant={config.color} className='flex items-center gap-1'>
-        <Icon className='h-3 w-3' />
-        {config.text}
-      </Badge>
-    );
   };
 
   const handleSync = async () => {

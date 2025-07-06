@@ -6,16 +6,7 @@ import { SimplePricingButtons } from '@/components/simple-pricing-buttons';
 import { EnhancedTrialButton } from '@/components/enhanced-trial-button';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import {
-  CheckCircle,
-  Crown,
-  Users,
-  TrendingUp,
-  Shield,
-  Star,
-  ArrowRight,
-  Loader2,
-} from 'lucide-react';
+import { CheckCircle, Crown, Star, ArrowRight, Loader2 } from 'lucide-react';
 
 interface ComprehensivePricingSectionProps {
   isSignedIn: boolean;

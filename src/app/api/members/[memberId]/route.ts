@@ -1,8 +1,6 @@
 import { prisma } from '@/lib/prismadb';
 import { getCurrentProfile } from '@/lib/query';
-import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { validateInput, memberRoleSchema, cuidSchema } from '@/lib/validation';
 import { strictCSRFValidation } from '@/lib/csrf';

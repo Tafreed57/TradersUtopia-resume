@@ -17,8 +17,6 @@ import {
   AlertTriangle,
   Key,
   ExternalLink,
-  Crown,
-  Star,
   Calendar,
   Clock,
 } from 'lucide-react';
@@ -27,7 +25,7 @@ import NextImage from 'next/image';
 export function DiscordProfile() {
   const { user } = useUser();
   const [profileData, setProfileData] = useState<any>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
 
   // Fetch profile data from our database to get accurate 2FA status
   useEffect(() => {

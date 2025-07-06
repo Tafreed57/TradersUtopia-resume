@@ -19,7 +19,6 @@ export function DeleteChannelModal() {
   const router = useRouter();
   const type = useStore.use.type();
   const isOpen = useStore.use.isOpen();
-  const onOpen = useStore.use.onOpen();
   const onClose = useStore.use.onClose();
   const data = useStore.use.data();
   const isModelOpen = isOpen && type === 'deleteChannel';

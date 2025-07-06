@@ -3,9 +3,8 @@
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Smile } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { useRef } from 'react';
 import z from 'zod';
 import { secureAxiosPost } from '@/lib/csrf-client';
 import qs from 'query-string';

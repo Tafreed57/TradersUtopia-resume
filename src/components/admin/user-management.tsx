@@ -34,8 +34,6 @@ import {
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
 import { formatDistanceToNow } from 'date-fns';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 
 interface UserData {
   id: string;

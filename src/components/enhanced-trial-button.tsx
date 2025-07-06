@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
+import { ExternalLink, Loader2, ArrowRight } from 'lucide-react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 

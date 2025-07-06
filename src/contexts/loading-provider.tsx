@@ -9,7 +9,6 @@ import {
   useCallback,
 } from 'react';
 import { LoadingScreen } from '@/components/ui/loading-screen';
-import { useRouter } from 'next/navigation';
 
 interface LoadingContextType {
   isLoading: boolean;

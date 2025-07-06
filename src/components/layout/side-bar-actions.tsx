@@ -1,7 +1,7 @@
 'use client';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { useStore } from '@/store/store';
-import { Plus, Lock } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 

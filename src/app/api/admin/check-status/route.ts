@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentProfileForAuth } from '@/lib/query';
-import { db } from '@/lib/db';
 import { rateLimitAdmin, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';

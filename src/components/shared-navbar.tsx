@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
 import NextImage from 'next/image';
-import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs';
+import { SignedIn, UserButton, useUser } from '@clerk/nextjs';
 import { AuthHeader } from '@/components/auth-header';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
@@ -19,7 +19,6 @@ import {
   Video,
   TrendingUp,
   MessageSquare,
-  Shield,
   Loader2,
 } from 'lucide-react';
 

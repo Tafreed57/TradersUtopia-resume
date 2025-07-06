@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, TrendingUp, Clock, Upload, Zap } from 'lucide-react';
+import { Loader2, TrendingUp, Upload, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Button Loading Component
@@ -17,7 +17,6 @@ export function ButtonLoading({
   children,
   loadingText = 'Loading...',
   className,
-  disabled,
 }: ButtonLoadingProps) {
   return (
     <div className={cn('flex items-center gap-2', className)}>

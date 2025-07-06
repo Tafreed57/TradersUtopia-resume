@@ -4,7 +4,6 @@ import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
-import { toast } from 'sonner';
 
 interface PricingButtonsProps {
   // ... existing code ...
@@ -15,7 +14,7 @@ export function PricingButtons(
     // ... existing code ...
   }: PricingButtonsProps
 ) {
-  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { isSignedIn } = useAuth();
   const { user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState(false);

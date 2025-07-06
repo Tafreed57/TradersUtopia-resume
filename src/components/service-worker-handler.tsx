@@ -2,7 +2,6 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { useEffect } from 'react';
-import { toast } from 'sonner';
 
 export function ServiceWorkerHandler() {
   const { isSignedIn } = useAuth();

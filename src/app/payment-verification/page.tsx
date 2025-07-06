@@ -19,7 +19,6 @@ import { useLoading } from '@/contexts/loading-provider';
 import {
   CheckCircle,
   CreditCard,
-  ArrowRight,
   Loader2,
   ExternalLink,
   Users,

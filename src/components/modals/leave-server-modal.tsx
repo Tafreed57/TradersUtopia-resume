@@ -9,21 +9,15 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useOrigin } from '@/hooks/use-origin';
 import { useStore } from '@/store/store';
 import { secureAxiosDelete } from '@/lib/csrf-client';
-import { Check, Copy, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import qs from 'query-string';
 
 export function LeaveServerModal() {
   const router = useRouter();
   const type = useStore.use.type();
   const isOpen = useStore.use.isOpen();
-  const onOpen = useStore.use.onOpen();
   const onClose = useStore.use.onClose();
   const data = useStore.use.data();
   const isModelOpen = isOpen && type === 'leaveServer';

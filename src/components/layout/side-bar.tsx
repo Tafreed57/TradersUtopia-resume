@@ -1,7 +1,6 @@
 import { getCurrentProfileForAuth, getAllServers } from '@/lib/query';
 import { SideBarActions } from '@/components/layout/side-bar-actions';
 import { SideBarItem } from '@/components/layout/side-bar-item';
-// import { ModeToggle } from '@/components/mobile-toggle';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { Separator } from '@/components/ui/separator';
 import { ActionTooltip } from '@/components/ui/action-tooltip';

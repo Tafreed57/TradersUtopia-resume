@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
 import { passwordChangeSchema } from '@/lib/validation';
 import { rateLimitAuth, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { strictCSRFValidation } from '@/lib/csrf';

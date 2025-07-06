@@ -7,11 +7,7 @@ import {
   rateLimitSubscription,
   trackSuspiciousActivity,
 } from '@/lib/rate-limit';
-import {
-  validateInput,
-  autoRenewalSchema,
-  secureTextInput,
-} from '@/lib/validation';
+import { validateInput, autoRenewalSchema } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 

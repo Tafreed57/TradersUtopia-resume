@@ -22,10 +22,10 @@ import { useStore } from '@/store/store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ChannelType } from '@prisma/client';
 import { secureAxiosPatch } from '@/lib/csrf-client';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import qs from 'query-string';
 
 export function EditChannelModal() {
@@ -56,7 +56,7 @@ export function EditChannelModal() {
     }
   }, [isModelOpen, data?.channel, form]);
 
-  const { register, handleSubmit, formState, watch } = form;
+  const { handleSubmit, formState } = form;
 
   const isLoading = formState.isSubmitting;
 

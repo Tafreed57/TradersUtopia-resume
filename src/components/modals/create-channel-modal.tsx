@@ -66,7 +66,7 @@ export function CreateChannelModal() {
     }
   }, [data?.section, form]);
 
-  const { register, handleSubmit, formState, watch } = form;
+  const { handleSubmit, formState } = form;
 
   const isLoading = formState.isSubmitting;
 

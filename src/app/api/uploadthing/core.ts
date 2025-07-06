@@ -6,7 +6,7 @@ import {
   simulateVirusScan,
   validateUploadRate,
 } from '@/lib/validation';
-import { rateLimitUpload, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { rateLimitUpload } from '@/lib/rate-limit';
 
 const f = createUploadthing();
 

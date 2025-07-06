@@ -1,12 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prismadb';
-import { v4 as uuidv4 } from 'uuid';
 import { MemberRole } from '@prisma/client';
 import { getCurrentProfile } from '@/lib/query';
-
-const DEFAULT_SERVER_NAME = 'Traders Utopia';
-const DEFAULT_INVITE_CODE = 'TRADERS-UTOPIA';
 
 export const dynamic = 'force-dynamic';
 

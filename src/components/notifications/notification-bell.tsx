@@ -4,13 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,9 +19,6 @@ import { Bell, BellRing, Check, CheckCheck } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@clerk/nextjs';
-import { toast } from 'sonner';
-import { AnimatePresence, motion } from 'framer-motion';
-import { BellDot, Loader2 } from 'lucide-react';
 
 interface Notification {
   id: string;
