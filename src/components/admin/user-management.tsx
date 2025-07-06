@@ -290,6 +290,48 @@ export function UserManagement() {
     }
   };
 
+  const handleFixAllAdminServerRoles = async () => {
+    if (
+      !confirm(
+        "Fix ALL admin server roles? This will update ALL global admins to have ADMIN role in ALL servers and join them to any admin-created servers they're not already in."
+      )
+    ) {
+      return;
+    }
+
+    setActionLoading('fix-admin-roles');
+    try {
+      const response = await makeSecureRequest(
+        '/api/admin/update-all-server-roles',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        showToast.success(
+          'Admin Server Roles Fixed!',
+          `Updated ${data.summary.totalRolesUpdated} roles and joined ${data.summary.totalServersJoined} servers for ${data.summary.totalAdmins} admins`
+        );
+
+        // Refresh user data to reflect changes
+        await fetchUsers();
+      } else {
+        const error = await response.json();
+        showToast.error('Fix Failed', error.message);
+      }
+    } catch (error) {
+      console.error('Error fixing admin server roles:', error);
+      showToast.error('Error', 'Failed to fix admin server roles');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const formatDate = (date: string | number) => {
     return (
       new Date(date).toLocaleDateString() +
@@ -342,19 +384,36 @@ export function UserManagement() {
             </p>
           </div>
         </div>
-        <Button
-          onClick={fetchUsers}
-          disabled={loading}
-          size='sm'
-          className='bg-blue-600 hover:bg-blue-700 w-full sm:w-auto'
-        >
-          {loading ? (
-            <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
-          ) : (
-            <Database className='w-4 h-4 mr-2' />
-          )}
-          {loading ? 'Loading...' : 'Load Users'}
-        </Button>
+        <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
+          <Button
+            onClick={fetchUsers}
+            disabled={loading}
+            size='sm'
+            className='bg-blue-600 hover:bg-blue-700 w-full sm:w-auto'
+          >
+            {loading ? (
+              <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
+            ) : (
+              <Database className='w-4 h-4 mr-2' />
+            )}
+            {loading ? 'Loading...' : 'Load Users'}
+          </Button>
+          <Button
+            onClick={handleFixAllAdminServerRoles}
+            disabled={actionLoading === 'fix-admin-roles'}
+            size='sm'
+            className='bg-orange-600 hover:bg-orange-700 w-full sm:w-auto'
+          >
+            {actionLoading === 'fix-admin-roles' ? (
+              <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
+            ) : (
+              <UserCog className='w-4 h-4 mr-2' />
+            )}
+            {actionLoading === 'fix-admin-roles'
+              ? 'Fixing...'
+              : 'Fix Admin Server Roles'}
+          </Button>
+        </div>
       </div>
 
       {users.length > 0 && (
