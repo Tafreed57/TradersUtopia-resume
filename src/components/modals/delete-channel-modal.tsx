@@ -37,7 +37,7 @@ export function DeleteChannelModal() {
       router.refresh();
       router.push(`/servers/${data?.server?.id}`);
     } catch (error: any) {
-      console.log(error, 'DELETE CHANNEL ERROR');
+      //
     } finally {
       setIsLoading(false);
     }

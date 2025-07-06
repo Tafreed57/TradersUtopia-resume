@@ -3,6 +3,11 @@ import { getCurrentProfile } from '@/lib/query';
 import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { z } from 'zod';
+
+const sectionCreationSchema = z.object({
+  name: z.string().min(1, 'Section name is required').max(100),
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,23 +19,28 @@ export async function POST(req: NextRequest) {
     }
 
     const profile = await getCurrentProfile();
-    const { searchParams } = new URL(req.url);
-    const { name } = await req.json();
-    const serverId = searchParams.get('serverId');
-
     if (!profile) {
       trackSuspiciousActivity(req, 'UNAUTHENTICATED_SECTION_CREATION');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const serverId = searchParams.get('serverId');
     if (!serverId) {
       trackSuspiciousActivity(req, 'SECTION_CREATION_NO_SERVER_ID');
       return new NextResponse('Server not found', { status: 404 });
     }
 
-    if (!name || name.trim().length === 0) {
-      return new NextResponse('Section name is required', { status: 400 });
+    // ✅ SECURITY: Input validation with Zod
+    const body = await req.json();
+    const validationResult = sectionCreationSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', issues: validationResult.error.issues },
+        { status: 400 }
+      );
     }
+    const { name } = validationResult.data;
 
     // Check if user has permission to create sections (admin/moderator)
     const serverMember = await prisma.member.findFirst({
@@ -67,17 +77,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // ✅ SECURITY: Log successful section creation
-    console.log(
-      `📂 [SECTION] Section created successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(
-      `📝 [SECTION] Section name: "${name}", server: ${serverId}, position: ${newPosition}`
-    );
-
     return NextResponse.json(section);
   } catch (error: any) {
-    console.error('❌ [SECTION] Section creation error:', error);
     trackSuspiciousActivity(req, 'SECTION_CREATION_ERROR');
     return new NextResponse('Internal Server Error', { status: 500 });
   }

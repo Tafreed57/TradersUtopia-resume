@@ -3,11 +3,21 @@
 import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
+import { toast } from 'sonner';
 
-export function PricingButtons() {
-  const router = useRouter();
+interface PricingButtonsProps {
+  // ... existing code ...
+}
+
+export function PricingButtons(
+  {
+    // ... existing code ...
+  }: PricingButtonsProps
+) {
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const { user } = useUser();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
@@ -37,6 +47,16 @@ export function PricingButtons() {
       setCheckingStatus(false);
     }
   }, [user]);
+
+  const handleFreeClick = async () => {
+    setLoading(true);
+
+    if (isSignedIn) {
+      router.push('/dashboard');
+    } else {
+      router.push('/sign-up');
+    }
+  };
 
   const handleSubscribeClick = () => {
     setLoading(true);

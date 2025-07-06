@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { LogIn, Loader2, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SubscriptionSmartEntryProps {
   customContent?: string;
@@ -13,9 +14,9 @@ interface SubscriptionSmartEntryProps {
 export function SubscriptionSmartEntry({
   customContent,
 }: SubscriptionSmartEntryProps) {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasSubscription, setHasSubscription] = useState<boolean | null>(null);
   const [hasChecked, setHasChecked] = useState(false);
 
@@ -43,15 +44,8 @@ export function SubscriptionSmartEntry({
       if (response.ok) {
         const result = await response.json();
         setHasSubscription(result.hasAccess);
-        console.log(
-          '✅ Subscription check result:',
-          result.hasAccess
-            ? 'Active subscription found'
-            : 'No active subscription'
-        );
       } else {
         setHasSubscription(false);
-        console.log('❌ Subscription check failed');
       }
     } catch (error) {
       console.error('❌ Error checking subscription:', error);
@@ -59,51 +53,49 @@ export function SubscriptionSmartEntry({
     }
   };
 
-  const handleClick = async () => {
-    if (isProcessing) return;
+  const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
 
-    setIsProcessing(true);
+    if (!isLoaded) {
+      return;
+    }
+
+    if (!isSignedIn) {
+      router.push('/sign-up');
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      if (!isSignedIn) {
-        // Not signed in - redirect to sign up
-        console.log('📍 Redirecting to sign-up...');
-        router.push('/sign-up');
-        return;
+      const response = await fetch('/api/subscription/check');
+      if (!response.ok) {
+        throw new Error('Subscription check failed');
       }
 
-      // User is signed in - route based on subscription
-      if (hasSubscription) {
-        // Has subscription - go to server
-        console.log('🔍 User has subscription, accessing server...');
-
+      const data = await response.json();
+      if (data.hasAccess) {
+        // User has an active subscription, ensure they are in the server
         const serverResponse = await fetch('/api/servers/ensure-default', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
         });
-
-        if (serverResponse.ok) {
-          const serverResult = await serverResponse.json();
-          console.log('✅ Server access ensured, redirecting to server');
-          router.push(`/servers/${serverResult.server.id}`);
+        const serverData = await serverResponse.json();
+        if (serverData.success) {
+          router.push(`/servers/${serverData.server.id}`);
         } else {
-          console.log('❌ Server access failed');
-          router.push('/pricing');
+          throw new Error('Failed to access server');
         }
       } else {
-        // No subscription - go to pricing
-        console.log('📍 No subscription found, redirecting to pricing...');
         router.push('/pricing');
       }
-    } catch (error) {
-      console.error('❌ Error in handleClick:', error);
+    } catch (error: any) {
+      toast.error('An error occurred', {
+        description: error.message || 'Please try again later.',
+      });
+      // Fallback to pricing page on any error
       router.push('/pricing');
     } finally {
-      setTimeout(() => {
-        setIsProcessing(false);
-      }, 1000);
+      setIsLoading(false);
     }
   };
 
@@ -139,10 +131,10 @@ export function SubscriptionSmartEntry({
     <Button
       size='lg'
       onClick={handleClick}
-      disabled={isProcessing}
+      disabled={isLoading}
       className={`${buttonClass} px-6 sm:px-8 md:px-12 py-4 sm:py-6 text-lg sm:text-xl font-bold rounded-lg transition-all duration-200 transform hover:scale-105 shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none w-full sm:w-auto`}
     >
-      {isProcessing ? (
+      {isLoading ? (
         <div className='flex items-center gap-2'>
           <Loader2 className='h-4 h-4 sm:h-5 sm:w-5 animate-spin' />
           <span className='hidden sm:inline'>

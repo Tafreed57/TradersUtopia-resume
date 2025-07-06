@@ -13,10 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useOrigin } from '@/hooks/use-origin';
 import { useStore } from '@/store/store';
-import { secureAxiosPatch } from '@/lib/csrf-client';
+import { secureAxiosDelete } from '@/lib/csrf-client';
 import { Check, Copy, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import qs from 'query-string';
 
 export function LeaveServerModal() {
   const router = useRouter();
@@ -31,12 +32,12 @@ export function LeaveServerModal() {
   const handleLeaveServer = async () => {
     try {
       setIsLoading(true);
-      await secureAxiosPatch(`/api/servers/${data?.server?.id}/leave`);
+      await secureAxiosDelete(`/api/servers/${data?.server?.id}/leave`);
       onClose();
       router.refresh();
       router.push('/');
     } catch (error: any) {
-      console.log(error, 'LEAVE SERVER ERROR');
+      //
     } finally {
       setIsLoading(false);
     }
@@ -53,11 +54,11 @@ export function LeaveServerModal() {
             Leave Server
           </DialogTitle>
           <DialogDescription className='text-center text-zinc-500'>
-            Are you sure you want to leave{' '}
+            Are you sure you want to Leave{' '}
             <span className='text-indigo-500 font-semibold'>
               {data?.server?.name}
-            </span>
-            ?
+            </span>{' '}
+            Server ?
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className='px-6 py-4 bg-gray-100'>

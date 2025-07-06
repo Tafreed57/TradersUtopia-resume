@@ -85,20 +85,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // ✅ SECURITY: Log successful channel creation
-    console.log(
-      `📢 [CHANNEL] Channel created successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(
-      `📝 [CHANNEL] Channel name: "${name}", type: ${type}, section: ${sectionId || 'none'}, server: ${serverId}, position: ${position}`
-    );
-    console.log(
-      `📍 [CHANNEL] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
-    );
-
     return NextResponse.json(server);
   } catch (error: any) {
-    console.log(error, 'CHANNEL CREATION API ERROR');
     return new NextResponse('Internal Error', { status: 500 });
   }
 }

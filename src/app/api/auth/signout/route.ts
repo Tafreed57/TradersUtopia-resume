@@ -30,19 +30,11 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    // ✅ SECURITY: Log signout operation
-    console.log(`👋 [AUTH] User signed out successfully`);
-    console.log(`🔒 [AUTH] 2FA verification cookie cleared`);
-    console.log(
-      `📍 [AUTH] IP: ${request.headers.get('x-forwarded-for') || 'unknown'}`
-    );
-
     return NextResponse.json({
       success: true,
       message: '2FA session cleared',
     });
   } catch (error) {
-    console.error('Sign-out cleanup error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { strictCSRFValidation } from '@/lib/csrf';
-import { trackSuspiciousActivity } from '@/lib/rate-limit';
+import { rateLimitAdmin, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +19,14 @@ export async function POST(request: NextRequest) {
       { status: 403 }
     );
   }
+
+  // ✅ SECURITY FIX: Add rate limiting
+  const rateLimitResult = await rateLimitAdmin()(request);
+  if (!rateLimitResult.success) {
+    trackSuspiciousActivity(request, 'REVOKE_ACCESS_RATE_LIMIT_EXCEEDED');
+    return rateLimitResult.error;
+  }
+
   try {
     const user = await currentUser();
 

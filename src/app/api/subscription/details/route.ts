@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import Stripe from 'stripe';
+import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   try {
+    // ✅ SECURITY FIX: Add rate limiting
+    const rateLimitResult = await rateLimitGeneral()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'SUB_DETAILS_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
     const user = await currentUser();
 
     if (!user) {
@@ -73,7 +81,7 @@ export async function GET(request: NextRequest) {
               images: product.images,
             };
           } catch (error) {
-            console.error('❌ Error fetching product details:', error);
+            //
           }
         }
 
@@ -190,9 +198,6 @@ export async function GET(request: NextRequest) {
             Math.abs(webhookEndDate.getTime() - stripeEndDate.getTime()) >
               24 * 60 * 60 * 1000
           ) {
-            console.log(`⚠️ [SYNC WARNING] Webhook data may be outdated:`);
-            console.log(`   Webhook end: ${webhookEndDate.toISOString()}`);
-            console.log(`   Stripe end: ${stripeEndDate.toISOString()}`);
             responseData.subscription.syncWarning = {
               message: 'Subscription data may be out of sync',
               webhookDate: webhookEndDate,
@@ -200,18 +205,11 @@ export async function GET(request: NextRequest) {
             };
           }
         } else {
-          console.log(
-            `⚠️ [NO SUBSCRIPTIONS] No active subscriptions found for customer`
-          );
           responseData.subscription.noActiveSubscription = true;
         }
 
         responseData.dataSource = 'database-with-stripe';
       } catch (stripeError) {
-        console.error(
-          '❌ [STRIPE ERROR] Failed to fetch Stripe data:',
-          stripeError
-        );
         responseData.subscription.stripeError = {
           message: 'Unable to fetch real-time Stripe data',
           error:
@@ -222,7 +220,6 @@ export async function GET(request: NextRequest) {
         responseData.dataSource = 'database-only';
       }
     } else {
-      console.log(`ℹ️ [NO CUSTOMER ID] Using database-only information`);
       responseData.dataSource = 'database-only';
     }
 
@@ -243,8 +240,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(responseData);
   } catch (error) {
-    console.error('❌ [API ERROR] Subscription details fetch failed:', error);
-
     // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json(
       {

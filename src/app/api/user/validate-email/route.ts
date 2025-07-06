@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismadb';
 import { z } from 'zod';
+import { auth } from '@clerk/nextjs/server';
+import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 const emailValidationSchema = z.object({
   email: z.string().email('Invalid email format'),
@@ -8,6 +10,20 @@ const emailValidationSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SECURITY FIX: Add rate limiting to prevent abuse
+    const rateLimitResult = await rateLimitGeneral()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'EMAIL_VALIDATION_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
+    // ✅ SECURITY FIX: Require authentication to prevent public user enumeration
+    const { userId } = await auth();
+    if (!userId) {
+      trackSuspiciousActivity(request, 'UNAUTHENTICATED_EMAIL_VALIDATION');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { email } = emailValidationSchema.parse(body);
 

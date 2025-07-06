@@ -43,7 +43,7 @@ export function InviteModal() {
       );
       onOpen('invite', { server: res.data });
     } catch (error) {
-      console.log(error);
+      //
     } finally {
       setIsLoading(false);
     }

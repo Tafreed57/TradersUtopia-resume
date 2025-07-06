@@ -27,6 +27,10 @@ import { z } from 'zod';
 import { useEffect } from 'react';
 import qs from 'query-string';
 
+const schema = z.object({
+  name: z.string().min(1, { message: 'Section name is required' }),
+});
+
 export function EditDefaultSectionModal() {
   const router = useRouter();
   const params = useParams();
@@ -37,40 +41,23 @@ export function EditDefaultSectionModal() {
 
   const isModelOpen = isOpen && type === 'editDefaultSection';
 
-  const schema = z.object({
-    defaultSectionName: z
-      .string()
-      .min(1, { message: 'Section name is required' })
-      .max(50, { message: 'Section name must be 50 characters or less' }),
-  });
-
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      defaultSectionName: '',
+      name: 'Text Channels', // Default name
     },
   });
 
-  const { register, handleSubmit, formState, watch } = form;
-
-  const isLoading = formState.isSubmitting;
-
-  // ✅ NEW: Set current default section name when modal opens
   useEffect(() => {
     if (data?.server) {
-      const hasDefaultSectionName = (
-        server: any
-      ): server is { defaultSectionName: string } => {
-        return server && 'defaultSectionName' in server;
-      };
-
-      const defaultName = hasDefaultSectionName(data.server)
-        ? data.server.defaultSectionName
-        : 'Text Channels';
-
-      form.setValue('defaultSectionName', defaultName);
+      const defaultSection = (data.server as any).defaultSection;
+      if (defaultSection) {
+        form.setValue('name', defaultSection.name);
+      }
     }
   }, [data?.server, form]);
+
+  const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     try {
@@ -83,7 +70,7 @@ export function EditDefaultSectionModal() {
       router.refresh();
       onClose();
     } catch (error) {
-      console.log('Default section edit error:', error);
+      //
     }
   };
 
@@ -104,17 +91,16 @@ export function EditDefaultSectionModal() {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={handleSubmit(onSubmit)} className='space-y-8'>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
             <div className='space-y-8 px-6'>
               <FormField
                 control={form.control}
-                name='defaultSectionName'
+                name='name'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
-                      Default section name
+                      Section name
                     </FormLabel>
-
                     <FormControl>
                       <Input
                         disabled={isLoading}

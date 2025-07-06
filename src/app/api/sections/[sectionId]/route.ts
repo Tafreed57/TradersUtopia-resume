@@ -79,17 +79,8 @@ export async function PATCH(
       },
     });
 
-    // ✅ SECURITY: Log successful section update
-    console.log(
-      `📂 [SECTION] Section updated successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(
-      `📝 [SECTION] Section "${existingSection.name}" renamed to "${name}", server: ${serverId}`
-    );
-
     return NextResponse.json(section);
   } catch (error: any) {
-    console.error('❌ [SECTION] Section update error:', error);
     trackSuspiciousActivity(req, 'SECTION_UPDATE_ERROR');
     return new NextResponse('Internal Server Error', { status: 500 });
   }
@@ -173,17 +164,8 @@ export async function DELETE(
       },
     });
 
-    // ✅ SECURITY: Log successful section deletion
-    console.log(
-      `📂 [SECTION] Section deleted successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(
-      `📝 [SECTION] Section "${existingSection.name}" deleted, server: ${serverId}`
-    );
-
     return new NextResponse(null, { status: 204 });
   } catch (error: any) {
-    console.error('❌ [SECTION] Section deletion error:', error);
     trackSuspiciousActivity(req, 'SECTION_DELETE_ERROR');
     return new NextResponse('Internal Server Error', { status: 500 });
   }

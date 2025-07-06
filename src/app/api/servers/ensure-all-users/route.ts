@@ -1,8 +1,9 @@
 import { prisma } from '@/lib/prismadb';
-import { getCurrentProfile } from '@/lib/query';
+import { getCurrentProfileForAuth } from '@/lib/query';
 import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
       return rateLimitResult.error;
     }
 
-    const profile = await getCurrentProfile();
+    const profile = await getCurrentProfileForAuth();
     if (!profile) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
@@ -24,94 +25,40 @@ export async function POST(req: NextRequest) {
       return new NextResponse('Admin access required', { status: 403 });
     }
 
-    console.log(
-      `🔄 [SERVER] Admin ${profile.email} is ensuring all users are in all admin-created servers...`
-    );
+    const { serverId } = await req.json();
 
-    // Get all servers created by admins
-    const adminServers = await prisma.server.findMany({
-      where: {
-        profile: {
-          isAdmin: true,
-        },
-      },
-      include: {
-        members: {
-          select: {
-            profileId: true,
-          },
-        },
-        profile: {
-          select: {
-            email: true,
-            isAdmin: true,
-          },
-        },
-      },
-    });
-
-    // Get all user profiles
-    const allProfiles = await prisma.profile.findMany({
-      select: {
-        id: true,
-        email: true,
-        isAdmin: true,
-      },
-    });
-
-    let totalAdded = 0;
-    const results = [];
-
-    // For each admin-created server, ensure all users are members
-    for (const server of adminServers) {
-      const existingMemberIds = server.members.map(m => m.profileId);
-      const missingUsers = allProfiles.filter(
-        p => !existingMemberIds.includes(p.id)
-      );
-
-      if (missingUsers.length > 0) {
-        const memberData = missingUsers.map(userProfile => ({
-          profileId: userProfile.id,
-          serverId: server.id,
-          role: userProfile.isAdmin ? MemberRole.ADMIN : MemberRole.GUEST,
-        }));
-
-        await prisma.member.createMany({
-          data: memberData,
-          skipDuplicates: true,
-        });
-
-        totalAdded += missingUsers.length;
-        results.push({
-          serverId: server.id,
-          serverName: server.name,
-          addedCount: missingUsers.length,
-          addedUsers: missingUsers.map(u => u.email),
-        });
-
-        console.log(
-          `✅ [SERVER] Added ${missingUsers.length} users to server "${server.name}"`
-        );
-      } else {
-        results.push({
-          serverId: server.id,
-          serverName: server.name,
-          addedCount: 0,
-          message: 'All users already members',
-        });
-      }
+    if (!serverId) {
+      return new NextResponse('Server ID is required', { status: 400 });
     }
 
-    console.log(
-      `🎉 [SERVER] Operation complete! Added ${totalAdded} total memberships across ${adminServers.length} admin servers`
-    );
+    // Get all profiles that are not already in the server
+    const profilesToSync = await prisma.profile.findMany({
+      where: {
+        members: {
+          none: {
+            serverId: serverId,
+          },
+        },
+      },
+    });
 
+    if (profilesToSync.length > 0) {
+      const newMembers = profilesToSync.map(p => ({
+        profileId: p.id,
+        serverId: serverId,
+        role: p.isAdmin ? MemberRole.ADMIN : MemberRole.GUEST,
+      }));
+
+      await prisma.member.createMany({
+        data: newMembers,
+      });
+    }
+
+    revalidatePath(`/servers/${serverId}`);
     return NextResponse.json({
       success: true,
-      totalServersProcessed: adminServers.length,
-      totalMembershipsAdded: totalAdded,
-      details: results,
-      message: `Successfully ensured all ${allProfiles.length} users are members of all ${adminServers.length} admin-created servers`,
+      message: `Synced ${profilesToSync.length} new members.`,
+      syncedCount: profilesToSync.length,
     });
   } catch (error: any) {
     console.error('Error ensuring all users in admin servers:', error);

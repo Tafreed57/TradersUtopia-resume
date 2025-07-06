@@ -74,10 +74,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(
-      `🎁 [ADMIN] Admin ${adminProfile.email} is granting subscription to ${targetProfile.email} (${userId})`
-    );
-
     // Create or get Stripe customer
     let customerId = targetProfile.stripeCustomerId;
 
@@ -94,14 +90,7 @@ export async function POST(request: NextRequest) {
           },
         });
         customerId = customer.id;
-        console.log(
-          `👤 [ADMIN] Created Stripe customer ${customerId} for user ${userId}`
-        );
       } catch (stripeError) {
-        console.error(
-          `Failed to create Stripe customer for user ${userId}:`,
-          stripeError
-        );
         return NextResponse.json(
           {
             error: 'Failed to create Stripe customer',
@@ -113,21 +102,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create a subscription with admin-granted pricing (free or special pricing)
-    // For now, we'll create a "comped" subscription that doesn't charge
     try {
       // Instead of using environment variables, get the product and price from Stripe
       // Look for the active product that's being used in the system
-      console.log(
-        '🔍 [ADMIN] Fetching available products and prices from Stripe...'
-      );
-
       const products = await stripe.products.list({
         active: true,
         limit: 10,
       });
 
       if (products.data.length === 0) {
-        console.error('❌ [ADMIN] No active products found in Stripe');
         return NextResponse.json(
           {
             error: 'No products configured',
@@ -150,9 +133,6 @@ export async function POST(request: NextRequest) {
       });
 
       if (prices.data.length === 0) {
-        console.error(
-          `❌ [ADMIN] No active prices found for product ${productId}`
-        );
         return NextResponse.json(
           {
             error: 'No prices configured',
@@ -165,15 +145,8 @@ export async function POST(request: NextRequest) {
 
       const priceId = prices.data[0].id;
 
-      console.log(
-        `🎯 [ADMIN] Using product: ${productId} with price: ${priceId}`
-      );
-
       // Create the 100% off coupon first
       const adminCouponId = await createAdminCoupon();
-      console.log(
-        `🎫 [ADMIN] Using coupon ${adminCouponId} for user ${userId}`
-      );
 
       // Create subscription with proper items and discount
       const subscriptionData = {
@@ -197,35 +170,15 @@ export async function POST(request: NextRequest) {
         },
       };
 
-      console.log(`📋 [ADMIN] Creating subscription with data:`, {
-        customer: customerId,
-        items: subscriptionData.items,
-        discountCoupon: adminCouponId,
-        userId: targetProfile.userId,
-      });
-
       const subscription = await stripe.subscriptions.create(subscriptionData);
-
-      console.log(
-        `💳 [ADMIN] Created comped Stripe subscription ${subscription.id} for user ${userId}`
-      );
 
       // Extract subscription dates with proper validation
       let subscriptionStart: Date;
       let subscriptionEnd: Date;
 
       try {
-        // Log the subscription object to see what properties are available
         // Type assertion to access period properties that exist but aren't in the TypeScript definition
         const subscriptionWithPeriods = subscription as any;
-        console.log(`📅 [ADMIN] Subscription object properties:`, {
-          id: subscription.id,
-          current_period_start: subscriptionWithPeriods.current_period_start,
-          current_period_end: subscriptionWithPeriods.current_period_end,
-          status: subscription.status,
-          created: subscription.created,
-        });
-
         if (
           subscriptionWithPeriods.current_period_start &&
           subscriptionWithPeriods.current_period_end
@@ -241,9 +194,6 @@ export async function POST(request: NextRequest) {
           const now = new Date();
           subscriptionStart = now;
           subscriptionEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
-          console.log(
-            `⚠️ [ADMIN] Using fallback dates - Start: ${subscriptionStart.toISOString()}, End: ${subscriptionEnd.toISOString()}`
-          );
         }
 
         // Validate the dates
@@ -253,22 +203,11 @@ export async function POST(request: NextRequest) {
         ) {
           throw new Error('Invalid subscription dates calculated');
         }
-
-        console.log(
-          `📅 [ADMIN] Final dates - Start: ${subscriptionStart.toISOString()}, End: ${subscriptionEnd.toISOString()}`
-        );
       } catch (dateError) {
-        console.error(
-          '❌ [ADMIN] Error processing subscription dates:',
-          dateError
-        );
         // Use safe fallback dates
         const now = new Date();
         subscriptionStart = now;
         subscriptionEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        console.log(
-          `🔄 [ADMIN] Using safe fallback dates - Start: ${subscriptionStart.toISOString()}, End: ${subscriptionEnd.toISOString()}`
-        );
       }
 
       // Update profile with subscription data
@@ -284,23 +223,12 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date(),
         },
       });
-
-      console.log(
-        `🗄️ [ADMIN] Updated database subscription for user ${userId}`
-      );
     } catch (error) {
-      console.error(
-        `❌ [ADMIN] Error in subscription process for user ${userId}:`,
-        error
-      );
-
-      // Check if this is a Stripe error or database error
       if (error instanceof Error) {
         if (
           error.message.includes('Stripe') ||
           error.message.includes('stripe')
         ) {
-          console.error('🚨 [ADMIN] Stripe API Error:', error);
           return NextResponse.json(
             {
               error: 'Failed to create Stripe subscription',
@@ -313,7 +241,6 @@ export async function POST(request: NextRequest) {
           error.message.includes('Prisma') ||
           error.message.includes('database')
         ) {
-          console.error('🚨 [ADMIN] Database Error:', error);
           return NextResponse.json(
             {
               error: 'Failed to save subscription',
@@ -335,10 +262,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(
-      `✅ [ADMIN] Successfully granted subscription to ${targetProfile.email} by admin ${adminProfile.email}`
-    );
-
     return NextResponse.json({
       success: true,
       message: 'User has been granted subscription access',
@@ -350,7 +273,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error granting subscription:', error);
     trackSuspiciousActivity(request, 'ADMIN_GRANT_ERROR');
 
     return NextResponse.json(
@@ -366,20 +288,13 @@ export async function POST(request: NextRequest) {
 // Helper function to create or get admin coupon
 async function createAdminCoupon() {
   try {
-    console.log('🎫 [ADMIN] Looking for existing admin coupon...');
-
     // Try to get existing admin coupon
     const coupons = await stripe.coupons.list({ limit: 100 });
     const adminCoupon = coupons.data.find(c => c.id === 'admin-grant-100-off');
 
     if (adminCoupon && adminCoupon.valid) {
-      console.log(
-        '🎫 [ADMIN] Using existing admin coupon: admin-grant-100-off'
-      );
       return adminCoupon.id;
     }
-
-    console.log('🎫 [ADMIN] Creating new admin coupon...');
 
     // Create new admin coupon if it doesn't exist
     const coupon = await stripe.coupons.create({
@@ -394,11 +309,8 @@ async function createAdminCoupon() {
       },
     });
 
-    console.log(`🎫 [ADMIN] Created new admin coupon: ${coupon.id}`);
     return coupon.id;
   } catch (error) {
-    console.error('🚨 [ADMIN] Error with admin coupon:', error);
-
     // Fallback: create a one-time coupon with timestamp to avoid ID conflicts
     try {
       const timestamp = Date.now();
@@ -414,13 +326,8 @@ async function createAdminCoupon() {
         },
       });
 
-      console.log(`🎫 [ADMIN] Created fallback coupon: ${fallbackCoupon.id}`);
       return fallbackCoupon.id;
     } catch (fallbackError) {
-      console.error(
-        '🚨 [ADMIN] Failed to create fallback coupon:',
-        fallbackError
-      );
       throw new Error('Unable to create admin discount coupon');
     }
   }

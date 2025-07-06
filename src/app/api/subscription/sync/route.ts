@@ -53,10 +53,6 @@ export async function POST(request: NextRequest) {
     const subscriptionItem = activeSubscription.items.data[0];
 
     if (!subscriptionItem) {
-      console.error(
-        '❌ [SYNC] No subscription items found:',
-        activeSubscription.id
-      );
       return NextResponse.json(
         { error: 'Subscription has no items' },
         { status: 400 }
@@ -73,10 +69,6 @@ export async function POST(request: NextRequest) {
       subscriptionItemWithPeriods.current_period_end;
 
     if (!periodStart || !periodEnd) {
-      console.error(
-        '❌ [SYNC] Subscription missing period data at both levels:',
-        activeSubscription.id
-      );
       return NextResponse.json(
         { error: 'Subscription missing period information' },
         { status: 400 }
@@ -84,10 +76,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!subscriptionItem.price.product) {
-      console.error(
-        '❌ [SYNC] Subscription missing product data:',
-        activeSubscription.id
-      );
       return NextResponse.json(
         { error: 'Subscription missing product information' },
         { status: 400 }
@@ -102,7 +90,6 @@ export async function POST(request: NextRequest) {
 
     // Validate Stripe dates
     if (isNaN(stripeStart.getTime()) || isNaN(stripeEnd.getTime())) {
-      console.error('❌ [SYNC] Invalid dates from Stripe subscription');
       return NextResponse.json(
         { error: 'Invalid subscription dates from Stripe' },
         { status: 400 }
@@ -132,7 +119,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('❌ [SYNC] Error:', error);
     return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
   }
 }

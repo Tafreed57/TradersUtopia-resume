@@ -21,27 +21,22 @@ import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { secureAxiosPost } from '@/lib/csrf-client';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import qs from 'query-string';
+
+const schema = z.object({
+  name: z.string().min(1, { message: 'Section name is required' }),
+});
 
 export function CreateSectionModal() {
   const router = useRouter();
-  const params = useParams();
   const type = useStore.use.type();
   const isOpen = useStore.use.isOpen();
   const onClose = useStore.use.onClose();
   const data = useStore.use.data();
 
   const isModelOpen = isOpen && type === 'createSection';
-
-  const schema = z.object({
-    name: z
-      .string()
-      .min(1, { message: 'Section name is required' })
-      .max(50, { message: 'Section name must be 50 characters or less' }),
-  });
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -50,24 +45,18 @@ export function CreateSectionModal() {
     },
   });
 
-  const { register, handleSubmit, formState, watch } = form;
-
-  const isLoading = formState.isSubmitting;
+  const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     try {
-      const url = qs.stringifyUrl({
-        url: '/api/sections',
-        query: {
-          serverId: params?.serverId,
-        },
-      });
+      const url = `/api/sections?serverId=${data?.server?.id}`;
       await secureAxiosPost(url, values);
+
       form.reset();
       router.refresh();
       onClose();
     } catch (error) {
-      console.log('Section creation error:', error);
+      //
     }
   };
 
@@ -88,7 +77,7 @@ export function CreateSectionModal() {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={handleSubmit(onSubmit)} className='space-y-8'>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
             <div className='space-y-8 px-6'>
               <FormField
                 control={form.control}

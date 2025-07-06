@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(profile);
   } catch (error) {
-    console.error('[USER_PROFILE_GET]', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

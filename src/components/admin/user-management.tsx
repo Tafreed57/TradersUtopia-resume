@@ -15,10 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Activity,
   AlertTriangle,
   CheckCircle,
   CreditCard,
@@ -37,6 +34,8 @@ import {
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
 import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface UserData {
   id: string;
@@ -85,10 +84,18 @@ interface UserData {
   };
 }
 
-export function UserManagement() {
+interface UserManagementProps {
+  initialUsers?: UserData[];
+  onUserUpdate?: (users: UserData[]) => void;
+}
+
+export function UserManagement({
+  initialUsers = [],
+  onUserUpdate,
+}: UserManagementProps) {
   const { user } = useUser();
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<UserData[]>(initialUsers);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [showDetailedView, setShowDetailedView] = useState(false);
@@ -128,7 +135,15 @@ export function UserManagement() {
     }
   };
 
-  const handleDeleteAccount = async (userId: string) => {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleAction = async (
+    action: 'delete' | 'grant' | 'cancel' | 'toggleAdmin',
+    userId: string,
+    extraData?: any
+  ) => {
     if (
       !confirm(
         'Are you sure you want to DELETE this user account? This action cannot be undone and will remove ALL user data.'
@@ -137,7 +152,7 @@ export function UserManagement() {
       return;
     }
 
-    setActionLoading(`delete-${userId}`);
+    setActionLoading(`${action}-${userId}`);
     try {
       const response = await makeSecureRequest('/api/admin/users/delete', {
         method: 'POST',
@@ -166,129 +181,11 @@ export function UserManagement() {
     }
   };
 
-  const handleDeleteSubscription = async (userId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to cancel this user's subscription? They will lose access immediately."
-      )
-    ) {
-      return;
-    }
-
-    setActionLoading(`subscription-${userId}`);
-    try {
-      const response = await makeSecureRequest(
-        '/api/admin/users/cancel-subscription',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId }),
-        }
-      );
-
-      if (response.ok) {
-        // Refresh user data
-        await fetchUsers();
-        showToast.success(
-          'Subscription Cancelled',
-          'User subscription has been cancelled'
-        );
-      } else {
-        const error = await response.json();
-        showToast.error('Cancellation Failed', error.message);
-      }
-    } catch (error) {
-      console.error('Error cancelling subscription:', error);
-      showToast.error('Error', 'Failed to cancel subscription');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleGrantSubscription = async (userId: string) => {
-    if (
-      !confirm(
-        'Grant subscription access to this user? They will get immediate access to premium features.'
-      )
-    ) {
-      return;
-    }
-
-    setActionLoading(`grant-${userId}`);
-    try {
-      const response = await makeSecureRequest(
-        '/api/admin/users/grant-subscription',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId }),
-        }
-      );
-
-      if (response.ok) {
-        // Refresh user data
-        await fetchUsers();
-        showToast.success('Access Granted', 'User now has subscription access');
-      } else {
-        const error = await response.json();
-        showToast.error('Grant Failed', error.message);
-      }
-    } catch (error) {
-      console.error('Error granting subscription:', error);
-      showToast.error('Error', 'Failed to grant subscription');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleToggleAdmin = async (
-    userId: string,
-    isCurrentlyAdmin: boolean
-  ) => {
-    const action = isCurrentlyAdmin ? 'revoke' : 'grant';
-    if (
-      !confirm(
-        `${action === 'grant' ? 'Grant' : 'Revoke'} admin privileges ${action === 'grant' ? 'to' : 'from'} this user?`
-      )
-    ) {
-      return;
-    }
-
-    setActionLoading(`admin-${userId}`);
-    try {
-      const response = await makeSecureRequest(
-        '/api/admin/users/toggle-admin',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId, grantAdmin: !isCurrentlyAdmin }),
-        }
-      );
-
-      if (response.ok) {
-        // Refresh user data
-        await fetchUsers();
-        showToast.success(
-          'Admin Status Updated',
-          `User is now ${!isCurrentlyAdmin ? 'an admin' : 'a regular user'}`
-        );
-      } else {
-        const error = await response.json();
-        showToast.error('Update Failed', error.message);
-      }
-    } catch (error) {
-      console.error('Error updating admin status:', error);
-      showToast.error('Error', 'Failed to update admin status');
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  const handleDelete = (userId: string) => handleAction('delete', userId);
+  const handleGrant = (userId: string) => handleAction('grant', userId);
+  const handleCancel = (userId: string) => handleAction('cancel', userId);
+  const handleToggleAdmin = (userId: string, grantAdmin: boolean) =>
+    handleAction('toggleAdmin', userId, { grantAdmin });
 
   const formatDate = (date: string | number) => {
     return (
@@ -488,18 +385,16 @@ export function UserManagement() {
                                 <Button
                                   size='sm'
                                   variant='destructive'
-                                  onClick={() =>
-                                    handleDeleteSubscription(userData.userId)
-                                  }
+                                  onClick={() => handleCancel(userData.userId)}
                                   disabled={
                                     actionLoading ===
-                                    `subscription-${userData.userId}`
+                                    `cancel-${userData.userId}`
                                   }
                                   className='bg-orange-600 hover:bg-orange-700 min-w-0'
                                   title='Cancel Subscription'
                                 >
                                   {actionLoading ===
-                                  `subscription-${userData.userId}` ? (
+                                  `cancel-${userData.userId}` ? (
                                     <RefreshCw className='w-3 h-3 sm:w-4 sm:h-4 animate-spin' />
                                   ) : (
                                     <CreditCard className='w-3 h-3 sm:w-4 sm:h-4' />
@@ -511,9 +406,7 @@ export function UserManagement() {
                               ) : (
                                 <Button
                                   size='sm'
-                                  onClick={() =>
-                                    handleGrantSubscription(userData.userId)
-                                  }
+                                  onClick={() => handleGrant(userData.userId)}
                                   disabled={
                                     actionLoading === `grant-${userData.userId}`
                                   }
@@ -546,7 +439,7 @@ export function UserManagement() {
                                 }
                                 disabled={
                                   actionLoading ===
-                                    `admin-${userData.userId}` ||
+                                    `toggleAdmin-${userData.userId}` ||
                                   userData.userId === user?.id
                                 }
                                 className={`min-w-0 ${
@@ -561,7 +454,7 @@ export function UserManagement() {
                                 }
                               >
                                 {actionLoading ===
-                                `admin-${userData.userId}` ? (
+                                `toggleAdmin-${userData.userId}` ? (
                                   <RefreshCw className='w-3 h-3 sm:w-4 sm:h-4 animate-spin' />
                                 ) : (
                                   <Crown className='w-3 h-3 sm:w-4 sm:h-4' />
@@ -575,9 +468,7 @@ export function UserManagement() {
                               <Button
                                 size='sm'
                                 variant='destructive'
-                                onClick={() =>
-                                  handleDeleteAccount(userData.userId)
-                                }
+                                onClick={() => handleDelete(userData.userId)}
                                 disabled={
                                   actionLoading ===
                                     `delete-${userData.userId}` ||
@@ -1011,3 +902,5 @@ export function UserManagement() {
     </div>
   );
 }
+
+export default UserManagement;

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { rateLimitAdmin } from '@/lib/rate-limit';
 import { detectAndLogDuplicates } from '@/lib/safe-profile-operations';
+import { currentUser } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Force dynamic rendering due to rate limiting using request.headers
 export const dynamic = 'force-dynamic';
@@ -31,10 +31,6 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       );
     }
-
-    console.log(
-      `🔍 [HEALTH_CHECK] Admin ${adminProfile.email} checking system health`
-    );
 
     // Get system statistics
     const totalProfiles = await db.profile.count();
@@ -130,17 +126,9 @@ export async function GET(request: NextRequest) {
       healthStatus.recommendations.push('✅ System health looks good!');
     }
 
-    console.log(`📊 [HEALTH_CHECK] System health summary:`, {
-      profiles: totalProfiles,
-      admins: totalAdmins,
-      duplicates: duplicates.length,
-      orphaned: orphanedProfiles.length,
-      multipleProfileUsers: multipleProfileUsers.length,
-    });
-
     return NextResponse.json(healthStatus);
   } catch (error) {
-    console.error('❌ [HEALTH_CHECK] Error checking system health:', error);
+    //
     return NextResponse.json(
       {
         error: 'Failed to check system health',

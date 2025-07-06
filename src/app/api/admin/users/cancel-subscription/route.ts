@@ -77,10 +77,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(
-      `🚫 [ADMIN] Admin ${adminProfile.email} is cancelling subscription for ${targetProfile.email} (${userId})`
-    );
-
     // Cancel subscription in Stripe
     try {
       // Find and cancel active subscriptions for this customer
@@ -94,15 +90,8 @@ export async function POST(request: NextRequest) {
       for (const subscription of subscriptions.data) {
         await stripe.subscriptions.cancel(subscription.id);
         cancelledSubscriptionId = subscription.id;
-        console.log(
-          `💳 [ADMIN] Cancelled Stripe subscription ${subscription.id}`
-        );
       }
     } catch (stripeError) {
-      console.error(
-        `Failed to cancel Stripe subscription for user ${userId}:`,
-        stripeError
-      );
       return NextResponse.json(
         {
           error: 'Failed to cancel subscription in Stripe',
@@ -123,14 +112,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(
-      `🗄️ [ADMIN] Updated database subscription status to cancelled for user ${userId}`
-    );
-
-    console.log(
-      `✅ [ADMIN] Successfully cancelled subscription for ${targetProfile.email} by admin ${adminProfile.email}`
-    );
-
     return NextResponse.json({
       success: true,
       message: 'User subscription has been cancelled',
@@ -142,7 +123,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error cancelling subscription:', error);
     trackSuspiciousActivity(request, 'ADMIN_CANCEL_ERROR');
 
     return NextResponse.json(

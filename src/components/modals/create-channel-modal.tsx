@@ -90,7 +90,7 @@ export function CreateChannelModal() {
       router.refresh();
       onClose();
     } catch (error) {
-      console.log(error);
+      //
     }
   };
 

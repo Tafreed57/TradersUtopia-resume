@@ -8,7 +8,6 @@ import { Plus } from 'lucide-react';
 interface ServerSectionProps {
   label: string;
   role?: MemberRole;
-  sectionType: 'channels' | 'members';
   channelType?: ChannelType;
   server?: ServerWithMembersWithProfiles;
 }
@@ -16,7 +15,6 @@ interface ServerSectionProps {
 export function ServerSection({
   label,
   role,
-  sectionType,
   channelType,
   server,
 }: ServerSectionProps) {

@@ -123,9 +123,6 @@ export async function GET(req: NextRequest) {
       nextCursor,
     });
   } catch (error: any) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(error, 'MESSAGES API ERROR');
-    }
     return new NextResponse('Internal Error', { status: 500 });
   }
 }
@@ -288,10 +285,7 @@ export async function POST(req: NextRequest) {
         // Send notifications without blocking
         await Promise.all(notificationPromises);
       } catch (error) {
-        console.error(
-          '❌ [BACKGROUND NOTIFICATIONS] Failed to send message notifications:',
-          error
-        );
+        //
       }
     });
 
@@ -301,9 +295,6 @@ export async function POST(req: NextRequest) {
       return new NextResponse('Invalid input data', { status: 400 });
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(error, 'MESSAGE CREATION ERROR');
-    }
     return new NextResponse('Internal Error', { status: 500 });
   }
 }

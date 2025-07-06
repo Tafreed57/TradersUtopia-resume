@@ -4,11 +4,36 @@ import { db } from '@/lib/db';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prismadb';
 import { MemberRole } from '@prisma/client';
+import {
+  rateLimitSubscription,
+  trackSuspiciousActivity,
+} from '@/lib/rate-limit';
+import { strictCSRFValidation } from '@/lib/csrf';
 
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   try {
+    // ✅ SECURITY FIX: Add CSRF protection
+    const csrfValid = await strictCSRFValidation(request);
+    if (!csrfValid) {
+      trackSuspiciousActivity(request, 'VERIFY_PAYMENT_CSRF_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
+    // ✅ SECURITY FIX: Add rate limiting
+    const rateLimitResult = await rateLimitSubscription()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'VERIFY_PAYMENT_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
     const user = await currentUser();
 
     if (!user) {

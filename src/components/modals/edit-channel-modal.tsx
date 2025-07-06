@@ -61,7 +61,6 @@ export function EditChannelModal() {
   const isLoading = formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    console.log(values);
     try {
       const url = qs.stringifyUrl({
         url: `/api/channels/${data?.channel?.id}`,
@@ -74,8 +73,6 @@ export function EditChannelModal() {
       router.refresh();
       onClose();
     } catch (error: any) {
-      console.error('Channel edit error:', error);
-
       if (error.response?.data?.error) {
         form.setError('name', {
           type: 'manual',

@@ -2,19 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentProfile } from '@/lib/query';
 import { prisma } from '@/lib/prismadb';
 import { MemberRole } from '@prisma/client';
-import { rateLimitMessaging } from '@/lib/rate-limit';
+import { rateLimitMessaging, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { z } from 'zod';
+import { strictCSRFValidation } from '@/lib/csrf';
+
+const messageEditSchema = z.object({
+  content: z.string().min(1, 'Content is required').max(10000),
+});
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { messageId: string } }
 ) {
-  // Apply rate limiting
-  const rateLimitResult = await rateLimitMessaging()(req);
-  if (!rateLimitResult.success) {
-    return rateLimitResult.error;
-  }
-
   try {
+    // Apply rate limiting
+    const rateLimitResult = await rateLimitMessaging()(req);
+    if (!rateLimitResult.success) {
+      return rateLimitResult.error;
+    }
+
+    // Apply CSRF protection
+    const csrfValid = await strictCSRFValidation(req);
+    if (!csrfValid) {
+      trackSuspiciousActivity(req, 'MESSAGE_DELETE_CSRF_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
     const profile = await getCurrentProfile();
     const { searchParams } = new URL(req.url);
     const channelId = searchParams.get('channelId');
@@ -107,7 +126,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    message = await prisma.message.update({
+    const updatedMessage = await prisma.message.update({
       where: {
         id: params.messageId,
       },
@@ -125,9 +144,8 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json(message);
+    return NextResponse.json(updatedMessage);
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -139,15 +157,27 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { messageId: string } }
 ) {
-  // Apply rate limiting
-  const rateLimitResult = await rateLimitMessaging()(req);
-  if (!rateLimitResult.success) {
-    return rateLimitResult.error;
-  }
-
   try {
+    // Apply rate limiting
+    const rateLimitResult = await rateLimitMessaging()(req);
+    if (!rateLimitResult.success) {
+      return rateLimitResult.error;
+    }
+
+    // Apply CSRF protection
+    const csrfValid = await strictCSRFValidation(req);
+    if (!csrfValid) {
+      trackSuspiciousActivity(req, 'MESSAGE_EDIT_CSRF_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
     const profile = await getCurrentProfile();
-    const { content } = await req.json();
     const { searchParams } = new URL(req.url);
     const channelId = searchParams.get('channelId');
     const serverId = searchParams.get('serverId');
@@ -162,6 +192,17 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    // ✅ SECURITY: Input validation with Zod
+    const body = await req.json();
+    const validationResult = messageEditSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', issues: validationResult.error.issues },
+        { status: 400 }
+      );
+    }
+    const { content } = validationResult.data;
 
     const server = await prisma.server.findFirst({
       where: {
@@ -236,14 +277,7 @@ export async function PATCH(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!content) {
-      return NextResponse.json(
-        { message: 'Content is required' },
-        { status: 400 }
-      );
-    }
-
-    message = await prisma.message.update({
+    const updatedMessage = await prisma.message.update({
       where: {
         id: params.messageId,
       },
@@ -259,9 +293,8 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(message);
+    return NextResponse.json(updatedMessage);
   } catch (error) {
-    console.error(error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

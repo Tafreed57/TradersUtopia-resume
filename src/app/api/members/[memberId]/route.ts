@@ -5,12 +5,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { validateInput, memberRoleSchema, cuidSchema } from '@/lib/validation';
+import { strictCSRFValidation } from '@/lib/csrf';
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { memberId: string } }
 ) {
   try {
+    // ✅ SECURITY FIX: Add CSRF protection
+    const csrfValid = await strictCSRFValidation(req);
+    if (!csrfValid) {
+      trackSuspiciousActivity(req, 'MEMBER_UPDATE_CSRF_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
     // ✅ SECURITY: Rate limiting for member operations
     const rateLimitResult = await rateLimitServer()(req);
     if (!rateLimitResult.success) {
@@ -102,20 +116,8 @@ export async function PATCH(
       },
     });
 
-    // ✅ SECURITY: Log successful member role update
-    console.log(
-      `👥 [MEMBER] Role updated successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(
-      `📝 [MEMBER] Member ID: ${params.memberId}, New role: ${role}, Server: ${serverId}`
-    );
-    console.log(
-      `📍 [MEMBER] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
-    );
-
     return NextResponse.json(server);
   } catch (error: any) {
-    console.error('❌ [MEMBER] Member role update error:', error);
     trackSuspiciousActivity(req, 'MEMBER_UPDATE_ERROR');
 
     // ✅ SECURITY: Generic error response - no internal details exposed
@@ -133,6 +135,19 @@ export async function DELETE(
   { params }: { params: { memberId: string } }
 ) {
   try {
+    // ✅ SECURITY FIX: Add CSRF protection
+    const csrfValid = await strictCSRFValidation(req);
+    if (!csrfValid) {
+      trackSuspiciousActivity(req, 'MEMBER_DELETE_CSRF_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
     // ✅ SECURITY: Rate limiting for member operations
     const rateLimitResult = await rateLimitServer()(req);
     if (!rateLimitResult.success) {
@@ -211,20 +226,8 @@ export async function DELETE(
       },
     });
 
-    // ✅ SECURITY: Log successful member deletion
-    console.log(
-      `🥾 [MEMBER] Member kicked successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(
-      `📝 [MEMBER] Kicked member ID: ${params.memberId}, Server: ${serverId}`
-    );
-    console.log(
-      `📍 [MEMBER] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
-    );
-
     return NextResponse.json(server);
   } catch (error: any) {
-    console.error('❌ [MEMBER] Member deletion error:', error);
     trackSuspiciousActivity(req, 'MEMBER_DELETE_ERROR');
 
     // ✅ SECURITY: Generic error response - no internal details exposed

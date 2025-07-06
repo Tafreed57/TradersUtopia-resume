@@ -1,14 +1,34 @@
 import { prisma } from '@/lib/prismadb';
 import { getCurrentProfile } from '@/lib/query';
 import { MemberRole } from '@prisma/client';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { strictCSRFValidation } from '@/lib/csrf';
 
 export async function PATCH(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { serverId: string } }
 ) {
   try {
+    // ✅ SECURITY FIX: Add CSRF protection and rate limiting
+    const csrfValid = await strictCSRFValidation(req);
+    if (!csrfValid) {
+      trackSuspiciousActivity(req, 'LEAVE_SERVER_CSRF_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+    const rateLimitResult = await rateLimitServer()(req);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(req, 'LEAVE_SERVER_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
     const profile = await getCurrentProfile();
     if (!profile) {
       return new NextResponse('Unauthorized', { status: 401 });
@@ -62,7 +82,6 @@ export async function PATCH(
 
     return NextResponse.json(server);
   } catch (error: any) {
-    console.log(error, 'SERVER ID -- LEAVE SERVER API ERROR');
     return new NextResponse('Internal Error', { status: 500 });
   }
 }

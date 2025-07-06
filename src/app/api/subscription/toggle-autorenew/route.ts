@@ -69,7 +69,6 @@ export async function POST(request: NextRequest) {
         limit: 1,
       });
     } catch (stripeError) {
-      console.error('❌ [AUTORENEW] Stripe API error:', stripeError);
       trackSuspiciousActivity(request, 'STRIPE_API_ERROR');
       return NextResponse.json(
         {
@@ -97,7 +96,6 @@ export async function POST(request: NextRequest) {
         cancel_at_period_end: !autoRenew, // If autoRenew is true, don't cancel at period end
       });
     } catch (stripeError) {
-      console.error('❌ [AUTORENEW] Stripe update error:', stripeError);
       trackSuspiciousActivity(request, 'STRIPE_UPDATE_ERROR');
       return NextResponse.json(
         {
@@ -115,17 +113,10 @@ export async function POST(request: NextRequest) {
     // If not found at subscription level, check subscription items
     if (!periodEndTimestamp && subscription.items?.data?.[0]) {
       periodEndTimestamp = subscription.items.data[0].current_period_end;
-      console.log(
-        `📋 [AUTORENEW] Using period end from subscription item: ${periodEndTimestamp}`
-      );
     }
 
     // Validate timestamp before creating date
     if (!periodEndTimestamp || typeof periodEndTimestamp !== 'number') {
-      console.error(
-        '❌ [AUTORENEW] Invalid period end timestamp:',
-        periodEndTimestamp
-      );
       return NextResponse.json(
         {
           error: 'Invalid subscription period data',
@@ -139,10 +130,6 @@ export async function POST(request: NextRequest) {
 
     // Validate the resulting date
     if (isNaN(periodEndDate.getTime())) {
-      console.error(
-        '❌ [AUTORENEW] Invalid period end date created from timestamp:',
-        periodEndTimestamp
-      );
       return NextResponse.json(
         {
           error: 'Invalid subscription period data',
@@ -162,17 +149,6 @@ export async function POST(request: NextRequest) {
         : `Auto-renewal disabled. Your subscription remains active until ${periodEndDate.toLocaleDateString()}. You can re-enable anytime before then.`,
     });
 
-    // ✅ SECURITY: Log successful operation
-    console.log(
-      `🔄 [AUTORENEW] Auto-renewal ${autoRenew ? 'enabled' : 'disabled'} for user: ${profile.email}`
-    );
-    console.log(
-      `📍 [AUTORENEW] IP: ${request.headers.get('x-forwarded-for') || 'unknown'}`
-    );
-    console.log(
-      `📅 [AUTORENEW] Subscription period ends: ${periodEndDate.toISOString()}`
-    );
-
     return NextResponse.json({
       success: true,
       autoRenew: !(updatedSubscription as any).cancel_at_period_end,
@@ -184,7 +160,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('❌ [AUTORENEW] Toggle auto-renewal error:', error);
     trackSuspiciousActivity(request, 'AUTORENEW_OPERATION_ERROR');
 
     // ✅ SECURITY: Don't expose detailed error information

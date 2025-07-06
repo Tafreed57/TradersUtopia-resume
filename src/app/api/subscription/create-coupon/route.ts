@@ -4,6 +4,11 @@ import { z } from 'zod';
 import Stripe from 'stripe';
 import { db } from '@/lib/db';
 import { createNotification } from '@/lib/notifications';
+import { strictCSRFValidation } from '@/lib/csrf';
+import {
+  rateLimitSubscription,
+  trackSuspiciousActivity,
+} from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 // Validation schema
@@ -21,6 +26,26 @@ export async function POST(request: NextRequest) {
   console.log('🎯 [CREATE-COUPON] Starting coupon creation process...');
 
   try {
+    // ✅ SECURITY FIX: Add CSRF protection
+    const csrfValid = await strictCSRFValidation(request);
+    if (!csrfValid) {
+      trackSuspiciousActivity(request, 'COUPON_CSRF_VALIDATION_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
+    // ✅ SECURITY FIX: Add rate limiting
+    const rateLimitResult = await rateLimitSubscription()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'COUPON_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
     // Get authenticated user
     const user = await currentUser();
     if (!user) {

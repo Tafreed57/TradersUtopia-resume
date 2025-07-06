@@ -28,10 +28,7 @@ async function getSubscriptionWithName(profile: any) {
         // Cache the result
         productCache.set(profile.stripeProductId, productName);
       } catch (error) {
-        console.warn(
-          `Failed to fetch product name for ${profile.stripeProductId}:`,
-          error
-        );
+        //
       }
     }
   }
@@ -58,18 +55,12 @@ async function getSubscriptionWithName(profile: any) {
               productName = product.name || productName;
             }
           } catch (priceError) {
-            console.warn(
-              `Failed to fetch price details for ${priceId}:`,
-              priceError
-            );
+            //
           }
         }
       }
     } catch (error) {
-      console.warn(
-        `Failed to fetch subscription details for customer ${profile.stripeCustomerId}:`,
-        error
-      );
+      //
     }
   }
 
@@ -110,7 +101,6 @@ export async function GET(request: NextRequest) {
     const profile = await db.profile.findFirst({
       where: { userId: user.id },
     });
-    console.log(profile);
 
     if (!profile || !profile.isAdmin) {
       trackSuspiciousActivity(request, 'NON_ADMIN_USERS_ACCESS_ATTEMPT');
@@ -152,10 +142,7 @@ export async function GET(request: NextRequest) {
           } catch (clerkError: any) {
             // Only log for non-404 errors (user not found is expected for deleted users)
             if (clerkError?.status !== 404) {
-              console.warn(
-                `Failed to fetch Clerk data for user ${profile.userId}:`,
-                clerkError
-              );
+              //
             }
             // For 404 errors, silently continue without Clerk data
           }
@@ -198,10 +185,7 @@ export async function GET(request: NextRequest) {
                 };
               }
             } catch (stripeError) {
-              console.warn(
-                `Failed to fetch Stripe data for customer ${profile.stripeCustomerId}:`,
-                stripeError
-              );
+              //
             }
           }
 
@@ -223,7 +207,6 @@ export async function GET(request: NextRequest) {
             clerkData,
           };
         } catch (error) {
-          console.error(`Error enriching user ${profile.userId}:`, error);
           // Return basic profile data even if enrichment fails
           return {
             id: profile.id,
@@ -244,17 +227,12 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    console.log(
-      `📊 [ADMIN] Admin ${profile.email} fetched ${enrichedUsers.length} users`
-    );
-
     return NextResponse.json({
       success: true,
       users: enrichedUsers,
       total: enrichedUsers.length,
     });
   } catch (error) {
-    console.error('Error fetching users:', error);
     trackSuspiciousActivity(request, 'ADMIN_USERS_FETCH_ERROR');
 
     return NextResponse.json(

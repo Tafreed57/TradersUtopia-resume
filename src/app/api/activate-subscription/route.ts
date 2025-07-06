@@ -1,15 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
+import {
+  rateLimitSubscription,
+  trackSuspiciousActivity,
+} from '@/lib/rate-limit';
+import { validateInput, subscriptionActivationSchema } from '@/lib/validation';
+import { strictCSRFValidation } from '@/lib/csrf';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await currentUser();
+    // ✅ SECURITY FIX: Add CSRF protection
+    const csrfValid = await strictCSRFValidation(request);
+    if (!csrfValid) {
+      trackSuspiciousActivity(request, 'ACTIVATION_CSRF_VALIDATION_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
 
+    // ✅ SECURITY: Rate limiting for subscription activation
+    const rateLimitResult = await rateLimitSubscription()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'ACTIVATION_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
+    // ✅ SECURITY: Authentication check
+    const user = await currentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      trackSuspiciousActivity(request, 'UNAUTHENTICATED_ACTIVATION_ACCESS');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // ✅ SECURITY: Input validation (re-enabling for this endpoint)
+    const validationResult = await validateInput(subscriptionActivationSchema)(
+      request
+    );
+    if (!validationResult.success) {
+      trackSuspiciousActivity(request, 'INVALID_ACTIVATION_INPUT');
+      return validationResult.error;
     }
 
     console.log('Activating subscription for user:', {
@@ -66,6 +102,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error activating subscription:', error);
+    trackSuspiciousActivity(request, 'ACTIVATION_ENDPOINT_ERROR');
 
     // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json(

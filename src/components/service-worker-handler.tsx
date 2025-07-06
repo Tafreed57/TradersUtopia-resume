@@ -1,22 +1,28 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 export function ServiceWorkerHandler() {
+  const { isSignedIn } = useAuth();
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      // Register service worker
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then(registration => {
-          console.log(
-            '✅ [PWA] Service Worker registered:',
-            registration.scope
-          );
-        })
-        .catch(error => {
-          console.error('❌ [PWA] Service Worker registration failed:', error);
-        });
+      const handleServiceWorker = async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          if (registration.installing) {
+            // ... existing code ...
+          } else if (registration.waiting) {
+            // ... existing code ...
+          } else if (registration.active) {
+            // ... existing code ...
+          }
+        } catch (error) {
+          // console.error('Service worker registration failed:', error);
+        }
+      };
+      handleServiceWorker();
 
       // Listen for service worker messages
       const handleMessage = (event: MessageEvent) => {
@@ -31,7 +37,7 @@ export function ServiceWorkerHandler() {
         navigator.serviceWorker.removeEventListener('message', handleMessage);
       };
     }
-  }, []);
+  }, [isSignedIn]);
 
   return null;
 }

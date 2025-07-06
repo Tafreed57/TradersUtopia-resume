@@ -74,10 +74,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    console.log(
-      `🗑️ [ADMIN] Admin ${adminProfile.email} is deleting user ${targetProfile.email} (${userId})`
-    );
-
     // Cancel Stripe subscription if exists
     if (
       targetProfile.stripeSessionId &&
@@ -94,16 +90,9 @@ export async function POST(request: NextRequest) {
 
           for (const subscription of subscriptions.data) {
             await stripe.subscriptions.cancel(subscription.id);
-            console.log(
-              `💳 [ADMIN] Cancelled Stripe subscription ${subscription.id}`
-            );
           }
         }
       } catch (stripeError) {
-        console.warn(
-          `Failed to cancel Stripe subscription for user ${userId}:`,
-          stripeError
-        );
         // Continue with deletion even if Stripe cancellation fails
       }
     }
@@ -113,21 +102,13 @@ export async function POST(request: NextRequest) {
       where: { userId },
     });
 
-    console.log(`🗄️ [ADMIN] Deleted database records for user ${userId}`);
-
     // Delete from Clerk
     try {
       const clerk = await clerkClient();
       await clerk.users.deleteUser(userId);
-      console.log(`👤 [ADMIN] Deleted Clerk user ${userId}`);
     } catch (clerkError) {
-      console.warn(`Failed to delete Clerk user ${userId}:`, clerkError);
       // Log but don't fail the request since database deletion was successful
     }
-
-    console.log(
-      `✅ [ADMIN] Successfully deleted user ${targetProfile.email} by admin ${adminProfile.email}`
-    );
 
     return NextResponse.json({
       success: true,
@@ -139,7 +120,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error deleting user:', error);
     trackSuspiciousActivity(request, 'ADMIN_DELETE_ERROR');
 
     return NextResponse.json(

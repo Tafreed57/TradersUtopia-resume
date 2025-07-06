@@ -75,10 +75,6 @@ export async function POST(request: NextRequest) {
     const action = grantAdmin ? 'granting' : 'revoking';
     const actionPast = grantAdmin ? 'granted' : 'revoked';
 
-    console.log(
-      `👑 [ADMIN] Admin user is ${action} admin privileges ${grantAdmin ? 'to' : 'from'} target user (details masked for security)`
-    );
-
     // Use safe admin granting to handle potential duplicates
     if (grantAdmin) {
       const success = await safeGrantAdmin(userId);
@@ -102,13 +98,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log(`🗄️ [ADMIN] Updated admin status for user to ${grantAdmin}`);
-
-    // Log this significant action
-    console.log(
-      `✅ [ADMIN] Successfully ${actionPast} admin privileges (details masked for security)`
-    );
-
     return NextResponse.json({
       success: true,
       message: `Admin privileges ${actionPast} successfully`,
@@ -121,7 +110,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error toggling admin status:', error);
     trackSuspiciousActivity(request, 'ADMIN_TOGGLE_ERROR');
 
     return NextResponse.json(

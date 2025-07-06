@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import Stripe from 'stripe';
+import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   try {
+    // ✅ SECURITY FIX: Add rate limiting
+    const rateLimitResult = await rateLimitGeneral()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'VERIFY_STATUS_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
     const { userId } = await auth();
 
     if (!userId) {
@@ -25,10 +33,6 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
-
-    console.log(
-      `🔍 [VERIFY] Fetching RAW Stripe data for customer: ${profile.stripeCustomerId}`
-    );
 
     // Get subscription directly from Stripe
     const subscriptions = await stripe.subscriptions.list({
@@ -68,8 +72,6 @@ export async function GET(request: NextRequest) {
       createdAt: new Date(activeSubscription.created * 1000).toISOString(),
     };
 
-    console.log(`✅ [VERIFY] Auto-renewal status:`, autoRenewalStatus);
-
     return NextResponse.json({
       message: 'Raw Stripe subscription verification',
       verification: autoRenewalStatus,
@@ -94,7 +96,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('❌ [VERIFY] Error:', error);
     return NextResponse.json(
       { error: 'Failed to verify subscription status' },
       { status: 500 }

@@ -20,29 +20,24 @@ import {
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/store';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { secureAxiosPost } from '@/lib/csrf-client';
-import { useParams, useRouter } from 'next/navigation';
+import { secureAxiosPatch } from '@/lib/csrf-client';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useEffect } from 'react';
-import qs from 'query-string';
+
+const schema = z.object({
+  name: z.string().min(1, { message: 'Section name is required' }),
+});
 
 export function EditSectionModal() {
   const router = useRouter();
-  const params = useParams();
   const type = useStore.use.type();
   const isOpen = useStore.use.isOpen();
   const onClose = useStore.use.onClose();
   const data = useStore.use.data();
 
   const isModelOpen = isOpen && type === 'editSection';
-
-  const schema = z.object({
-    name: z
-      .string()
-      .min(1, { message: 'Section name is required' })
-      .max(50, { message: 'Section name must be 50 characters or less' }),
-  });
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -51,31 +46,24 @@ export function EditSectionModal() {
     },
   });
 
-  const { register, handleSubmit, formState, watch } = form;
-
-  const isLoading = formState.isSubmitting;
-
-  // ✅ NEW: Set current section name when modal opens
   useEffect(() => {
     if (data?.section) {
       form.setValue('name', data.section.name);
     }
   }, [data?.section, form]);
 
+  const isLoading = form.formState.isSubmitting;
+
   const onSubmit = async (values: z.infer<typeof schema>) => {
     try {
-      const url = qs.stringifyUrl({
-        url: `/api/sections/${data?.section?.id}`,
-        query: {
-          serverId: params?.serverId,
-        },
-      });
-      await secureAxiosPost(url, values);
+      const url = `/api/sections/${data?.section?.id}?serverId=${data?.server?.id}`;
+      await secureAxiosPatch(url, values);
+
       form.reset();
       router.refresh();
       onClose();
     } catch (error) {
-      console.log('Section edit error:', error);
+      //
     }
   };
 
@@ -96,7 +84,7 @@ export function EditSectionModal() {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={handleSubmit(onSubmit)} className='space-y-8'>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
             <div className='space-y-8 px-6'>
               <FormField
                 control={form.control}
@@ -127,7 +115,7 @@ export function EditSectionModal() {
                 disabled={isLoading}
                 className='w-full'
               >
-                {isLoading ? 'Saving...' : 'Save Changes'}
+                {isLoading ? 'Saving...' : 'Save Section'}
               </Button>
             </DialogFooter>
           </form>

@@ -7,12 +7,26 @@ import {
   trackSuspiciousActivity,
 } from '@/lib/rate-limit';
 import { validateInput, productSubscriptionSchema } from '@/lib/validation';
+import { strictCSRFValidation } from '@/lib/csrf';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   try {
+    // ✅ SECURITY FIX: Add CSRF protection
+    const csrfValid = await strictCSRFValidation(request);
+    if (!csrfValid) {
+      trackSuspiciousActivity(request, 'PRODUCT_CHECK_CSRF_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
     // ✅ SECURITY: Rate limiting for subscription checks
     const rateLimitResult = await rateLimitSubscription()(request);
     if (!rateLimitResult.success) {
@@ -38,8 +52,6 @@ export async function POST(request: NextRequest) {
 
     const { allowedProductIds } = validationResult.data;
 
-    // ✅ PERFORMANCE: Removed excessive logging for better performance
-
     // ✅ PERFORMANCE: Check cached profile data first
     if (
       profile.subscriptionStatus === 'ACTIVE' &&
@@ -48,9 +60,6 @@ export async function POST(request: NextRequest) {
       new Date(profile.subscriptionEnd) > new Date() &&
       allowedProductIds.includes(profile.stripeProductId)
     ) {
-      // Valid cached subscription - return immediately without Stripe call
-      // ✅ PERFORMANCE: Using cached data (no console output for performance)
-
       return NextResponse.json({
         hasAccess: true,
         productId: profile.stripeProductId,
@@ -63,9 +72,6 @@ export async function POST(request: NextRequest) {
         },
       });
     }
-
-    // ✅ PERFORMANCE: Only call Stripe if cache is invalid/expired
-    // Note: Cache miss - checking Stripe (no console output for performance)
 
     // Enhanced Stripe API interaction with error handling
     let customer;
@@ -94,12 +100,7 @@ export async function POST(request: NextRequest) {
       }
 
       customer = customers.data[0];
-      // ✅ PERFORMANCE: Found Stripe customer (no console output for performance)
     } catch (stripeError) {
-      console.error(
-        '❌ [SUBSCRIPTION] Stripe customer lookup error:',
-        stripeError
-      );
       trackSuspiciousActivity(request, 'STRIPE_API_ERROR');
 
       // Return cached data if Stripe is down but we have recent data
@@ -108,7 +109,6 @@ export async function POST(request: NextRequest) {
         profile.subscriptionEnd &&
         new Date(profile.subscriptionEnd) > new Date()
       ) {
-        // ✅ PERFORMANCE: Using cached fallback (no console output for performance)
         return NextResponse.json({
           hasAccess: allowedProductIds.includes(profile.stripeProductId || ''),
           productId: profile.stripeProductId,
@@ -146,17 +146,12 @@ export async function POST(request: NextRequest) {
           if (allowedProductIds.includes(price.product as string)) {
             validSubscription = subscription;
             subscribedProductId = price.product as string;
-            // ✅ PERFORMANCE: Found valid subscription (no console output for performance)
             break;
           }
         }
         if (validSubscription) break;
       }
     } catch (stripeError) {
-      console.error(
-        '❌ [SUBSCRIPTION] Stripe subscription lookup error:',
-        stripeError
-      );
       trackSuspiciousActivity(request, 'STRIPE_SUBSCRIPTION_ERROR');
       return NextResponse.json(
         {
@@ -201,7 +196,6 @@ export async function POST(request: NextRequest) {
         subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       }
     } catch (dateError) {
-      console.error('❌ [SUBSCRIPTION] Date calculation error:', dateError);
       subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     }
 
@@ -217,8 +211,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ✅ PERFORMANCE: Updated profile cache and granted access (no console output for performance)
-
     return NextResponse.json({
       hasAccess: true,
       productId: subscribedProductId,
@@ -231,10 +223,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error(
-      '❌ [SUBSCRIPTION] Error checking product subscription:',
-      error
-    );
     trackSuspiciousActivity(request, 'SUBSCRIPTION_CHECK_ERROR');
 
     // ✅ SECURITY: Don't expose detailed error information

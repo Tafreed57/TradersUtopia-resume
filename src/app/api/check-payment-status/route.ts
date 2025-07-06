@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
+import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    // ✅ SECURITY FIX: Add rate limiting
+    const rateLimitResult = await rateLimitGeneral()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'PAYMENT_STATUS_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
     // Step 1: Test Clerk authentication
     const user = await currentUser();
 
@@ -58,20 +66,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('❌ ERROR in payment status check:');
-    console.error(
-      'Error type:',
-      error instanceof Error ? error.constructor.name : typeof error
-    );
-    console.error(
-      'Error message:',
-      error instanceof Error ? error.message : String(error)
-    );
-    console.error(
-      'Error stack:',
-      error instanceof Error ? error.stack : 'No stack trace'
-    );
-
     // ✅ SECURITY: Generic error response - no internal details exposed
     return NextResponse.json(
       {

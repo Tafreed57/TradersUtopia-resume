@@ -59,9 +59,6 @@ export async function POST(request: NextRequest) {
     if (reason) {
       const reasonCheck = secureTextInput(reason);
       if (reasonCheck.threats.length) {
-        console.warn(
-          `🚨 [SECURITY] Suspicious cancellation reason: ${reasonCheck.threats.join(', ')}`
-        );
         trackSuspiciousActivity(
           request,
           `CANCEL_REASON_THREATS_${reasonCheck.threats.join('_')}`
@@ -104,7 +101,6 @@ export async function POST(request: NextRequest) {
         limit: 1,
       });
     } catch (stripeError) {
-      console.error('❌ [CANCEL] Stripe API error:', stripeError);
       trackSuspiciousActivity(request, 'STRIPE_API_ERROR');
       return NextResponse.json(
         {
@@ -132,7 +128,6 @@ export async function POST(request: NextRequest) {
         cancel_at_period_end: true,
       });
     } catch (stripeError) {
-      console.error('❌ [CANCEL] Stripe update error:', stripeError);
       trackSuspiciousActivity(request, 'STRIPE_CANCEL_ERROR');
       return NextResponse.json(
         {
@@ -143,11 +138,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ SECURITY: Log successful cancellation with details
-    console.log(
-      `🔄 [CANCEL] Auto-renewal disabled for subscription: ${subscription.id}`
-    );
-
     // ✅ SECURITY: Safe access to current_period_end with proper validation
     // Try subscription level first, then fall back to subscription item level (like in sync route)
     let periodEndTimestamp =
@@ -157,17 +147,10 @@ export async function POST(request: NextRequest) {
     // If not found at subscription level, check subscription items (same pattern as sync route)
     if (!periodEndTimestamp && subscription.items?.data?.[0]) {
       periodEndTimestamp = subscription.items.data[0].current_period_end;
-      console.log(
-        `📋 [CANCEL] Using period end from subscription item: ${periodEndTimestamp}`
-      );
     }
 
     // Validate timestamp before creating date
     if (!periodEndTimestamp || typeof periodEndTimestamp !== 'number') {
-      console.error(
-        '❌ [CANCEL] Invalid period end timestamp:',
-        periodEndTimestamp
-      );
       return NextResponse.json(
         {
           error: 'Invalid subscription period data',
@@ -181,10 +164,6 @@ export async function POST(request: NextRequest) {
 
     // Validate the resulting date
     if (isNaN(periodEndDate.getTime())) {
-      console.error(
-        '❌ [CANCEL] Invalid period end date created from timestamp:',
-        periodEndTimestamp
-      );
       return NextResponse.json(
         {
           error: 'Invalid subscription period data',
@@ -193,17 +172,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log(
-      `📅 [CANCEL] Subscription will end at: ${periodEndDate.toISOString()}`
-    );
-    console.log(
-      `📝 [CANCEL] Reason: ${sanitizedReason || 'No reason provided'}`
-    );
-    console.log(`👤 [CANCEL] User: ${profile.email} (${user.id})`);
-    console.log(
-      `📍 [CANCEL] IP: ${request.headers.get('x-forwarded-for') || 'unknown'}`
-    );
 
     // Create notification
     await createNotification({
@@ -225,7 +193,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('❌ [CANCEL] Cancel subscription error:', error);
     trackSuspiciousActivity(request, 'CANCEL_OPERATION_ERROR');
 
     // ✅ SECURITY: Don't expose detailed error information

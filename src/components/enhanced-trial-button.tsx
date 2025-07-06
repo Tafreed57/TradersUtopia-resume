@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useAuth } from '@clerk/nextjs';
+import { toast } from 'sonner';
 
 interface EnhancedTrialButtonProps {
   isSignedIn?: boolean;
@@ -17,11 +18,13 @@ export function EnhancedTrialButton({
   className = '',
   children,
 }: EnhancedTrialButtonProps) {
+  const { isLoaded, isSignedIn: authSignedIn } = useAuth();
   const router = useRouter();
   const { user } = useUser();
   const [isProcessing, setIsProcessing] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     async function checkSubscription() {
@@ -50,21 +53,46 @@ export function EnhancedTrialButton({
     checkSubscription();
   }, [user]);
 
-  const handleSubscribeClick = () => {
-    setIsProcessing(true);
+  const handleStartTrial = async () => {
+    setIsLoading(true);
 
-    // If user has subscription, go to dashboard
-    if (subscriptionData?.hasAccess) {
-      console.log('✅ User has subscription, redirecting to dashboard...');
-      router.push('/dashboard');
+    if (!isLoaded) {
       return;
     }
 
-    // If user doesn't have subscription, go to payment verification page
-    console.log(
-      '❌ User has no subscription, redirecting to payment verification page...'
-    );
-    router.push('/payment-verification');
+    if (!isSignedIn) {
+      router.push('/sign-up?redirect_url=/dashboard');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/subscription/check');
+      const data = await response.json();
+      if (data.hasAccess) {
+        router.push('/dashboard');
+        return;
+      }
+
+      if (data.canStartTrial) {
+        const trialResponse = await fetch('/api/subscription/start-trial', {
+          method: 'POST',
+        });
+        const trialData = await trialResponse.json();
+        if (trialData.success) {
+          toast.success(trialData.message);
+          router.push('/dashboard');
+        } else {
+          throw new Error(trialData.error);
+        }
+      } else {
+        router.push('/pricing');
+      }
+    } catch (error: any) {
+      toast.error('An error occurred', {
+        description: error.message || 'Please try again later.',
+      });
+      setIsLoading(false);
+    }
   };
 
   // Show loading state while checking subscription
@@ -88,11 +116,11 @@ export function EnhancedTrialButton({
     return (
       <Button
         size='lg'
-        onClick={handleSubscribeClick}
-        disabled={isProcessing}
+        onClick={handleStartTrial}
+        disabled={isLoading}
         className={`w-full bg-blue-600 hover:bg-blue-700 text-white py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-lg sm:rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none touch-manipulation min-h-[44px] ${className}`}
       >
-        {isProcessing ? (
+        {isLoading ? (
           <div className='flex items-center gap-2'>
             <Loader2 className='h-4 w-4 sm:h-5 sm:w-5 animate-spin' />
             <span>Loading...</span>
@@ -111,11 +139,11 @@ export function EnhancedTrialButton({
   return (
     <Button
       size='lg'
-      onClick={handleSubscribeClick}
-      disabled={isProcessing}
+      onClick={handleStartTrial}
+      disabled={isLoading}
       className={`w-full bg-green-600 hover:bg-green-700 text-white py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-lg sm:rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none touch-manipulation min-h-[44px] ${className}`}
     >
-      {isProcessing ? (
+      {isLoading ? (
         <div className='flex items-center gap-2'>
           <Loader2 className='h-4 w-4 sm:h-5 sm:w-5 animate-spin' />
           <span>Loading...</span>

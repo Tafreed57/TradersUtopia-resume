@@ -91,21 +91,11 @@ export async function PATCH(
       },
     });
 
-    // ✅ SECURITY: Log successful server update
-    console.log(
-      `🏰 [SERVER] Server updated successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(`📝 [SERVER] Server name: "${name}", ID: ${params.serverId}`);
-    console.log(
-      `📍 [SERVER] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
-    );
-
     // Revalidate the server layout to reflect changes
     revalidatePath(`/servers/${params.serverId}`, 'layout');
 
     return NextResponse.json(server);
   } catch (error: any) {
-    console.error('❌ [SERVER] Server update error:', error);
     trackSuspiciousActivity(req, 'SERVER_UPDATE_ERROR');
 
     // ✅ SECURITY: Generic error response - no internal details exposed
@@ -181,19 +171,9 @@ export async function DELETE(
       where: { id: params.serverId },
     });
 
-    // ✅ SECURITY: Log successful server deletion
-    console.log(
-      `🗑️ [SERVER] Server deleted successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(`📝 [SERVER] Deleted server ID: ${params.serverId}`);
-    console.log(
-      `📍 [SERVER] IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`
-    );
-
     revalidatePath('/(main)', 'layout');
     return NextResponse.json(server);
   } catch (error: any) {
-    console.error('❌ [SERVER] Server deletion error:', error);
     trackSuspiciousActivity(req, 'SERVER_DELETE_ERROR');
 
     // ✅ SECURITY: Generic error response - no internal details exposed

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prismadb';
 import { z } from 'zod';
-import { rateLimitDragDrop } from '@/lib/rate-limit';
+import { rateLimitDragDrop, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { MemberRole } from '@prisma/client';
+import { strictCSRFValidation } from '@/lib/csrf';
 
 const reorderSectionSchema = z.object({
   serverId: z.string(),
@@ -14,6 +15,19 @@ const reorderSectionSchema = z.object({
 
 export async function PATCH(req: NextRequest) {
   try {
+    // ✅ SECURITY FIX: Add CSRF protection
+    const csrfValid = await strictCSRFValidation(req);
+    if (!csrfValid) {
+      trackSuspiciousActivity(req, 'SECTION_REORDER_CSRF_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
     // Rate limiting
     const rateLimitResult = await rateLimitDragDrop()(req);
     if (!rateLimitResult.success) {

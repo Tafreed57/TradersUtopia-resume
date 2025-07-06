@@ -122,17 +122,8 @@ export async function PATCH(
       },
     });
 
-    // ✅ SECURITY: Log successful channel update
-    console.log(
-      `📢 [CHANNEL] Channel updated successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(
-      `📝 [CHANNEL] Channel ID: ${params.channelId}, Name: "${existingChannel.name}" → "${name}", Type: ${type}, Server: ${serverId}`
-    );
-
     return NextResponse.json(server);
   } catch (error: any) {
-    console.error('❌ [CHANNEL] Channel update error:', error);
     trackSuspiciousActivity(req, 'CHANNEL_UPDATE_ERROR');
 
     // ✅ SECURITY: Generic error response - no internal details exposed
@@ -232,19 +223,10 @@ export async function DELETE(
       },
     });
 
-    // ✅ SECURITY: Log successful channel deletion
-    console.log(
-      `🗑️ [CHANNEL] Channel deleted successfully by user: ${profile.email} (${profile.id})`
-    );
-    console.log(
-      `📝 [CHANNEL] Deleted channel ID: ${params.channelId}, Server: ${serverId}`
-    );
-
     revalidatePath('/(main)', 'layout');
 
     return NextResponse.json(server);
   } catch (error: any) {
-    console.error('❌ [CHANNEL] Channel deletion error:', error);
     trackSuspiciousActivity(req, 'CHANNEL_DELETE_ERROR');
 
     // ✅ SECURITY: Generic error response - no internal details exposed

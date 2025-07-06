@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { passwordChangeSchema } from '@/lib/validation';
+import { rateLimitAuth, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { strictCSRFValidation } from '@/lib/csrf';
 
 export async function GET(request: NextRequest) {
   try {
+    // ✅ SECURITY FIX: Add rate limiting
+    const rateLimitResult = await rateLimitAuth()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'PASSWORD_STATUS_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -19,7 +28,6 @@ export async function GET(request: NextRequest) {
       message: 'Password status retrieved successfully',
     });
   } catch (error) {
-    console.error('[PASSWORD_STATUS]', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -29,6 +37,26 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SECURITY FIX: Add CSRF protection
+    const csrfValid = await strictCSRFValidation(request);
+    if (!csrfValid) {
+      trackSuspiciousActivity(request, 'PASSWORD_CHANGE_CSRF_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
+    // ✅ SECURITY FIX: Add rate limiting
+    const rateLimitResult = await rateLimitAuth()(request);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(request, 'PASSWORD_CHANGE_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -79,8 +107,6 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error: any) {
-    console.error('[PASSWORD_CHANGE]', error);
-
     if (error.errors) {
       // Clerk validation errors
       const clerkError = error.errors[0];

@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { rateLimitAdmin, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { secureTextInput } from '@/lib/validation';
 import { z } from 'zod';
+import { strictCSRFValidation } from '@/lib/csrf';
 
 // Specific validation for grant access endpoint
 const grantAccessSchema = z.object({
@@ -14,6 +15,19 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SECURITY: CSRF protection for admin operations
+    const csrfValid = await strictCSRFValidation(request);
+    if (!csrfValid) {
+      trackSuspiciousActivity(request, 'ADMIN_GRANT_CSRF_VALIDATION_FAILED');
+      return NextResponse.json(
+        {
+          error: 'CSRF validation failed',
+          message: 'Invalid security token. Please refresh and try again.',
+        },
+        { status: 403 }
+      );
+    }
+
     // ✅ SECURITY: Rate limiting for admin operations
     const rateLimitResult = await rateLimitAdmin()(request);
     if (!rateLimitResult.success) {
@@ -26,6 +40,19 @@ export async function POST(request: NextRequest) {
     if (!user) {
       trackSuspiciousActivity(request, 'UNAUTHENTICATED_ADMIN_ACCESS');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // ✅ SECURITY FIX: Ensure the current user is an admin before proceeding
+    const requestingProfile = await db.profile.findFirst({
+      where: { userId: user.id },
+    });
+
+    if (!requestingProfile || !requestingProfile.isAdmin) {
+      trackSuspiciousActivity(request, 'NON_ADMIN_GRANT_ATTEMPT');
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
     }
 
     // ✅ SECURITY: Input validation
@@ -58,39 +85,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find or create the user's profile
-    let profile = await db.profile.findFirst({
-      where: { userId: user.id },
-    });
+    // This endpoint no longer grants access directly.
+    // It is now only for logging and serves as a placeholder for a more secure process.
+    // The actual granting of admin rights should be done via a secure, audited process
+    // (e.g., a CLI script or a super-admin panel with 2FA).
 
-    if (!profile) {
-      const userEmail = user.emailAddresses[0]?.emailAddress;
-      if (!userEmail) {
-        return NextResponse.json({ error: 'No email found' }, { status: 400 });
-      }
-
-      profile = await db.profile.create({
-        data: {
-          userId: user.id,
-          name: `${user.firstName} ${user.lastName}`,
-          email: userEmail,
-          imageUrl: user.imageUrl,
-          isAdmin: true, // Grant admin access immediately
-        },
-      });
-    } else {
-      // Update existing profile to grant admin access
-      profile = await db.profile.update({
-        where: { id: profile.id },
-        data: {
-          isAdmin: true,
-        },
-      });
-    }
-
-    // ✅ SECURITY: Log admin access grant with details (no personal data exposed)
+    // ✅ SECURITY: Log admin access attempt with details (no personal data exposed)
     console.log(
-      `🔑 [ADMIN] Access granted to authenticated user (details masked for security)`
+      `🔑 [ADMIN] Admin access attempt by an existing admin: ${requestingProfile.email}`
     );
     console.log(
       `📝 [ADMIN] Reason: ${sanitizedReason?.clean || 'No reason provided'}`
@@ -102,21 +104,17 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Admin access granted successfully!',
-      profile: {
-        id: profile.id,
-        isAdmin: profile.isAdmin,
-        email: profile.email,
-      },
+      message:
+        'This endpoint is for logging purposes only. Admin access must be granted via a secure, offline process.',
     });
   } catch (error) {
-    console.error('❌ [ADMIN] Error granting admin access:', error);
+    console.error('❌ [ADMIN] Error in admin access endpoint:', error);
     trackSuspiciousActivity(request, 'ADMIN_GRANT_ERROR');
 
     // ✅ SECURITY: Don't expose detailed error information
     return NextResponse.json(
       {
-        error: 'Failed to grant admin access',
+        error: 'Admin access endpoint error',
         message: 'An internal error occurred. Please try again later.',
       },
       { status: 500 }

@@ -3,8 +3,13 @@ import { getCurrentProfile } from '@/lib/query';
 import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { z } from 'zod';
 
-export async function PATCH(
+const defaultSectionSchema = z.object({
+  name: z.string().min(1, 'Section name is required').max(100),
+});
+
+export async function POST(
   req: NextRequest,
   { params }: { params: { serverId: string } }
 ) {
@@ -20,23 +25,27 @@ export async function PATCH(
     }
 
     const profile = await getCurrentProfile();
-    const { defaultSectionName } = await req.json();
-    const serverId = params.serverId;
-
     if (!profile) {
       trackSuspiciousActivity(req, 'UNAUTHENTICATED_DEFAULT_SECTION_UPDATE');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // ✅ SECURITY: Input validation with Zod
+    const body = await req.json();
+    const validationResult = defaultSectionSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', issues: validationResult.error.issues },
+        { status: 400 }
+      );
+    }
+    const { name } = validationResult.data;
+
+    const serverId = params.serverId;
+
     if (!serverId) {
       trackSuspiciousActivity(req, 'DEFAULT_SECTION_UPDATE_NO_SERVER_ID');
       return new NextResponse('Server not found', { status: 404 });
-    }
-
-    if (!defaultSectionName || defaultSectionName.trim().length === 0) {
-      return new NextResponse('Default section name is required', {
-        status: 400,
-      });
     }
 
     // Check if user has permission to edit server settings (admin/moderator)
@@ -73,12 +82,13 @@ export async function PATCH(
       return new NextResponse('Server not found', { status: 404 });
     }
 
+    // Update the default section name
     const server = await prisma.server.update({
       where: {
         id: serverId,
       },
       data: {
-        defaultSectionName: defaultSectionName.trim(),
+        defaultSectionName: name,
       },
     });
 
@@ -87,7 +97,7 @@ export async function PATCH(
       `📂 [DEFAULT_SECTION] Default section updated successfully by user: ${profile.email} (${profile.id})`
     );
     console.log(
-      `📝 [DEFAULT_SECTION] Default section renamed to "${defaultSectionName}", server: ${serverId}`
+      `📝 [DEFAULT_SECTION] Default section renamed to "${name}", server: ${serverId}`
     );
 
     return NextResponse.json(server);

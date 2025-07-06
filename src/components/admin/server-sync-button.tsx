@@ -4,10 +4,16 @@ import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { RefreshCw, Users, CheckCircle, AlertCircle } from 'lucide-react';
 
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useUser } from '@clerk/nextjs';
+
 export function ServerSyncButton() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const { user } = useUser();
 
   const handleSync = async () => {
     setIsLoading(true);
@@ -17,27 +23,26 @@ export function ServerSyncButton() {
     try {
       const response = await fetch('/api/servers/ensure-all-users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to sync servers');
+      if (data.success) {
+        toast.success(data.message);
+        router.refresh();
+      } else {
+        throw new Error(data.message || 'Server sync failed');
       }
-
-      setResult(data);
-      console.log('✅ Server sync completed:', data);
-    } catch (err: any) {
-      setError(err.message);
-      console.error('❌ Server sync failed:', err);
+    } catch (error: any) {
+      toast.error('Sync Error', {
+        description: error.message,
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!user || !(user.publicMetadata as any)?.isAdmin) {
+    return null;
+  }
 
   return (
     <div className='space-y-4'>
