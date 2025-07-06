@@ -50,6 +50,7 @@ const alwaysPublicRoutes = [
   '/api/uploadthing',
   '/api/health', // Health check endpoint for monitoring
   '/api/debug-runtime-env', // TEMPORARY: For debugging production environment issues
+  '/api/user/validate-email', // Email validation for forgot password flow
 
   '/api/webhooks(.*)',
   '/api/sync-profiles',
