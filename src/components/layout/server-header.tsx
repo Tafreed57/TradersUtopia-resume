@@ -83,7 +83,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                 <span className='text-white font-bold truncate text-left'>
                   {server?.name}
                 </span>
-                {/* ✅ REMOVED: Member count not shown for non-admin users */}
+                <span className='text-xs text-gray-400'>Role: {role}</span>
               </div>
             </div>
             {/* ✅ REMOVED: No chevron icon for non-admin users */}
@@ -125,7 +125,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                     {server?.name}
                   </span>
                   <span className='text-xs text-gray-400 font-medium'>
-                    {server?.members?.length || 0} members
+                    {server?.members?.length || 0} members | Role: {role}
                   </span>
                 </div>
               </div>
@@ -161,7 +161,12 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                 <span className='font-medium'>Server Settings</span>
               </DropdownMenuItem>
             )}
-            {isModerator && (
+
+            {(isModerator || isAdmin) && (
+              <DropdownMenuSeparator className='bg-gray-700/50 my-2' />
+            )}
+
+            {(isModerator || isAdmin) && (
               <DropdownMenuItem
                 onClick={handleCreateChannelClick}
                 className='text-purple-400 hover:text-purple-300 text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-purple-600/20 transition-all duration-200 flex items-center gap-3'

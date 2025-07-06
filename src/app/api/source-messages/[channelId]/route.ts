@@ -1,21 +1,10 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-
 import sql from '@/lib/source-db';
-import {
-  BaseMessage,
-  sourceChannelMap,
-  sourceChannelNameMap,
-} from '@/types/database-types';
+import { BaseMessage, sourceChannelMap } from '@/types/database-types';
 import { Member, Profile, SubscriptionStatus } from '@prisma/client';
 
 const MESSAGES_BATCH = 10;
-
-type MessageWithMemberWithProfile = BaseMessage & {
-  member: Member & {
-    profile: Profile;
-  };
-};
 
 export async function GET(
   req: Request,
@@ -58,7 +47,7 @@ export async function GET(
     const botProfile: Profile = {
       id: `bot-profile-${channelName}`,
       userId: `bot-user-${channelName}`,
-      name: sourceChannelNameMap[channelName] || 'Bot',
+      name: 'Trading Bot',
       imageUrl: '/logo.png',
       email: '',
       createdAt: new Date(),
@@ -85,9 +74,9 @@ export async function GET(
     };
 
     const formattedMessages = messages.map(message => ({
-      ...message,
+      //   ...message,
       id: message.msg_id,
-      fileUrl: message.image_url,
+      //   fileUrl: message.image_url,
       content: message.content || '',
       deleted: false,
       createdAt: message.timestamp || message.created_at,

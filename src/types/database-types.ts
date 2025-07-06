@@ -49,12 +49,3 @@ export const sourceChannelMap: Record<string, string> = {
   crypto5: TABLE_NAMES.BINANCE_360,
   crypto6: TABLE_NAMES.CRYPTO_MUSK,
 };
-
-export const sourceChannelNameMap: Record<string, string> = {
-  crypto1: 'Bitcoin Bullets',
-  crypto2: 'Binance Killers',
-  crypto3: 'Always Winning',
-  dailyBTCUpdate: 'Russian Insiders',
-  crypto5: 'Binance 360',
-  crypto6: 'Crypto Musk',
-};
