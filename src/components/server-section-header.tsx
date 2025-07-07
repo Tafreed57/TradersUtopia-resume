@@ -5,15 +5,13 @@ import { ServerWithMembersWithProfiles } from '@/types/server';
 import { ChannelType, MemberRole, Section, Channel } from '@prisma/client';
 import {
   Plus,
-  ChevronDown,
-  ChevronRight,
   Settings,
   Edit,
   Trash2,
   MoreHorizontal,
   GripVertical,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +22,7 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
+import { useDragDrop } from '@/contexts/drag-drop-provider';
 
 interface ServerSectionHeaderProps {
   label: string;
@@ -32,8 +31,6 @@ interface ServerSectionHeaderProps {
   channelType?: ChannelType;
   server?: ServerWithMembersWithProfiles;
   section?: Section & { channels: Channel[] };
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
   position?: number;
 }
 
@@ -44,10 +41,9 @@ export function ServerSectionHeader({
   channelType,
   server,
   section,
-  isCollapsed = false,
-  onToggleCollapse,
   position,
 }: ServerSectionHeaderProps) {
+  const { insertionIndicator } = useDragDrop();
   const onOpen = useStore.use.onOpen();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -58,6 +54,19 @@ export function ServerSectionHeader({
     canManage &&
     ((sectionType === 'section' && section) || sectionType === 'channels');
 
+  // Check if insertion indicator should be shown for this section
+  const showInsertionBefore = 
+    insertionIndicator?.type === 'section' &&
+    insertionIndicator?.containerId === 'root' &&
+    insertionIndicator?.index === (position !== undefined ? position : section?.position || 0) &&
+    insertionIndicator?.position === 'before';
+
+  const showInsertionAfter = 
+    insertionIndicator?.type === 'section' &&
+    insertionIndicator?.containerId === 'root' &&
+    insertionIndicator?.index === (position !== undefined ? position : section?.position || 0) &&
+    insertionIndicator?.position === 'after';
+
   const {
     attributes,
     listeners,
@@ -65,6 +74,7 @@ export function ServerSectionHeader({
     transform,
     transition,
     isDragging,
+    isOver,
   } = useSortable({
     id: isDraggable
       ? sectionType === 'section'
@@ -73,7 +83,7 @@ export function ServerSectionHeader({
       : `non-draggable-${section?.id || 'default'}`,
     disabled: !isDraggable,
     data: {
-      type: sectionType === 'channels' ? 'default-section' : 'section',
+      type: 'Section',
       section: sectionType === 'section' ? section : null,
       serverId: server?.id,
       position: position !== undefined ? position : section?.position || 0,
@@ -90,13 +100,24 @@ export function ServerSectionHeader({
 
   return (
     <div className='relative mb-1 z-20'>
+      {/* Insertion indicator before */}
+      {showInsertionBefore && (
+        <div className='h-0.5 bg-blue-400 rounded-full mb-1 mx-2 shadow-sm shadow-blue-400/50' />
+      )}
+
+      {/* Drop zone indicator - shows when dragging another item over this section */}
+      {isOver && (
+        <div className='absolute inset-0 bg-blue-500/20 border-2 border-blue-400/50 rounded-xl pointer-events-none z-10' />
+      )}
+      
       <div
         ref={setNodeRef}
         style={style}
         className={cn(
           'flex items-center justify-between px-3 py-2 bg-gradient-to-r from-gray-800/30 to-gray-700/30 rounded-xl border border-gray-700/30 backdrop-blur-sm hover:bg-gradient-to-r hover:from-gray-700/40 hover:to-gray-600/40 transition-all duration-200 group cursor-pointer',
           isDragging && 'opacity-50 scale-95',
-          isDraggable && 'hover:border-blue-400/30'
+          isDraggable && 'hover:border-blue-400/30',
+          isOver && 'border-blue-400/60 bg-blue-500/10'
         )}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -112,7 +133,7 @@ export function ServerSectionHeader({
                 minHeight: '16px',
               }}
               onClick={e => {
-                // Prevent the drag handle from triggering the collapse toggle
+                // Prevent the drag handle from triggering any parent clicks
                 e.stopPropagation();
                 e.preventDefault();
               }}
@@ -124,27 +145,6 @@ export function ServerSectionHeader({
               </ActionTooltip>
             </div>
           )}
-
-          <div
-            className='relative flex-shrink-0 z-[60] cursor-pointer'
-            onClick={e => {
-              e.stopPropagation();
-              onToggleCollapse?.();
-            }}
-          >
-            <ActionTooltip
-              label={isCollapsed ? 'Expand Section' : 'Collapse Section'}
-              side='top'
-            >
-              <div className='p-1 rounded transition-all duration-200 hover:bg-gray-600/30 relative z-[60]'>
-                {isCollapsed ? (
-                  <ChevronRight className='w-3 h-3 text-gray-400 group-hover:text-gray-200 transition-colors' />
-                ) : (
-                  <ChevronDown className='w-3 h-3 text-gray-400 group-hover:text-gray-200 transition-colors' />
-                )}
-              </div>
-            </ActionTooltip>
-          </div>
 
           {sectionType === 'channels' && (
             <div className='w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex-shrink-0' />
@@ -262,6 +262,11 @@ export function ServerSectionHeader({
           </div>
         )}
       </div>
+      
+      {/* Insertion indicator after */}
+      {showInsertionAfter && (
+        <div className='h-0.5 bg-blue-400 rounded-full mt-1 mx-2 shadow-sm shadow-blue-400/50' />
+      )}
     </div>
   );
 }

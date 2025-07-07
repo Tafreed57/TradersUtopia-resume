@@ -41,3 +41,25 @@ next-env.d.ts
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+
+# Webpack and build cache
+.next/
+.turbo/
+node_modules/.cache/
+.cache/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Chunk files (to prevent committing broken chunks)
+**/*.chunk.js
+**/*.chunk.*.js

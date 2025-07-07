@@ -13,10 +13,20 @@ const reorderSectionSchema = z.object({
   newParentId: z.string().nullable().optional(),
 });
 
+export async function GET(req: NextRequest) {
+  console.log('=== SECTION REORDER API GET TEST ===');
+  return NextResponse.json({
+    message: 'Section reorder API is accessible',
+    timestamp: new Date().toISOString(),
+    method: 'GET',
+  });
+}
+
 export async function PATCH(req: NextRequest) {
   try {
     // ✅ SECURITY FIX: Add CSRF protection
     const csrfValid = await strictCSRFValidation(req);
+
     if (!csrfValid) {
       trackSuspiciousActivity(req, 'SECTION_REORDER_CSRF_FAILED');
       return NextResponse.json(

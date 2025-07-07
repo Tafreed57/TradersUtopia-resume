@@ -281,11 +281,6 @@ export interface ServerInviteCodeResponseDto {
   inviteCode: string;
 }
 
-export interface LeaveServerResponseDto {
-  success: boolean;
-  message: string;
-}
-
 export interface EnsureDefaultServerResponseDto {
   success: boolean;
   server: ServerDto;

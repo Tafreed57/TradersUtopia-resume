@@ -6,8 +6,7 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 
-  // ✅ MEMORY: Optimize output and reduce memory footprint
-  output: 'standalone',
+  // ✅ STABILITY: Simplified output settings to prevent chunk loading issues
   generateEtags: false,
   trailingSlash: false,
 
@@ -86,43 +85,27 @@ const nextConfig = {
     ];
   },
 
-  // ✅ WEBPACK: Handle server-only modules and optimize memory
+  // ✅ WEBPACK: Simplified and stable configuration to prevent chunk loading errors
   webpack: (config, { isServer, dev }) => {
-    // ✅ MEMORY: Optimize webpack for production builds only
+    // ✅ STABILITY: Only apply optimizations in production and avoid aggressive chunk splitting
     if (!dev && !isServer) {
+      // Simplified chunk splitting to prevent module loading errors
       config.optimization = {
         ...config.optimization,
         splitChunks: {
           chunks: 'all',
-          maxInitialRequests: 25,
-          maxSize: 244000,
           cacheGroups: {
-            default: false,
-            vendors: false,
-            // Vendor chunk
             vendor: {
+              test: /[\\/]node_modules[\\/]/,
               name: 'vendors',
               chunks: 'all',
-              test: /node_modules/,
-              priority: 20,
-            },
-            // Common chunk
-            common: {
-              name: 'common',
-              chunks: 'all',
-              minChunks: 2,
-              priority: 10,
-              reuseExistingChunk: true,
             },
           },
         },
       };
-
-      // ✅ MEMORY: Reduce memory usage with minimal stats
-      config.stats = 'errors-warnings';
     }
 
-    // Exclude server-only modules from client bundle
+    // ✅ STABILITY: Exclude server-only modules from client bundle
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -163,11 +146,6 @@ const nextConfig = {
       },
     ],
   },
-
-  // AWS Amplify configuration
-  trailingSlash: false,
-  generateEtags: false,
-  // output: 'standalone', // ✅ Temporarily disabled due to Windows symlink issues
 
   // ✅ AWS AMPLIFY: Force environment variables to be available
   env: {

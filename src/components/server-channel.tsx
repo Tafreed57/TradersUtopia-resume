@@ -20,6 +20,7 @@ import { useStore } from '@/store/store';
 import { ModalType } from '@/types/store';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useDragDrop } from '@/contexts/drag-drop-provider';
 
 interface ServerChannelProps {
   channel: Channel;
@@ -34,6 +35,7 @@ const iconMap = {
 
 export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const onOpen = useStore.use.onOpen();
+  const { insertionIndicator } = useDragDrop();
   const router = useRouter();
   const params = useParams();
   const [isPending, startTransition] = useTransition();
@@ -58,6 +60,19 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   // Enable drag and drop for channels when user can manage them
   const isDraggable = canModify;
 
+  // Check if insertion indicator should be shown for this channel
+  const showInsertionBefore =
+    insertionIndicator?.type === 'channel' &&
+    insertionIndicator?.containerId === channel.sectionId &&
+    insertionIndicator?.index === channel.position &&
+    insertionIndicator?.position === 'before';
+
+  const showInsertionAfter =
+    insertionIndicator?.type === 'channel' &&
+    insertionIndicator?.containerId === channel.sectionId &&
+    insertionIndicator?.index === channel.position &&
+    insertionIndicator?.position === 'after';
+
   const {
     attributes,
     listeners,
@@ -65,6 +80,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
     transform,
     transition,
     isDragging,
+    isOver,
   } = useSortable({
     id: `channel-${channel.id}`,
     disabled: !isDraggable,
@@ -149,9 +165,10 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
           : 'hover:border-gray-500/30',
         isPending && 'opacity-70 cursor-wait',
         isDragging && 'opacity-50 scale-95',
-        isDraggable && 'hover:border-blue-400/30'
+        isDraggable && 'hover:border-blue-400/30',
+        isOver && 'border-blue-400/60 bg-blue-500/10'
       ),
-    [isActive, isPending, isDragging, isDraggable]
+    [isActive, isPending, isDragging, isDraggable, isOver]
   );
 
   const iconClasses = useMemo(
@@ -197,6 +214,16 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Insertion indicator before */}
+      {showInsertionBefore && (
+        <div className='h-0.5 bg-blue-400 rounded-full mb-1 mx-2 shadow-sm shadow-blue-400/50' />
+      )}
+
+      {/* Drop zone indicator - shows when dragging another item over this channel */}
+      {isOver && (
+        <div className='absolute inset-0 bg-blue-500/20 border-2 border-blue-400/50 rounded-xl pointer-events-none z-10' />
+      )}
+
       <div className='flex items-center'>
         {/* Drag handle outside the button */}
         {isDraggable && (
@@ -298,6 +325,11 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      )}
+      
+      {/* Insertion indicator after */}
+      {showInsertionAfter && (
+        <div className='h-0.5 bg-blue-400 rounded-full mt-1 mx-2 shadow-sm shadow-blue-400/50' />
       )}
     </div>
   );

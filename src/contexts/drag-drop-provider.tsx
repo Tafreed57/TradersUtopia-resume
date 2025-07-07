@@ -23,7 +23,7 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { secureAxiosPatch } from '@/lib/csrf-client';
 import { toast } from 'sonner';
 
 export type DragItem = {
@@ -32,9 +32,17 @@ export type DragItem = {
   data: any;
 };
 
+export type InsertionIndicator = {
+  type: 'channel' | 'section';
+  containerId: string;
+  index: number;
+  position: 'before' | 'after';
+} | null;
+
 interface DragDropContextValue {
   isDragging: boolean;
   dragItem: DragItem | null;
+  insertionIndicator: InsertionIndicator;
   reorderChannel: (
     serverId: string,
     channelId: string,
@@ -47,28 +55,6 @@ interface DragDropContextValue {
     newPosition: number,
     newParentId?: string
   ) => Promise<void>;
-  onChannelReorder?: (
-    channelId: string,
-    newPosition: number,
-    newSectionId?: string | null
-  ) => void;
-  onSectionReorder?: (
-    sectionId: string,
-    newPosition: number,
-    newParentId?: string | null
-  ) => void;
-  setOptimisticCallbacks: (callbacks: {
-    onChannelReorder?: (
-      channelId: string,
-      newPosition: number,
-      newSectionId?: string | null
-    ) => void;
-    onSectionReorder?: (
-      sectionId: string,
-      newPosition: number,
-      newParentId?: string | null
-    ) => void;
-  }) => void;
 }
 
 const DragDropContext = createContext<DragDropContextValue | undefined>(
@@ -90,26 +76,9 @@ interface DragDropProviderProps {
 export function DragDropProvider({ children }: DragDropProviderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragItem, setDragItem] = useState<DragItem | null>(null);
+  const [insertionIndicator, setInsertionIndicator] = useState<InsertionIndicator>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
-
-  // Use refs to store optimistic update callbacks - prevents infinite re-renders
-  const onChannelReorderRef = useRef<
-    | ((
-        channelId: string,
-        newPosition: number,
-        newSectionId?: string | null
-      ) => void)
-    | undefined
-  >();
-  const onSectionReorderRef = useRef<
-    | ((
-        sectionId: string,
-        newPosition: number,
-        newParentId?: string | null
-      ) => void)
-    | undefined
-  >();
 
   // Debounced router refresh to avoid multiple refreshes during rapid operations
   const debouncedRefresh = useCallback(() => {
@@ -140,7 +109,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       newSectionId?: string
     ) => {
       try {
-        await axios.patch('/api/channels/reorder', {
+        await secureAxiosPatch('/api/channels/reorder', {
           serverId,
           channelId,
           newPosition,
@@ -171,15 +140,15 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       newParentId?: string
     ) => {
       try {
-        await axios.patch('/api/sections/reorder', {
+        await secureAxiosPatch('/api/sections/reorder', {
           serverId,
           sectionId,
           newPosition,
           newParentId,
         });
 
-        // No refresh for sections - optimistic updates handle the visual changes
-        // The database is updated but we rely on optimistic updates for immediate feedback
+        // Use debounced refresh like channels do for consistency
+        debouncedRefresh();
       } catch (error: any) {
         console.error('Error reordering section:', error);
         // Only show error if it's a client-side issue (like network failure)
@@ -191,11 +160,14 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
         // Don't throw error to prevent breaking the UI flow
       }
     },
-    [] // Removed debouncedRefresh dependency
+    [debouncedRefresh]
   );
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
+
+    // Clear any existing insertion indicator
+    setInsertionIndicator(null);
 
     // Parse the drag item from the active id
     const activeId = active.id.toString();
@@ -203,7 +175,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
     // Handle special case for default section
     if (activeId === 'default-section') {
       setDragItem({
-        id: 'default',
+        id: 'default-section',
         type: 'section',
         data: active.data.current,
       });
@@ -228,6 +200,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
 
     setIsDragging(false);
     setDragItem(null);
+    setInsertionIndicator(null);
 
     if (!over) {
       return;
@@ -240,26 +213,13 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       return;
     }
 
-    // Handle special case for default section
-    if (activeId === 'default-section') {
-      const overType = overId.startsWith('section-') ? 'section' : 'default';
-      const overItemId = overId.startsWith('section-')
-        ? overId.split('-')[1]
-        : 'default';
-
-      handleSectionDrop(
-        'default',
-        overType,
-        overItemId,
-        active.data.current,
-        over.data.current
-      );
-      return;
-    }
-
-    // Parse IDs for regular items
-    const [activeType, activeItemId] = activeId.split('-');
-    const [overType, overItemId] = overId.split('-');
+    // Parse IDs for all items uniformly
+    const [activeType, activeItemId] = activeId.includes('-')
+      ? activeId.split('-')
+      : ['section', activeId]; // Handle default-section as a section
+    const [overType, overItemId] = overId.includes('-')
+      ? overId.split('-')
+      : ['section', overId];
 
     // Handle the drop based on item types
     if (activeType === 'channel') {
@@ -272,7 +232,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       );
     } else if (activeType === 'section') {
       handleSectionDrop(
-        activeItemId,
+        activeId, // Use full ID for sections including default-section
         overType,
         overItemId,
         active.data.current,
@@ -297,19 +257,24 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       const newPosition = overData?.position || 0;
       const sectionId = overData?.sectionId || activeData?.sectionId;
 
-      if (onChannelReorderRef.current) {
-        onChannelReorderRef.current(channelId, newPosition, sectionId);
-      }
+      performChannelUpdate(
+        channelId,
+        overType,
+        overItemId,
+        activeData,
+        overData
+      );
     } else if (overType === 'section') {
       const newPosition = 0;
 
-      if (onChannelReorderRef.current) {
-        onChannelReorderRef.current(channelId, newPosition, overItemId);
-      }
+      performChannelUpdate(
+        channelId,
+        overType,
+        overItemId,
+        activeData,
+        overData
+      );
     }
-
-    // API call in background
-    performChannelUpdate(channelId, overType, overItemId, activeData, overData);
   };
 
   const handleSectionDrop = (
@@ -323,39 +288,21 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       return;
     }
 
-    // Handle default section reordering
-    const isDefaultSection =
-      activeData?.isDefaultSection || sectionId === 'default';
-
-    // Handle the optimistic update for visual feedback
-    if (overType === 'section' || overItemId || overData?.isDefaultSection) {
-      // SIMPLIFIED: Just use the target's visual index as the new position
-      // The position rebuilding logic in section-content.tsx will handle making
-      // sure all positions are sequential and conflict-free
-
-      let newPosition = 0;
-
-      if (overData?.sortable?.index !== undefined) {
-        // Use the target's visual index directly - much simpler!
-        newPosition = overData.sortable.index;
-      }
-
+    // Handle section drops the same way as channels - direct API calls
+    if (overType === 'section') {
+      // Section dropped on another section - reorder within same level
+      const newPosition = overData?.position || 0;
       const newParentId = overData?.parentId || null;
 
-      if (onSectionReorderRef.current) {
-        onSectionReorderRef.current(sectionId, newPosition, newParentId);
-      }
-
-      // Only make API call for real sections, not the default section
-      if (!isDefaultSection) {
-        performSectionUpdate(
-          sectionId,
-          overType,
-          overItemId,
-          activeData,
-          overData
-        );
-      }
+      // Make API call directly like channels do
+      performSectionUpdate(
+        sectionId,
+        overType,
+        overItemId,
+        activeData,
+        overData,
+        newPosition
+      );
     }
   };
 
@@ -396,16 +343,21 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
     overType: string,
     overItemId: string,
     activeData: any,
-    overData: any
+    overData: any,
+    newPosition: number
   ) => {
     try {
       if (overType === 'section') {
-        const newPosition = overData?.position || 0;
         const newParentId = overData?.parentId || null;
+
+        // Extract the actual section ID from the full ID (remove "section-" prefix)
+        const actualSectionId = sectionId.startsWith('section-')
+          ? sectionId.replace('section-', '')
+          : sectionId;
 
         await reorderSection(
           activeData.serverId,
-          sectionId,
+          actualSectionId,
           newPosition,
           newParentId
         );
@@ -416,45 +368,68 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    // Handle drag over events if needed for visual feedback
-  };
+    const { active, over } = event;
+    
+    if (!over || !active) {
+      setInsertionIndicator(null);
+      return;
+    }
 
-  const setOptimisticCallbacks = useCallback(
-    (callbacks: {
-      onChannelReorder?: (
-        channelId: string,
-        newPosition: number,
-        newSectionId?: string | null
-      ) => void;
-      onSectionReorder?: (
-        sectionId: string,
-        newPosition: number,
-        newParentId?: string | null
-      ) => void;
-    }) => {
-      onChannelReorderRef.current = callbacks.onChannelReorder;
-      onSectionReorderRef.current = callbacks.onSectionReorder;
-    },
-    []
-  );
+    const activeId = active.id.toString();
+    const overId = over.id.toString();
+
+    // Don't show insertion indicator when hovering over the dragged item itself
+    if (activeId === overId) {
+      setInsertionIndicator(null);
+      return;
+    }
+
+    // Parse the over item
+    const [overType, overItemId] = overId.includes('-')
+      ? overId.split('-')
+      : ['section', overId];
+
+    // Get the bounding rect of the over item to determine insertion position
+    const overRect = over.rect;
+    const overData = over.data.current;
+    
+    if (!overRect) {
+      setInsertionIndicator(null);
+      return;
+    }
+
+    // Calculate if we're in the top half (before) or bottom half (after) of the item
+    const pointerY = event.delta.y + (event.activatorEvent as any)?.clientY;
+    const overMiddleY = overRect.top + overRect.height / 2;
+    const position = pointerY < overMiddleY ? 'before' : 'after';
+
+    // Set the insertion indicator
+    if (overType === 'channel') {
+      setInsertionIndicator({
+        type: 'channel',
+        containerId: overData?.sectionId || 'default',
+        index: overData?.position || 0,
+        position,
+      });
+    } else if (overType === 'section') {
+      setInsertionIndicator({
+        type: 'section',
+        containerId: 'root',
+        index: overData?.position || 0,
+        position,
+      });
+    }
+  };
 
   const value: DragDropContextValue = useMemo(
     () => ({
       isDragging,
       dragItem,
+      insertionIndicator,
       reorderChannel,
       reorderSection,
-      onChannelReorder: onChannelReorderRef.current,
-      onSectionReorder: onSectionReorderRef.current,
-      setOptimisticCallbacks,
     }),
-    [
-      isDragging,
-      dragItem,
-      reorderChannel,
-      reorderSection,
-      setOptimisticCallbacks,
-    ]
+    [isDragging, dragItem, insertionIndicator, reorderChannel, reorderSection]
   );
 
   return (

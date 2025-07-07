@@ -11,14 +11,7 @@ import {
 import { useStore } from '@/store/store';
 import { ServerWithMembersWithProfiles } from '@/types/server';
 import { MemberRole } from '@prisma/client';
-import {
-  ChevronDown,
-  LogOut,
-  PlusCircle,
-  Settings,
-  TrashIcon,
-  UserPlus,
-} from 'lucide-react';
+import { ChevronDown, PlusCircle, Settings } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
 
@@ -34,23 +27,11 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
   const isAdmin = role === MemberRole.ADMIN;
   const isModerator = isAdmin || role === MemberRole.MODERATOR;
 
-  const handleInviteClick = () => {
-    setIsDropdownOpen(false);
-    onOpen('invite', { server });
-  };
   const handleServerSettingsClick = () => {
     setIsDropdownOpen(false);
     onOpen('editServer', { server });
   };
 
-  function handleLeaveServerClick() {
-    setIsDropdownOpen(false);
-    onOpen('leaveServer', { server });
-  }
-  function handleDeleteServerClick() {
-    setIsDropdownOpen(false);
-    onOpen('deleteServer', { server });
-  }
   function handleCreateChannelClick() {
     setIsDropdownOpen(false);
     onOpen('createChannel', { server });
@@ -147,16 +128,6 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
             sideOffset={8}
             style={{ zIndex: 99999 }}
           >
-            {isModerator && (
-              <DropdownMenuItem
-                onClick={handleInviteClick}
-                className='text-blue-400 hover:text-blue-300 text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-blue-600/20 transition-all duration-200 flex items-center gap-3'
-              >
-                <UserPlus className='w-4 h-4' />
-                <span className='font-medium'>Invite People</span>
-              </DropdownMenuItem>
-            )}
-
             {isAdmin && (
               <DropdownMenuItem
                 onClick={handleServerSettingsClick}
@@ -167,7 +138,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
               </DropdownMenuItem>
             )}
 
-            {(isModerator || isAdmin) && (
+            {isAdmin && (isModerator || isAdmin) && (
               <DropdownMenuSeparator className='bg-gray-700/50 my-2' />
             )}
 
@@ -188,31 +159,6 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
               >
                 <PlusCircle className='w-4 h-4' />
                 <span className='font-medium'>Create Section</span>
-              </DropdownMenuItem>
-            )}
-
-            {(isModerator || isAdmin) && (
-              <DropdownMenuSeparator className='bg-gray-700/50 my-2' />
-            )}
-
-            {isAdmin && (
-              <DropdownMenuItem
-                onClick={handleDeleteServerClick}
-                className='text-red-400 hover:text-red-300 text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-red-600/20 transition-all duration-200 flex items-center gap-3'
-              >
-                <TrashIcon className='w-4 h-4' />
-                <span className='font-medium'>Delete Server</span>
-              </DropdownMenuItem>
-            )}
-
-            {/* ✅ UPDATED: Only admin users can leave servers now */}
-            {isAdmin && (
-              <DropdownMenuItem
-                onClick={handleLeaveServerClick}
-                className='text-red-400 hover:text-red-300 text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-red-600/20 transition-all duration-200 flex items-center gap-3'
-              >
-                <LogOut className='w-4 h-4' />
-                <span className='font-medium'>Leave Server</span>
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
