@@ -144,8 +144,9 @@ export async function sendPushNotification(
             const updatedSubscriptions = pushSubscriptions.filter(
               (_, i) => i !== index
             );
+            // ✅ FIX: Use profile.id instead of userId for the database update
             await db.profile.update({
-              where: { userId: data.userId },
+              where: { id: profile.id }, // Use profile.id instead of userId
               data: { pushSubscriptions: updatedSubscriptions },
             });
           }
@@ -171,6 +172,13 @@ export async function subscribeToPushNotifications(
   subscription: PushSubscription
 ): Promise<boolean> {
   try {
+    console.log(
+      `🔔 [PUSH-SUB] Attempting to save subscription for user: ${userId}`
+    );
+    console.log(
+      `🔔 [PUSH-SUB] Subscription endpoint: ${subscription.endpoint?.substring(0, 50)}...`
+    );
+
     const profile = await db.profile.findFirst({
       where: { userId },
     });
@@ -180,7 +188,12 @@ export async function subscribeToPushNotifications(
       return false;
     }
 
+    console.log(`✅ [PUSH-SUB] Found profile with ID: ${profile.id}`);
+
     const existingSubscriptions = (profile.pushSubscriptions as any[]) || [];
+    console.log(
+      `📊 [PUSH-SUB] Existing subscriptions count: ${existingSubscriptions.length}`
+    );
 
     // Check if subscription already exists
     const existingIndex = existingSubscriptions.findIndex(
@@ -190,21 +203,34 @@ export async function subscribeToPushNotifications(
     let updatedSubscriptions;
     if (existingIndex >= 0) {
       // Update existing subscription
+      console.log(
+        `🔄 [PUSH-SUB] Updating existing subscription at index ${existingIndex}`
+      );
       updatedSubscriptions = [...existingSubscriptions];
       updatedSubscriptions[existingIndex] = subscription;
     } else {
       // Add new subscription
+      console.log(`➕ [PUSH-SUB] Adding new subscription`);
       updatedSubscriptions = [...existingSubscriptions, subscription];
     }
 
+    console.log(
+      `📊 [PUSH-SUB] Updated subscriptions count: ${updatedSubscriptions.length}`
+    );
+
+    // ✅ FIX: Use profile.id instead of userId for the database update
     await db.profile.update({
-      where: { userId },
+      where: { id: profile.id }, // Use profile.id instead of userId
       data: { pushSubscriptions: updatedSubscriptions },
     });
 
+    console.log(
+      `✅ [PUSH-SUB] Successfully saved push subscription for user: ${userId}`
+    );
     return true;
   } catch (error) {
     console.error('❌ [PUSH] Error saving push subscription:', error);
+    console.error('❌ [PUSH] Full error details:', error);
     return false;
   }
 }
@@ -227,8 +253,9 @@ export async function unsubscribeFromPushNotifications(
       (sub: PushSubscription) => sub.endpoint !== endpoint
     );
 
+    // ✅ FIX: Use profile.id instead of userId for the database update
     await db.profile.update({
-      where: { userId },
+      where: { id: profile.id }, // Use profile.id instead of userId
       data: { pushSubscriptions: updatedSubscriptions },
     });
 

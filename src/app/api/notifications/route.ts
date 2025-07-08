@@ -4,6 +4,7 @@ import {
   getUnreadNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  createNotification,
 } from '@/lib/notifications';
 import {
   rateLimitNotification,
@@ -28,11 +29,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const notifications = await getUnreadNotifications(user.id);
+    // FIX: Use Clerk userId instead of Prisma profile id for notifications
+    const notifications = await getUnreadNotifications(user.userId);
+
+    console.log(
+      '📬 [NOTIFICATIONS] Fetched notifications for user:',
+      user.userId
+    );
+    console.log('📬 [NOTIFICATIONS] Notification count:', notifications.length);
+    console.log(
+      '📬 [NOTIFICATIONS] Notifications:',
+      notifications.map(n => ({ id: n.id, type: n.type, title: n.title }))
+    );
 
     return NextResponse.json({
       notifications,
       count: notifications.length,
+      unreadCount: notifications.length, // Add unreadCount for compatibility
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -74,9 +87,58 @@ export async function POST(request: NextRequest) {
       return validationResult.error;
     }
 
-    const { action, notificationId } = validationResult.data;
+    const { action, notificationId, type, title, message, actionUrl } =
+      validationResult.data;
 
     // ✅ SECURITY: Enhanced operation handling with logging
+    if (action === 'create') {
+      if (!type || !title || !message) {
+        trackSuspiciousActivity(request, 'INCOMPLETE_NOTIFICATION_DATA');
+        return NextResponse.json(
+          {
+            error: 'Missing required fields',
+            message:
+              'Type, title, and message are required for creating notifications',
+          },
+          { status: 400 }
+        );
+      }
+
+      console.log(
+        `📢 [NOTIFICATIONS] Creating notification for user: ${user.id}, type: ${type}, title: ${title}`
+      );
+
+      const notification = await createNotification({
+        userId: user.id,
+        type: type as any,
+        title,
+        message,
+        actionUrl,
+      });
+
+      if (notification) {
+        return NextResponse.json({
+          success: true,
+          message: 'Notification created successfully',
+          notification: {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+          },
+        });
+      } else {
+        trackSuspiciousActivity(request, 'NOTIFICATION_CREATION_FAILED');
+        return NextResponse.json(
+          {
+            error: 'Failed to create notification',
+            message: 'Could not create notification at this time',
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     if (action === 'mark_read' && notificationId) {
       console.log(
         `📖 [NOTIFICATIONS] Marking notification as read: ${notificationId} for user: ${user.id}`
@@ -103,15 +165,16 @@ export async function POST(request: NextRequest) {
 
     if (action === 'mark_all_read') {
       console.log(
-        `📖 [NOTIFICATIONS] Marking all notifications as read for user: ${user.id}`
+        `📖 [NOTIFICATIONS] Marking all notifications as read for user: ${user.userId}`
       );
 
-      const success = await markAllNotificationsAsRead(user.id);
+      // FIX: Use Clerk userId instead of Prisma profile id
+      const success = await markAllNotificationsAsRead(user.userId);
       if (success) {
         return NextResponse.json({
           success: true,
           message: 'All notifications marked as read',
-          userId: user.id,
+          userId: user.userId,
         });
       } else {
         trackSuspiciousActivity(request, 'NOTIFICATION_MARK_ALL_READ_FAILED');

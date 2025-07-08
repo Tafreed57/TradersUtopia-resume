@@ -2,6 +2,7 @@ import { Hash } from 'lucide-react';
 import { MobileToggle } from '@/components/mobile-toggle';
 import { ServerWithMembersWithProfiles } from '@/types/server';
 import { MemberRole } from '@prisma/client';
+import { ChannelNotificationToggle } from '@/components/chat/channel-notification-toggle';
 
 interface ChatHeaderProps {
   serverId: string;
@@ -15,6 +16,7 @@ interface ChatHeaderProps {
     name: string;
     imageUrl: string;
   }>;
+  channelId?: string;
 }
 
 export function ChatHeader({
@@ -25,6 +27,7 @@ export function ChatHeader({
   server,
   role,
   servers,
+  channelId,
 }: ChatHeaderProps) {
   return (
     <div className='sticky top-0 z-50 text-md font-semibold px-3 flex items-center h-12 border-neutral-200 dark:border-neutral-800 border-b-2 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl'>
@@ -34,7 +37,16 @@ export function ChatHeader({
         <div className='md:hidden w-9 h-9' /> // Placeholder to maintain spacing
       )}
       <Hash className='w-5 h-5 text-zinc-500 dark:text-zinc-400 mr-2' />
-      <p className='font-semibold text-md text-black dark:text-white'>{name}</p>
+      <p className='font-semibold text-md text-black dark:text-white flex-1'>
+        {name}
+      </p>
+
+      {/* Channel notification toggle - only show for channels */}
+      {type === 'channel' && channelId && (
+        <div className='ml-auto flex items-center gap-x-2'>
+          <ChannelNotificationToggle channelId={channelId} channelName={name} />
+        </div>
+      )}
     </div>
   );
 }

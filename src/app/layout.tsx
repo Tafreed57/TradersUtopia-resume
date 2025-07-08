@@ -14,6 +14,7 @@ import { Open_Sans } from 'next/font/google';
 import { extractRouterConfig } from 'uploadthing/server';
 import { Toaster } from 'sonner';
 import { ServiceWorkerHandler } from '@/components/service-worker-handler';
+import { PushNotificationPrompt } from '@/components/notifications/push-notification-prompt';
 
 const open_sans = Open_Sans({ subsets: ['latin'] });
 
@@ -159,6 +160,7 @@ export default function RootLayout({
                   <AuthWrapper>
                     <ModalProvider />
                     <ServiceWorkerHandler />
+                    <PushNotificationPrompt />
                     <Toaster
                       position='top-right'
                       expand={true}

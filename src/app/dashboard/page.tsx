@@ -51,7 +51,7 @@ export default async function Dashboard() {
   ];
 
   const dashboardContent = (
-    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative'>
+    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative dashboard-container'>
       {/* Animated Background Effects */}
       <div className='absolute inset-0 pointer-events-none overflow-hidden'>
         <div className='absolute -top-40 -right-40 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl animate-pulse'></div>
@@ -63,7 +63,7 @@ export default async function Dashboard() {
       <div className='relative z-10 dashboard-mobile-container w-full'>
         <main className='max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10'>
           {/* Enhanced Header - Mobile-Optimized with Better Spacing */}
-          <header className='w-full mobile-header-spacing'>
+          <header className='w-full mobile-header-spacing dashboard-header'>
             {/* Mobile Header */}
             <div className='flex md:hidden items-center justify-between w-full p-4 sm:p-5 bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-xl border border-gray-700/30 shadow-2xl card-mobile-safe'>
               <div className='flex items-center gap-3 min-w-0 flex-1-mobile-safe'>
@@ -536,7 +536,7 @@ export default async function Dashboard() {
   }
 
   return shouldBypassGate ? (
-    dashboardContent
+    <>{dashboardContent}</>
   ) : (
     <ProductPaymentGate
       allowedProductIds={allowedProductIds}

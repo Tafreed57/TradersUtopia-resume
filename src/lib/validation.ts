@@ -112,8 +112,23 @@ export const notificationPreferencesSchema = z.object({
 });
 
 export const notificationActionSchema = z.object({
-  action: z.enum(['mark_read', 'mark_all_read', 'delete']),
+  action: z.enum(['mark_read', 'mark_all_read', 'delete', 'create']),
   notificationId: z.string().optional(),
+  // Fields for creating notifications
+  type: z
+    .enum([
+      'MESSAGE',
+      'MENTION',
+      'SERVER_UPDATE',
+      'FRIEND_REQUEST',
+      'SYSTEM',
+      'PAYMENT',
+      'SECURITY',
+    ])
+    .optional(),
+  title: z.string().min(1).max(200).optional(),
+  message: z.string().min(1).max(1000).optional(),
+  actionUrl: z.string().optional(),
 });
 
 export const pushSubscriptionSchema = z.object({

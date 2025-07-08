@@ -68,6 +68,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
           name={channel?.name}
           serverId={channel?.serverId}
           type='channel'
+          channelId={channel?.id}
           server={server || undefined}
           role={member?.role}
           servers={servers?.map(server => ({

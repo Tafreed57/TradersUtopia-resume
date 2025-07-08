@@ -1,5 +1,17 @@
-// Service Worker for Push Notifications
-const CACHE_NAME = 'tradersutopia-notifications-v2';
+// Service Worker for Push Notifications - Enhanced for better mobile/desktop support
+const CACHE_NAME = 'tradersutopia-notifications-v3';
+
+// Helper function for vibration patterns
+function getVibrationPattern(type) {
+  const patterns = {
+    'MENTION': [200, 100, 200, 100, 200], // Strong pattern for mentions
+    'SECURITY': [100, 50, 100, 50, 100, 50, 100], // Alert pattern for security
+    'MESSAGE': [200, 100, 200], // Standard pattern for messages
+    'PAYMENT': [300, 200, 300], // Longer pattern for payments
+    'SYSTEM': [150], // Single vibration for system notifications
+  };
+  return patterns[type] || patterns['MESSAGE'];
+}
 
 // Install event
 self.addEventListener('install', (event) => {
@@ -37,9 +49,9 @@ self.addEventListener('push', (event) => {
   try {
     const data = event.data.json();
     
-    // Enhanced notification options with better mobile support
+    // Enhanced notification options with better mobile/desktop support
     const options = {
-      body: data.body || data.message,
+      body: data.body || data.message || 'You have a new notification',
       icon: data.icon || '/logo.svg',
       badge: data.badge || '/logo.svg',
       image: data.image,
@@ -55,22 +67,33 @@ self.addEventListener('push', (event) => {
           title: 'Dismiss',
         }
       ],
-      requireInteraction: data.requireInteraction || data.type === 'SECURITY',
+      requireInteraction: data.requireInteraction || data.data?.type === 'SECURITY',
       silent: data.silent || false,
       tag: data.tag || `notification-${Date.now()}`,
       renotify: data.renotify !== false, // Default to true for better visibility
-      vibrate: data.type === 'MENTION' ? [200, 100, 200, 100, 200] : [200, 100, 200], // Stronger vibration for mentions
+      vibrate: getVibrationPattern(data.data?.type || data.type),
       timestamp: data.data?.timestamp || Date.now(),
-      // Add sound for different notification types
-      sound: data.type === 'MENTION' ? '/sounds/mention.wav' : '/sounds/message.wav',
+      // Enhanced for different notification types
+      dir: 'auto', // Text direction
+      lang: 'en', // Language
     };
 
-    // Show the notification
+    // Show the notification with error handling
     event.waitUntil(
       self.registration.showNotification(data.title || 'TradersUtopia', options)
+        .then(() => {
+          console.log(`✅ [SW] Notification displayed: ${data.title}`);
+        })
+        .catch((error) => {
+          console.error('❌ [SW] Failed to show notification:', error);
+          // Fallback: try with minimal options
+          return self.registration.showNotification('TradersUtopia', {
+            body: 'You have a new notification',
+            icon: '/logo.svg',
+            tag: 'fallback-notification'
+          });
+        })
     );
-
-    console.log(`✅ [SW] Notification displayed: ${data.title}`);
 
   } catch (error) {
     console.error('❌ [SW] Error parsing push data:', error);

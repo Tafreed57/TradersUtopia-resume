@@ -52,6 +52,8 @@ export function NotificationSettings() {
   const [pushPermission, setPushPermission] =
     useState<NotificationPermission>('default');
   const [isClient, setIsClient] = useState(false);
+  const [hasValidPushSubscription, setHasValidPushSubscription] =
+    useState(false);
 
   const [settings, setSettings] = useState<NotificationSettings>({
     push: {
@@ -117,6 +119,7 @@ export function NotificationSettings() {
   useEffect(() => {
     if (user && isClient) {
       loadPreferences();
+      checkPushSubscriptionStatus();
     }
   }, [user, isClient]);
 
@@ -269,6 +272,7 @@ export function NotificationSettings() {
           });
 
           if (response.ok) {
+            setHasValidPushSubscription(true);
             showToast.success(
               'Push notifications enabled',
               'You will now receive push notifications'
@@ -296,6 +300,52 @@ export function NotificationSettings() {
     } catch (error) {
       console.error('Failed to enable push notifications:', error);
       showToast.error('Error', 'Failed to enable push notifications');
+    }
+  };
+
+  const checkPushSubscriptionStatus = async () => {
+    try {
+      const response = await fetch('/api/notifications/push/status');
+      if (response.ok) {
+        const data = await response.json();
+        setHasValidPushSubscription(data.hasValidSubscription || false);
+      }
+    } catch (error) {
+      console.error('Failed to check push subscription status:', error);
+      setHasValidPushSubscription(false);
+    }
+  };
+
+  const resetPushNotifications = async () => {
+    try {
+      // First, unsubscribe from the service worker
+      if (navigator.serviceWorker) {
+        const registration = await navigator.serviceWorker.ready;
+        if (registration.pushManager) {
+          const subscription = await registration.pushManager.getSubscription();
+          if (subscription) {
+            await subscription.unsubscribe();
+          }
+        }
+      }
+
+      // Clear from database
+      const response = await fetch('/api/notifications/push/reset', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        setHasValidPushSubscription(false);
+        showToast.success(
+          'Reset complete',
+          'Push notifications have been reset. You can now enable them again.'
+        );
+      } else {
+        throw new Error('Failed to reset push notifications');
+      }
+    } catch (error) {
+      console.error('Failed to reset push notifications:', error);
+      showToast.error('Error', 'Failed to reset push notifications');
     }
   };
 
@@ -429,9 +479,11 @@ export function NotificationSettings() {
                     </h3>
                     <Badge
                       variant='outline'
-                      className={`text-xs mt-1 ${pushPermission === 'granted' ? 'border-green-400/30 text-green-300' : 'border-gray-400/30 text-gray-400'}`}
+                      className={`text-xs mt-1 ${pushPermission === 'granted' && hasValidPushSubscription ? 'border-green-400/30 text-green-300' : 'border-gray-400/30 text-gray-400'}`}
                     >
-                      {pushPermission === 'granted' ? 'Enabled' : 'Disabled'}
+                      {pushPermission === 'granted' && hasValidPushSubscription
+                        ? 'Enabled'
+                        : 'Disabled'}
                     </Badge>
                   </div>
                 </div>
@@ -458,10 +510,56 @@ export function NotificationSettings() {
                   </div>
                 )}
 
+                {pushPermission === 'granted' && !hasValidPushSubscription && (
+                  <div className='mb-6 p-4 bg-orange-500/10 border border-orange-400/30 rounded-xl backdrop-blur-sm'>
+                    <div className='flex items-center justify-between'>
+                      <div>
+                        <p className='text-sm font-medium text-orange-300'>
+                          Push notifications need setup
+                        </p>
+                        <p className='text-xs text-orange-400/80 mt-1'>
+                          Permission granted but subscription not active
+                        </p>
+                      </div>
+                      <Button
+                        size='sm'
+                        onClick={enablePushNotifications}
+                        className='bg-orange-600 hover:bg-orange-700 text-white shadow-lg'
+                      >
+                        Re-enable
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {pushPermission === 'granted' && hasValidPushSubscription && (
+                  <div className='mb-6 p-4 bg-green-500/10 border border-green-400/30 rounded-xl backdrop-blur-sm'>
+                    <div className='flex items-center justify-between'>
+                      <div>
+                        <p className='text-sm font-medium text-green-300'>
+                          Push notifications active
+                        </p>
+                        <p className='text-xs text-green-400/80 mt-1'>
+                          You'll receive desktop and mobile notifications
+                        </p>
+                      </div>
+                      <Button
+                        size='sm'
+                        onClick={resetPushNotifications}
+                        variant='outline'
+                        className='border-green-400/30 text-green-300 hover:bg-green-500/20'
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   {notificationTypes.map(type => {
                     const IconComponent = type.icon;
-                    const isDisabled = pushPermission !== 'granted';
+                    const isDisabled =
+                      pushPermission !== 'granted' || !hasValidPushSubscription;
                     return (
                       <div
                         key={`push-${type.key}`}

@@ -300,6 +300,7 @@ export function CancellationFlowModal({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              action: 'create',
               type: 'PAYMENT',
               title: 'Custom Discount Applied! 🎉',
               message: `Your negotiated rate of $${offerPrice}/month has been permanently applied. This discount will continue for the lifetime of your subscription.`,
@@ -419,6 +420,7 @@ export function CancellationFlowModal({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              action: 'create',
               type: 'PAYMENT',
               title: 'Permanent Discount Applied! 🎉',
               message: `Your negotiated rate of $${finalOfferPrice}/month has been permanently applied. This discount will continue for the lifetime of your subscription.`,

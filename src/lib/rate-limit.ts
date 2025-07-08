@@ -108,11 +108,11 @@ export const RATE_LIMITS = {
     message: 'Webhook rate limit exceeded. Please check your integration.',
   },
 
-  // ✅ NEW: Notification operations - Moderate
+  // ✅ NEW: Notification operations - Generous for better UX
   NOTIFICATION_OPERATIONS: {
-    maxRequests: 50,
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    message: 'Too many notification requests. Please wait 15 minutes.',
+    maxRequests: 100, // Increased from 50 to 100
+    windowMs: 10 * 60 * 1000, // 10 minutes (reduced from 15)
+    message: 'Too many notification requests. Please wait 10 minutes.',
   },
 
   // ✅ NEW: Media/Token operations - Moderate

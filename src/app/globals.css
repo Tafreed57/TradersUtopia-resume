@@ -420,6 +420,23 @@ body,
       transition-duration: 0.01ms !important;
     }
   }
+
+  /* Dashboard spacing fixes */
+  .dashboard-container {
+    padding-top: 1rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .dashboard-header {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .modal-content {
+    max-height: 95vh !important;
+    margin: 0.5rem !important;
+    width: calc(100% - 1rem) !important;
+  }
 }
 
 /* Tablet optimizations */
@@ -434,4 +451,84 @@ body,
   .container {
     max-width: 1800px;
   }
+}
+
+/* Fix modal positioning and spacing issues */
+.modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.modal-content {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 10000 !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+}
+
+/* Dashboard spacing fixes */
+.dashboard-container {
+  padding-top: 2rem !important;
+  min-height: 100vh !important;
+}
+
+.dashboard-header {
+  margin-bottom: 2rem !important;
+}
+
+/* Force proper z-index for dropdowns and modals */
+[data-radix-dropdown-menu-content],
+[data-radix-dialog-content],
+[data-radix-popover-content] {
+  z-index: 9999 !important;
+}
+
+/* Notification bell dropdown specific fix */
+.notification-dropdown {
+  z-index: 99999 !important;
+}
+
+/* Enhanced scrolling for notification dropdown */
+.notification-scroll-container {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(59, 130, 246, 0.5) transparent !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.notification-scroll-container::-webkit-scrollbar {
+  width: 6px !important;
+  display: block !important;
+}
+
+.notification-scroll-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-radius: 3px !important;
+}
+
+.notification-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.4) !important;
+  border-radius: 3px !important;
+}
+
+.notification-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.7) !important;
+}
+
+/* Ensure proper scrolling behavior */
+.notification-dropdown {
+  z-index: 99999 !important;
+  overflow: visible !important;
+}
+
+/* Fix any height issues with dropdown content */
+.notification-dropdown .notification-scroll-container {
+  min-height: 100px !important;
+  max-height: 320px !important;
 }
