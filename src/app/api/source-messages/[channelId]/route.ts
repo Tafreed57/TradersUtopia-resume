@@ -11,6 +11,13 @@ export async function GET(
   { params }: { params: { channelId: string } }
 ) {
   try {
+    // Check if source messages database is configured
+    if (!process.env.SOURCEMESSAGES_DATABASE_URL) {
+      return new NextResponse('Source messages feature not configured', {
+        status: 503,
+      });
+    }
+
     const { userId } = await auth();
 
     if (!userId) {

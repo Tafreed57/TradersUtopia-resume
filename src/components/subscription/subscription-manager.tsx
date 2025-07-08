@@ -18,11 +18,10 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
-  Lock,
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
+import { CancellationFlowModal } from '@/components/modals/cancellation-flow-modal';
 
 interface SubscriptionDetails {
   status: string;
@@ -80,17 +79,17 @@ export function SubscriptionManager() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
+  const [showCancellationFlow, setShowCancellationFlow] = useState(false);
 
-  // Multi-step cancellation flow
+  // Multi-step cancellation flow (legacy - keeping for backwards compatibility)
   const [cancelStep, setCancelStep] = useState<
     'reason' | 'confirmation' | 'intermediate' | 'auth'
   >('reason');
   const [selectedReason, setSelectedReason] = useState<string>('');
 
-  // Price negotiation flow
+  // Price negotiation flow (legacy - keeping for backwards compatibility)
   const [priceInput, setPriceInput] = useState<string>('');
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [currentOffer, setCurrentOffer] = useState<number | null>(null);
@@ -206,6 +205,11 @@ export function SubscriptionManager() {
       }
       const result = await response.json();
       if (result.success) {
+        console.log('📊 Subscription details received:', result.subscription);
+        console.log(
+          '📅 Current period end value:',
+          result.subscription?.stripe?.currentPeriodEnd
+        );
         setSubscription(result.subscription);
       } else {
         throw new Error(result.message || 'Failed to get subscription data');
@@ -385,70 +389,6 @@ export function SubscriptionManager() {
     }
   };
 
-  const verifyAutoRenewalStatus = async () => {
-    setIsLoading(true);
-    try {
-      console.log('🔍 Verifying auto-renewal status with Stripe...');
-      const response = await makeSecureRequest('/api/subscription/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Raw Stripe verification data:', data);
-
-        // Extract subscription data from the sync response
-        const sub = data.subscription;
-        const autoRenew = !sub.cancelAtPeriodEnd; // Auto-renewal is ON when cancel_at_period_end is false
-
-        // Show detailed verification popup
-        const verificationMessage = `
-🔍 STRIPE VERIFICATION RESULTS:
-
-📋 Subscription ID: ${sub.id || 'N/A'}
-📊 Status: ${sub.status || 'N/A'}
-🔄 Auto-Renewal: ${autoRenew ? '✅ ENABLED' : '❌ DISABLED'}
-🚫 Cancel at Period End: ${sub.cancelAtPeriodEnd ? '✅ YES (will expire)' : '❌ NO (will renew)'}
-📅 Current Period End: ${sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleString() : 'N/A'}
-
-${
-  autoRenew
-    ? '✅ AUTO-RENEWAL IS ON: Your subscription WILL automatically renew at the end of the period.'
-    : '❌ AUTO-RENEWAL IS OFF: Your subscription WILL EXPIRE at the end of the period unless you re-enable it.'
-}
-
-This data comes directly from Stripe and shows the REAL status of your subscription.
-        `;
-
-        alert(verificationMessage);
-        showToast.success(
-          '✅ Verified!',
-          'Auto-renewal status confirmed with Stripe'
-        );
-
-        // Refresh the UI with latest data
-        await fetchSubscriptionDetails();
-      } else {
-        const errorData = await response.json();
-        showToast.error(
-          '❌ Verification Failed',
-          errorData.error || 'Failed to verify with Stripe'
-        );
-      }
-    } catch (error) {
-      console.error('❌ Error verifying auto-renewal:', error);
-      showToast.error(
-        '❌ Verification Error',
-        'Failed to verify auto-renewal status'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const formatCurrency = (amount: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -468,9 +408,18 @@ This data comes directly from Stripe and shows the REAL status of your subscript
   };
 
   const handleToggleAutoRenew = async () => {
+    const newAutoRenewValue = !subscription?.stripe?.autoRenew;
+
+    // If user is trying to disable auto-renewal, show cancellation flow
+    if (!newAutoRenewValue && subscription?.stripe?.autoRenew) {
+      setShowCancellationFlow(true);
+      return;
+    }
+
+    // If user is enabling auto-renewal, proceed directly
     try {
       setIsLoading(true);
-      await toggleAutoRenew(!subscription?.stripe?.autoRenew);
+      await toggleAutoRenew(newAutoRenewValue);
     } catch (err: any) {
       setError(err.message || 'Failed to toggle auto-renewal');
     } finally {
@@ -478,15 +427,19 @@ This data comes directly from Stripe and shows the REAL status of your subscript
     }
   };
 
-  const handleVerifyRaw = async () => {
-    try {
-      setIsLoading(true);
-      await verifyAutoRenewalStatus();
-    } catch (err: any) {
-      setError(err.message || 'Failed to verify renewal status');
-    } finally {
-      setIsLoading(false);
+  const handleCancellationFlowComplete = async (
+    action: 'cancelled' | 'retained' | 'discounted'
+  ) => {
+    setShowCancellationFlow(false);
+
+    if (action === 'cancelled') {
+      // Refresh subscription details to show updated state
+      await fetchSubscriptionDetails();
+    } else if (action === 'discounted') {
+      // Refresh subscription details to show new pricing
+      await fetchSubscriptionDetails();
     }
+    // If retained, just close the modal (no changes needed)
   };
 
   useEffect(() => {
@@ -496,80 +449,176 @@ This data comes directly from Stripe and shows the REAL status of your subscript
   }, [isLoaded, userId, fetchSubscriptionDetails]);
 
   const cardClasses =
-    'bg-white dark:bg-gray-800/50 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700/60 p-6 transition-all duration-300 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600';
+    'bg-white dark:bg-gray-800/50 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700/60 p-4 sm:p-8 transition-all duration-300 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 backdrop-blur-sm';
 
   const statusConfig = useMemo(() => {
     if (!subscription || !subscription.status) {
       return {
-        bgColor: 'bg-green-100',
+        bgColor: 'bg-green-100 dark:bg-green-900/30',
         textColor: 'text-green-600',
-        textColorCls: 'text-green-600',
+        textColorCls: 'text-green-600 dark:text-green-400',
         title: 'Active',
         description: (date: string) =>
           `Your subscription is active until ${date}`,
-        Icon: () => <div>✓</div>,
+        Icon: () => (
+          <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
+            <svg
+              className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M5 13l4 4L19 7'
+              />
+            </svg>
+          </div>
+        ),
       };
     }
 
     switch (subscription.status.toLowerCase()) {
       case 'active':
         return {
-          bgColor: 'bg-green-100',
+          bgColor: 'bg-green-100 dark:bg-green-900/30',
           textColor: 'text-green-600',
-          textColorCls: 'text-green-600',
+          textColorCls: 'text-green-600 dark:text-green-400',
           title: 'Active',
           description: (date: string) =>
             `Your subscription is active until ${date}`,
-          Icon: () => <div>✓</div>,
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
+              <svg
+                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M5 13l4 4L19 7'
+                />
+              </svg>
+            </div>
+          ),
         };
       case 'trialing':
         return {
-          bgColor: 'bg-yellow-100',
+          bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
           textColor: 'text-yellow-600',
-          textColorCls: 'text-yellow-600',
+          textColorCls: 'text-yellow-600 dark:text-yellow-400',
           title: 'Trialing',
           description: (date: string) => `Your trial ends on ${date}`,
-          Icon: () => <div>🌟</div>,
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-yellow-500 flex items-center justify-center'>
+              <svg
+                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+                fill='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' />
+              </svg>
+            </div>
+          ),
         };
       case 'cancelled':
         return {
-          bgColor: 'bg-red-100',
+          bgColor: 'bg-red-100 dark:bg-red-900/30',
           textColor: 'text-red-600',
-          textColorCls: 'text-red-600',
+          textColorCls: 'text-red-600 dark:text-red-400',
           title: 'Cancelled',
           description: (date: string) =>
             `Your subscription was cancelled on ${date}`,
-          Icon: () => <div>❌</div>,
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-red-500 flex items-center justify-center'>
+              <svg
+                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M6 18L18 6M6 6l12 12'
+                />
+              </svg>
+            </div>
+          ),
         };
       case 'unpaid':
       case 'past_due':
         return {
-          bgColor: 'bg-red-100',
+          bgColor: 'bg-red-100 dark:bg-red-900/30',
           textColor: 'text-red-600',
-          textColorCls: 'text-red-600',
+          textColorCls: 'text-red-600 dark:text-red-400',
           title: 'Past Due',
           description: (date: string) =>
             `Your subscription is past due. Payment is required by ${date}`,
-          Icon: () => <div>❌</div>,
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-red-500 flex items-center justify-center'>
+              <svg
+                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z'
+                />
+              </svg>
+            </div>
+          ),
         };
       default:
         return {
-          bgColor: 'bg-gray-100',
+          bgColor: 'bg-gray-100 dark:bg-gray-700/30',
           textColor: 'text-gray-600',
-          textColorCls: 'text-gray-600',
+          textColorCls: 'text-gray-600 dark:text-gray-400',
           title: 'Unknown',
           description: (date: string) =>
             `Subscription status unknown. Last updated on ${date}`,
-          Icon: () => <div>❓</div>,
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-500 flex items-center justify-center'>
+              <svg
+                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+                />
+              </svg>
+            </div>
+          ),
         };
     }
   }, [subscription]);
 
   const renderInvoices = () => {
     return (
-      <div className='mt-4 text-center'>
-        <p className='text-gray-500 dark:text-gray-400'>
-          Invoice history not available
+      <div className='text-center py-6 sm:py-8'>
+        <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+          <CreditCard className='w-6 h-6 sm:w-8 sm:h-8 text-gray-400' />
+        </div>
+        <p className='text-gray-600 dark:text-gray-400 font-medium mb-2 text-sm sm:text-base'>
+          No invoices available
+        </p>
+        <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
+          Your invoice history will appear here once generated
         </p>
       </div>
     );
@@ -623,151 +672,326 @@ This data comes directly from Stripe and shows the REAL status of your subscript
   const { stripe: stripeData } = subscription;
 
   return (
-    <div className='max-w-4xl mx-auto p-4 space-y-6'>
-      <div className={cardClasses}>
-        <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4'>
-          <div>
-            <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>
-              Subscription Management
-            </h2>
-            <p className='text-sm text-gray-500 dark:text-gray-400'>
-              Manage your billing and subscription details.
-            </p>
-          </div>
-          <div className='flex items-center gap-2'>
-            <Button
-              onClick={handleSync}
-              variant='outline'
-              size='sm'
-              disabled={isSyncing}
-              className='dark:bg-gray-700/50'
-            >
-              {isSyncing ? (
-                <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-              ) : (
-                <RefreshCw className='w-4 h-4 mr-2' />
-              )}
-              Sync with Stripe
-            </Button>
+    <div className='max-w-5xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8'>
+      {/* Header Section */}
+      <div className='relative overflow-hidden'>
+        <div className='absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-400/10 dark:to-purple-400/10 rounded-2xl sm:rounded-3xl'></div>
+        <div
+          className={`${cardClasses} relative border-2 border-blue-200/50 dark:border-blue-700/50`}
+        >
+          <div className='flex flex-col gap-4 sm:gap-6'>
+            <div className='flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6'>
+              <div className='flex items-center gap-3 sm:gap-4 w-full sm:w-auto'>
+                <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg'>
+                  <CreditCard className='w-6 h-6 sm:w-8 sm:h-8 text-white' />
+                </div>
+                <div className='flex-1 sm:flex-initial'>
+                  <h2 className='text-xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1'>
+                    Subscription Management
+                  </h2>
+                  <p className='text-sm sm:text-lg text-gray-600 dark:text-gray-400'>
+                    Manage your premium membership and billing details
+                  </p>
+                </div>
+              </div>
+              <div className='flex items-center gap-3 w-full sm:w-auto'>
+                <Button
+                  onClick={handleSync}
+                  variant='outline'
+                  size='default'
+                  disabled={isSyncing}
+                  className='bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border-gray-300 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 shadow-md w-full sm:w-auto min-h-[44px]'
+                >
+                  {isSyncing ? (
+                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                  ) : (
+                    <RefreshCw className='w-4 h-4 mr-2' />
+                  )}
+                  Refresh
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        {/* Status Card */}
-        <div className={cardClasses}>
-          <h3 className='font-bold text-lg mb-4 text-gray-800 dark:text-gray-200'>
-            Current Plan
-          </h3>
-          <div className='flex items-center gap-4'>
-            <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center ${statusConfig.bgColor}`}
-            >
-              <statusConfig.Icon />
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8'>
+        {/* Current Plan Card */}
+        <div className={`${cardClasses} relative overflow-hidden`}>
+          <div className='absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400/20 to-emerald-500/20 rounded-full blur-2xl'></div>
+          <div className='relative z-10'>
+            <div className='flex items-center gap-3 mb-4 sm:mb-6'>
+              <div className='w-3 h-3 bg-green-500 rounded-full animate-pulse'></div>
+              <h3 className='font-bold text-lg sm:text-xl text-gray-800 dark:text-gray-200'>
+                Current Plan
+              </h3>
             </div>
-            <div>
-              <p
-                className={`text-xl font-semibold ${statusConfig.textColorCls}`}
-              >
-                {statusConfig.title}
-              </p>
-              <p className='text-sm text-gray-500 dark:text-gray-400'>
-                Premium Plan
+            <div className='flex items-center gap-4 sm:gap-6 mb-4 sm:mb-6'>
+              <div className='flex items-center justify-center'>
+                <statusConfig.Icon />
+              </div>
+              <div className='flex-1'>
+                <p
+                  className={`text-xl sm:text-2xl font-bold ${statusConfig.textColorCls} mb-1`}
+                >
+                  {statusConfig.title}
+                </p>
+                <p className='text-sm sm:text-lg text-gray-600 dark:text-gray-400'>
+                  Premium Plan
+                </p>
+              </div>
+            </div>
+            <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
+              <p className='text-sm sm:text-base text-gray-700 dark:text-gray-300 font-medium leading-relaxed'>
+                {statusConfig.description(
+                  stripeData?.currentPeriodEnd
+                    ? (() => {
+                        try {
+                          const date = new Date(stripeData.currentPeriodEnd);
+                          if (
+                            isNaN(date.getTime()) ||
+                            date.getFullYear() < 2020
+                          ) {
+                            return 'your next billing period';
+                          }
+                          return date.toLocaleDateString('en-US', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                          });
+                        } catch (error) {
+                          return 'your next billing period';
+                        }
+                      })()
+                    : 'your next billing period'
+                )}
               </p>
             </div>
           </div>
-          <p className='text-sm text-gray-600 dark:text-gray-300 mt-4'>
-            {statusConfig.description(
-              stripeData?.currentPeriodEnd
-                ? new Date(stripeData.currentPeriodEnd).toLocaleDateString()
-                : ''
-            )}
-          </p>
         </div>
 
-        {/* Billing Card */}
-        <div className={cardClasses}>
-          <h3 className='font-bold text-lg mb-4 text-gray-800 dark:text-gray-200'>
-            Billing Details
-          </h3>
-          {stripeData ? (
-            <div className='space-y-3 text-sm'>
-              <div className='flex justify-between'>
-                <span className='text-gray-500 dark:text-gray-400'>Price</span>
-                <span className='font-medium text-gray-900 dark:text-white'>
-                  ${(stripeData.amount / 100).toFixed(2)} /{' '}
-                  {stripeData.interval}
-                </span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-500 dark:text-gray-400'>
-                  Next Billing Date
-                </span>
-                <span className='font-medium text-gray-900 dark:text-white'>
-                  {new Date(stripeData.currentPeriodEnd).toLocaleDateString()}
-                </span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-gray-500 dark:text-gray-400'>
-                  Auto-renewal
-                </span>
-                <Switch
-                  checked={stripeData.autoRenew}
-                  onCheckedChange={handleToggleAutoRenew}
-                  className='data-[state=checked]:bg-green-500'
-                />
-              </div>
-              <div className='flex justify-between pt-2'>
-                <Button variant='outline' size='sm' asChild>
-                  <a
-                    href={`https://billing.stripe.com/p/login/${process.env.NEXT_PUBLIC_STRIPE_PORTAL_ID}`}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                  >
-                    Manage Billing
-                    <ExternalLink className='w-3 h-3 ml-2' />
-                  </a>
-                </Button>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={handleVerifyRaw}
-                  disabled={isVerifying}
-                >
-                  {isVerifying ? (
-                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                  ) : (
-                    <Lock className='w-3 h-3 mr-2' />
-                  )}
-                  Verify Raw
-                </Button>
-              </div>
+        {/* Billing Details Card */}
+        <div className={`${cardClasses} relative overflow-hidden`}>
+          <div className='absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-purple-500/20 rounded-full blur-2xl'></div>
+          <div className='relative z-10'>
+            <div className='flex items-center gap-3 mb-4 sm:mb-6'>
+              <div className='w-3 h-3 bg-blue-500 rounded-full animate-pulse'></div>
+              <h3 className='font-bold text-lg sm:text-xl text-gray-800 dark:text-gray-200'>
+                Billing Details
+              </h3>
             </div>
-          ) : (
-            <p className='text-sm text-gray-500 dark:text-gray-400'>
-              No active Stripe subscription found.
-            </p>
-          )}
+            {stripeData ? (
+              <div className='space-y-4 sm:space-y-6'>
+                {/* Price Section */}
+                <div
+                  className={`rounded-2xl p-4 sm:p-6 ${
+                    stripeData.hasDiscount
+                      ? 'bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-200 dark:border-emerald-700/50'
+                      : 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20'
+                  }`}
+                >
+                  {stripeData.hasDiscount ? (
+                    // Discount Active Display
+                    <div className='space-y-4'>
+                      {/* Current Discounted Price */}
+                      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
+                        <div className='flex items-center gap-2'>
+                          <span className='text-gray-600 dark:text-gray-400 font-medium text-sm sm:text-base'>
+                            Your Discounted Price
+                          </span>
+                          <div className='flex items-center gap-1 bg-emerald-100 dark:bg-emerald-800/30 px-2 py-1 rounded-full'>
+                            <div className='w-2 h-2 bg-emerald-500 rounded-full animate-pulse'></div>
+                            <span className='text-xs font-semibold text-emerald-700 dark:text-emerald-300'>
+                              {stripeData.discountPercent}% OFF
+                            </span>
+                          </div>
+                        </div>
+                        <div className='text-left sm:text-right'>
+                          <span className='text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400'>
+                            ${(stripeData.amount / 100).toFixed(2)}
+                          </span>
+                          <span className='text-gray-500 dark:text-gray-400 text-base sm:text-lg'>
+                            /{stripeData.interval}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Original Price Comparison */}
+                      {stripeData.originalAmount && (
+                        <div className='bg-white/60 dark:bg-gray-800/60 rounded-xl p-3 border border-emerald-200/50 dark:border-emerald-700/50'>
+                          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm'>
+                            <span className='text-gray-600 dark:text-gray-400'>
+                              Original Price
+                            </span>
+                            <div className='flex items-center gap-2'>
+                              <span className='text-gray-500 dark:text-gray-400 line-through'>
+                                ${(stripeData.originalAmount / 100).toFixed(2)}/
+                                {stripeData.interval}
+                              </span>
+                              <span className='text-emerald-600 dark:text-emerald-400 font-semibold'>
+                                Save $
+                                {(
+                                  (stripeData.originalAmount -
+                                    stripeData.amount) /
+                                  100
+                                ).toFixed(2)}
+                                /month
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Discount Details */}
+                      <div className='bg-emerald-100/50 dark:bg-emerald-800/20 rounded-xl p-3'>
+                        <div className='flex items-center gap-2 text-sm'>
+                          <div className='w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center'>
+                            <svg
+                              className='w-3 h-3 text-white'
+                              fill='none'
+                              stroke='currentColor'
+                              viewBox='0 0 24 24'
+                            >
+                              <path
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                                strokeWidth={2}
+                                d='M5 13l4 4L19 7'
+                              />
+                            </svg>
+                          </div>
+                          <span className='text-emerald-700 dark:text-emerald-300 font-medium'>
+                            Permanent discount applied - this rate is locked in
+                            forever!
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // No Discount Display
+                    <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
+                      <span className='text-gray-600 dark:text-gray-400 font-medium text-sm sm:text-base'>
+                        Monthly Price
+                      </span>
+                      <div className='text-left sm:text-right'>
+                        <span className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white'>
+                          ${(stripeData.amount / 100).toFixed(2)}
+                        </span>
+                        <span className='text-gray-500 dark:text-gray-400 text-base sm:text-lg'>
+                          /{stripeData.interval}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Billing Date Section */}
+                <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
+                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0'>
+                    <span className='text-gray-600 dark:text-gray-400 font-medium text-sm sm:text-base'>
+                      Next Billing Date
+                    </span>
+                    <span className='font-bold text-gray-900 dark:text-white text-base sm:text-lg'>
+                      {(() => {
+                        if (!stripeData.currentPeriodEnd) {
+                          return 'Not available';
+                        }
+                        try {
+                          const date = new Date(stripeData.currentPeriodEnd);
+                          if (isNaN(date.getTime())) {
+                            return 'Invalid date';
+                          }
+                          if (date.getFullYear() < 2020) {
+                            return 'Date error';
+                          }
+                          return date.toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          });
+                        } catch (error) {
+                          return 'Parse error';
+                        }
+                      })()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Auto-renewal Section */}
+                <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
+                  <div className='flex items-center justify-between gap-4'>
+                    <div className='flex-1'>
+                      <span className='text-gray-600 dark:text-gray-400 font-medium block text-sm sm:text-base'>
+                        Auto-renewal
+                      </span>
+                      <span className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
+                        {stripeData.autoRenew
+                          ? 'Subscription will auto-renew'
+                          : 'Will expire at period end'}
+                      </span>
+                    </div>
+                    <Switch
+                      checked={stripeData.autoRenew}
+                      onCheckedChange={handleToggleAutoRenew}
+                      className='data-[state=checked]:bg-green-500 scale-110 sm:scale-125'
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className='text-center py-6 sm:py-8'>
+                <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+                  <CreditCard className='w-6 h-6 sm:w-8 sm:h-8 text-gray-400' />
+                </div>
+                <p className='text-gray-500 dark:text-gray-400 font-medium text-sm sm:text-base'>
+                  No active subscription found
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Invoice History */}
-      <div className={cardClasses}>
-        <div
-          className='flex items-center justify-between cursor-pointer'
-          onClick={() => setShowInvoiceHistory(!showInvoiceHistory)}
-        >
-          <h3 className='font-bold text-lg text-gray-800 dark:text-gray-200'>
-            Invoice History
-          </h3>
-          {showInvoiceHistory ? (
-            <ChevronUp className='w-5 h-5 text-gray-500' />
-          ) : (
-            <ChevronDown className='w-5 h-5 text-gray-500' />
+      <div className={`${cardClasses} relative overflow-hidden`}>
+        <div className='absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/10 to-gray-600/10 rounded-full blur-2xl'></div>
+        <div className='relative z-10'>
+          <div
+            className='flex items-center justify-between cursor-pointer group'
+            onClick={() => setShowInvoiceHistory(!showInvoiceHistory)}
+          >
+            <div className='flex items-center gap-3'>
+              <div className='w-3 h-3 bg-gray-500 rounded-full'></div>
+              <h3 className='font-bold text-lg sm:text-xl text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors'>
+                Invoice History
+              </h3>
+            </div>
+            <div className='flex items-center gap-2'>
+              <span className='text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:block'>
+                {showInvoiceHistory ? 'Hide' : 'Show'} History
+              </span>
+              {showInvoiceHistory ? (
+                <ChevronUp className='w-5 h-5 text-gray-500 group-hover:text-blue-500 transition-colors' />
+              ) : (
+                <ChevronDown className='w-5 h-5 text-gray-500 group-hover:text-blue-500 transition-colors' />
+              )}
+            </div>
+          </div>
+          {showInvoiceHistory && (
+            <div className='mt-4 sm:mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6'>
+              {renderInvoices()}
+            </div>
           )}
         </div>
-        {showInvoiceHistory && renderInvoices()}
       </div>
+
+      {/* Cancellation Flow Modal */}
+      <CancellationFlowModal
+        isOpen={showCancellationFlow}
+        onClose={() => setShowCancellationFlow(false)}
+        onComplete={handleCancellationFlowComplete}
+        subscription={subscription}
+      />
     </div>
   );
 }

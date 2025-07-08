@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
           responseData.subscription.customer = {
             id: customer.id,
             email: customer.email,
-            created: new Date(customer.created * 1000),
+            created: customer.created
+              ? new Date(customer.created * 1000).toISOString()
+              : null,
           };
         }
 
@@ -141,17 +143,50 @@ export async function GET(request: NextRequest) {
             }
           }
 
+          // 🔍 DEBUG: Log the actual subscription object to see what fields are available
+          console.log(
+            '🔍 DEBUG: Stripe subscription object:',
+            JSON.stringify(subscription, null, 2)
+          );
+          console.log(
+            '🔍 DEBUG: current_period_start:',
+            subscription.current_period_start
+          );
+          console.log(
+            '🔍 DEBUG: current_period_end:',
+            subscription.current_period_end
+          );
+          console.log('🔍 DEBUG: subscription status:', subscription.status);
+          console.log('🔍 DEBUG: subscription items:', subscription.items.data);
+
+          // ✅ ENHANCED: Use database values as fallback when Stripe fields are null
+          const currentPeriodStart = subscription.current_period_start
+            ? new Date(subscription.current_period_start * 1000).toISOString()
+            : profile.subscriptionStart
+              ? profile.subscriptionStart.toISOString()
+              : null;
+
+          const currentPeriodEnd = subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000).toISOString()
+            : profile.subscriptionEnd
+              ? profile.subscriptionEnd.toISOString()
+              : null;
+
+          console.log(
+            '🔍 DEBUG: Using currentPeriodStart:',
+            currentPeriodStart
+          );
+          console.log('🔍 DEBUG: Using currentPeriodEnd:', currentPeriodEnd);
+
           // ✅ ENHANCED: Comprehensive subscription details for UI
           responseData.subscription.stripe = {
             id: subscription.id,
             status: subscription.status,
-            currentPeriodStart: new Date(
-              subscription.current_period_start * 1000
-            ),
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            currentPeriodStart: currentPeriodStart,
+            currentPeriodEnd: currentPeriodEnd,
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
             canceledAt: subscription.canceled_at
-              ? new Date(subscription.canceled_at * 1000)
+              ? new Date(subscription.canceled_at * 1000).toISOString()
               : null,
             autoRenew: !subscription.cancel_at_period_end,
             priceId: subscription.items.data[0]?.price.id,
@@ -161,12 +196,14 @@ export async function GET(request: NextRequest) {
             interval: subscription.items.data[0]?.price.recurring?.interval,
             // ✅ ENHANCED: Additional metadata for better UI display
             trialStart: subscription.trial_start
-              ? new Date(subscription.trial_start * 1000)
+              ? new Date(subscription.trial_start * 1000).toISOString()
               : null,
             trialEnd: subscription.trial_end
-              ? new Date(subscription.trial_end * 1000)
+              ? new Date(subscription.trial_end * 1000).toISOString()
               : null,
-            created: new Date(subscription.created * 1000),
+            created: subscription.created
+              ? new Date(subscription.created * 1000).toISOString()
+              : null,
             pauseStartDate: null, // Placeholder for pause functionality
             discountPercent: discountPercent,
             discountAmount: discountAmount,
@@ -189,12 +226,13 @@ export async function GET(request: NextRequest) {
           const webhookEndDate = profile.subscriptionEnd
             ? new Date(profile.subscriptionEnd)
             : null;
-          const stripeEndDate = new Date(
-            subscription.current_period_end * 1000
-          );
+          const stripeEndDate = subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000)
+            : null;
 
           if (
             webhookEndDate &&
+            stripeEndDate &&
             Math.abs(webhookEndDate.getTime() - stripeEndDate.getTime()) >
               24 * 60 * 60 * 1000
           ) {
