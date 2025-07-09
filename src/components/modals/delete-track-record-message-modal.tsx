@@ -78,7 +78,7 @@ export function DeleteTrackRecordMessageModal() {
           <div className='bg-gray-800/50 rounded-lg p-3 border border-gray-700/30'>
             <p className='text-sm text-gray-300 italic'>
               "{data?.message?.content?.substring(0, 100)}
-              {data?.message?.content?.length > 100 ? '...' : ''}"
+              {(data?.message?.content?.length || 0) > 100 ? '...' : ''}"
             </p>
           </div>
         </div>
