@@ -874,19 +874,19 @@ export default function HomePage() {
                 <h4 className='text-white font-semibold mb-3'>Support</h4>
                 <div className='space-y-2 text-sm'>
                   <Link
-                    href='#'
+                    href='/support'
                     className='text-gray-400 hover:text-white block'
                   >
                     Help Center
                   </Link>
                   <Link
-                    href='#'
+                    href='/support'
                     className='text-gray-400 hover:text-white block'
                   >
                     Contact Us
                   </Link>
                   <Link
-                    href='#'
+                    href='/terms-of-service'
                     className='text-gray-400 hover:text-white block'
                   >
                     Terms of Service
@@ -898,19 +898,19 @@ export default function HomePage() {
                 <h4 className='text-white font-semibold mb-3'>Legal</h4>
                 <div className='space-y-2 text-sm'>
                   <Link
-                    href='#'
+                    href='/privacy-policy'
                     className='text-gray-400 hover:text-white block'
                   >
                     Privacy Policy
                   </Link>
                   <Link
-                    href='#'
+                    href='/terms-of-service#risk-disclosure'
                     className='text-gray-400 hover:text-white block'
                   >
                     Risk Disclosure
                   </Link>
                   <Link
-                    href='#'
+                    href='/terms-of-service#risk-disclosure'
                     className='text-gray-400 hover:text-white block'
                   >
                     SEC Compliance
