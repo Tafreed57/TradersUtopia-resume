@@ -21,7 +21,7 @@ interface ServerHeaderProps {
 }
 
 export function ServerHeader({ server, role }: ServerHeaderProps) {
-  const onOpen = useStore.use.onOpen();
+  const onOpen = useStore(state => state.onOpen);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const isAdmin = role === MemberRole.ADMIN;

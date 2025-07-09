@@ -74,8 +74,10 @@ export function ChatMessages({
       queryKey: [isSourceChannel ? `${queryKey}:source` : queryKey],
       queryFn: fetchMessages,
       getNextPageParam: lastPage => lastPage?.nextCursor,
-      refetchInterval: isSourceChannel ? 30000 : 5000,
-      staleTime: 1000,
+      refetchInterval: isSourceChannel ? 60000 : 30000, // ✅ FIX: Reduced frequency significantly
+      staleTime: 15000, // ✅ FIX: Increased stale time to prevent constant refetching
+      refetchOnWindowFocus: false, // ✅ FIX: Disabled to prevent cascading refetches
+      refetchOnReconnect: true,
     });
 
   const latestMessageId =
@@ -122,10 +124,7 @@ export function ChatMessages({
   }
 
   return (
-    <div
-      ref={chatRef}
-      className='flex-1 flex flex-col py-4 overflow-y-auto scrollbar-hide'
-    >
+    <div ref={chatRef} className='flex-1 flex flex-col py-4 overflow-y-auto'>
       {!hasNextPage && <div className='flex-1' />}
       {!hasNextPage && <ChatWelcome type={type} name={name} />}
       {hasNextPage && (

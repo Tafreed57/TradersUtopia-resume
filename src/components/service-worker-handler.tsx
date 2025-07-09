@@ -12,8 +12,6 @@ export function ServiceWorkerHandler() {
     if ('serviceWorker' in navigator) {
       const handleServiceWorker = async () => {
         try {
-          console.log('🔧 [SW-HANDLER] Registering service worker...');
-
           // Register the service worker
           const registration = await navigator.serviceWorker.register(
             '/sw.js',
@@ -26,18 +24,16 @@ export function ServiceWorkerHandler() {
           setSwRegistration(registration);
 
           if (registration.installing) {
-            console.log('🔧 [SW-HANDLER] Service worker installing...');
+            // Service worker installing
           } else if (registration.waiting) {
-            console.log('⏳ [SW-HANDLER] Service worker waiting...');
             // Auto-update if there's a waiting service worker
             registration.waiting.postMessage({ type: 'SKIP_WAITING' });
           } else if (registration.active) {
-            console.log('✅ [SW-HANDLER] Service worker active and ready');
+            // Service worker active and ready
           }
 
           // Listen for service worker updates
           registration.addEventListener('updatefound', () => {
-            console.log('🔄 [SW-HANDLER] Service worker update found');
             const newWorker = registration.installing;
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
@@ -45,9 +41,6 @@ export function ServiceWorkerHandler() {
                   newWorker.state === 'installed' &&
                   navigator.serviceWorker.controller
                 ) {
-                  console.log(
-                    '🆕 [SW-HANDLER] New service worker installed, reloading page...'
-                  );
                   window.location.reload();
                 }
               });
@@ -65,10 +58,7 @@ export function ServiceWorkerHandler() {
 
       // Listen for service worker messages
       const handleMessage = (event: MessageEvent) => {
-        console.log('💬 [SW-HANDLER] Message received:', event.data);
-
         if (event.data && event.data.type === 'NAVIGATE') {
-          console.log('🔗 [SW-HANDLER] Navigating to:', event.data.url);
           window.location.href = event.data.url;
         }
       };
@@ -77,7 +67,6 @@ export function ServiceWorkerHandler() {
 
       // Handle service worker controller changes
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('🔄 [SW-HANDLER] Service worker controller changed');
         window.location.reload();
       });
 
@@ -95,16 +84,24 @@ export function ServiceWorkerHandler() {
   useEffect(() => {
     if (!swRegistration) return;
 
+    // ✅ FIX: Add guard to prevent multiple interval creation
+    let updateInterval: NodeJS.Timeout | null = null;
+
     const checkForUpdates = () => {
+      if (!swRegistration) return; // Additional safety check
       swRegistration.update().catch(error => {
-        console.log('🔄 [SW-HANDLER] Update check failed:', error);
+        // Update check failed - silently continue
       });
     };
 
     // Check for updates every 5 minutes
-    const updateInterval = setInterval(checkForUpdates, 5 * 60 * 1000);
+    updateInterval = setInterval(checkForUpdates, 5 * 60 * 1000);
 
-    return () => clearInterval(updateInterval);
+    return () => {
+      if (updateInterval) {
+        clearInterval(updateInterval);
+      }
+    };
   }, [swRegistration]);
 
   return null;

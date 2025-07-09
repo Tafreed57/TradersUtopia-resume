@@ -44,27 +44,31 @@ export function ServerSectionHeader({
   position,
 }: ServerSectionHeaderProps) {
   const { insertionIndicator } = useDragDrop();
-  const onOpen = useStore.use.onOpen();
+  const onOpen = useStore(state => state.onOpen);
   const [isHovered, setIsHovered] = useState(false);
 
-  const canManage = role !== MemberRole.GUEST;
+  const isAdmin = role === MemberRole.ADMIN;
+  const isModerator = role === MemberRole.MODERATOR;
+  const canModifySection = isAdmin || isModerator;
 
   // Enable drag and drop for both regular sections and the default "channels" section
   const isDraggable =
-    canManage &&
+    canModifySection &&
     ((sectionType === 'section' && section) || sectionType === 'channels');
 
   // Check if insertion indicator should be shown for this section
-  const showInsertionBefore = 
+  const showInsertionBefore =
     insertionIndicator?.type === 'section' &&
     insertionIndicator?.containerId === 'root' &&
-    insertionIndicator?.index === (position !== undefined ? position : section?.position || 0) &&
+    insertionIndicator?.index ===
+      (position !== undefined ? position : section?.position || 0) &&
     insertionIndicator?.position === 'before';
 
-  const showInsertionAfter = 
+  const showInsertionAfter =
     insertionIndicator?.type === 'section' &&
     insertionIndicator?.containerId === 'root' &&
-    insertionIndicator?.index === (position !== undefined ? position : section?.position || 0) &&
+    insertionIndicator?.index ===
+      (position !== undefined ? position : section?.position || 0) &&
     insertionIndicator?.position === 'after';
 
   const {
@@ -109,7 +113,7 @@ export function ServerSectionHeader({
       {isOver && (
         <div className='absolute inset-0 bg-blue-500/20 border-2 border-blue-400/50 rounded-xl pointer-events-none z-10' />
       )}
-      
+
       <div
         ref={setNodeRef}
         style={style}
@@ -157,7 +161,7 @@ export function ServerSectionHeader({
           )}
         </div>
 
-        {canManage && (
+        {canModifySection && (
           <div className='flex items-center gap-1 flex-shrink-0'>
             <div className='relative z-[100]'>
               <DropdownMenu>
@@ -262,7 +266,7 @@ export function ServerSectionHeader({
           </div>
         )}
       </div>
-      
+
       {/* Insertion indicator after */}
       {showInsertionAfter && (
         <div className='h-0.5 bg-blue-400 rounded-full mt-1 mx-2 shadow-sm shadow-blue-400/50' />

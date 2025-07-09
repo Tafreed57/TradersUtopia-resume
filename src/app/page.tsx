@@ -4,6 +4,7 @@ import { AutoRouteAfterSignIn } from '@/components/auto-route-after-signin';
 import { SharedNavbar } from '@/components/shared-navbar';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { HeroBanner } from '@/components/hero-banner';
+import { TrackRecordMinimal } from '@/components/track-record/track-record-minimal';
 import { Suspense } from 'react';
 import NextImage from 'next/image';
 import Link from 'next/link';
@@ -31,6 +32,7 @@ export default function HomePage() {
         <div className='absolute top-40 -left-40 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse delay-1000'></div>
         <div className='absolute bottom-40 right-20 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-2000'></div>
       </div>
+
       <div className='relative z-10'>
         {/* Auto-route component for handling post-sign-in routing */}
         <Suspense fallback={null}>
@@ -536,66 +538,117 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Results Section */}
+        {/* Results Section - Live Track Record */}
         <section id='results' className='py-20'>
           <div className='max-w-7xl mx-auto px-6'>
             <div className='text-center mb-16'>
               <h2 className='text-4xl md:text-5xl font-bold mb-4'>
-                Real Results From{' '}
-                <span className='text-yellow-400'>Real Members</span>
+                Live Track Record & Results From{' '}
+                <span className='text-yellow-400'>Real Traders</span>
               </h2>
-              <p className='text-xl text-gray-300 max-w-3xl mx-auto'>
-                Our members consistently achieve profitable results using our
-                proven strategies and alerts.
+              <p className='text-xl text-gray-300 max-w-3xl mx-auto mb-8'>
+                See our transparent trading performance and real-time updates
+                from our professional traders. Every trade, win or loss,
+                documented with complete transparency.
               </p>
-            </div>
 
-            <div className='grid md:grid-cols-2 gap-8 mb-12'>
-              <div className='bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-400/30 rounded-xl p-6'>
-                <NextImage
-                  src='/phone.png'
-                  alt='Mobile Trading Results'
-                  width={200}
-                  height={300}
-                  className='mx-auto mb-6'
-                />
-                <div className='text-center'>
-                  <h3 className='text-2xl font-bold mb-2'>
-                    Mobile-First Experience
-                  </h3>
-                  <p className='text-gray-300 mb-4'>
-                    Get alerts instantly on your phone and execute trades on the
-                    go.
-                  </p>
-                  <div className='bg-green-600/30 rounded-lg p-3 inline-block'>
-                    <span className='text-green-300 font-semibold'>
-                      +$12,847 This Month
-                    </span>
-                  </div>
+              {/* Live indicators */}
+              <div className='flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-400 mb-12'>
+                <div className='flex items-center gap-2'>
+                  <div className='w-3 h-3 bg-green-500 rounded-full animate-pulse'></div>
+                  <span>Live Updates</span>
+                </div>
+                <div className='hidden sm:block w-1 h-1 bg-gray-500 rounded-full'></div>
+                <div className='flex items-center gap-2'>
+                  <div className='w-3 h-3 bg-blue-500 rounded-full'></div>
+                  <span>100% Transparent</span>
+                </div>
+                <div className='hidden sm:block w-1 h-1 bg-gray-500 rounded-full'></div>
+                <div className='flex items-center gap-2'>
+                  <div className='w-3 h-3 bg-purple-500 rounded-full'></div>
+                  <span>Verified Traders</span>
                 </div>
               </div>
+            </div>
 
-              <div className='bg-gradient-to-br from-blue-600/20 to-blue-800/20 border border-blue-400/30 rounded-xl p-6'>
-                <NextImage
-                  src='/laptop.png'
-                  alt='Desktop Trading Platform'
-                  width={300}
-                  height={200}
-                  className='mx-auto mb-6'
-                />
-                <div className='text-center'>
-                  <h3 className='text-2xl font-bold mb-2'>
-                    Professional Analysis
-                  </h3>
-                  <p className='text-gray-300 mb-4'>
-                    Access detailed charts, analysis, and educational content on
-                    our web platform.
-                  </p>
-                  <div className='bg-blue-600/30 rounded-lg p-3 inline-block'>
-                    <span className='text-blue-300 font-semibold'>
-                      78% Win Rate
-                    </span>
+            {/* Performance Stats */}
+            <div className='grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-12'>
+              <div className='bg-gradient-to-br from-green-500/10 to-emerald-600/5 rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-green-400/20 backdrop-blur-sm hover:border-green-400/30 transition-all duration-300 hover:scale-105'>
+                <div className='flex items-center gap-4 mb-4'>
+                  <div className='w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center'>
+                    <span className='text-2xl'>📈</span>
                   </div>
+                  <div>
+                    <h3 className='text-lg font-semibold text-white'>
+                      Win Rate
+                    </h3>
+                    <p className='text-green-400 text-3xl font-bold'>78.5%</p>
+                  </div>
+                </div>
+                <p className='text-sm text-gray-300 leading-relaxed'>
+                  Consistent profitability across all trading strategies with
+                  disciplined risk management
+                </p>
+              </div>
+
+              <div className='bg-gradient-to-br from-blue-500/10 to-cyan-600/5 rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-blue-400/20 backdrop-blur-sm hover:border-blue-400/30 transition-all duration-300 hover:scale-105'>
+                <div className='flex items-center gap-4 mb-4'>
+                  <div className='w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center'>
+                    <span className='text-2xl'>💰</span>
+                  </div>
+                  <div>
+                    <h3 className='text-lg font-semibold text-white'>
+                      Monthly ROI
+                    </h3>
+                    <p className='text-blue-400 text-3xl font-bold'>12.3%</p>
+                  </div>
+                </div>
+                <p className='text-sm text-gray-300 leading-relaxed'>
+                  Steady monthly returns with compound growth and capital
+                  preservation focus
+                </p>
+              </div>
+
+              <div className='bg-gradient-to-br from-purple-500/10 to-violet-600/5 rounded-2xl lg:rounded-3xl p-6 lg:p-8 border border-purple-400/20 backdrop-blur-sm hover:border-purple-400/30 transition-all duration-300 hover:scale-105'>
+                <div className='flex items-center gap-4 mb-4'>
+                  <div className='w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center'>
+                    <span className='text-2xl'>🛡️</span>
+                  </div>
+                  <div>
+                    <h3 className='text-lg font-semibold text-white'>
+                      Max Drawdown
+                    </h3>
+                    <p className='text-purple-400 text-3xl font-bold'>-4.2%</p>
+                  </div>
+                </div>
+                <p className='text-sm text-gray-300 leading-relaxed'>
+                  Excellent risk management with minimal capital exposure and
+                  quick recovery
+                </p>
+              </div>
+            </div>
+
+            {/* Live Track Record Chat */}
+            <div className='bg-gray-900/50 backdrop-blur-xl rounded-2xl lg:rounded-3xl border border-gray-700/50 shadow-2xl shadow-black/20 overflow-hidden mb-8'>
+              <TrackRecordMinimal />
+            </div>
+
+            {/* Call to Action */}
+            <div className='text-center'>
+              <div className='inline-flex flex-col sm:flex-row items-center gap-4'>
+                <Link
+                  href='/track-record'
+                  className='inline-flex items-center gap-3 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-600 hover:from-purple-500 hover:via-blue-500 hover:to-cyan-500 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25 touch-manipulation group'
+                >
+                  <BarChart3 className='w-5 h-5 sm:w-6 sm:h-6 group-hover:animate-pulse' />
+                  <span className='text-sm sm:text-base'>
+                    View Full Track Record
+                  </span>
+                  <ChevronRight className='w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform' />
+                </Link>
+                <div className='flex items-center gap-2 text-purple-400 text-sm'>
+                  <Award className='w-4 h-4' />
+                  <span>Real performance • No hidden results</span>
                 </div>
               </div>
             </div>

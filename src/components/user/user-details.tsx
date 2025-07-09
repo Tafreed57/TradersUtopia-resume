@@ -126,39 +126,39 @@ export function UserDetails() {
   if (!isClient) {
     return (
       <div className='space-y-6'>
-        {/* Profile Header */}
+        {/* Profile Header - Mobile Responsive */}
         <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-600/30 backdrop-blur-md'>
-          <CardContent className='p-6'>
-            <div className='flex items-center gap-6'>
-              <div className='relative'>
+          <CardContent className='p-4 sm:p-6'>
+            <div className='flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6'>
+              <div className='relative self-center sm:self-auto'>
                 <Image
                   src={user.imageUrl}
                   alt={`${user.firstName} ${user.lastName} profile picture`}
                   width={80}
                   height={80}
-                  className='w-20 h-20 rounded-full border-3 border-yellow-400/50 shadow-lg'
+                  className='w-16 h-16 sm:w-20 sm:h-20 rounded-full border-3 border-yellow-400/50 shadow-lg'
                 />
-                <div className='absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-gray-800 flex items-center justify-center'>
-                  <Activity className='h-3 w-3 text-white' />
+                <div className='absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full border-2 border-gray-800 flex items-center justify-center'>
+                  <Activity className='h-2 w-2 sm:h-3 sm:w-3 text-white' />
                 </div>
               </div>
-              <div className='flex-1'>
-                <h2 className='text-2xl font-bold text-white mb-1'>
+              <div className='flex-1 text-center sm:text-left'>
+                <h2 className='text-xl sm:text-2xl font-bold text-white mb-1'>
                   {user.firstName} {user.lastName}
                 </h2>
-                <p className='text-gray-300 mb-3'>
+                <p className='text-gray-300 mb-3 text-sm sm:text-base break-all'>
                   {user.emailAddresses[0]?.emailAddress}
                 </p>
-                <div className='flex items-center gap-2'>
+                <div className='flex flex-wrap items-center justify-center sm:justify-start gap-2'>
                   <Badge
                     variant='secondary'
-                    className='bg-green-500/20 text-green-300 border-green-500/30'
+                    className='bg-green-500/20 text-green-300 border-green-500/30 text-xs sm:text-sm'
                   >
                     Active Account
                   </Badge>
                   <Badge
                     variant='secondary'
-                    className='bg-blue-500/20 text-blue-300 border-blue-500/30'
+                    className='bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs sm:text-sm'
                   >
                     Premium Member
                   </Badge>
@@ -170,10 +170,10 @@ export function UserDetails() {
 
         {/* Loading indicator for interactive elements */}
         <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-600/30 backdrop-blur-md'>
-          <CardContent className='flex items-center justify-center py-6'>
+          <CardContent className='flex items-center justify-center py-4 sm:py-6'>
             <div className='flex items-center gap-2'>
               <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400'></div>
-              <span className='text-gray-300'>
+              <span className='text-gray-300 text-sm sm:text-base'>
                 Loading interactive features...
               </span>
             </div>
@@ -185,39 +185,39 @@ export function UserDetails() {
 
   return (
     <div className='space-y-6'>
-      {/* Profile Header */}
+      {/* Profile Header - Mobile Responsive */}
       <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-600/30 backdrop-blur-md'>
-        <CardContent className='p-6'>
-          <div className='flex items-center gap-6'>
-            <div className='relative'>
+        <CardContent className='p-4 sm:p-6'>
+          <div className='flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6'>
+            <div className='relative self-center sm:self-auto'>
               <Image
                 src={user.imageUrl}
                 alt={`${user.firstName} ${user.lastName} profile picture`}
                 width={80}
                 height={80}
-                className='w-20 h-20 rounded-full border-3 border-yellow-400/50 shadow-lg'
+                className='w-16 h-16 sm:w-20 sm:h-20 rounded-full border-3 border-yellow-400/50 shadow-lg'
               />
-              <div className='absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-gray-800 flex items-center justify-center'>
-                <Activity className='h-3 w-3 text-white' />
+              <div className='absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 bg-green-500 rounded-full border-2 border-gray-800 flex items-center justify-center'>
+                <Activity className='h-2 w-2 sm:h-3 sm:w-3 text-white' />
               </div>
             </div>
-            <div className='flex-1'>
-              <h2 className='text-2xl font-bold text-white mb-1'>
+            <div className='flex-1 text-center sm:text-left'>
+              <h2 className='text-xl sm:text-2xl font-bold text-white mb-1'>
                 {user.firstName} {user.lastName}
               </h2>
-              <p className='text-gray-300 mb-3'>
+              <p className='text-gray-300 mb-3 text-sm sm:text-base break-all'>
                 {user.emailAddresses[0]?.emailAddress}
               </p>
-              <div className='flex items-center gap-2'>
+              <div className='flex flex-wrap items-center justify-center sm:justify-start gap-2'>
                 <Badge
                   variant='secondary'
-                  className='bg-green-500/20 text-green-300 border-green-500/30'
+                  className='bg-green-500/20 text-green-300 border-green-500/30 text-xs sm:text-sm'
                 >
                   Active Account
                 </Badge>
                 <Badge
                   variant='secondary'
-                  className='bg-blue-500/20 text-blue-300 border-blue-500/30'
+                  className='bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs sm:text-sm'
                 >
                   Premium Member
                 </Badge>
@@ -240,7 +240,6 @@ export function UserDetails() {
             icon={Mail}
             label='Email Address'
             value={user.emailAddresses[0]?.emailAddress || 'Not available'}
-            badge='Read-only'
           />
           <ProfileRow
             icon={Calendar}

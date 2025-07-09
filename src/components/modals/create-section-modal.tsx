@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { secureAxiosPost } from '@/lib/csrf-client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -31,10 +31,11 @@ const schema = z.object({
 
 export function CreateSectionModal() {
   const router = useRouter();
-  const type = useStore.use.type();
-  const isOpen = useStore.use.isOpen();
-  const onClose = useStore.use.onClose();
-  const data = useStore.use.data();
+  const params = useParams();
+  const type = useStore(state => state.type);
+  const isOpen = useStore(state => state.isOpen);
+  const onClose = useStore(state => state.onClose);
+  const data = useStore(state => state.data);
 
   const isModelOpen = isOpen && type === 'createSection';
 

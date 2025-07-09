@@ -99,7 +99,6 @@ function DashboardAutoJoinClient({
 
         if (response.ok) {
           const result = await response.json();
-          console.log('✅ [Auto-Join] Success:', result);
 
           if (result.joinedServers && result.joinedServers.length > 0) {
             // Give a moment for the database to update

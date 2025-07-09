@@ -52,33 +52,21 @@ export function LoadingProvider({ children }: LoadingProviderProps) {
     setIsLoading(false);
   }, []);
 
-  // Auto-hide loading after maximum time to prevent infinite loading
+  // ✅ FIX: Single consolidated useEffect to prevent competing timers
   useEffect(() => {
     if (!isLoading) return;
 
+    // Set up all timers in one place to prevent conflicts
     const maxLoadingTime = setTimeout(() => {
-      console.log('⚠️ Loading timeout - automatically stopping loading');
+      // Loading timeout - automatically stopping loading
       setIsLoading(false);
     }, 10000);
 
-    return () => clearTimeout(maxLoadingTime);
-  }, [isLoading]);
-
-  // Listen for navigation completion to auto-stop loading
-  useEffect(() => {
-    if (!isLoading) return;
-
-    // Auto-stop loading after reasonable time for navigation
     const navigationTimeout = setTimeout(() => {
-      console.log('⚠️ Navigation timeout - automatically stopping loading');
+      // Navigation timeout - automatically stopping loading
       setIsLoading(false);
     }, 3000);
 
-    return () => clearTimeout(navigationTimeout);
-  }, [isLoading]);
-
-  // Clear loading on page visibility change (e.g., when page is fully loaded)
-  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isLoading) {
         // Give it a moment for the page to settle, then clear loading
@@ -89,8 +77,12 @@ export function LoadingProvider({ children }: LoadingProviderProps) {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () =>
+
+    return () => {
+      clearTimeout(maxLoadingTime);
+      clearTimeout(navigationTimeout);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [isLoading]);
 
   return (

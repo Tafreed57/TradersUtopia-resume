@@ -35,10 +35,10 @@ export function useChatQuery({
       queryKey: [queryKey],
       queryFn: fetchMessages,
       getNextPageParam: lastPage => lastPage?.nextCursor,
-      refetchInterval: 2000, // ✅ PERFORMANCE: Faster polling for new messages (2s instead of 5s)
-      staleTime: 500, // ✅ PERFORMANCE: More aggressive cache invalidation (500ms instead of 1s)
-      refetchOnWindowFocus: true, // ✅ UX: Refetch when user returns to window
-      refetchOnReconnect: true, // ✅ UX: Refetch when connection is restored
+      refetchInterval: 30000, // ✅ FIX: Reduced from 2s to 30s to prevent infinite loops
+      staleTime: 10000, // ✅ FIX: Increased from 500ms to 10s to prevent constant refetching
+      refetchOnWindowFocus: false, // ✅ FIX: Disabled to prevent cascading refetches
+      refetchOnReconnect: true, // ✅ UX: Keep this for genuine reconnections
     });
 
   return {

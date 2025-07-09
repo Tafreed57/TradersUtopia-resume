@@ -48,7 +48,7 @@ export async function SideBar() {
 
       <Separator className='h-[2px] bg-zinc-300 dark:bg-zinc-700 rounded-md w-12 mx-auto mb-5' />
 
-      <div className='flex-1 w-full overflow-y-auto scrollbar-hide overflow-x-visible'>
+      <div className='flex-1 w-full overflow-y-auto overflow-x-visible'>
         <div className='flex flex-col items-center space-y-4 pb-5 overflow-visible'>
           {servers?.map(server => (
             <SideBarItem

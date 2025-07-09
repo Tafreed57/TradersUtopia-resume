@@ -8,10 +8,6 @@ export function useAuthCleanup() {
   useEffect(() => {
     // If user was signed in but now isn't, they've signed out
     if (wasSignedIn.current && !isSignedIn) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🧹 [Auth] User signed out, cleaning up auth state...');
-      }
-
       // ✅ SECURITY: Immediately trigger client-side 2FA cleanup
       window.dispatchEvent(new CustomEvent('user-signout'));
 
@@ -24,13 +20,12 @@ export function useAuthCleanup() {
         signal: controller.signal,
       })
         .then(() => {
-          console.log('✅ [Auth] Auth state cleared successfully');
           // Trigger another cleanup event after server cleanup
           window.dispatchEvent(new CustomEvent('force-2fa-recheck'));
         })
         .catch(error => {
           if (error.name === 'AbortError') {
-            console.warn('⏰ [Auth] Auth cleanup timed out');
+            // Auth cleanup timed out
           } else {
             console.error('❌ [Auth] Failed to clear auth state:', error);
           }

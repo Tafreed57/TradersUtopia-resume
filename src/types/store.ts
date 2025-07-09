@@ -1,5 +1,4 @@
-import { Channel, ChannelType, Section, Server } from '@prisma/client';
-import { ServerWithMembersWithProfiles } from '@/types/server';
+import { Server, Channel, Member, Message, Section } from '@prisma/client';
 import { StateCreator } from 'zustand';
 
 export type ModalType =
@@ -10,26 +9,39 @@ export type ModalType =
   | 'createChannel'
   | 'editChannel'
   | 'deleteChannel'
+  | 'messageFile'
+  | 'deleteMessage'
   | 'createSection'
   | 'editSection'
   | 'editDefaultSection'
   | 'deleteSection'
-  | 'messageFile'
-  | 'deleteMessage';
+  | 'trackRecordFile'
+  | 'editTrackRecordMessage'
+  | 'deleteTrackRecordMessage';
 
-export interface ModalData {
-  server?: Server | ServerWithMembersWithProfiles;
+export type ModalData = {
+  server?: Server;
   channel?: Channel;
-  section?: Section & { channels?: Channel[] };
-  channelType?: ChannelType;
+  member?: Member;
+  message?: Message;
   apiUrl?: string;
   query?: Record<string, any>;
-}
+  section?: Section;
+  channelType?: any; // ✅ Added back to fix TypeScript error
+  onAction?: () => void;
+  onComplete?: () => void;
+  fileUrl?: string;
+  messageId?: string;
+  sectionId?: string;
+  channelId?: string;
+  serverId?: string;
+  userId?: string;
+};
 
 export interface ModalState {
   type: ModalType | null;
-  data: ModalData;
   isOpen: boolean;
+  data: ModalData;
 }
 
 export interface ModalActions {
@@ -37,12 +49,7 @@ export interface ModalActions {
   onClose: () => void;
 }
 
-export type ModalSlice = ModalState & ModalActions;
+export interface ModalSlice extends ModalState, ModalActions {}
 
-export type SliceCreator<S> = StateCreator<
-  S,
-  [['zustand/immer', never], ['zustand/devtools', never]],
-  [],
-  S
->;
-export type Store = ModalSlice;
+// ✅ SIMPLIFIED: Removed complex middleware types that were causing build errors
+export type SliceCreator<S> = StateCreator<S, [], [], S>;

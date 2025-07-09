@@ -30,6 +30,7 @@ model Profile {
   servers            Server[]
   sections           Section[]
   channelNotificationPreferences ChannelNotificationPreference[]
+  trackRecordMessages TrackRecordMessage[]
 }
 
 model Notification {
@@ -242,5 +243,20 @@ model ChannelNotificationPreference {
   @@unique([profileId, channelId])
   @@index([profileId])
   @@index([channelId])
+}
+
+model TrackRecordMessage {
+  id        String   @id @default(cuid())
+  content   String
+  adminId   String
+  fileUrl   String?
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  admin     Profile  @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  
+  @@index([adminId])
+  @@index([createdAt])
 }
 

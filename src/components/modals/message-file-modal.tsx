@@ -27,16 +27,18 @@ import { useStore } from '@/store/store';
 import { FileIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function MessageFileModal() {
+  const type = useStore(state => state.type);
+  const isOpen = useStore(state => state.isOpen);
+  const onClose = useStore(state => state.onClose);
+  const data = useStore(state => state.data);
   const router = useRouter();
-  const type = useStore.use.type();
-  const isOpen = useStore.use.isOpen();
-  const onClose = useStore.use.onClose();
-  const data = useStore.use.data();
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const isModalOpen = isOpen && type === 'messageFile';
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const schema = z.object({
     fileUrl: z.string().min(1, { message: 'Attachment is required' }),

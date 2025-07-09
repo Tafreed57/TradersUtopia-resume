@@ -12,10 +12,6 @@ import {
 // Login-triggered auto sync function
 async function performLoginSync(userEmail: string) {
   try {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔄 [Login Sync] Checking sync for email: ${userEmail}`);
-    }
-
     // Find all profiles with this email
     const allProfiles = await prisma.profile.findMany({
       where: { email: userEmail },
@@ -23,18 +19,7 @@ async function performLoginSync(userEmail: string) {
     });
 
     if (allProfiles.length <= 1) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(
-          `ℹ️ [Login Sync] Only ${allProfiles.length} profile(s) found for ${userEmail}, no sync needed`
-        );
-      }
       return;
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log(
-        `🔍 [Login Sync] Found ${allProfiles.length} profiles for ${userEmail}`
-      );
     }
 
     // Check if there's an ACTIVE profile to sync from
@@ -46,12 +31,6 @@ async function performLoginSync(userEmail: string) {
     );
 
     if (activeProfile && freeProfiles.length > 0) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(
-          `✅ [Login Sync] Found ACTIVE profile ${activeProfile.id}, syncing to ${freeProfiles.length} FREE profile(s)`
-        );
-      }
-
       // Update all FREE profiles to match the ACTIVE one
       for (const freeProfile of freeProfiles) {
         await prisma.profile.update({
@@ -65,17 +44,6 @@ async function performLoginSync(userEmail: string) {
             stripeProductId: activeProfile.stripeProductId,
           },
         });
-        if (process.env.NODE_ENV === 'development') {
-          console.log(
-            `🔄 [Login Sync] Synced profile ${freeProfile.id} to ACTIVE status`
-          );
-        }
-      }
-    } else {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(
-          `ℹ️ [Login Sync] No ACTIVE profile found to sync from, or no FREE profiles to sync to`
-        );
       }
     }
   } catch (error) {

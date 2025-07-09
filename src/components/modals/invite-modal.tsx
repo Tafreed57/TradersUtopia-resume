@@ -16,11 +16,12 @@ import { Check, Copy, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
 export function InviteModal() {
-  const type = useStore.use.type();
-  const isOpen = useStore.use.isOpen();
-  const onOpen = useStore.use.onOpen();
-  const onClose = useStore.use.onClose();
-  const data = useStore.use.data();
+  const type = useStore(state => state.type);
+  const isOpen = useStore(state => state.isOpen);
+  const onOpen = useStore(state => state.onOpen);
+  const onClose = useStore(state => state.onClose);
+  const data = useStore(state => state.data);
+
   const isModelOpen = isOpen && type === 'invite';
   const origin = useOrigin();
 

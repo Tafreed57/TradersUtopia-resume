@@ -8,39 +8,46 @@ type ChatPollingProps = {
 
 export const useChatPolling = ({
   queryKey,
-  pollingInterval = 10000, // ✅ PERFORMANCE: Reduced from 3s to 10s for better performance
+  pollingInterval = 60000, // ✅ FIX: Increased from 10s to 60s to prevent infinite loops
 }: ChatPollingProps) => {
   const queryClient = useQueryClient();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // ✅ PERFORMANCE: Smart polling that adapts based on page visibility
+    // ✅ FIX: Much more conservative polling to prevent infinite loops
     const setupPolling = () => {
       // Clear any existing interval
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
 
-      // Adjust polling based on page visibility
-      const isVisible = !document.hidden;
-      const adjustedInterval = isVisible
-        ? pollingInterval
-        : pollingInterval * 3; // Slower when hidden
+      // Only poll if page is visible and not in development mode
+      if (document.hidden || process.env.NODE_ENV === 'development') {
+        return;
+      }
 
+      // Much more conservative polling
       intervalRef.current = setInterval(() => {
-        // Only poll if the page is still visible or it's been a while
-        if (!document.hidden || Date.now() % (pollingInterval * 3) === 0) {
+        // Additional check before invalidating
+        if (!document.hidden && document.visibilityState === 'visible') {
           queryClient.invalidateQueries({ queryKey: [queryKey] });
         }
-      }, adjustedInterval);
+      }, pollingInterval);
     };
 
-    // Initial setup
-    setupPolling();
+    // Initial setup with delay to prevent immediate polling
+    setTimeout(setupPolling, 5000);
 
-    // ✅ PERFORMANCE: Adjust polling when page visibility changes
+    // Only listen for visibility changes, not constant polling
     const handleVisibilityChange = () => {
-      setupPolling(); // Restart with appropriate interval
+      if (document.visibilityState === 'visible') {
+        setTimeout(setupPolling, 2000); // Delay before restarting
+      } else {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -54,18 +61,19 @@ export const useChatPolling = ({
   }, [queryClient, queryKey, pollingInterval]);
 
   return {
-    // Return any additional utilities if needed
-    refetch: () => queryClient.invalidateQueries({ queryKey: [queryKey] }),
-    // ✅ PERFORMANCE: Manual trigger for immediate updates
+    refetch: () => {
+      // Only refetch if not in a polling loop
+      if (!intervalRef.current) {
+        queryClient.invalidateQueries({ queryKey: [queryKey] });
+      }
+    },
     forceRefresh: () => {
-      queryClient.invalidateQueries({ queryKey: [queryKey] });
-      // Reset polling interval to give immediate feedback
+      // Clear existing interval before forcing refresh
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(() => {
-          queryClient.invalidateQueries({ queryKey: [queryKey] });
-        }, pollingInterval);
+        intervalRef.current = null;
       }
+      queryClient.invalidateQueries({ queryKey: [queryKey] });
     },
   };
 };

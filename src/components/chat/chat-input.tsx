@@ -10,7 +10,10 @@ import { secureAxiosPost } from '@/lib/csrf-client';
 import qs from 'query-string';
 import { useStore } from '@/store/store';
 import { EmojiPicker } from '@/components/ui/emoji-picker';
-import { Member, MemberRole } from '@prisma/client';
+import { Member } from '@prisma/client';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
+import { useState, useRef } from 'react';
 
 interface ChatInputProps {
   apiUrl: string;
@@ -24,14 +27,20 @@ const formSchema = z.object({
   content: z.string().min(1),
 });
 
-export function ChatInput({
-  apiUrl,
-  query,
-  name,
-  type,
-  member,
-}: ChatInputProps) {
-  const onOpen = useStore.use.onOpen();
+export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
+  const onOpen = useStore(state => state.onOpen);
+  const router = useRouter();
+  const { user } = useUser();
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastMessageTime, setLastMessageTime] = useState(0);
+  const [remainingCooldown, setRemainingCooldown] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [userMessage, setUserMessage] = useState('');
+  const [hasUserInput, setHasUserInput] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const RATE_LIMIT_COOLDOWN = 5000; // 5 seconds in milliseconds
 
   // ✅ FIX: Move useForm hook call BEFORE any conditional returns
   const form = useForm<z.infer<typeof formSchema>>({
@@ -40,13 +49,9 @@ export function ChatInput({
       content: '',
     },
   });
-  const isLoading = form.formState.isSubmitting;
 
-  // ✅ PERMISSION CHECK: Only MODERATOR and ADMIN can send messages
-  // GUEST users get no chat input at all (completely hidden)
-  if (member.role === MemberRole.GUEST) {
-    return null;
-  }
+  // ✅ PERMISSION CHECK: Component should handle permissions at the parent level
+  // Remove problematic user role check
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {

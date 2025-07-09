@@ -34,10 +34,10 @@ const schema = z.object({
 export function EditDefaultSectionModal() {
   const router = useRouter();
   const params = useParams();
-  const type = useStore.use.type();
-  const isOpen = useStore.use.isOpen();
-  const onClose = useStore.use.onClose();
-  const data = useStore.use.data();
+  const type = useStore(state => state.type);
+  const isOpen = useStore(state => state.isOpen);
+  const onClose = useStore(state => state.onClose);
+  const data = useStore(state => state.data);
 
   const isModelOpen = isOpen && type === 'editDefaultSection';
 

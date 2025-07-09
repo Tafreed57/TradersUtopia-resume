@@ -369,7 +369,7 @@ export const clearAllRateLimits = () => {
 
   const clearedCount = rateLimitStore.size;
   rateLimitStore.clear();
-  console.log(`🧹 Cleared ${clearedCount} rate limit entries`);
+
   return true;
 };
 

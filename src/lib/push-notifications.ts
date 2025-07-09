@@ -136,10 +136,6 @@ export async function sendPushNotification(
 
           // If subscription is invalid (410 Gone), remove it
           if (error.statusCode === 410 || error.statusCode === 404) {
-            console.log(
-              `🗑️ [PUSH] Removing invalid subscription ${index + 1} for user: ${data.userId}`
-            );
-
             // Remove invalid subscription from database
             const updatedSubscriptions = pushSubscriptions.filter(
               (_, i) => i !== index
@@ -172,13 +168,6 @@ export async function subscribeToPushNotifications(
   subscription: PushSubscription
 ): Promise<boolean> {
   try {
-    console.log(
-      `🔔 [PUSH-SUB] Attempting to save subscription for user: ${userId}`
-    );
-    console.log(
-      `🔔 [PUSH-SUB] Subscription endpoint: ${subscription.endpoint?.substring(0, 50)}...`
-    );
-
     const profile = await db.profile.findFirst({
       where: { userId },
     });
@@ -188,12 +177,7 @@ export async function subscribeToPushNotifications(
       return false;
     }
 
-    console.log(`✅ [PUSH-SUB] Found profile with ID: ${profile.id}`);
-
     const existingSubscriptions = (profile.pushSubscriptions as any[]) || [];
-    console.log(
-      `📊 [PUSH-SUB] Existing subscriptions count: ${existingSubscriptions.length}`
-    );
 
     // Check if subscription already exists
     const existingIndex = existingSubscriptions.findIndex(
@@ -203,20 +187,12 @@ export async function subscribeToPushNotifications(
     let updatedSubscriptions;
     if (existingIndex >= 0) {
       // Update existing subscription
-      console.log(
-        `🔄 [PUSH-SUB] Updating existing subscription at index ${existingIndex}`
-      );
       updatedSubscriptions = [...existingSubscriptions];
       updatedSubscriptions[existingIndex] = subscription;
     } else {
       // Add new subscription
-      console.log(`➕ [PUSH-SUB] Adding new subscription`);
       updatedSubscriptions = [...existingSubscriptions, subscription];
     }
-
-    console.log(
-      `📊 [PUSH-SUB] Updated subscriptions count: ${updatedSubscriptions.length}`
-    );
 
     // ✅ FIX: Use profile.id instead of userId for the database update
     await db.profile.update({
@@ -224,9 +200,6 @@ export async function subscribeToPushNotifications(
       data: { pushSubscriptions: updatedSubscriptions },
     });
 
-    console.log(
-      `✅ [PUSH-SUB] Successfully saved push subscription for user: ${userId}`
-    );
     return true;
   } catch (error) {
     console.error('❌ [PUSH] Error saving push subscription:', error);

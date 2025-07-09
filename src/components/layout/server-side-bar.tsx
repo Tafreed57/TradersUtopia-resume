@@ -69,7 +69,7 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
           </div>
         </div>
 
-        <div className='flex-1 overflow-y-auto overflow-x-visible scrollbar-hide'>
+        <div className='flex-1 overflow-y-auto overflow-x-visible'>
           <div
             className='pt-3 mb-4 px-4 sticky top-0 bg-gradient-to-b from-gray-900/95 to-transparent backdrop-blur-sm z-40 pb-2 overflow-visible
             safe-top

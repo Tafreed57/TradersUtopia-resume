@@ -40,11 +40,6 @@ export async function findOrCreateProfile() {
   });
 
   if (profile) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(
-        `✅ [SAFE_PROFILE] Found existing profile by userId: ${profile.id}`
-      );
-    }
     return profile;
   }
 
@@ -55,10 +50,6 @@ export async function findOrCreateProfile() {
   });
 
   if (existingProfiles.length > 0) {
-    console.log(
-      `🔄 [SAFE_PROFILE] Found ${existingProfiles.length} existing profiles for ${userEmail}`
-    );
-
     // Use the most recent profile and update its userId
     const latestProfile = existingProfiles[0];
 
@@ -72,17 +63,10 @@ export async function findOrCreateProfile() {
         },
       });
 
-      console.log(
-        `✅ [SAFE_PROFILE] Updated existing profile ${profile.id} with userId ${user.id}`
-      );
-
       // Clean up any remaining duplicates
       if (existingProfiles.length > 1) {
         const duplicatesToDelete = existingProfiles.slice(1);
         for (const duplicate of duplicatesToDelete) {
-          console.log(
-            `🗑️ [SAFE_PROFILE] Cleaning up duplicate profile: ${duplicate.id}`
-          );
           await db.profile
             .delete({
               where: { id: duplicate.id },
@@ -130,9 +114,6 @@ export async function findOrCreateProfile() {
       },
     });
 
-    console.log(
-      `✅ [SAFE_PROFILE] Upserted profile: ${profile.id} for ${userEmail}`
-    );
     return profile;
   } catch (error) {
     console.error(`❌ [SAFE_PROFILE] Failed to upsert profile:`, error);
@@ -162,9 +143,6 @@ export async function findOrCreateProfile() {
     });
 
     if (profile) {
-      console.log(
-        `✅ [SAFE_PROFILE] Found profile after failed upsert: ${profile.id}`
-      );
       return profile;
     }
 
@@ -207,7 +185,6 @@ export async function detectAndLogDuplicates() {
       });
       return duplicates;
     } else {
-      console.log(`✅ [DUPLICATE_DETECTION] No duplicate profiles found`);
       return [];
     }
   } catch (error) {
@@ -242,23 +219,15 @@ export async function safeGrantAdmin(targetUserId: string): Promise<boolean> {
         where: { id: allProfiles[0].id },
         data: { isAdmin: true },
       });
-      console.log(
-        `✅ [SAFE_ADMIN] Granted admin to profile: ${allProfiles[0].id}`
-      );
       return true;
     }
 
     // Multiple profiles - update all of them to ensure consistency
-    console.log(
-      `🔄 [SAFE_ADMIN] Found ${allProfiles.length} profiles for user ${targetUserId}, updating all`
-    );
-
     for (const profile of allProfiles) {
       await db.profile.update({
         where: { id: profile.id },
         data: { isAdmin: true },
       });
-      console.log(`✅ [SAFE_ADMIN] Updated profile ${profile.id} to admin`);
     }
 
     return true;

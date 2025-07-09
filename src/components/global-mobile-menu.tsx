@@ -24,7 +24,12 @@ import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs';
 import NextImage from 'next/image';
 
 interface GlobalMobileMenuProps {
-  currentPage?: 'home' | 'free-videos' | 'pricing' | 'dashboard';
+  currentPage?:
+    | 'home'
+    | 'free-videos'
+    | 'pricing'
+    | 'dashboard'
+    | 'track-record';
 }
 
 export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {

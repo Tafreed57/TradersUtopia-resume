@@ -13,6 +13,9 @@ import { CreateSectionModal } from '@/components/modals/create-section-modal';
 import { EditSectionModal } from '@/components/modals/edit-section-modal';
 import { EditDefaultSectionModal } from '@/components/modals/edit-default-section-modal';
 import { DeleteSectionModal } from '@/components/modals/delete-section-modal';
+import { TrackRecordFileModal } from '@/components/modals/track-record-file-modal';
+import { EditTrackRecordMessageModal } from '@/components/modals/edit-track-record-message-modal';
+import { DeleteTrackRecordMessageModal } from '@/components/modals/delete-track-record-message-modal';
 import { useEffect, useState } from 'react';
 
 export function ModalProvider() {
@@ -41,6 +44,9 @@ export function ModalProvider() {
       <EditSectionModal />
       <EditDefaultSectionModal />
       <DeleteSectionModal />
+      <TrackRecordFileModal />
+      <EditTrackRecordMessageModal />
+      <DeleteTrackRecordMessageModal />
     </>
   );
 }

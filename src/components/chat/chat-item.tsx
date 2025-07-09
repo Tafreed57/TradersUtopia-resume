@@ -53,26 +53,17 @@ export function ChatItem({
   socketUrl,
   socketQuery,
 }: ChatItemProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-  const onOpen = useStore.use.onOpen();
-
-  // Always call navigation hooks at the top level
-  const router = useRouter();
+  const onOpen = useStore(state => state.onOpen);
   const params = useParams();
-
-  // Ensure we're on the client side
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const isAdmin = currentMember.role === MemberRole.ADMIN;
-  const isModerator = currentMember.role === MemberRole.MODERATOR;
-  const isOwner = currentMember.id === member.id;
-  const canDeleteMessage = !deleted && (isAdmin || isModerator || isOwner);
-  const canEditMessage = !deleted && isOwner && !fileUrl;
-  const isPDF = fileUrl?.endsWith('.pdf') && fileUrl;
-  const isImage = fileUrl && !isPDF;
+  const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isViewingFile, setIsViewingFile] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(true);
+  const [isImageError, setIsImageError] = useState(false);
+  const [fadeIn, setFadeIn] = useState(false);
+  const fileType = fileUrl?.split('.').pop();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,6 +71,16 @@ export function ChatItem({
       content: content,
     },
   });
+
+  const isLoading2 = form.formState.isSubmitting;
+
+  const isAdmin = currentMember.role === MemberRole.ADMIN;
+  const isModerator = currentMember.role === MemberRole.MODERATOR;
+  const isOwner = currentMember.id === member.id;
+  const canDeleteMessage = !deleted && (isAdmin || isModerator || isOwner);
+  const canEditMessage = !deleted && isOwner && !fileUrl;
+  const isPDF = fileType === 'pdf';
+  const isImage = !isPDF && fileUrl;
 
   useEffect(() => {
     form.reset({
@@ -97,8 +98,6 @@ export function ChatItem({
 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -157,10 +156,10 @@ export function ChatItem({
           )}
           {isPDF && (
             <a
-              href={fileUrl}
+              href={fileUrl || ''}
               target='_blank'
               rel='noreferrer noopener'
-              className='relative rounded-md mt-2 overflow-hidden border flex items-center bg-secondary h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48 touch-manipulation'
+              className='relative rounded-md mt-2 overflow-hidden border flex items-center bg-secondary/20 h-20 p-2 hover:bg-secondary/30 transition-colors'
             >
               <FileText className='w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-gray-400 m-auto' />
             </a>
@@ -194,7 +193,7 @@ export function ChatItem({
                       <FormControl>
                         <div className='relative w-full'>
                           <Textarea
-                            disabled={isLoading}
+                            disabled={isLoading2}
                             className='p-2 sm:p-3 bg-zinc-200/90 border-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-zinc-800 text-sm sm:text-base min-h-[44px] touch-manipulation resize-none'
                             placeholder='Edited Message'
                             autoComplete='off'
@@ -225,7 +224,7 @@ export function ChatItem({
                   )}
                 />
                 <Button
-                  disabled={isLoading}
+                  disabled={isLoading2}
                   size='sm'
                   variant='default'
                   className='min-h-[44px] px-4 touch-manipulation'

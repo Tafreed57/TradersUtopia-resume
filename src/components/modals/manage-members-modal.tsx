@@ -41,11 +41,13 @@ import { useState } from 'react';
 export function ManageMembersModal() {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState('');
-  const type = useStore.use.type();
-  const isOpen = useStore.use.isOpen();
-  const onOpen = useStore.use.onOpen();
-  const onClose = useStore.use.onClose();
-  const data = useStore.use.data() as { server: ServerWithMembersWithProfiles };
+  const type = useStore(state => state.type);
+  const isOpen = useStore(state => state.isOpen);
+  const onOpen = useStore(state => state.onOpen);
+  const onClose = useStore(state => state.onClose);
+  const data = useStore(state => state.data) as {
+    server: ServerWithMembersWithProfiles;
+  };
   const isModelOpen = isOpen && type === 'manageMembers';
   const roleIconMap = {
     [MemberRole.ADMIN]: <ShieldAlert className='w-4 text-rose-500 h-4 ml-2' />,

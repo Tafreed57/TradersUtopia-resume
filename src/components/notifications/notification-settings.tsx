@@ -469,13 +469,13 @@ export function NotificationSettings() {
   return (
     <div className='w-full'>
       <Card className='border-gray-600/30 bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-md'>
-        <CardHeader className='pb-4'>
+        <CardHeader className='pb-3 sm:pb-4 px-4 sm:px-6'>
           <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-3'>
-              <div className='w-8 h-8 bg-yellow-500/20 rounded-xl flex items-center justify-center'>
-                <Bell className='h-5 w-5 text-yellow-400' />
+            <div className='flex items-center gap-2 sm:gap-3 min-w-0 flex-1'>
+              <div className='w-7 h-7 sm:w-8 sm:h-8 bg-yellow-500/20 rounded-xl flex items-center justify-center flex-shrink-0'>
+                <Bell className='h-4 w-4 sm:h-5 sm:w-5 text-yellow-400' />
               </div>
-              <CardTitle className='text-xl text-white'>
+              <CardTitle className='text-lg sm:text-xl text-white truncate'>
                 Notification Preferences
               </CardTitle>
             </div>
@@ -483,12 +483,12 @@ export function NotificationSettings() {
               variant='ghost'
               size='sm'
               onClick={() => setIsExpanded(false)}
-              className='h-8 w-8 p-0 text-gray-400 hover:text-white'
+              className='h-8 w-8 p-0 text-gray-400 hover:text-white flex-shrink-0 touch-manipulation'
             >
               <X className='h-4 w-4' />
             </Button>
           </div>
-          <CardDescription className='text-gray-300 ml-11'>
+          <CardDescription className='text-gray-300 ml-9 sm:ml-11 text-sm sm:text-base'>
             Customize how and when you receive notifications across different
             channels.
             <br />
@@ -497,7 +497,7 @@ export function NotificationSettings() {
             </span>
           </CardDescription>
         </CardHeader>
-        <CardContent className='space-y-8 px-6 pb-6'>
+        <CardContent className='space-y-6 sm:space-y-8 px-4 sm:px-6 pb-4 sm:pb-6'>
           {isLoading ? (
             <div className='flex items-center justify-center py-12'>
               <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-400'></div>
@@ -506,16 +506,16 @@ export function NotificationSettings() {
             <>
               {/* Push Notifications Section */}
               <div>
-                <div className='flex items-center gap-3 mb-6'>
-                  <div className='w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center'>
+                <div className='flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6'>
+                  <div className='w-8 h-8 sm:w-10 sm:h-10 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0'>
                     {pushSupported ? (
-                      <Smartphone className='h-5 w-5 text-green-400' />
+                      <Smartphone className='h-4 w-4 sm:h-5 sm:w-5 text-green-400' />
                     ) : (
-                      <Monitor className='h-5 w-5 text-green-400' />
+                      <Monitor className='h-4 w-4 sm:h-5 sm:w-5 text-green-400' />
                     )}
                   </div>
-                  <div>
-                    <h3 className='font-semibold text-lg text-white'>
+                  <div className='min-w-0 flex-1'>
+                    <h3 className='font-semibold text-base sm:text-lg text-white truncate'>
                       Push Notifications
                     </h3>
                     <Badge
@@ -530,9 +530,9 @@ export function NotificationSettings() {
                 </div>
 
                 {pushPermission !== 'granted' && (
-                  <div className='mb-6 p-4 bg-yellow-500/10 border border-yellow-400/30 rounded-xl backdrop-blur-sm'>
-                    <div className='flex items-center justify-between'>
-                      <div>
+                  <div className='mb-4 sm:mb-6 p-3 sm:p-4 bg-yellow-500/10 border border-yellow-400/30 rounded-xl backdrop-blur-sm'>
+                    <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                      <div className='min-w-0 flex-1'>
                         <p className='text-sm font-medium text-yellow-300'>
                           Push notifications disabled
                         </p>
@@ -543,7 +543,7 @@ export function NotificationSettings() {
                       <Button
                         size='sm'
                         onClick={enablePushNotifications}
-                        className='bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg'
+                        className='bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg touch-manipulation self-start sm:self-auto'
                       >
                         Enable
                       </Button>
@@ -552,9 +552,9 @@ export function NotificationSettings() {
                 )}
 
                 {pushPermission === 'granted' && !hasValidPushSubscription && (
-                  <div className='mb-6 p-4 bg-orange-500/10 border border-orange-400/30 rounded-xl backdrop-blur-sm'>
-                    <div className='flex items-center justify-between'>
-                      <div>
+                  <div className='mb-4 sm:mb-6 p-3 sm:p-4 bg-orange-500/10 border border-orange-400/30 rounded-xl backdrop-blur-sm'>
+                    <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                      <div className='min-w-0 flex-1'>
                         <p className='text-sm font-medium text-orange-300'>
                           Push notifications need setup
                         </p>
@@ -565,7 +565,7 @@ export function NotificationSettings() {
                       <Button
                         size='sm'
                         onClick={enablePushNotifications}
-                        className='bg-orange-600 hover:bg-orange-700 text-white shadow-lg'
+                        className='bg-orange-600 hover:bg-orange-700 text-white shadow-lg touch-manipulation self-start sm:self-auto'
                       >
                         Re-enable
                       </Button>
@@ -574,9 +574,9 @@ export function NotificationSettings() {
                 )}
 
                 {pushPermission === 'granted' && hasValidPushSubscription && (
-                  <div className='mb-6 p-4 bg-green-500/10 border border-green-400/30 rounded-xl backdrop-blur-sm'>
-                    <div className='flex items-center justify-between'>
-                      <div>
+                  <div className='mb-4 sm:mb-6 p-3 sm:p-4 bg-green-500/10 border border-green-400/30 rounded-xl backdrop-blur-sm'>
+                    <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                      <div className='min-w-0 flex-1'>
                         <p className='text-sm font-medium text-green-300'>
                           Push notifications active
                         </p>
@@ -588,7 +588,7 @@ export function NotificationSettings() {
                         size='sm'
                         onClick={resetPushNotifications}
                         variant='outline'
-                        className='border-green-400/30 text-green-300 hover:bg-green-500/20'
+                        className='border-green-400/30 text-green-300 hover:bg-green-500/20 touch-manipulation self-start sm:self-auto'
                       >
                         Reset
                       </Button>
@@ -596,7 +596,7 @@ export function NotificationSettings() {
                   </div>
                 )}
 
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div className='grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4'>
                   {notificationTypes.map(type => {
                     const IconComponent = type.icon;
                     const isDisabled =
@@ -604,30 +604,33 @@ export function NotificationSettings() {
                     return (
                       <div
                         key={`push-${type.key}`}
-                        className={`flex items-center justify-between p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300 ${isDisabled ? 'opacity-50' : ''}`}
+                        className={`flex items-center justify-between p-3 sm:p-4 rounded-xl border border-gray-600/30 bg-gray-800/30 hover:bg-gray-800/50 transition-all duration-300 min-w-0 ${isDisabled ? 'opacity-50' : ''}`}
                       >
-                        <div className='flex items-center gap-3'>
+                        <div className='flex items-start gap-2 sm:gap-3 min-w-0 flex-1 mr-3'>
                           <div
-                            className={`p-2 rounded-lg ${type.color} bg-opacity-10`}
+                            className={`p-1.5 sm:p-2 rounded-lg ${type.color} bg-opacity-10 flex-shrink-0 mt-0.5`}
                           >
-                            <IconComponent className='h-4 w-4' />
+                            <IconComponent className='h-3 w-3 sm:h-4 sm:w-4' />
                           </div>
-                          <div className='flex-1'>
-                            <h4 className='font-medium text-sm text-white'>
+                          <div className='flex-1 min-w-0'>
+                            <h4 className='font-medium text-xs sm:text-sm text-white leading-tight break-words'>
                               {type.title}
                             </h4>
-                            <p className='text-xs text-gray-400 mt-0.5'>
+                            <p className='text-xs text-gray-400 mt-0.5 leading-tight break-words'>
                               {type.description}
                             </p>
                           </div>
                         </div>
-                        <Switch
-                          checked={settings.push[type.key]}
-                          onCheckedChange={() =>
-                            togglePreference('push', type.key)
-                          }
-                          disabled={isDisabled}
-                        />
+                        <div className='flex-shrink-0 ml-2 mt-1'>
+                          <Switch
+                            checked={settings.push[type.key]}
+                            onCheckedChange={() =>
+                              togglePreference('push', type.key)
+                            }
+                            disabled={isDisabled}
+                            className='touch-manipulation'
+                          />
+                        </div>
                       </div>
                     );
                   })}

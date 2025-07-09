@@ -23,7 +23,12 @@ import {
 } from 'lucide-react';
 
 interface SharedNavbarProps {
-  currentPage?: 'home' | 'free-videos' | 'pricing' | 'dashboard';
+  currentPage?:
+    | 'home'
+    | 'free-videos'
+    | 'pricing'
+    | 'dashboard'
+    | 'track-record';
 }
 
 export function SharedNavbar({ currentPage }: SharedNavbarProps) {
@@ -241,6 +246,21 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
                   <span className='hidden lg:inline'>Dashboard</span>
                   <span className='lg:hidden'>App</span>
                 </SubscriptionProtectedLink>
+
+                <Link href='/track-record'>
+                  <Button
+                    variant='ghost'
+                    className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
+                      currentPage === 'track-record'
+                        ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
+                        : ''
+                    }`}
+                  >
+                    <TrendingUp className='w-4 h-4 mr-2' />
+                    <span className='hidden lg:inline'>Track Record</span>
+                    <span className='lg:hidden'>Track</span>
+                  </Button>
+                </Link>
               </>
             )}
           </nav>

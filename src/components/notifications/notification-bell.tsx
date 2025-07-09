@@ -77,7 +77,6 @@ export function NotificationBell() {
       return; // Don't fetch if last check was less than 5 seconds ago
     }
 
-    console.log('🔔 [FRONTEND] Starting notification fetch...');
     setIsLoading(true);
     try {
       const response = await fetch('/api/notifications', {
@@ -86,25 +85,14 @@ export function NotificationBell() {
           'Cache-Control': 'no-cache',
         },
       });
-      console.log('🔔 [FRONTEND] Response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('🔔 [FRONTEND] Received notifications data:', data);
-        console.log(
-          '🔔 [FRONTEND] Notifications count:',
-          data.notifications?.length || 0
-        );
-        console.log('🔔 [FRONTEND] Unread count:', data.unreadCount || 0);
 
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
         setLastChecked(new Date());
       } else if (response.status === 429) {
         // Rate limited - wait longer before next attempt
-        console.log(
-          '🔔 [FRONTEND] Notification fetch rate limited, backing off...'
-        );
         return;
       } else {
         console.error(
@@ -235,9 +223,6 @@ export function NotificationBell() {
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    console.log('🔗 [NOTIFICATION] Clicked notification:', notification.title);
-    console.log('🔗 [NOTIFICATION] ActionUrl:', notification.actionUrl);
-
     if (!notification.read) {
       markAsRead(notification.id);
     }
@@ -252,13 +237,6 @@ export function NotificationBell() {
         const serverId = urlMatch[1];
         const channelId = urlMatch[2];
 
-        console.log(
-          '🔗 [NOTIFICATION] Parsed URL - Server:',
-          serverId,
-          'Channel:',
-          channelId
-        );
-
         // Check if this is a test/fake URL and clean it up
         if (
           serverId === 'test123' ||
@@ -268,44 +246,26 @@ export function NotificationBell() {
           channelId === 'test456' ||
           channelId === 'test789'
         ) {
-          console.log(
-            '🔗 [NOTIFICATION] Detected invalid test URL, finding correct channel...'
-          );
-
           // Try to extract channel info from the notification title
           const titleMatch = notification.title.match(/#([a-zA-Z0-9-_]+)/);
           const channelName = titleMatch ? titleMatch[1] : null;
 
           if (channelName) {
-            console.log(
-              '🔗 [NOTIFICATION] Found channel name in title:',
-              channelName
-            );
             // Redirect to the correct channel in the main server
             router.push(
               `/servers/cmco7gxye0002zuystrej89un/channels/${getChannelIdByName(channelName)}`
             );
           } else {
-            console.log(
-              '🔗 [NOTIFICATION] No channel name found, going to main server'
-            );
             router.push('/servers/cmco7gxye0002zuystrej89un');
           }
         } else {
           // Valid URL format, use it directly
-          console.log('🔗 [NOTIFICATION] Using valid URL...');
           router.push(notification.actionUrl);
         }
       } else {
-        console.log(
-          '🔗 [NOTIFICATION] Invalid URL format, going to main server'
-        );
         router.push('/servers/cmco7gxye0002zuystrej89un');
       }
     } else {
-      console.log(
-        '🔗 [NOTIFICATION] No actionUrl, redirecting to main server...'
-      );
       router.push('/servers/cmco7gxye0002zuystrej89un');
     }
 

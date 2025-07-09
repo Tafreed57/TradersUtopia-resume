@@ -6,7 +6,7 @@ import { useUser } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 
 export function SideBarActions() {
-  const onOpen = useStore.use.onOpen();
+  const onOpen = useStore(state => state.onOpen);
   const { user } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingPermissions, setCheckingPermissions] = useState(true);

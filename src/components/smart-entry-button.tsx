@@ -13,15 +13,11 @@ export function SmartEntryButton() {
   const loading = useComprehensiveLoading('api');
 
   const handleEntryClick = async () => {
-    console.log('🎯 Smart entry button clicked');
-
     if (!isLoaded) {
-      console.log('⏳ User data not loaded yet...');
       return;
     }
 
     if (!isSignedIn) {
-      console.log('🔐 User not signed in, redirecting to sign-in...');
       // Redirect to sign-in page with auto-route parameter
       await navigate(
         '/sign-in?redirect_url=' + encodeURIComponent('/?auto_route=true'),
@@ -31,16 +27,11 @@ export function SmartEntryButton() {
     }
 
     // User is signed in, now check their subscription status
-    console.log('✅ User is signed in, checking subscription status...');
 
     try {
       const result = await loading.withLoading(
         async () => {
           // Check if user has valid product subscription
-          console.log(
-            '🔍 Checking product subscription for:',
-            user?.emailAddresses[0]?.emailAddress
-          );
 
           const productResponse = await fetch(
             '/api/check-product-subscription',
@@ -56,13 +47,8 @@ export function SmartEntryButton() {
           );
 
           const productResult = await productResponse.json();
-          console.log('📊 Subscription check result:', productResult);
 
           if (productResult.hasAccess) {
-            console.log(
-              '✅ User has valid subscription, getting default server...'
-            );
-
             // Get or create the default server and redirect to it
             const serverResponse = await makeSecureRequest(
               '/api/servers/ensure-default',
@@ -95,26 +81,19 @@ export function SmartEntryButton() {
         const firstChannel = server.channels?.[0];
 
         if (firstChannel) {
-          console.log(
-            '🎯 Redirecting to server channel:',
-            `${server.name}/${firstChannel.name}`
-          );
           await navigate(`/servers/${server.id}/channels/${firstChannel.id}`, {
             message: 'Opening trading room...',
           });
         } else {
-          console.log('🎯 Redirecting to server:', server.name);
           await navigate(`/servers/${server.id}`, {
             message: 'Opening server...',
           });
         }
       } else if (result.hasAccess) {
-        console.log('⚠️ Could not get server, falling back to dashboard...');
         await navigate('/dashboard', {
           message: 'Opening dashboard...',
         });
       } else {
-        console.log('❌ User needs subscription, redirecting to pricing...');
         await navigate('/pricing', {
           message: 'Please upgrade to access...',
         });

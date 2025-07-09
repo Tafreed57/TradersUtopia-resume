@@ -34,10 +34,10 @@ const iconMap = {
 };
 
 export function ServerChannel({ channel, server, role }: ServerChannelProps) {
-  const onOpen = useStore.use.onOpen();
-  const { insertionIndicator } = useDragDrop();
-  const router = useRouter();
   const params = useParams();
+  const router = useRouter();
+  const onOpen = useStore(state => state.onOpen);
+  const { insertionIndicator } = useDragDrop();
   const [isPending, startTransition] = useTransition();
   const [optimisticActive, setOptimisticActive] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -50,15 +50,16 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   }, []);
 
   // ✅ SIMPLIFIED: Always Hash icon since we only support TEXT channels
-  const Icon = iconMap[channel.type] || Hash;
-  const isActive =
-    (isMounted && params?.channelId === channel.id) || optimisticActive;
+  const Icon = iconMap[channel.type];
+  const isActive = params?.channelId === channel.id;
 
   // ✅ UPDATED: Allow admins and moderators to edit any channel including general
-  const canModify = role !== MemberRole.GUEST;
+  const isAdmin = role === MemberRole.ADMIN;
+  const isModerator = role === MemberRole.MODERATOR;
+  const canModifyChannel = isAdmin || isModerator;
 
   // Enable drag and drop for channels when user can manage them
-  const isDraggable = canModify;
+  const isDraggable = canModifyChannel;
 
   // Check if insertion indicator should be shown for this channel
   const showInsertionBefore =
@@ -271,7 +272,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
       </div>
 
       {/* 3-dots dropdown menu for channel actions */}
-      {canModify && (
+      {canModifyChannel && (
         <div
           className={cn(
             'absolute right-1 top-1/2 transform -translate-y-1/2 transition-all duration-200 z-[70]',
@@ -326,7 +327,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
           </DropdownMenu>
         </div>
       )}
-      
+
       {/* Insertion indicator after */}
       {showInsertionAfter && (
         <div className='h-0.5 bg-blue-400 rounded-full mt-1 mx-2 shadow-sm shadow-blue-400/50' />
