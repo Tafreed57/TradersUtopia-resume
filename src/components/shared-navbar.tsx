@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
 import NextImage from 'next/image';
-import { SignedIn, UserButton, useUser } from '@clerk/nextjs';
+import { SignedIn, UserButton, useUser, SignedOut } from '@clerk/nextjs';
 import { AuthHeader } from '@/components/auth-header';
 import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
@@ -50,35 +50,44 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
       <div
         className={`w-full transition-all duration-300 ease-in-out ${
           isScrolled
-            ? 'fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-2'
+            ? 'fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-2 safe-top pt-6 md:pt-2'
             : 'px-4 sm:px-6 pt-4 sm:pt-6'
         }`}
       >
         <header
-          className={`flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto backdrop-blur-xl border min-h-[72px] transition-all duration-300 ease-in-out ${
+          className={`flex items-center p-3 sm:p-4 lg:p-6 max-w-7xl mx-auto backdrop-blur-xl border min-h-[72px] transition-all duration-300 ease-in-out touch-manipulation ${
             isScrolled
-              ? 'bg-gray-900/95 border-gray-600/50 rounded-lg sm:rounded-xl shadow-2xl shadow-black/50 transform scale-[0.98]'
+              ? 'bg-gray-900/95 border-gray-600/50 rounded-lg sm:rounded-xl shadow-2xl shadow-black/50 transform scale-[0.98] min-h-[4rem] md:min-h-[72px]'
               : 'bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 border-gray-700/30 rounded-xl sm:rounded-2xl shadow-2xl transform scale-100'
           }`}
         >
           {/* Left Side - Logo and Auth */}
-          <div className='flex items-center gap-3 sm:gap-6 h-full'>
+          <div className='flex items-center gap-2 sm:gap-4 h-full min-w-0'>
             {/* Enhanced Logo */}
-            <div className='flex items-center gap-2 sm:gap-4 h-full'>
-              <div className='w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg flex-shrink-0'>
+            <div className='flex items-center gap-2 sm:gap-3 h-full'>
+              <div className='w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg flex-shrink-0'>
                 <NextImage
                   src='/logo.png'
                   alt='TradersUtopia'
-                  width={24}
-                  height={24}
-                  className='sm:w-7 sm:h-7'
+                  width={20}
+                  height={20}
+                  className='sm:w-6 sm:h-6 lg:w-7 lg:h-7'
                 />
               </div>
-              <div className='hidden sm:flex sm:flex-col sm:justify-center'>
-                <span className='text-white text-lg sm:text-xl font-bold leading-tight'>
-                  TradersUtopia
-                </span>
-                <p className='text-gray-400 text-xs sm:text-sm leading-tight'>
+              <div className='flex flex-col justify-center min-w-0'>
+                <div className='flex items-center gap-2 sm:gap-3'>
+                  <span className='text-white text-xs sm:text-sm lg:text-xl font-bold leading-tight whitespace-nowrap'>
+                    TradersUtopia
+                  </span>
+                  {isMounted && isLoaded && (
+                    <SignedIn>
+                      <span className='text-blue-400 text-xs font-medium whitespace-nowrap'>
+                        Welcome back!
+                      </span>
+                    </SignedIn>
+                  )}
+                </div>
+                <p className='text-gray-400 text-xs leading-tight whitespace-nowrap'>
                   Premium Trading Signals
                 </p>
               </div>
@@ -91,7 +100,7 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
           </div>
 
           {/* Center Navigation Links */}
-          <nav className='hidden md:flex items-center gap-2 sm:gap-3 h-full'>
+          <nav className='hidden md:flex items-center gap-2 sm:gap-3 h-full flex-1 justify-center'>
             {currentPage === 'home' ? (
               // Homepage Section Anchor Links
               <>
@@ -236,24 +245,53 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
             )}
           </nav>
 
+          {/* Spacer for mobile */}
+          <div className='flex-1 md:hidden'></div>
+
           {/* Right Side Actions */}
-          <div className='flex items-center gap-2 sm:gap-4 h-full'>
+          <div className='flex items-center gap-1 sm:gap-2 h-full flex-shrink-0'>
             {/* Mobile Auth - ✅ FIX: Add hydration protection */}
             {isMounted && isLoaded ? (
-              <SignedIn>
-                <div className='md:hidden flex items-center'>
-                  <UserButton
-                    appearance={{
-                      elements: {
-                        avatarBox: 'w-10 h-10',
-                      },
-                    }}
-                  />
+              <>
+                <SignedIn>
+                  <div className='md:hidden flex items-center mr-3'>
+                    <UserButton
+                      appearance={{
+                        elements: {
+                          avatarBox: 'w-8 h-8 sm:w-10 sm:h-10',
+                        },
+                      }}
+                    />
+                  </div>
+                </SignedIn>
+
+                {/* Sign In/Register buttons for signed out users on mobile */}
+                <div className='md:hidden flex items-center gap-1.5 mr-3 ml-0.5'>
+                  <SignedOut>
+                    <Link href='/sign-in'>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 text-xs px-2.5 py-1.5 h-8 min-w-[48px]'
+                      >
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link href='/sign-up'>
+                      <Button
+                        size='sm'
+                        className='bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold transition-all duration-200 text-xs px-2.5 py-1.5 h-8 min-w-[48px]'
+                      >
+                        Register
+                      </Button>
+                    </Link>
+                  </SignedOut>
                 </div>
-              </SignedIn>
+              </>
             ) : (
-              <div className='md:hidden flex items-center'>
-                <div className='w-10 h-10 bg-white/10 rounded-full animate-pulse'></div>
+              <div className='md:hidden flex items-center gap-1.5 mr-3 ml-0.5'>
+                <div className='w-12 h-8 bg-white/10 rounded animate-pulse'></div>
+                <div className='w-12 h-8 bg-white/10 rounded animate-pulse'></div>
               </div>
             )}
 

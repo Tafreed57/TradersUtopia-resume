@@ -206,20 +206,49 @@ export function NotificationSettings() {
   const enablePushNotifications = async () => {
     try {
       if (!pushSupported) {
-        showToast.error(
-          'Not supported',
-          'Push notifications are not supported in this browser'
+        const isMobile =
+          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          );
+        const isSafari = /^((?!chrome|android).)*safari/i.test(
+          navigator.userAgent
         );
+
+        if (isSafari && isMobile) {
+          showToast.error(
+            'Safari Mobile Limitation',
+            'Push notifications in Safari on mobile require adding to home screen first. Tap the share button and select "Add to Home Screen".'
+          );
+        } else {
+          showToast.error(
+            'Not supported',
+            'Push notifications are not supported in this browser. Try Chrome, Firefox, or Safari.'
+          );
+        }
         return;
       }
 
-      // Check if VAPID key is available
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      // Enhanced VAPID key retrieval with fallback
+      let vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+      // Fallback: try to get from API if environment variable is not available
+      if (!vapidPublicKey) {
+        try {
+          const response = await fetch('/api/vapid-public-key');
+          if (response.ok) {
+            const data = await response.json();
+            vapidPublicKey = data.publicKey;
+          }
+        } catch (error) {
+          console.error('Failed to get VAPID key from API:', error);
+        }
+      }
+
       if (!vapidPublicKey) {
         console.error('VAPID public key not configured');
         showToast.error(
           'Configuration error',
-          'Push notifications are not properly configured'
+          'Push notifications are not properly configured. Please contact support.'
         );
         return;
       }
@@ -231,7 +260,15 @@ export function NotificationSettings() {
           typeof Notification !== 'undefined' &&
           Notification.requestPermission
         ) {
-          permission = await Notification.requestPermission();
+          // Enhanced permission request with fallback
+          try {
+            permission = await Notification.requestPermission();
+          } catch (error) {
+            // Fallback for older browsers
+            permission = await new Promise(resolve => {
+              Notification.requestPermission(resolve);
+            });
+          }
         } else {
           throw new Error('Notification API not available');
         }
@@ -245,14 +282,12 @@ export function NotificationSettings() {
 
       if (permission === 'granted') {
         try {
-          // Register service worker and subscribe to push notifications
+          // Enhanced service worker registration
           if (!navigator.serviceWorker) {
             throw new Error('Service Worker not available');
           }
 
           const registration = await navigator.serviceWorker.register('/sw.js');
-
-          // Wait for service worker to be ready
           await navigator.serviceWorker.ready;
 
           if (!registration.pushManager) {
@@ -292,9 +327,15 @@ export function NotificationSettings() {
           );
         }
       } else {
+        const isMobile =
+          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          );
         showToast.error(
           'Permission denied',
-          'Push notifications require permission'
+          isMobile
+            ? 'Please enable notifications in your browser settings'
+            : 'Push notifications require permission'
         );
       }
     } catch (error) {

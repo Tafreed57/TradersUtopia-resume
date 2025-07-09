@@ -65,32 +65,46 @@ export default async function Dashboard() {
           {/* Enhanced Header - Mobile-Optimized with Better Spacing */}
           <header className='w-full mobile-header-spacing dashboard-header'>
             {/* Mobile Header */}
-            <div className='flex md:hidden items-center justify-between w-full p-4 sm:p-5 bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-xl border border-gray-700/30 shadow-2xl card-mobile-safe'>
-              <div className='flex items-center gap-3 min-w-0 flex-1-mobile-safe'>
-                <div className='w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0'>
-                  <Sparkles className='w-5 h-5 sm:w-6 sm:h-6 text-black' />
+            <div className='flex md:hidden items-center w-full px-2 py-3 bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-xl border border-gray-700/30 shadow-2xl
+              safe-top
+              pt-6 md:pt-4
+              min-h-[4.5rem]
+              max-w-none mx-0'>
+              
+              {/* Left section with icon and text */}
+              <div className='flex items-center gap-2 min-w-0 flex-[2]'>
+                <div className='w-7 h-7 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0'>
+                  <Sparkles className='w-3.5 h-3.5 text-black' />
                 </div>
-                <div className='min-w-0 flex-1-mobile-safe'>
-                  <h1 className='text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent truncate-mobile'>
+                <div className='min-w-0 flex-1'>
+                  <div className='text-sm font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent whitespace-nowrap'>
                     Dashboard
-                  </h1>
-                  <p className='text-gray-400 text-sm truncate-mobile mt-1'>
-                    Welcome, {profile.name?.split(' ')[0]}
-                  </p>
+                  </div>
+                  <div className='text-gray-400 text-xs leading-tight max-w-[140px] whitespace-nowrap overflow-hidden text-ellipsis'>
+                    Welcome, {profile.name?.split(' ')[0] || profile.name || 'User'}
+                  </div>
                 </div>
               </div>
-              <div className='flex items-center gap-2 sm:gap-3 flex-shrink-0'>
-                <NotificationBell />
-                <UserButton
-                  afterSignOutUrl='/'
-                  appearance={{
-                    elements: {
-                      userButtonAvatarBox:
-                        'size-8 sm:size-9 border-2 border-yellow-400/50',
-                    },
-                  }}
-                />
-                <GlobalMobileMenu />
+              
+              {/* Right section with buttons */}
+              <div className='flex items-center gap-0.5 flex-shrink-0 ml-1'>
+                <div className='scale-90'>
+                  <NotificationBell />
+                </div>
+                <div className='scale-90'>
+                  <UserButton
+                    afterSignOutUrl='/'
+                    appearance={{
+                      elements: {
+                        userButtonAvatarBox:
+                          'size-6 border border-yellow-400/50',
+                      },
+                    }}
+                  />
+                </div>
+                <div className='scale-90'>
+                  <GlobalMobileMenu />
+                </div>
               </div>
             </div>
 

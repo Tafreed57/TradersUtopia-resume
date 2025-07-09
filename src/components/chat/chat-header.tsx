@@ -30,7 +30,13 @@ export function ChatHeader({
   channelId,
 }: ChatHeaderProps) {
   return (
-    <div className='sticky top-0 z-50 text-md font-semibold px-3 flex items-center h-12 border-neutral-200 dark:border-neutral-800 border-b-2 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl'>
+    <div
+      className='sticky top-0 z-50 text-md font-semibold px-3 flex items-center h-12 border-neutral-200 dark:border-neutral-800 border-b-2 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl
+      safe-top
+      pt-4 md:pt-0
+      min-h-[4rem] md:min-h-[3rem]
+      touch-manipulation'
+    >
       {server ? (
         <MobileToggle server={server} role={role} servers={servers} />
       ) : (

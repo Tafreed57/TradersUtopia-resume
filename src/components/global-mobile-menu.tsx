@@ -204,19 +204,26 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
         <Button
           variant='ghost'
           size='icon'
-          className='h-10 w-10 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200'
+          className='h-10 w-10 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200
+            min-h-[2.75rem] min-w-[2.75rem] h-11 w-11 md:h-10 md:w-10
+            touch-manipulation'
         >
           <Menu className='h-5 w-5' />
         </Button>
       </SheetTrigger>
       <SheetContent
         side='right'
-        className='w-[280px] bg-gradient-to-b from-gray-900 via-gray-900/95 to-black border-l border-gray-700/50 backdrop-blur-xl'
+        className='w-[280px] bg-gradient-to-b from-gray-900 via-gray-900/95 to-black border-l border-gray-700/50 backdrop-blur-xl
+          safe-top
+          pt-8 md:pt-6'
       >
         <div className='flex flex-col h-full pt-6'>
           {/* Logo */}
           <div className='flex items-center gap-3 mb-8 pb-4 border-b border-gray-700/50'>
-            <div className='w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg'>
+            <div
+              className='w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg
+              min-w-[2rem] min-h-[2rem]'
+            >
               <NextImage
                 src='/logo.png'
                 alt='TradersUtopia'
@@ -243,7 +250,8 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
                       isNavigatingToDashboard
                         ? 'bg-yellow-400/10 text-yellow-400 opacity-75'
                         : ''
-                    }`}
+                    }
+                    min-h-[2.75rem] touch-manipulation`}
                     onClick={() => {
                       setIsNavigatingToDashboard(true);
                       setIsOpen(false); // Close mobile menu
@@ -268,7 +276,8 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
                 <Button
                   key={item.id}
                   variant='ghost'
-                  className='w-full justify-start text-white hover:bg-white/10 hover:text-yellow-400 transition-all duration-200 py-3 px-4'
+                  className='w-full justify-start text-white hover:bg-white/10 hover:text-yellow-400 transition-all duration-200 py-3 px-4
+                    min-h-[2.75rem] touch-manipulation'
                   onClick={() =>
                     handleNavigation(
                       item.path,
@@ -291,7 +300,8 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
                 <SignedOut>
                   <Button
                     variant='ghost'
-                    className='w-full justify-start text-white hover:bg-white/10 transition-all duration-200'
+                    className='w-full justify-start text-white hover:bg-white/10 transition-all duration-200
+                      min-h-[2.75rem] touch-manipulation py-3 px-4'
                     onClick={() => handleNavigation('/sign-in')}
                   >
                     <LogIn className='w-4 h-4 mr-3' />
@@ -300,7 +310,8 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
                   <Button
                     onClick={handleStartTrialClick}
                     disabled={!isSmartRoutingLoaded || isNavProcessing}
-                    className='w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-lg'
+                    className='w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-semibold disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 shadow-lg
+                      min-h-[2.75rem] touch-manipulation py-3 px-4'
                   >
                     {isNavProcessing ? (
                       <div className='flex items-center gap-2'>
@@ -314,11 +325,15 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
                 </SignedOut>
 
                 <SignedIn>
-                  <div className='flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/30'>
+                  <div
+                    className='flex items-center gap-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700/30
+                    min-h-[2.75rem] touch-manipulation'
+                  >
                     <UserButton
+                      afterSignOutUrl='/'
                       appearance={{
                         elements: {
-                          avatarBox: 'w-8 h-8',
+                          avatarBox: 'w-8 h-8 min-w-[2rem] min-h-[2rem]',
                         },
                       }}
                     />
@@ -328,8 +343,8 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
               </>
             ) : (
               <div className='space-y-3'>
-                <div className='w-full h-10 bg-white/10 rounded animate-pulse'></div>
-                <div className='w-full h-10 bg-white/10 rounded animate-pulse'></div>
+                <div className='w-full h-10 bg-white/10 rounded animate-pulse min-h-[2.75rem]'></div>
+                <div className='w-full h-10 bg-white/10 rounded animate-pulse min-h-[2.75rem]'></div>
               </div>
             )}
           </div>

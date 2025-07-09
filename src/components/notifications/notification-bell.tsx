@@ -520,7 +520,8 @@ export function NotificationBell() {
             <Button
               variant='ghost'
               size='sm'
-              className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation'
+              className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation
+              min-h-[2.75rem] min-w-[2.75rem] md:h-10 md:w-10 lg:h-12 lg:w-12'
             >
               {unreadCount > 0 ? (
                 <BellRing className='h-5 w-5 sm:h-6 sm:w-6' />
@@ -652,7 +653,8 @@ export function NotificationBell() {
           <Button
             variant='ghost'
             size='sm'
-            className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation'
+            className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation
+              min-h-[2.75rem] min-w-[2.75rem] md:h-10 md:w-10 lg:h-12 lg:w-12'
           >
             {unreadCount > 0 ? (
               <BellRing className='h-5 w-5 sm:h-6 sm:w-6' />

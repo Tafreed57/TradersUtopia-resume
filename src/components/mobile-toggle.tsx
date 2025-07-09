@@ -37,13 +37,21 @@ export function MobileToggle({ server, role, servers }: MobileToggleProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant='ghost' size='icon' className='md:hidden'>
-          <Menu />
+        <Button
+          variant='ghost'
+          size='icon'
+          className='md:hidden
+          min-h-[2.75rem] min-w-[2.75rem] h-11 w-11 md:h-10 md:w-10
+          touch-manipulation'
+        >
+          <Menu className='h-5 w-5' />
         </Button>
       </SheetTrigger>
       <SheetContent
         side='left'
-        className='p-0 flex gap-0 max-w-[90vw] w-[400px]'
+        className='p-0 flex gap-0 max-w-[90vw] w-[400px]
+          safe-top
+          pt-6 md:pt-0'
       >
         <div className='w-full h-full'>
           <MobileCompleteSidebar

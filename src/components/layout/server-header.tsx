@@ -46,11 +46,19 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
   if (!isAdmin) {
     return (
       <div className='relative z-50'>
-        <div className='w-full text-md font-semibold px-4 py-3 flex items-center h-14 transition-all duration-300 group relative overflow-hidden'>
+        <div
+          className='w-full text-md font-semibold px-4 py-3 flex items-center h-14 transition-all duration-300 group relative overflow-hidden
+          min-h-[4rem] md:min-h-[3.5rem]
+          touch-manipulation
+          pt-4 md:pt-3'
+        >
           <div className='flex items-center w-full relative z-10'>
             <div className='flex items-center gap-3 flex-1 min-w-0'>
               {server?.imageUrl ? (
-                <div className='w-8 h-8 rounded-xl overflow-hidden border border-gray-600/50 transition-colors duration-300 flex-shrink-0'>
+                <div
+                  className='w-8 h-8 rounded-xl overflow-hidden border border-gray-600/50 transition-colors duration-300 flex-shrink-0
+                  min-w-[2rem] min-h-[2rem] md:w-8 md:h-8'
+                >
                   <Image
                     src={server.imageUrl}
                     alt={server.name}
@@ -60,13 +68,16 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                   />
                 </div>
               ) : (
-                <div className='w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg transition-transform duration-300 flex-shrink-0'>
+                <div
+                  className='w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg transition-transform duration-300 flex-shrink-0
+                  min-w-[2rem] min-h-[2rem] md:w-8 md:h-8'
+                >
                   {server.name.charAt(0).toUpperCase()}
                 </div>
               )}
 
               <div className='flex flex-col min-w-0'>
-                <span className='text-white font-bold truncate text-left'>
+                <span className='text-white font-bold truncate text-left text-sm md:text-base'>
                   {server?.name}
                 </span>
                 <span className='text-xs text-gray-400'>Role: {role}</span>
@@ -84,14 +95,22 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
     <div className='relative z-[100]'>
       <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger className='focus:outline-none' asChild>
-          <button className='w-full text-md font-semibold px-4 py-3 flex items-center h-14 hover:bg-gradient-to-r hover:from-gray-700/50 hover:to-gray-600/50 transition-all duration-300 group relative overflow-hidden'>
+          <button
+            className='w-full text-md font-semibold px-4 py-3 flex items-center h-14 hover:bg-gradient-to-r hover:from-gray-700/50 hover:to-gray-600/50 transition-all duration-300 group relative overflow-hidden
+            min-h-[4rem] md:min-h-[3.5rem]
+            touch-manipulation
+            pt-4 md:pt-3'
+          >
             {/* Background gradient on hover */}
             <div className='absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300' />
 
             <div className='flex items-center w-full relative z-10'>
               <div className='flex items-center gap-3 flex-1 min-w-0'>
                 {server?.imageUrl ? (
-                  <div className='w-8 h-8 rounded-xl overflow-hidden border border-gray-600/50 group-hover:border-blue-400/50 transition-colors duration-300 flex-shrink-0'>
+                  <div
+                    className='w-8 h-8 rounded-xl overflow-hidden border border-gray-600/50 group-hover:border-blue-400/50 transition-colors duration-300 flex-shrink-0
+                    min-w-[2rem] min-h-[2rem] md:w-8 md:h-8'
+                  >
                     <Image
                       src={server.imageUrl}
                       alt={server.name}
@@ -101,13 +120,16 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                     />
                   </div>
                 ) : (
-                  <div className='w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0'>
+                  <div
+                    className='w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0
+                    min-w-[2rem] min-h-[2rem] md:w-8 md:h-8'
+                  >
                     {server.name.charAt(0).toUpperCase()}
                   </div>
                 )}
 
                 <div className='flex flex-col min-w-0'>
-                  <span className='text-white font-bold truncate text-left'>
+                  <span className='text-white font-bold truncate text-left text-sm md:text-base'>
                     {server?.name}
                   </span>
                   <span className='text-xs text-gray-400 font-medium'>
@@ -116,7 +138,10 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                 </div>
               </div>
 
-              <ChevronDown className='w-5 h-5 text-gray-400 group-hover:text-white transition-colors duration-300 flex-shrink-0' />
+              <ChevronDown
+                className='w-5 h-5 text-gray-400 group-hover:text-white transition-colors duration-300 flex-shrink-0
+                min-w-[1.25rem] min-h-[1.25rem]'
+              />
             </div>
           </button>
         </DropdownMenuTrigger>

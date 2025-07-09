@@ -64,14 +64,21 @@ export function MobileCompleteSidebar({
   return (
     <div className='flex h-full'>
       {/* Main Server List - Left Side */}
-      <div className='w-24 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30'>
+      <div
+        className='w-24 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30
+        safe-top
+        pt-8 md:pt-5
+        touch-manipulation'
+      >
         {/* Dashboard Link */}
         <div className='mb-5 overflow-visible'>
           <ActionTooltip label='Go to Dashboard' side='right' align='center'>
             <div>
               <SubscriptionProtectedLink
                 href='/dashboard'
-                className='h-[56px] w-[56px] rounded-full bg-background/10 hover:bg-background/20 transition-all group flex items-center justify-center'
+                className='h-[56px] w-[56px] rounded-full bg-background/10 hover:bg-background/20 transition-all group flex items-center justify-center
+                  min-h-[3.5rem] min-w-[3.5rem] md:h-[56px] md:w-[56px]
+                  touch-manipulation'
                 size='icon'
                 variant='ghost'
               >
@@ -100,7 +107,10 @@ export function MobileCompleteSidebar({
           </div>
         </div>
 
-        <div className='mt-auto flex items-center flex-col gap-y-5 pb-4 overflow-visible'>
+        <div
+          className='mt-auto flex items-center flex-col gap-y-5 pb-4 overflow-visible
+          pb-6 md:pb-4'
+        >
           <NotificationBell />
           <UserButton
             afterSignOutUrl='/'
