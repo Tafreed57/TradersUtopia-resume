@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2, ArrowRight } from 'lucide-react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
+import { makeSecureRequest } from '@/lib/csrf-client';
 
 interface EnhancedTrialButtonProps {
   isSignedIn?: boolean;
@@ -34,7 +35,7 @@ export function EnhancedTrialButton({
       }
 
       try {
-        const response = await fetch('/api/check-payment-status');
+        const response = await makeSecureRequest('/api/check-payment-status');
         const data = await response.json();
         setSubscriptionData(data);
       } catch (error) {
@@ -66,7 +67,7 @@ export function EnhancedTrialButton({
     }
 
     try {
-      const response = await fetch('/api/subscription/check');
+      const response = await makeSecureRequest('/api/subscription/check');
       const data = await response.json();
       if (data.hasAccess) {
         router.push('/dashboard');
@@ -74,9 +75,12 @@ export function EnhancedTrialButton({
       }
 
       if (data.canStartTrial) {
-        const trialResponse = await fetch('/api/subscription/start-trial', {
-          method: 'POST',
-        });
+        const trialResponse = await makeSecureRequest(
+          '/api/subscription/start-trial',
+          {
+            method: 'POST',
+          }
+        );
         const trialData = await trialResponse.json();
         if (trialData.success) {
           toast.success(trialData.message);

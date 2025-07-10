@@ -41,7 +41,11 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 const middlewareOptions: ClerkMiddlewareOptions = {
-  authorizedParties: ['https://tradersutopia.com'],
+  authorizedParties: [
+    process.env.NODE_ENV === 'production'
+      ? 'https://tradersutopia.com'
+      : 'http://localhost:3000',
+  ],
   contentSecurityPolicy: {},
 };
 
