@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "ChannelType" AS ENUM ('TEXT', 'AUDIO', 'VIDEO');
+CREATE TYPE "ChannelType" AS ENUM ('TEXT');
 
 -- CreateEnum
 CREATE TYPE "MemberRole" AS ENUM ('MODERATOR', 'GUEST', 'ADMIN');
@@ -27,7 +27,6 @@ CREATE TABLE "Profile" (
     "stripeProductId" TEXT,
     "backupCodes" TEXT[],
     "isAdmin" BOOLEAN NOT NULL DEFAULT false,
-    "emailNotifications" JSONB DEFAULT '{"system": true, "payment": true, "mentions": true, "messages": true, "security": true, "serverUpdates": false}',
     "pushNotifications" JSONB DEFAULT '{"system": true, "payment": true, "mentions": true, "messages": true, "security": true, "serverUpdates": false}',
     "pushSubscriptions" JSONB[] DEFAULT ARRAY[]::JSONB[],
 
@@ -56,10 +55,26 @@ CREATE TABLE "Server" (
     "imageUrl" TEXT,
     "inviteCode" TEXT NOT NULL,
     "profileId" TEXT NOT NULL,
+    "defaultSectionName" TEXT NOT NULL DEFAULT 'Text Channels',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Server_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Section" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "serverId" TEXT NOT NULL,
+    "profileId" TEXT NOT NULL,
+    "parentId" TEXT,
+    "position" INTEGER NOT NULL DEFAULT 0,
+    "collapsed" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Section_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -81,6 +96,8 @@ CREATE TABLE "Channel" (
     "type" "ChannelType" NOT NULL DEFAULT 'TEXT',
     "profileId" TEXT NOT NULL,
     "serverId" TEXT NOT NULL,
+    "sectionId" TEXT,
+    "position" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -127,31 +144,28 @@ CREATE TABLE "DirectMessage" (
 );
 
 -- CreateTable
-CREATE TABLE "discord_messages" (
-    "id" SERIAL NOT NULL,
-    "msg_id" TEXT NOT NULL,
-    "channel_name" TEXT NOT NULL,
-    "content" TEXT,
-    "attachments" JSONB,
-    "reference_msg" JSONB,
-    "image_url" JSONB,
-    "timestamp" TIMESTAMP(3),
-    "relayed" INTEGER NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE "ChannelNotificationPreference" (
+    "id" TEXT NOT NULL,
+    "profileId" TEXT NOT NULL,
+    "channelId" TEXT NOT NULL,
+    "enabled" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "discord_messages_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ChannelNotificationPreference_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "channel_metadata" (
-    "id" SERIAL NOT NULL,
-    "channel_name" TEXT NOT NULL,
-    "channel_id" TEXT NOT NULL,
-    "last_processed_at" TIMESTAMP(3),
-    "message_count" INTEGER NOT NULL DEFAULT 0,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE "TrackRecordMessage" (
+    "id" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "adminId" TEXT NOT NULL,
+    "fileUrl" TEXT,
+    "deleted" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "channel_metadata_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "TrackRecordMessage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -170,6 +184,15 @@ CREATE UNIQUE INDEX "Server_inviteCode_key" ON "Server"("inviteCode");
 CREATE INDEX "Server_profileId_idx" ON "Server"("profileId");
 
 -- CreateIndex
+CREATE INDEX "Section_serverId_idx" ON "Section"("serverId");
+
+-- CreateIndex
+CREATE INDEX "Section_profileId_idx" ON "Section"("profileId");
+
+-- CreateIndex
+CREATE INDEX "Section_parentId_idx" ON "Section"("parentId");
+
+-- CreateIndex
 CREATE INDEX "Member_profileId_idx" ON "Member"("profileId");
 
 -- CreateIndex
@@ -180,6 +203,9 @@ CREATE INDEX "Channel_profileId_idx" ON "Channel"("profileId");
 
 -- CreateIndex
 CREATE INDEX "Channel_serverId_idx" ON "Channel"("serverId");
+
+-- CreateIndex
+CREATE INDEX "Channel_sectionId_idx" ON "Channel"("sectionId");
 
 -- CreateIndex
 CREATE INDEX "Message_channelId_idx" ON "Message"("channelId");
@@ -200,19 +226,31 @@ CREATE INDEX "DirectMessage_conversationId_idx" ON "DirectMessage"("conversation
 CREATE INDEX "DirectMessage_memberId_idx" ON "DirectMessage"("memberId");
 
 -- CreateIndex
-CREATE INDEX "discord_messages_channel_name_relayed_idx" ON "discord_messages"("channel_name", "relayed");
+CREATE INDEX "ChannelNotificationPreference_profileId_idx" ON "ChannelNotificationPreference"("profileId");
 
 -- CreateIndex
-CREATE INDEX "discord_messages_timestamp_idx" ON "discord_messages"("timestamp");
+CREATE INDEX "ChannelNotificationPreference_channelId_idx" ON "ChannelNotificationPreference"("channelId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "discord_messages_msg_id_channel_name_key" ON "discord_messages"("msg_id", "channel_name");
+CREATE UNIQUE INDEX "ChannelNotificationPreference_profileId_channelId_key" ON "ChannelNotificationPreference"("profileId", "channelId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "channel_metadata_channel_name_key" ON "channel_metadata"("channel_name");
+CREATE INDEX "TrackRecordMessage_adminId_idx" ON "TrackRecordMessage"("adminId");
+
+-- CreateIndex
+CREATE INDEX "TrackRecordMessage_createdAt_idx" ON "TrackRecordMessage"("createdAt");
 
 -- AddForeignKey
 ALTER TABLE "Server" ADD CONSTRAINT "Server_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Section" ADD CONSTRAINT "Section_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Section" ADD CONSTRAINT "Section_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Section" ADD CONSTRAINT "Section_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Section"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Member" ADD CONSTRAINT "Member_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -225,6 +263,9 @@ ALTER TABLE "Channel" ADD CONSTRAINT "Channel_profileId_fkey" FOREIGN KEY ("prof
 
 -- AddForeignKey
 ALTER TABLE "Channel" ADD CONSTRAINT "Channel_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Channel" ADD CONSTRAINT "Channel_sectionId_fkey" FOREIGN KEY ("sectionId") REFERENCES "Section"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Message" ADD CONSTRAINT "Message_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -243,3 +284,12 @@ ALTER TABLE "DirectMessage" ADD CONSTRAINT "DirectMessage_conversationId_fkey" F
 
 -- AddForeignKey
 ALTER TABLE "DirectMessage" ADD CONSTRAINT "DirectMessage_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChannelNotificationPreference" ADD CONSTRAINT "ChannelNotificationPreference_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChannelNotificationPreference" ADD CONSTRAINT "ChannelNotificationPreference_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrackRecordMessage" ADD CONSTRAINT "TrackRecordMessage_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
