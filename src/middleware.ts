@@ -42,6 +42,7 @@ const isPublicRoute = createRouteMatcher([
 
 const middlewareOptions: ClerkMiddlewareOptions = {
   authorizedParties: ['https://tradersutopia.com'],
+  contentSecurityPolicy: {},
 };
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
