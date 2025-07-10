@@ -1,4 +1,8 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import {
+  clerkMiddleware,
+  ClerkMiddlewareOptions,
+  createRouteMatcher,
+} from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
@@ -36,6 +40,10 @@ const isPublicRoute = createRouteMatcher([
   '/api/test-2fa-status',
 ]);
 
+const middlewareOptions: ClerkMiddlewareOptions = {
+  authorizedParties: ['https://tradersutopia.com'],
+};
+
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   if (isPublicRoute(req)) {
     return NextResponse.next();
@@ -47,7 +55,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.redirect(signInUrl);
   }
   return NextResponse.next();
-});
+}, middlewareOptions);
 
 export const config = {
   matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
