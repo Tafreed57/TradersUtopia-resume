@@ -218,9 +218,10 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
       </SheetTrigger>
       <SheetContent
         side='right'
-        className='w-[280px] bg-gradient-to-b from-gray-900 via-gray-900/95 to-black border-l border-gray-700/50 backdrop-blur-xl
-          safe-top
-          pt-8 md:pt-6'
+        className='w-[280px] bg-gradient-to-b from-gray-900 via-gray-900/95 to-black border-l border-gray-700/50 backdrop-blur-xl'
+        style={{
+          paddingTop: `calc(1.5rem + env(safe-area-inset-top))`,
+        }}
       >
         <div className='flex flex-col h-full pt-6'>
           {/* Logo */}

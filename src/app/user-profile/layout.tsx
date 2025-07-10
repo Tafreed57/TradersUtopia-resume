@@ -4,6 +4,8 @@ export default function UserProfileLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>{children}</div>
+    <div className='min-h-screen bg-gray-50 dark:bg-gray-900 safe-area-full'>
+      {children}
+    </div>
   );
 }

@@ -244,7 +244,7 @@ export function ProductPaymentGate({
 
   if (!isLoaded) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white flex items-center justify-center'>
+      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white flex items-center justify-center safe-area-full'>
         <div className='text-center'>
           <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4'></div>
           <p>Loading authentication...</p>
@@ -256,7 +256,7 @@ export function ProductPaymentGate({
   // Show sign-in required page for unauthenticated users (no redirect)
   if (!user) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white flex items-center justify-center p-4 relative overflow-hidden'>
+      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white flex items-center justify-center p-4 relative overflow-hidden safe-area-full'>
         {/* Animated Background Effects */}
         <div className='absolute inset-0 pointer-events-none'>
           <div className='absolute -top-40 -right-40 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl animate-pulse'></div>
@@ -346,7 +346,7 @@ export function ProductPaymentGate({
 
   if (loading) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black'>
+      <div className='min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black safe-area-full'>
         <ApiLoading
           isLoading={loading || apiLoading.isLoading}
           error={apiError}
@@ -378,7 +378,7 @@ export function ProductPaymentGate({
 
   if (!accessStatus?.hasAccess && !isAdminFromClerk) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white flex items-center justify-center p-4 relative overflow-hidden'>
+      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white flex items-center justify-center p-4 relative overflow-hidden safe-area-full'>
         {/* Animated Background Effects */}
         <div className='absolute inset-0 pointer-events-none'>
           <div className='absolute -top-40 -right-40 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl animate-pulse'></div>

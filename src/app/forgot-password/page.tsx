@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
 
   if (!isLoaded) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-black'>
+      <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-gray-900 to-black safe-area-full'>
         <Loader2 className='w-8 h-8 animate-spin text-yellow-500' />
       </div>
     );
@@ -281,7 +281,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className='min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-slate-900 via-gray-900 to-black'>
+    <div className='min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-slate-900 via-gray-900 to-black safe-area-full'>
       {/* Header */}
       <div className='w-full max-w-md mx-auto mb-8 text-center'>
         <h1 className='text-2xl sm:text-3xl font-bold text-white mb-2'>

@@ -33,12 +33,20 @@ export default function Page({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        paddingTop: `calc(1rem + env(safe-area-inset-top))`,
+        paddingBottom: `calc(1rem + env(safe-area-inset-bottom))`,
+        paddingLeft: `calc(1rem + env(safe-area-inset-left))`,
+        paddingRight: `calc(1rem + env(safe-area-inset-right))`,
       }}
     >
       {/* Back Button */}
       <button
         onClick={handleBack}
-        className='fixed top-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-gray-600/50 hover:border-gray-500 rounded-xl text-white font-medium transition-all duration-200 active:scale-[0.98] transform'
+        className='fixed z-50 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-gray-600/50 hover:border-gray-500 rounded-xl text-white font-medium transition-all duration-200 active:scale-[0.98] transform'
+        style={{
+          top: `calc(1rem + env(safe-area-inset-top))`,
+          left: `calc(1rem + env(safe-area-inset-left))`,
+        }}
       >
         <ArrowLeft className='w-4 h-4' />
         <span className='hidden sm:inline'>Back</span>

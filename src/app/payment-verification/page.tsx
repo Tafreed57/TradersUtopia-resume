@@ -78,7 +78,7 @@ export default function PaymentVerificationPage() {
       </div>
 
       {/* Header */}
-      <header className='absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto w-full'>
+      <header className='absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto w-full pwa-safe-top safe-area-inset-left safe-area-inset-right'>
         <div className='flex items-center gap-3 sm:gap-6'>
           {/* Logo and Title */}
           <Link href='/' className='flex items-center gap-2 sm:gap-3'>

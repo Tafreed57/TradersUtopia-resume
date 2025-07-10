@@ -342,7 +342,7 @@ body,
   touch-action: manipulation;
 }
 
-/* Safe area support for modern mobile devices */
+/* Safe area support for modern mobile devices - Enhanced for PWA */
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }
@@ -354,6 +354,115 @@ body,
 }
 .safe-right {
   padding-right: env(safe-area-inset-right);
+}
+
+/* Comprehensive safe area utilities for PWA */
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-area-inset-left {
+  padding-left: env(safe-area-inset-left);
+}
+.safe-area-inset-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Enhanced PWA-specific safe area classes - MINIMAL PADDING */
+.pwa-safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.pwa-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pwa-safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+.pwa-safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* PWA Header specific - ensures proper spacing for headers */
+.pwa-header-safe {
+  padding-top: calc(0.5rem + env(safe-area-inset-top));
+  min-height: calc(3.5rem + env(safe-area-inset-top));
+}
+
+/* PWA Chat header specific */
+.pwa-chat-header-safe {
+  padding-top: calc(0.25rem + env(safe-area-inset-top));
+  min-height: calc(3rem + env(safe-area-inset-top));
+}
+
+/* PWA Button positioning - for fixed positioned buttons */
+.pwa-button-safe {
+  top: calc(1rem + env(safe-area-inset-top)) !important;
+  left: calc(1rem + env(safe-area-inset-left)) !important;
+}
+
+/* Toast/Notification positioning - PWA safe area */
+[data-sonner-toaster] {
+  top: calc(1rem + env(safe-area-inset-top)) !important;
+  right: calc(1rem + env(safe-area-inset-right)) !important;
+}
+
+/* Ensure individual toasts also respect safe area */
+[data-sonner-toast] {
+  margin-top: 0 !important;
+}
+
+/* Full safe area coverage for overlays */
+.safe-area-full {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Safe area with margin instead of padding */
+.safe-area-margin-top {
+  margin-top: env(safe-area-inset-top);
+}
+.safe-area-margin-bottom {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+.safe-area-margin-left {
+  margin-left: env(safe-area-inset-left);
+}
+.safe-area-margin-right {
+  margin-right: env(safe-area-inset-right);
+}
+
+/* Fixed positioning helpers with safe area */
+.fixed-top-safe {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  left: 0;
+  right: 0;
+}
+.fixed-bottom-safe {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom);
+  left: 0;
+  right: 0;
+}
+
+/* Height utilities that account for safe areas */
+.safe-screen-height {
+  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+.safe-min-height {
+  min-height: calc(
+    100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+}
+
+/* Layout container for PWA */
+.pwa-layout {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Utility class to ensure overflow visible */
@@ -476,12 +585,19 @@ body,
     font-size: 16px; /* Prevents zoom on iOS */
   }
 
-  /* Mobile input optimization */
+  /* Mobile input optimization - CRITICAL: Prevents iOS zoom */
   input,
   select,
-  textarea {
+  textarea,
+  [role='textbox'],
+  [contenteditable] {
     min-height: 44px;
-    font-size: 16px; /* Prevents zoom on iOS */
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+
+  /* Ensure command palette input specifically */
+  .cmdk-input {
+    font-size: 16px !important;
   }
 
   /* Reduce motion for better mobile performance */

@@ -16,7 +16,7 @@ export default function SupportPage() {
     <div className='min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white'>
       <SharedNavbar />
 
-      <section className='relative pt-20 pb-16 overflow-hidden safe-top pt-24 md:pt-20'>
+      <section className='relative pt-20 pb-16 overflow-hidden pwa-safe-top pt-24 md:pt-20'>
         <div className='absolute inset-0 bg-gradient-to-br from-purple-900/20 via-gray-900/40 to-black/80'></div>
         <div className='relative max-w-7xl mx-auto px-4 sm:px-6'>
           <div className='flex items-center gap-4 mb-8'>

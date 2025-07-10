@@ -93,9 +93,9 @@ export async function sendPushNotification(
     const payload = JSON.stringify({
       title: data.title,
       body: data.message,
-      icon: '/logo.svg',
-      badge: '/logo.svg',
-      image: data.icon || getNotificationIcon(data.type),
+      icon: '/logo.png',
+      badge: '/logo.png',
+      image: '/logo.png',
       data: {
         url: data.actionUrl || '/',
         type: data.type,
@@ -106,7 +106,7 @@ export async function sendPushNotification(
             {
               action: 'open',
               title: 'View',
-              icon: '/logo.svg',
+              icon: '/logo.png',
             },
           ]
         : [],

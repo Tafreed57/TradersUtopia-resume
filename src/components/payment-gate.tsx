@@ -44,7 +44,7 @@ export function PaymentGate({ children }: PaymentGateProps) {
 
   if (loading) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center'>
+      <div className='min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center safe-area-full'>
         <div className='text-white text-center'>
           <div className='animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4'></div>
           <p className='text-xl'>Checking your subscription...</p>
@@ -60,7 +60,7 @@ export function PaymentGate({ children }: PaymentGateProps) {
 
   if (hasAccess === false) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-6'>
+      <div className='min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center p-6 safe-area-full'>
         <div className='bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full border border-white/20 text-center'>
           <div className='text-6xl mb-4'>🔒</div>
           <h2 className='text-2xl font-bold text-white mb-4'>

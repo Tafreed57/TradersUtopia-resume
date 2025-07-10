@@ -101,7 +101,7 @@ export default function PrivacyPolicyPage() {
       <SharedNavbar />
 
       {/* Hero Section */}
-      <section className='relative pt-20 pb-16 overflow-hidden safe-top pt-24 md:pt-20'>
+      <section className='relative pt-20 pb-16 overflow-hidden pwa-safe-top pt-24 md:pt-20'>
         <div className='absolute inset-0 bg-gradient-to-br from-blue-900/20 via-gray-900/40 to-black/80'></div>
         <div className='relative max-w-7xl mx-auto px-4 sm:px-6'>
           <div className='flex items-center gap-4 mb-8'>
@@ -143,7 +143,7 @@ export default function PrivacyPolicyPage() {
         <div className='grid lg:grid-cols-4 gap-8'>
           {/* Table of Contents - Sidebar */}
           <div className='lg:col-span-1'>
-            <div className='sticky top-24 bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-4 sm:p-6 border border-gray-700/50 backdrop-blur-sm'>
+            <div className='sticky top-24 bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 rounded-2xl p-4 sm:p-6 border border-gray-700/50 backdrop-blur-sm pwa-safe-top'>
               <h3 className='text-lg font-semibold mb-4 text-blue-400'>
                 Table of Contents
               </h3>

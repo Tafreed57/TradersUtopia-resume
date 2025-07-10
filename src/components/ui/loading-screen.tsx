@@ -55,7 +55,7 @@ export function LoadingScreen({
   if (!isVisible) return null;
 
   return (
-    <div className='fixed inset-0 z-[9999] bg-gradient-to-br from-gray-950 via-slate-950/90 to-black text-white'>
+    <div className='fixed inset-0 z-[9999] bg-gradient-to-br from-gray-950 via-slate-950/90 to-black text-white safe-area-full'>
       {/* Animated Background Effects */}
       <div className='absolute inset-0 overflow-hidden'>
         <div className='absolute -top-40 -right-40 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl animate-pulse'></div>

@@ -128,7 +128,17 @@ export const notificationActionSchema = z.object({
     .optional(),
   title: z.string().min(1).max(200).optional(),
   message: z.string().min(1).max(1000).optional(),
-  actionUrl: z.string().optional(),
+  actionUrl: z
+    .string()
+    .optional()
+    .refine(
+      url =>
+        !url ||
+        (!url.includes('💬') &&
+          !url.includes('%F0%9F%92%AC') &&
+          url.startsWith('/')),
+      { message: 'Action URL must be a valid path and cannot contain emojis' }
+    ),
 });
 
 export const pushSubscriptionSchema = z.object({

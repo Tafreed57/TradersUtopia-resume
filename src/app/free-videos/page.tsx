@@ -306,7 +306,7 @@ export default function FreeVideosPage() {
         <SharedNavbar currentPage='free-videos' />
 
         {/* Hero Section - Mobile-First */}
-        <section className='max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-12 sm:pb-16'>
+        <section className='max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-12 sm:pb-16 pwa-safe-top'>
           <div className='text-center mb-12 sm:mb-16'>
             {/* Free Badge */}
             <div className='inline-flex items-center gap-2 bg-green-600/20 border border-green-400/30 rounded-full px-3 sm:px-4 py-2 mb-4 sm:mb-6 text-sm'>

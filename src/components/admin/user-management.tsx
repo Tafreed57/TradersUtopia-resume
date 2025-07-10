@@ -559,7 +559,7 @@ export function UserManagement({
 
       {/* Mobile-Responsive Detailed User View Modal */}
       {showDetailedView && selectedUser && (
-        <div className='fixed inset-0 bg-black/60 flex items-center justify-center p-2 sm:p-4 z-50 backdrop-blur-sm'>
+        <div className='fixed inset-0 bg-black/60 flex items-center justify-center p-2 sm:p-4 z-50 backdrop-blur-sm safe-area-full'>
           <Card className='w-full max-w-[95vw] sm:max-w-4xl max-h-[95vh] sm:max-h-[90vh] bg-gray-900 border-gray-600 flex flex-col shadow-2xl'>
             {/* Enhanced Header */}
             <CardHeader className='flex-shrink-0 pb-3 sm:pb-6 border-b border-gray-700/50'>

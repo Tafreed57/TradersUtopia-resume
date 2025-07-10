@@ -49,9 +49,10 @@ export function MobileToggle({ server, role, servers }: MobileToggleProps) {
       </SheetTrigger>
       <SheetContent
         side='left'
-        className='p-0 flex gap-0 max-w-[90vw] w-[400px]
-          safe-top
-          pt-6 md:pt-0'
+        className='p-0 flex gap-0 max-w-[90vw] w-[400px]'
+        style={{
+          paddingTop: `calc(1.5rem + env(safe-area-inset-top))`,
+        }}
       >
         <div className='w-full h-full'>
           <MobileCompleteSidebar

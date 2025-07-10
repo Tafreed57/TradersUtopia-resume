@@ -89,15 +89,15 @@ self.addEventListener('push', (event) => {
     // Enhanced notification options with mobile optimization
     const options = {
       body: data.body || data.message || 'You have a new notification',
-      icon: data.icon || '/logo.svg',
-      badge: data.badge || '/logo.svg',
-      image: data.image,
+      icon: data.icon || '/logo.png',
+      badge: data.badge || '/logo.png',
+      image: data.image || '/logo.png',
       data: data.data || {},
       actions: data.actions || [
         {
           action: 'open',
           title: 'View',
-          icon: '/logo.svg',
+          icon: '/logo.png',
         },
         {
           action: 'dismiss',
@@ -184,7 +184,13 @@ self.addEventListener('notificationclick', (event) => {
   }
 
   if (event.action === 'open' || !event.action) {
-    const urlToOpen = data.url || '/dashboard';
+    let urlToOpen = data.url || '/dashboard';
+    
+    // ✅ SECURITY: Prevent emoji URLs
+    if (urlToOpen.includes('💬') || urlToOpen.includes('%F0%9F%92%AC') || /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/u.test(urlToOpen)) {
+      console.warn('🚨 [SW] Invalid URL contains emoji:', urlToOpen);
+      urlToOpen = '/dashboard';
+    }
     
     event.waitUntil(
       clients.matchAll({ 

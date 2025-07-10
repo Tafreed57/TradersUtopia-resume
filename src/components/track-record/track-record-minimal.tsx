@@ -226,7 +226,7 @@ export function TrackRecordMinimal() {
   return (
     <div className='flex flex-col h-[600px] md:h-[700px] bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95'>
       {/* Enhanced Header */}
-      <div className='sticky top-0 z-10 px-4 md:px-6 py-4 bg-gradient-to-r from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-b border-gray-700/50'>
+      <div className='sticky top-0 z-10 px-4 md:px-6 py-4 bg-gradient-to-r from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-b border-gray-700/50 pwa-safe-top'>
         <div className='flex items-center justify-between'>
           <div className='flex items-center gap-4'>
             <div className='flex items-center gap-3'>

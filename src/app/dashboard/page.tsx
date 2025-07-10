@@ -65,12 +65,14 @@ export default async function Dashboard() {
           {/* Enhanced Header - Mobile-Optimized with Better Spacing */}
           <header className='w-full mobile-header-spacing dashboard-header'>
             {/* Mobile Header */}
-            <div className='flex md:hidden items-center w-full px-2 py-3 bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-xl border border-gray-700/30 shadow-2xl
-              safe-top
-              pt-6 md:pt-4
-              min-h-[4.5rem]
-              max-w-none mx-0'>
-              
+            <div
+              className='flex md:hidden items-center w-full px-2 py-3 bg-gradient-to-r from-gray-800/60 via-gray-800/40 to-gray-900/60 backdrop-blur-xl rounded-xl border border-gray-700/30 shadow-2xl max-w-none mx-0'
+              style={{
+                paddingTop: `env(safe-area-inset-top)`,
+                height: `calc(3.5rem + env(safe-area-inset-top))`,
+                maxHeight: `calc(3.5rem + env(safe-area-inset-top))`,
+              }}
+            >
               {/* Left section with icon and text */}
               <div className='flex items-center gap-2 min-w-0 flex-[2]'>
                 <div className='w-7 h-7 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0'>
@@ -81,11 +83,12 @@ export default async function Dashboard() {
                     Dashboard
                   </div>
                   <div className='text-gray-400 text-xs leading-tight max-w-[140px] whitespace-nowrap overflow-hidden text-ellipsis'>
-                    Welcome, {profile.name?.split(' ')[0] || profile.name || 'User'}
+                    Welcome,{' '}
+                    {profile.name?.split(' ')[0] || profile.name || 'User'}
                   </div>
                 </div>
               </div>
-              
+
               {/* Right section with buttons */}
               <div className='flex items-center gap-0.5 flex-shrink-0 ml-1'>
                 <div className='scale-90'>

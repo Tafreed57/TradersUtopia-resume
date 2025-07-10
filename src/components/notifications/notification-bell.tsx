@@ -228,6 +228,23 @@ export function NotificationBell() {
     }
 
     if (notification.actionUrl) {
+      // ✅ SECURITY: Prevent emoji URLs and validate format
+      if (
+        notification.actionUrl.includes('💬') ||
+        notification.actionUrl.includes('%F0%9F%92%AC') ||
+        /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/u.test(
+          notification.actionUrl
+        )
+      ) {
+        console.warn(
+          '🚨 [NOTIFICATION] Invalid URL contains emoji:',
+          notification.actionUrl
+        );
+        router.push('/servers/cmco7gxye0002zuystrej89un');
+        setIsOpen(false);
+        return;
+      }
+
       // ✅ FIXED: Validate URL format and check if server/channel exists
       const urlMatch = notification.actionUrl.match(
         /\/servers\/([^\/]+)(?:\/channels\/([^\/]+))?/

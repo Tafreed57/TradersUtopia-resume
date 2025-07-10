@@ -65,10 +65,10 @@ export function MobileCompleteSidebar({
     <div className='flex h-full'>
       {/* Main Server List - Left Side */}
       <div
-        className='w-24 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30
-        safe-top
-        pt-8 md:pt-5
-        touch-manipulation'
+        className='w-24 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30 touch-manipulation'
+        style={{
+          paddingTop: `calc(1.25rem + env(safe-area-inset-top))`,
+        }}
       >
         {/* Dashboard Link */}
         <div className='mb-5 overflow-visible'>

@@ -51,7 +51,7 @@ export default async function ServerIdLayout({
 
   const serverContent = (
     <section className='h-full overflow-visible'>
-      <div className='hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0 left-[96px] overflow-visible'>
+      <div className='hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0 left-[96px] overflow-visible safe-area-inset-top safe-area-inset-bottom'>
         {await ServerSideBar({ serverId: params.serverId })}
       </div>
       <main className='h-full md:pl-60 overflow-visible'>{children}</main>

@@ -15,9 +15,9 @@ export default function TrackRecordPage() {
       <SharedNavbar currentPage='track-record' />
 
       {/* Main Content */}
-      <main className='relative'>
+      <main className='relative safe-area-inset-top'>
         {/* Header Section */}
-        <div className='relative pt-8 pb-12 px-4 sm:px-6 lg:px-8'>
+        <div className='relative pt-8 pb-12 px-4 sm:px-6 lg:px-8 pwa-safe-top'>
           {/* Background Pattern */}
           <div className='absolute inset-0 overflow-hidden'>
             <div className='absolute -top-40 -right-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl' />

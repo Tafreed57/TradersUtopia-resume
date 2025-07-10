@@ -4,7 +4,7 @@ import { UserProfile } from '@clerk/nextjs';
 
 export default function UserProfilePage() {
   return (
-    <div className='min-h-screen bg-gray-50 dark:bg-gray-900 py-8'>
+    <div className='min-h-screen bg-gray-50 dark:bg-gray-900 py-8 safe-area-inset-top safe-area-inset-bottom'>
       <div className='max-w-4xl mx-auto px-4'>
         <div className='mb-6'>
           <h1 className='text-2xl font-bold text-gray-900 dark:text-white mb-2'>

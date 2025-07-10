@@ -26,7 +26,7 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    { media: '(prefers-color-scheme: dark)', color: '#1E1F22' },
   ],
 };
 
@@ -126,7 +126,7 @@ export default function RootLayout({
       <body
         className={cn(
           open_sans.className,
-          'bg-white dark:bg-gradient-to-br dark:from-gray-900/95 dark:via-gray-800/90 dark:to-gray-900/95 overflow-visible min-h-screen'
+          'bg-white dark:bg-gradient-to-br dark:from-gray-900/95 dark:via-gray-800/90 dark:to-gray-900/95 overflow-visible min-h-screen safe-area-full'
         )}
       >
         <ClerkProvider
@@ -167,6 +167,12 @@ export default function RootLayout({
                       richColors
                       closeButton
                       className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
+                      style={
+                        {
+                          '--toaster-top': `calc(1rem + env(safe-area-inset-top))`,
+                          '--toaster-right': `calc(1rem + env(safe-area-inset-right))`,
+                        } as React.CSSProperties
+                      }
                       toastOptions={{
                         className:
                           'text-sm p-4 min-h-[48px] touch-manipulation',

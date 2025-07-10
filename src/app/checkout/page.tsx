@@ -9,7 +9,7 @@ export default function CheckoutPage() {
   return (
     <div className='min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900'>
       {/* Header */}
-      <header className='flex items-center justify-between p-6 max-w-7xl mx-auto'>
+      <header className='flex items-center justify-between p-6 max-w-7xl mx-auto pwa-safe-top'>
         <div className='flex items-center gap-6'>
           {/* Logo and Title */}
           <Link href='/' className='flex items-center gap-3'>
@@ -49,7 +49,8 @@ export default function CheckoutPage() {
                 'https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01',
                 '_blank'
               )
-            } className='w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-semibold'
+            }
+            className='w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-semibold'
           >
             Go to Secure Checkout
           </Button>

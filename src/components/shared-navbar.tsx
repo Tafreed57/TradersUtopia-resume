@@ -21,6 +21,7 @@ import {
   MessageSquare,
   Loader2,
 } from 'lucide-react';
+import { SocialMediaButtons } from '@/components/social-media-buttons';
 
 interface SharedNavbarProps {
   currentPage?:
@@ -55,9 +56,17 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
       <div
         className={`w-full transition-all duration-300 ease-in-out ${
           isScrolled
-            ? 'fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-2 safe-top pt-6 md:pt-2'
-            : 'px-4 sm:px-6 pt-4 sm:pt-6'
+            ? 'fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-2'
+            : 'px-4 sm:px-6 pt-4 sm:pt-6 safe-area-inset-top'
         }`}
+        style={
+          isScrolled
+            ? {
+                paddingTop: `calc(0.5rem + env(safe-area-inset-top))`,
+                minHeight: `calc(4rem + env(safe-area-inset-top))`,
+              }
+            : {}
+        }
       >
         <header
           className={`flex items-center p-3 sm:p-4 lg:p-6 max-w-7xl mx-auto backdrop-blur-xl border min-h-[72px] transition-all duration-300 ease-in-out touch-manipulation ${
@@ -321,6 +330,18 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
             </div>
           </div>
         </header>
+
+        {/* Social Media Buttons - Positioned Below Navbar */}
+        <div className='flex justify-center mt-3 sm:mt-4'>
+          <div className='bg-gradient-to-r from-gray-800/40 via-gray-700/30 to-gray-800/40 backdrop-blur-sm rounded-full px-4 py-2 border border-gray-600/20'>
+            <div className='hidden lg:block'>
+              <SocialMediaButtons variant='navbar' />
+            </div>
+            <div className='lg:hidden'>
+              <SocialMediaButtons variant='compact' />
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );

@@ -91,7 +91,7 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
 
   if (!paymentStatus?.hasAccess) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4'>
+      <div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4 safe-area-full'>
         <Card className='w-full max-w-2xl'>
           <CardHeader className='text-center'>
             <div className='mx-auto mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-full w-fit'>

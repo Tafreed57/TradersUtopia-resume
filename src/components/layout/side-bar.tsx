@@ -19,10 +19,10 @@ export async function SideBar() {
 
   return (
     <div
-      className='flex flex-col items-center h-full text-primary w-full bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible
-      safe-top
-      pt-8 md:pt-5
-      touch-manipulation'
+      className='flex flex-col items-center h-full text-primary w-full bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible touch-manipulation'
+      style={{
+        paddingTop: `calc(1.25rem + env(safe-area-inset-top))`,
+      }}
     >
       {/* Dashboard Link */}
       <div className='mb-5 overflow-visible'>

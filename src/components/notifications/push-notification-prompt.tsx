@@ -297,7 +297,7 @@ export function PushNotificationPrompt() {
   // Show different UI based on browser support
   if (!pushSupported) {
     return (
-      <Card className='fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] border-orange-500/30 bg-gradient-to-br from-orange-900/40 to-red-900/40 backdrop-blur-md shadow-2xl'>
+      <Card className='fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] border-orange-500/30 bg-gradient-to-br from-orange-900/40 to-red-900/40 backdrop-blur-md shadow-2xl pwa-safe-bottom'>
         <CardContent className='p-4'>
           <div className='flex items-start gap-3'>
             <div className='w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center flex-shrink-0'>
@@ -355,7 +355,7 @@ export function PushNotificationPrompt() {
   }
 
   return (
-    <Card className='fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] border-blue-500/30 bg-gradient-to-br from-blue-900/40 to-indigo-900/40 backdrop-blur-md shadow-2xl'>
+    <Card className='fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)] border-blue-500/30 bg-gradient-to-br from-blue-900/40 to-indigo-900/40 backdrop-blur-md shadow-2xl pwa-safe-bottom'>
       <CardContent className='p-4'>
         <div className='flex items-start gap-3'>
           <div className='w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0'>

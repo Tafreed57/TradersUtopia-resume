@@ -31,11 +31,12 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   return (
     <div
-      className='sticky top-0 z-50 text-md font-semibold px-3 flex items-center h-12 border-neutral-200 dark:border-neutral-800 border-b-2 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl
-      safe-top
-      pt-4 md:pt-0
-      min-h-[4rem] md:min-h-[3rem]
-      touch-manipulation'
+      className='sticky top-0 z-50 text-md font-semibold px-3 flex items-center border-neutral-200 dark:border-neutral-800 border-b-2 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl touch-manipulation'
+      style={{
+        paddingTop: `env(safe-area-inset-top)`,
+        minHeight: `calc(3rem + env(safe-area-inset-top))`,
+        height: `calc(3rem + env(safe-area-inset-top))`,
+      }}
     >
       {server ? (
         <MobileToggle server={server} role={role} servers={servers} />
