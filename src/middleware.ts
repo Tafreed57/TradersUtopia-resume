@@ -4,6 +4,7 @@ import {
   createRouteMatcher,
 } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { findOrCreateProfile } from '@/lib/safe-profile-operations';
 
 const isPublicRoute = createRouteMatcher([
   '/',
@@ -53,12 +54,22 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   if (isPublicRoute(req)) {
     return NextResponse.next();
   }
+  console.log('middleware', process.env);
   const { userId } = await auth();
   if (!userId) {
     const signInUrl = new URL('/sign-in', req.url);
     signInUrl.searchParams.set('redirect_url', req.url);
     return NextResponse.redirect(signInUrl);
   }
+
+  // Create or find user profile after successful authentication
+  // try {
+  //   await findOrCreateProfile();
+  // } catch (error) {
+  //   console.error('Error creating/finding profile:', error);
+  //   // Continue even if profile creation fails - we'll try again on next request
+  // }
+
   return NextResponse.next();
 }, middlewareOptions);
 
