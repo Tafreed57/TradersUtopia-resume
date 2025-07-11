@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentProfileForAuth } from '@/lib/query';
+import { getCurrentProfileWithSync } from '@/lib/query';
 import { rateLimitAdmin, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ✅ PERFORMANCE: Use lightweight auth for frequent admin checks
-    const profile = await getCurrentProfileForAuth();
+    const profile = await getCurrentProfileWithSync();
     if (!profile) {
       trackSuspiciousActivity(request, 'UNAUTHENTICATED_ADMIN_CHECK');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

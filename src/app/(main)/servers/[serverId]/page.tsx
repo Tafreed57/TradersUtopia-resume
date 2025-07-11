@@ -1,4 +1,4 @@
-import { getCurrentProfile, getGeneralServer } from '@/lib/query';
+import { getCurrentProfileForAuth, getGeneralServer } from '@/lib/query';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
@@ -9,7 +9,8 @@ interface ServerIdPageProps {
 }
 
 export default async function ServerIdPage({ params }: ServerIdPageProps) {
-  const profile = await getCurrentProfile();
+  const profile = await getCurrentProfileForAuth();
+
   if (!profile) {
     const { redirectToSignIn } = await auth();
     return redirectToSignIn();

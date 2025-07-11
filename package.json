@@ -19,9 +19,11 @@
     "migrate:dev": "npx prisma migrate dev",
     "migrate:deploy": "npx prisma migrate deploy",
     "migrate:reset": "npx prisma migrate reset",
-    "migrate:status": "npx prisma migrate status"
+    "migrate:status": "npx prisma migrate status",
+    "seed": "ts-node scripts/seed.js"
   },
   "dependencies": {
+    "@clerk/backend": "^2.4.1",
     "@clerk/nextjs": "^6.23.3",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",

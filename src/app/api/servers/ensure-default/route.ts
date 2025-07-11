@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prismadb';
-import { MemberRole } from '@prisma/client';
+import { MemberRole, ChannelType } from '@prisma/client';
 import { getCurrentProfile } from '@/lib/query';
 
 export const dynamic = 'force-dynamic';
@@ -24,22 +24,67 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // If no admin-owned server, create one
+    // If no admin-owned server exists, create one with all necessary relations
     if (!server) {
-      server = await prisma.server.create({
-        data: {
-          name: 'TradersUtopia HQ',
-          imageUrl: '',
-          inviteCode: crypto.randomUUID(),
-          profileId: profile.id, // Assign to current user for now
-          members: {
-            create: [{ profileId: profile.id, role: MemberRole.ADMIN }],
+      server = await prisma.$transaction(async tx => {
+        // Create the server first
+        const newServer = await tx.server.create({
+          data: {
+            name: 'TradersUtopia HQ',
+            imageUrl: '/logo.png', // Use default logo
+            inviteCode: crypto.randomUUID(),
+            profileId: profile.id,
           },
-        },
+        });
+
+        // Create the member relationship
+        await tx.member.create({
+          data: {
+            serverId: newServer.id,
+            profileId: profile.id,
+            role: profile.isAdmin ? MemberRole.ADMIN : MemberRole.GUEST,
+          },
+        });
+
+        // Create the default section
+        const section = await tx.section.create({
+          data: {
+            name: 'Text Channels',
+            serverId: newServer.id,
+            profileId: profile.id,
+          },
+        });
+
+        // Create the default channel
+        await tx.channel.create({
+          data: {
+            name: 'general',
+            type: ChannelType.TEXT,
+            position: 0,
+            serverId: newServer.id,
+            sectionId: section.id,
+            profileId: profile.id,
+          },
+        });
+
+        // Return the server with all relations
+        return tx.server.findFirst({
+          where: { id: newServer.id },
+          include: {
+            members: true,
+            sections: {
+              include: {
+                channels: true,
+              },
+            },
+          },
+        });
       });
+
+      return Response.json({ success: true, server });
     }
 
-    // Ensure the current user is a member of this default server
+    // If server exists, ensure current user is a member
     const existingMember = await prisma.member.findFirst({
       where: {
         serverId: server.id,
@@ -59,6 +104,7 @@ export async function POST(request: NextRequest) {
 
     return Response.json({ success: true, server });
   } catch (error) {
+    console.error('[SERVER_CREATE_ERROR]', error);
     return new Response('Internal Server Error', { status: 500 });
   }
 }

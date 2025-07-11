@@ -63,3 +63,6 @@ node_modules/.cache/
 # Chunk files (to prevent committing broken chunks)
 **/*.chunk.js
 **/*.chunk.*.js
+
+# Prisma
+scripts/seed.js

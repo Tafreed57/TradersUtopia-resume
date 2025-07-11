@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentProfileForAuth } from '@/lib/query';
+import { getCurrentProfileWithSync } from '@/lib/query';
 import { db } from '@/lib/db';
 import Stripe from 'stripe';
 import {
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ PERFORMANCE: Use lightweight auth instead of full Clerk API
-    const profile = await getCurrentProfileForAuth();
+    const profile = await getCurrentProfileWithSync();
     if (!profile) {
       trackSuspiciousActivity(request, 'UNAUTHENTICATED_SUBSCRIPTION_CHECK');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
@@ -224,7 +224,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     trackSuspiciousActivity(request, 'SUBSCRIPTION_CHECK_ERROR');
-
     // ✅ SECURITY: Don't expose detailed error information
     return NextResponse.json(
       {
