@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { rateLimitDragDrop, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { MemberRole } from '@prisma/client';
 import { strictCSRFValidation } from '@/lib/csrf';
+import { getAdminProfile } from '@/lib/query';
 
 const reorderChannelSchema = z.object({
   serverId: z.string(),
@@ -46,13 +47,7 @@ export async function PATCH(req: NextRequest) {
       reorderChannelSchema.parse(body);
 
     // Get current profile
-    const profile = await prisma.profile.findUnique({
-      where: { userId },
-    });
-
-    if (!profile) {
-      return new NextResponse('Profile not found', { status: 404 });
-    }
+    const profile = await getAdminProfile(userId);
 
     // Check if user is member of the server with appropriate permissions
     const member = await prisma.member.findFirst({

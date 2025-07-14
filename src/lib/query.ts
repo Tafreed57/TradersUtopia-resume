@@ -51,119 +51,119 @@ async function performLoginSync(userEmail: string) {
   }
 }
 
-export async function initProfile() {
-  noStore();
+// export async function initProfile() {
+//   noStore();
 
-  try {
-    const user = await currentUser();
-    if (!user) return (await auth()).redirectToSignIn();
+//   try {
+//     const user = await currentUser();
+//     if (!user) return (await auth()).redirectToSignIn();
 
-    const userEmail = user.primaryEmailAddress?.emailAddress;
+//     const userEmail = user.primaryEmailAddress?.emailAddress;
 
-    // Use safe profile finding/creation to prevent duplicates
-    try {
-      const profile = await findOrCreateProfile();
+//     // Use safe profile finding/creation to prevent duplicates
+//     try {
+//       const profile = await findOrCreateProfile();
 
-      // Trigger background sync and duplicate detection
-      if (userEmail) {
-        Promise.resolve()
-          .then(async () => {
-            await performLoginSync(userEmail);
-            await detectAndLogDuplicates();
-          })
-          .catch(error => {
-            console.error(
-              `❌ [Login Sync] Background operations failed for ${userEmail}:`,
-              error
-            );
-          });
-      }
+//       // Trigger background sync and duplicate detection
+//       if (userEmail) {
+//         Promise.resolve()
+//           .then(async () => {
+//             await performLoginSync(userEmail);
+//             await detectAndLogDuplicates();
+//           })
+//           .catch(error => {
+//             console.error(
+//               `❌ [Login Sync] Background operations failed for ${userEmail}:`,
+//               error
+//             );
+//           });
+//       }
 
-      return profile;
-    } catch (error) {
-      console.error(`❌ [INIT_PROFILE] Error initializing profile:`, error);
+//       return profile;
+//     } catch (error) {
+//       console.error(`❌ [INIT_PROFILE] Error initializing profile:`, error);
 
-      // Fallback to original logic if safe operations fail
-      const profile = await prisma.profile.findUnique({
-        where: { userId: user.id },
-        select: {
-          id: true,
-          userId: true,
-          name: true,
-          email: true,
-          imageUrl: true,
-          createdAt: true,
-          updatedAt: true,
-          stripeCustomerId: true,
-          stripeSessionId: true,
-          subscriptionEnd: true,
-          subscriptionStart: true,
-          subscriptionStatus: true,
-          stripeProductId: true,
-          backupCodes: true,
-          isAdmin: true,
-          pushNotifications: true,
-          pushSubscriptions: true,
-        },
-      });
+//       // Fallback to original logic if safe operations fail
+//       const profile = await prisma.profile.findUnique({
+//         where: { userId: user.id },
+//         select: {
+//           id: true,
+//           userId: true,
+//           name: true,
+//           email: true,
+//           imageUrl: true,
+//           createdAt: true,
+//           updatedAt: true,
+//           stripeCustomerId: true,
+//           stripeSessionId: true,
+//           subscriptionEnd: true,
+//           subscriptionStart: true,
+//           subscriptionStatus: true,
+//           stripeProductId: true,
+//           backupCodes: true,
+//           isAdmin: true,
+//           pushNotifications: true,
+//           pushSubscriptions: true,
+//         },
+//       });
 
-      if (profile) return profile;
+//       if (profile) return profile;
 
-      // Create new profile as last resort
-      const name =
-        user?.fullName ||
-        user?.firstName ||
-        user?.lastName ||
-        user.primaryEmailAddress?.emailAddress.split('@')[0] ||
-        'unknown';
+//       // Create new profile as last resort
+//       const name =
+//         user?.fullName ||
+//         user?.firstName ||
+//         user?.lastName ||
+//         user.primaryEmailAddress?.emailAddress.split('@')[0] ||
+//         'unknown';
 
-      const newProfile = await prisma.profile.create({
-        data: {
-          userId: user.id,
-          email: user.primaryEmailAddress?.emailAddress as string,
-          name: name,
-          imageUrl: user?.imageUrl,
-        },
-      });
+//       const newProfile = await prisma.profile.create({
+//         data: {
+//           userId: user.id,
+//           email: user.primaryEmailAddress?.emailAddress as string,
+//           name: name,
+//           imageUrl: user?.imageUrl,
+//         },
+//       });
 
-      // Create welcome notification for new users
-      try {
-        const welcomeMessage = `
-🎉 **Welcome to Traders Utopia, ${newProfile.name}!** 
+//       // Create welcome notification for new users
+//       try {
+//         const welcomeMessage = `
+// 🎉 **Welcome to Traders Utopia, ${newProfile.name}!**
 
-Your account has been successfully created. Explore the dashboard to customize your experience and start your trading journey.
+// Your account has been successfully created. Explore the dashboard to customize your experience and start your trading journey.
 
-**Get Started:**
-• Set up your profile and preferences
-• Join trading discussions and channels  
-• Access premium trading signals and analysis
-• Connect with our community of traders
+// **Get Started:**
+// • Set up your profile and preferences
+// • Join trading discussions and channels
+// • Access premium trading signals and analysis
+// • Connect with our community of traders
 
-**Need Help?** Use our support channels or check out our getting started guide.
+// **Need Help?** Use our support channels or check out our getting started guide.
 
-Happy Trading! 📈
-        `.trim();
+// Happy Trading! 📈
+//         `.trim();
 
-        await createNotification({
-          userId: user.id,
-          type: 'SYSTEM',
-          title: 'Welcome to TradersUtopia! 🎉',
-          message: welcomeMessage,
-          actionUrl: '/dashboard?tab=security',
-        });
-      } catch (error) {
-        console.error('Failed to create welcome notification:', error);
-      }
+//         await createNotification({
+//           userId: user.id,
+//           type: 'SYSTEM',
+//           title: 'Welcome to TradersUtopia! 🎉',
+//           message: welcomeMessage,
+//           actionUrl: '/dashboard?tab=security',
+//         });
+//       } catch (error) {
+//         console.error('Failed to create welcome notification:', error);
+//       }
 
-      return newProfile;
-    }
-  } catch (error) {
-    console.error('❌ [initProfile] Clerk authentication error:', error);
+//       return newProfile;
+//     }
+//   } catch (error) {
+//     console.error('❌ [initProfile] Clerk authentication error:', error);
 
-    // If Clerk authentication fails, redirect to sign in
-    return (await auth()).redirectToSignIn();
-  }
-}
+//     // If Clerk authentication fails, redirect to sign in
+//     return (await auth()).redirectToSignIn();
+//   }
+// }
 
 // ✅ PERFORMANCE: Lightweight auth function for frequent API calls (NO login sync)
 export async function getCurrentProfileForAuth() {
@@ -190,6 +190,7 @@ export async function getCurrentProfileForAuth() {
 export async function getCurrentProfileWithSync() {
   try {
     const user = await currentUser();
+    // console.log('user', user);
     if (!user) return (await auth()).redirectToSignIn();
 
     const userEmail = user.primaryEmailAddress?.emailAddress;
@@ -251,6 +252,26 @@ export async function getCurrentProfileWithSync() {
         imageUrl: user?.imageUrl,
       },
     });
+
+    console.log('profile', profile.name);
+    const server = await prisma.server.findFirstOrThrow({
+      where: {
+        name: 'TradersUtopia HQ',
+      },
+      select: {
+        id: true,
+      },
+    });
+    console.log('server', server.id);
+
+    const member = await prisma.member.create({
+      data: {
+        profileId: profile.id,
+        serverId: server.id,
+        role: 'GUEST',
+      },
+    });
+    console.log('member', member.id);
 
     if (userEmail) {
       // Run sync for new profiles
@@ -506,4 +527,17 @@ export async function getCurrentMember(serverId: string, profileId: string) {
     },
   });
   if (member) return member;
+}
+
+export async function getAdminProfile(userId: string) {
+  const profile = await prisma.profile.findUnique({
+    where: {
+      userId,
+      isAdmin: true,
+    },
+  });
+  if (!profile) {
+    throw new Error('Profile not found or insufficient permissions');
+  }
+  return profile;
 }

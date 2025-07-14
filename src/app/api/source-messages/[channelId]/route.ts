@@ -74,6 +74,9 @@ export async function GET(
     const botMember: Member = {
       id: `bot-member-${channelName}`,
       role: 'GUEST',
+      subscriptionStatus: SubscriptionStatus.FREE,
+      subscriptionEnd: null,
+      subscriptionStart: null,
       profileId: botProfile.id,
       serverId: 'source-server',
       createdAt: new Date(),

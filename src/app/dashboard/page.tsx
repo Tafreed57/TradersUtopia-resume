@@ -27,7 +27,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
-import { DashboardAutoJoin } from '@/components/dashboard-auto-join';
 import { UserManagement } from '@/components/admin/user-management';
 import { NotificationSettings } from '@/components/notifications/notification-settings';
 import { ProductPaymentGate } from '@/components/product-payment-gate';
@@ -158,10 +157,10 @@ export default async function Dashboard() {
           </header>
 
           {/* Auto-join to default server */}
-          <DashboardAutoJoin
+          {/* <DashboardAutoJoin
             hasServers={(servers?.length || 0) > 0}
             userId={profile.userId}
-          />
+          /> */}
 
           {/* Dashboard Stats - Mobile-First Cards with Enhanced Spacing */}
           <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-8 mb-10 sm:mb-12 w-full grid-mobile-safe'>

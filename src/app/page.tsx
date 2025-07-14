@@ -914,12 +914,12 @@ export default function HomePage() {
                   >
                     Pricing
                   </Link>
-                  <SubscriptionProtectedLink
+                  <Link
                     href='/dashboard'
                     className='text-gray-400 hover:text-white block'
                   >
                     Dashboard
-                  </SubscriptionProtectedLink>
+                  </Link>
                 </div>
               </div>
 

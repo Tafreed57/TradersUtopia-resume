@@ -71,6 +71,15 @@ export async function POST(request: NextRequest) {
           stripeProductId: profile.stripeProductId,
         },
       });
+    } else if (profile.subscriptionStatus === 'FREE') {
+      console.log('free', profile.subscriptionStatus);
+      return NextResponse.json(
+        {
+          hasAccess: false,
+          reason: 'No active subscription found for the required products',
+        },
+        { status: 401 }
+      );
     }
 
     // Enhanced Stripe API interaction with error handling
