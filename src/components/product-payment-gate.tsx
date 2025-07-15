@@ -5,11 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { useNavigationLoading } from '@/hooks/use-navigation-loading';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
-import {
-  ComponentLoading,
-  ApiLoading,
-  ButtonLoading,
-} from '@/components/ui/loading-components';
+import { ApiLoading, ButtonLoading } from '@/components/ui/loading-components';
 import {
   Card,
   CardContent,
