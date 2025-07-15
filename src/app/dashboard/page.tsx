@@ -156,12 +156,6 @@ export default async function Dashboard() {
             </div>
           </header>
 
-          {/* Auto-join to default server */}
-          {/* <DashboardAutoJoin
-            hasServers={(servers?.length || 0) > 0}
-            userId={profile.userId}
-          /> */}
-
           {/* Dashboard Stats - Mobile-First Cards with Enhanced Spacing */}
           <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-8 mb-10 sm:mb-12 w-full grid-mobile-safe'>
             <Card className='bg-gradient-to-br from-blue-600/20 via-blue-600/10 to-blue-700/20 border border-blue-400/30 backdrop-blur-md hover:border-blue-400/50 transition-all duration-500 hover:transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-400/20 touch-manipulation cursor-pointer min-w-0 card-mobile-safe'>

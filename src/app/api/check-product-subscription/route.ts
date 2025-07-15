@@ -53,7 +53,19 @@ export async function POST(request: NextRequest) {
     const { allowedProductIds } = validationResult.data;
 
     // ✅ PERFORMANCE: Check cached profile data first
-    if (
+    if (profile.isAdmin) {
+      return NextResponse.json({
+        hasAccess: true,
+        reason: 'Admin access granted',
+        productId: profile.stripeProductId,
+        subscriptionEnd: profile.subscriptionEnd,
+        profile: {
+          id: profile.id,
+          subscriptionStatus: profile.subscriptionStatus,
+          stripeProductId: profile.stripeProductId,
+        },
+      });
+    } else if (
       profile.subscriptionStatus === 'ACTIVE' &&
       profile.subscriptionEnd &&
       profile.stripeProductId &&
@@ -72,7 +84,6 @@ export async function POST(request: NextRequest) {
         },
       });
     } else if (profile.subscriptionStatus === 'FREE') {
-      console.log('free', profile.subscriptionStatus);
       return NextResponse.json(
         {
           hasAccess: false,
@@ -81,6 +92,8 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+    // TODO: NONE OF THE CODE BELOW THIS LINE IS EVER REACHED SINCE ONE
+    // OF THE ABOVE TWO CONDITIONS IS ALWAYS TRUE AND THE API CALL ENDS
 
     // Enhanced Stripe API interaction with error handling
     let customer;

@@ -88,6 +88,8 @@ export const SubscriptionProtectedLink = forwardRef<
         }
       );
 
+      console.log('result', result);
+
       if (result.hasAccess) {
         await navigate(href, {
           message: `Opening ${href}...`,

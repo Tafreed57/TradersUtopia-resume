@@ -190,7 +190,6 @@ export async function getCurrentProfileForAuth() {
 export async function getCurrentProfileWithSync() {
   try {
     const user = await currentUser();
-    // console.log('user', user);
     if (!user) return (await auth()).redirectToSignIn();
 
     const userEmail = user.primaryEmailAddress?.emailAddress;
@@ -253,7 +252,6 @@ export async function getCurrentProfileWithSync() {
       },
     });
 
-    console.log('profile', profile.name);
     const server = await prisma.server.findFirstOrThrow({
       where: {
         name: 'TradersUtopia HQ',
@@ -262,7 +260,6 @@ export async function getCurrentProfileWithSync() {
         id: true,
       },
     });
-    console.log('server', server.id);
 
     const member = await prisma.member.create({
       data: {
@@ -271,7 +268,6 @@ export async function getCurrentProfileWithSync() {
         role: 'GUEST',
       },
     });
-    console.log('member', member.id);
 
     if (userEmail) {
       // Run sync for new profiles
