@@ -82,6 +82,7 @@ model Server {
   members            Member[]
   sections           Section[]
   profile            Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
 
   @@index([profileId])
 }

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import {
   Menu,
   Home,
@@ -22,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { useSmartRouting } from '@/lib/smart-routing';
 import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs';
 import NextImage from 'next/image';
+import Link from 'next/link';
 
 interface GlobalMobileMenuProps {
   currentPage?:
@@ -248,7 +248,7 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
               // Special handling for Dashboard button with comprehensive loading
               if (item.id === 'dashboard') {
                 return (
-                  <SubscriptionProtectedLink
+                  <Link
                     key={item.id}
                     href='/dashboard'
                     variant='ghost'
@@ -273,7 +273,7 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
                       <Icon className='w-4 h-4 mr-3' />
                     )}
                     {isNavigatingToDashboard ? 'Loading...' : item.label}
-                  </SubscriptionProtectedLink>
+                  </Link>
                 );
               }
 

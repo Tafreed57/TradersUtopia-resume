@@ -6,7 +6,6 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import { SignedIn, UserButton, useUser, SignedOut } from '@clerk/nextjs';
 import { AuthHeader } from '@/components/auth-header';
-import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
 import { useScrollPosition } from '@/hooks/use-scroll-position';
 import { useEffect, useState } from 'react';
@@ -118,9 +117,8 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
             {currentPage === 'home' ? (
               // Homepage Section Anchor Links
               <>
-                <SubscriptionProtectedLink
+                <Link
                   href='/dashboard'
-                  variant='ghost'
                   className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 hover:border-yellow-400/30 hover:scale-105 active:scale-95 ${
                     isNavigatingToDashboard
                       ? 'border-yellow-400/50 bg-yellow-400/10 opacity-75'
@@ -147,7 +145,7 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
                   <span className='lg:hidden'>
                     {isNavigatingToDashboard ? 'Loading...' : 'App'}
                   </span>
-                </SubscriptionProtectedLink>
+                </Link>
 
                 <a href='#features'>
                   <Button
@@ -242,9 +240,8 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
                   </Button>
                 </Link>
 
-                <SubscriptionProtectedLink
+                <Link
                   href='/dashboard'
-                  variant='ghost'
                   className={`h-10 px-3 sm:px-4 text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30 transition-all duration-200 ${
                     currentPage === 'dashboard'
                       ? 'border-yellow-400/50 text-yellow-400 bg-yellow-400/10'
@@ -254,7 +251,7 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
                   <Crown className='w-4 h-4 mr-2' />
                   <span className='hidden lg:inline'>Dashboard</span>
                   <span className='lg:hidden'>App</span>
-                </SubscriptionProtectedLink>
+                </Link>
 
                 <Link href='/track-record'>
                   <Button

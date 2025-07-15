@@ -5,9 +5,9 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { Separator } from '@/components/ui/separator';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { UserButton } from '@clerk/nextjs';
-import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { redirect } from 'next/navigation';
 import { LayoutDashboard } from 'lucide-react';
+import Link from 'next/link';
 
 export async function SideBar() {
   const profile = await getCurrentProfileForAuth();
@@ -28,16 +28,14 @@ export async function SideBar() {
       <div className='mb-5 overflow-visible'>
         <ActionTooltip label='Go to Dashboard' side='right' align='center'>
           <div>
-            <SubscriptionProtectedLink
+            <Link
               href='/dashboard'
               className='h-[56px] w-[56px] rounded-full bg-background/10 hover:bg-background/20 transition-all group flex items-center justify-center
                 min-h-[3.5rem] min-w-[3.5rem] md:h-[56px] md:w-[56px]
                 touch-manipulation'
-              size='icon'
-              variant='ghost'
             >
               <LayoutDashboard className='h-6 w-6 text-primary group-hover:text-white transition-colors' />
-            </SubscriptionProtectedLink>
+            </Link>
           </div>
         </ActionTooltip>
       </div>

@@ -1,14 +1,7 @@
 import { db } from '@/lib/db';
 import { sendPushNotification } from '@/lib/push-notifications';
 
-// Database notification functions
-export async function createNotification({
-  userId,
-  type,
-  title,
-  message,
-  actionUrl,
-}: {
+export interface Notification {
   userId: string;
   type:
     | 'MESSAGE'
@@ -21,8 +14,31 @@ export async function createNotification({
   title: string;
   message: string;
   actionUrl?: string;
-}) {
+}
+// Database notification functions
+export async function createNotification({
+  userId,
+  type,
+  title,
+  message,
+  actionUrl,
+}: Notification) {
   try {
+    // make sure the user has an active subscription to send notification
+    // Get user profile with preferences
+    const profile = await db.profile.findFirst({
+      where: { subscriptionStatus: 'ACTIVE', userId },
+      select: {
+        name: true,
+        pushNotifications: true,
+      },
+    });
+    if (!profile) {
+      console.warn(
+        `⚠️ [NOTIFICATION] Profile not found for user: ${userId} with subscription`
+      );
+      return null;
+    }
     // Create the database notification
     const notification = await db.notification.create({
       data: {
@@ -31,15 +47,6 @@ export async function createNotification({
         title,
         message,
         actionUrl,
-      },
-    });
-
-    // Get user profile with preferences
-    const profile = await db.profile.findFirst({
-      where: { userId },
-      select: {
-        name: true,
-        pushNotifications: true,
       },
     });
 

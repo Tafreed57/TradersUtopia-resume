@@ -550,23 +550,23 @@ export default async function Dashboard() {
       reason: 'User does not have valid subscription or admin access',
     });
   }
-
-  return shouldBypassGate ? (
-    <>{dashboardContent}</>
-  ) : (
-    <ProductPaymentGate
-      allowedProductIds={allowedProductIds}
-      productName='Premium Dashboard Access'
-      upgradeUrl='https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01'
-      features={[
-        'Exclusive dashboard access',
-        'Advanced server management',
-        'Premium support',
-        'Priority features',
-      ]}
-      adminBypass={false} // Let the component handle its own subscription checks
-    >
-      {dashboardContent}
-    </ProductPaymentGate>
-  );
+  return <>{dashboardContent}</>;
+  // return shouldBypassGate ? (
+  //   <>{dashboardContent}</>
+  // ) : (
+  //   <ProductPaymentGate
+  //     allowedProductIds={allowedProductIds}
+  //     productName='Premium Dashboard Access'
+  //     upgradeUrl='https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01'
+  //     features={[
+  //       'Exclusive dashboard access',
+  //       'Advanced server management',
+  //       'Premium support',
+  //       'Priority features',
+  //     ]}
+  //     adminBypass={false} // Let the component handle its own subscription checks
+  //   >
+  //     {dashboardContent}
+  //   </ProductPaymentGate>
+  // );
 }
