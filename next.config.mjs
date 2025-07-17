@@ -36,23 +36,23 @@ const nextConfig = {
             value: '1; mode=block',
           },
           // ✅ SECURITY: Control resource loading (Content Security Policy)
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.tradersutopia.com https://clerk.com https://*.clerk.com https://tradersutopia.com https://*.clerk.accounts.dev https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://hcaptcha.com https://*.hcaptcha.com https://challenges.cloudflare.com https://*.js.stripe.com https://js.stripe.com https://hooks.stripe.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://hcaptcha.com https://*.hcaptcha.com",
-              "font-src 'self' https://fonts.gstatic.com https://www.gstatic.com",
-              "img-src 'self' data: https: blob:",
-              "media-src 'self' https:",
-              "connect-src 'self' https://tradersutopia.com wss: blob:",
-              "frame-src 'self' https://challenges.cloudflare.com https://*.js.stripe.com https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://youtube.com",
-              "worker-src 'self' blob:",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join('; '),
-          },
+          // {
+          //   key: 'Content-Security-Policy',
+          //   value: [
+          //     "default-src 'self'",
+          //     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.tradersutopia.com https://clerk.com https://*.clerk.com https://tradersutopia.com https://*.clerk.accounts.dev https://cdn.jsdelivr.net https://www.google.com https://www.gstatic.com https://www.recaptcha.net https://hcaptcha.com https://*.hcaptcha.com https://challenges.cloudflare.com https://*.js.stripe.com https://js.stripe.com https://hooks.stripe.com",
+          //     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://hcaptcha.com https://*.hcaptcha.com",
+          //     "font-src 'self' https://fonts.gstatic.com https://www.gstatic.com",
+          //     "img-src 'self' data: https: blob:",
+          //     "media-src 'self' https:",
+          //     "connect-src 'self' https://tradersutopia.com wss: blob:",
+          //     "frame-src 'self' https://challenges.cloudflare.com https://*.js.stripe.com https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://*.youtube.com https://youtube.com",
+          //     "worker-src 'self' blob:",
+          //     "object-src 'none'",
+          //     "base-uri 'self'",
+          //     "form-action 'self'",
+          //   ].join('; '),
+          // },
           // ✅ SECURITY: Enforce HTTPS (only in production)
           ...(process.env.NODE_ENV === 'production'
             ? [
