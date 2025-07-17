@@ -40,20 +40,11 @@ export async function PATCH(
       return new NextResponse('Section name is required', { status: 400 });
     }
 
-    // Check if user has permission to edit sections (admin/moderator)
-    const serverMember = await prisma.member.findFirst({
-      where: {
-        serverId,
-        profileId: profile.id,
-        role: {
-          in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-        },
-      },
-    });
-
-    if (!serverMember && !profile.isAdmin) {
+    // ✅ GLOBAL ADMIN ONLY: Only global admins can edit sections
+    if (!profile.isAdmin) {
+      trackSuspiciousActivity(req, 'NON_ADMIN_SECTION_EDIT_ATTEMPT');
       return NextResponse.json(
-        { error: 'Insufficient permissions to edit sections' },
+        { error: 'Only administrators can edit sections' },
         { status: 403 }
       );
     }
@@ -117,20 +108,11 @@ export async function DELETE(
       return new NextResponse('Section ID required', { status: 400 });
     }
 
-    // Check if user has permission to delete sections (admin/moderator)
-    const serverMember = await prisma.member.findFirst({
-      where: {
-        serverId,
-        profileId: profile.id,
-        role: {
-          in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-        },
-      },
-    });
-
-    if (!serverMember && !profile.isAdmin) {
+    // ✅ GLOBAL ADMIN ONLY: Only global admins can delete sections
+    if (!profile.isAdmin) {
+      trackSuspiciousActivity(req, 'NON_ADMIN_SECTION_DELETE_ATTEMPT');
       return NextResponse.json(
-        { error: 'Insufficient permissions to delete sections' },
+        { error: 'Only administrators can delete sections' },
         { status: 403 }
       );
     }

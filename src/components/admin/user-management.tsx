@@ -137,11 +137,7 @@ export function UserManagement({
     fetchUsers();
   }, []);
 
-  const handleAction = async (
-    action: 'delete' | 'grant' | 'cancel' | 'toggleAdmin',
-    userId: string,
-    extraData?: any
-  ) => {
+  const handleDelete = async (userId: string) => {
     if (
       !confirm(
         'Are you sure you want to DELETE this user account? This action cannot be undone and will remove ALL user data.'
@@ -150,7 +146,7 @@ export function UserManagement({
       return;
     }
 
-    setActionLoading(`${action}-${userId}`);
+    setActionLoading(`delete-${userId}`);
     try {
       const response = await makeSecureRequest('/api/admin/users/delete', {
         method: 'POST',
@@ -179,11 +175,135 @@ export function UserManagement({
     }
   };
 
-  const handleDelete = (userId: string) => handleAction('delete', userId);
-  const handleGrant = (userId: string) => handleAction('grant', userId);
-  const handleCancel = (userId: string) => handleAction('cancel', userId);
-  const handleToggleAdmin = (userId: string, grantAdmin: boolean) =>
-    handleAction('toggleAdmin', userId, { grantAdmin });
+  const handleGrant = async (userId: string) => {
+    if (
+      !confirm(
+        'Are you sure you want to GRANT SUBSCRIPTION ACCESS to this user? This will give them premium features.'
+      )
+    ) {
+      return;
+    }
+
+    setActionLoading(`grant-${userId}`);
+    try {
+      const response = await makeSecureRequest(
+        '/api/admin/users/grant-subscription',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      if (response.ok) {
+        await fetchUsers(); // Refresh the user list
+        showToast.success(
+          'Subscription Granted',
+          'User has been granted subscription access'
+        );
+      } else {
+        const error = await response.json();
+        showToast.error('Grant Failed', error.message);
+      }
+    } catch (error) {
+      console.error('Error granting subscription:', error);
+      showToast.error('Error', 'Failed to grant subscription');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancel = async (userId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to CANCEL this user's subscription? They will lose premium access."
+      )
+    ) {
+      return;
+    }
+
+    setActionLoading(`cancel-${userId}`);
+    try {
+      const response = await makeSecureRequest(
+        '/api/admin/users/cancel-subscription',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      if (response.ok) {
+        await fetchUsers(); // Refresh the user list
+        showToast.success(
+          'Subscription Cancelled',
+          'User subscription has been cancelled'
+        );
+      } else {
+        const error = await response.json();
+        showToast.error('Cancel Failed', error.message);
+      }
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      showToast.error('Error', 'Failed to cancel subscription');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleToggleAdmin = async (
+    userId: string,
+    isCurrentlyAdmin: boolean
+  ) => {
+    const action = isCurrentlyAdmin
+      ? 'REMOVE ADMIN ACCESS from'
+      : 'GRANT ADMIN ACCESS to';
+    const consequence = isCurrentlyAdmin
+      ? 'They will lose all administrative privileges.'
+      : 'They will gain full administrative privileges.';
+
+    if (
+      !confirm(`Are you sure you want to ${action} this user? ${consequence}`)
+    ) {
+      return;
+    }
+
+    setActionLoading(`toggleAdmin-${userId}`);
+    try {
+      const response = await makeSecureRequest(
+        '/api/admin/users/toggle-admin',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId, grantAdmin: !isCurrentlyAdmin }),
+        }
+      );
+
+      if (response.ok) {
+        await fetchUsers(); // Refresh the user list
+        showToast.success(
+          isCurrentlyAdmin ? 'Admin Access Removed' : 'Admin Access Granted',
+          isCurrentlyAdmin
+            ? 'User no longer has admin privileges'
+            : 'User now has admin privileges'
+        );
+      } else {
+        const error = await response.json();
+        showToast.error('Admin Toggle Failed', error.message);
+      }
+    } catch (error) {
+      console.error('Error toggling admin status:', error);
+      showToast.error('Error', 'Failed to toggle admin status');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleFixAllAdminServerRoles = async () => {
     if (

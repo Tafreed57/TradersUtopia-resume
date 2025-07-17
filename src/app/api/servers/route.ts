@@ -87,3 +87,46 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    // ✅ SECURITY: Rate limiting for server operations
+    const rateLimitResult = await rateLimitServer()(req);
+    if (!rateLimitResult.success) {
+      trackSuspiciousActivity(req, 'SERVER_LIST_RATE_LIMIT_EXCEEDED');
+      return rateLimitResult.error;
+    }
+
+    const profile = await getCurrentProfile();
+    if (!profile) {
+      trackSuspiciousActivity(req, 'UNAUTHENTICATED_SERVER_LIST');
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    // Get all servers the user is a member of
+    const servers = await prisma.server.findMany({
+      where: {
+        members: {
+          some: {
+            profileId: profile.id,
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        imageUrl: true,
+        createdAt: true,
+        profileId: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    return NextResponse.json(servers || []);
+  } catch (error) {
+    trackSuspiciousActivity(req, 'SERVER_LIST_DATABASE_ERROR');
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}

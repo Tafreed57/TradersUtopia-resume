@@ -85,6 +85,9 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
       }
 
       // Fallback to dashboard if server navigation fails
+      console.error(
+        '❌ [MOBILE-MENU] Server navigation failed, redirecting to dashboard'
+      );
       router.push('/dashboard');
     } else if (isScrollLink) {
       // Handle scroll links (like /#free-videos)

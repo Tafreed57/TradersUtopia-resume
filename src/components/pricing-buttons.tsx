@@ -57,13 +57,43 @@ export function PricingButtons(
     }
   };
 
-  const handleSubscribeClick = () => {
+  const handleSubscribeClick = async () => {
     setLoading(true);
 
-    // If user has subscription, go to dashboard
+    // If user has subscription, use smart server navigation
     if (subscriptionData?.hasAccess) {
-      console.log('✅ User has subscription, redirecting to dashboard...');
-      router.push('/dashboard');
+      console.log('✅ User has subscription, using smart server navigation...');
+
+      try {
+        const serverResponse = await fetch('/api/servers/ensure-default', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const serverResult = await serverResponse.json();
+
+        if (serverResult.success && serverResult.server) {
+          const server = serverResult.server;
+          const firstChannel = server.channels?.[0];
+
+          if (firstChannel) {
+            router.push(`/servers/${server.id}/channels/${firstChannel.id}`);
+          } else {
+            router.push(`/servers/${server.id}`);
+          }
+        } else {
+          // Fallback to dashboard if server lookup fails
+          console.log(
+            '⚠️ [PRICING-BUTTONS] Server lookup failed, fallback to dashboard'
+          );
+          router.push('/dashboard');
+        }
+      } catch (error) {
+        console.error('❌ [PRICING-BUTTONS] Server navigation error:', error);
+        router.push('/dashboard');
+      }
       return;
     }
 
@@ -72,10 +102,6 @@ export function PricingButtons(
       '❌ User has no subscription, redirecting to payment verification page...'
     );
     router.push('/payment-verification');
-  };
-
-  const handleBuyNow = () => {
-    router.push('/checkout');
   };
 
   if (checkingStatus) {
@@ -98,10 +124,10 @@ export function PricingButtons(
       <div className='space-y-4'>
         <Button
           size='lg'
-          onClick={() => router.push('/dashboard')}
+          onClick={handleSubscribeClick}
           className='w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl'
         >
-          Go to Dashboard
+          Enter Traders Utopia
         </Button>
         <p className='text-green-400 text-sm text-center'>
           ✅ You have access to Traders Utopia
@@ -120,14 +146,6 @@ export function PricingButtons(
         className='w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl'
       >
         {loading ? 'Loading...' : 'Subscribe Now'}
-      </Button>
-      <Button
-        size='lg'
-        onClick={handleBuyNow}
-        variant='outline'
-        className='w-full border-white/30 text-white hover:bg-white/10 py-4 text-lg font-semibold rounded-full'
-      >
-        Buy Now - $149.99/month
       </Button>
       <p className='text-gray-400 text-sm text-center'>
         Complete payment verification to access your subscription

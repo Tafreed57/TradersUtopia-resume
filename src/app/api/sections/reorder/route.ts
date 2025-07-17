@@ -64,7 +64,15 @@ export async function PATCH(req: NextRequest) {
       return new NextResponse('Profile not found', { status: 404 });
     }
 
-    // Check if user is member of the server with appropriate permissions
+    // ✅ GLOBAL ADMIN ONLY: Only global admins can reorder sections
+    if (!profile.isAdmin) {
+      trackSuspiciousActivity(req, 'NON_ADMIN_SECTION_REORDER_ATTEMPT');
+      return new NextResponse('Only administrators can reorder sections', {
+        status: 403,
+      });
+    }
+
+    // Check if user is member of the server
     const member = await prisma.member.findFirst({
       where: {
         profileId: profile.id,
@@ -72,8 +80,8 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
-    if (!member || member.role === MemberRole.GUEST) {
-      return new NextResponse('Insufficient permissions', { status: 403 });
+    if (!member) {
+      return new NextResponse('Not a member of this server', { status: 403 });
     }
 
     // Get the section being moved

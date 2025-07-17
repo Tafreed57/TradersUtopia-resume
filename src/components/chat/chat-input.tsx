@@ -13,7 +13,7 @@ import { EmojiPicker } from '@/components/ui/emoji-picker';
 import { Member } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface ChatInputProps {
   apiUrl: string;
@@ -39,6 +39,8 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
   const [userMessage, setUserMessage] = useState('');
   const [hasUserInput, setHasUserInput] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
 
   const RATE_LIMIT_COOLDOWN = 5000; // 5 seconds in milliseconds
 
@@ -50,8 +52,33 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
     },
   });
 
-  // ✅ PERMISSION CHECK: Component should handle permissions at the parent level
-  // Remove problematic user role check
+  // ✅ GLOBAL ADMIN CHECK: Only global admins can send messages
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        setAdminCheckLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/check-status');
+        if (response.ok) {
+          const data = await response.json();
+          setIsAdmin(data.isAdmin);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setAdminCheckLoading(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -96,6 +123,23 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
       }, 100); // Small delay to allow form reset to complete
     }
   };
+
+  // Show loading state while checking admin status
+  if (adminCheckLoading) {
+    return (
+      <div className='p-4 sm:p-6 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/50'>
+        <div className='flex items-center justify-center text-gray-400'>
+          <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2'></div>
+          <span className='text-sm'>Checking permissions...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Hide input bar completely for non-admin users
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <Form {...form}>

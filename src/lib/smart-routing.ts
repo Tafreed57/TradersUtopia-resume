@@ -3,16 +3,22 @@
 
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
+import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
 
 interface SmartRoutingOptions {
   onError?: (error: Error) => void;
-  loadingCallback?: (isLoading: boolean) => void;
+  loadingCallback?: (loading: boolean) => void;
+  customProductIds?: string[]; // Allow override for specific use cases
 }
 
 export function useSmartRouting(options: SmartRoutingOptions = {}) {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useUser();
-  const { onError, loadingCallback } = options;
+  const {
+    onError,
+    loadingCallback,
+    customProductIds = [...TRADING_ALERT_PRODUCTS], // ✅ UPDATED: Use client-safe config, convert readonly to mutable
+  } = options;
 
   const handleSmartNavigation = async () => {
     if (!isLoaded) {
@@ -29,6 +35,7 @@ export function useSmartRouting(options: SmartRoutingOptions = {}) {
       }
 
       // User is signed in - check subscription status
+      console.log('🎯 [SMART-ROUTING] Checking products:', customProductIds);
 
       const response = await fetch('/api/check-product-subscription', {
         method: 'POST',
@@ -36,22 +43,30 @@ export function useSmartRouting(options: SmartRoutingOptions = {}) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          allowedProductIds: ['prod_SWIyAf2tfVrJao'],
+          allowedProductIds: customProductIds, // ✅ UPDATED: Use configurable product IDs
         }),
       });
 
       if (!response.ok) {
+        console.warn(
+          '⚠️ [SMART-ROUTING] Subscription check failed, redirecting to pricing'
+        );
         router.push('/pricing');
         return;
       }
 
       const result = await response.json();
+      console.log('📊 [SMART-ROUTING] Subscription result:', result);
 
       if (result.hasAccess) {
         // User has subscription - go to dashboard
+        console.log(
+          '✅ [SMART-ROUTING] Access granted, redirecting to dashboard'
+        );
         router.push('/dashboard');
       } else {
         // User doesn't have subscription - go to pricing
+        console.log('❌ [SMART-ROUTING] No access, redirecting to pricing');
         router.push('/pricing');
       }
     } catch (error) {
@@ -68,5 +83,6 @@ export function useSmartRouting(options: SmartRoutingOptions = {}) {
     handleSmartNavigation,
     isLoaded,
     isSignedIn,
+    productIds: customProductIds, // ✅ ADDED: Expose which products are being checked
   };
 }

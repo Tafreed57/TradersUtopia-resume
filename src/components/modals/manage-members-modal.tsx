@@ -36,11 +36,15 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import qs from 'query-string';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useUser } from '@clerk/nextjs';
 
 export function ManageMembersModal() {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+  const { user } = useUser();
   const type = useStore(state => state.type);
   const isOpen = useStore(state => state.isOpen);
   const onOpen = useStore(state => state.onOpen);
@@ -56,6 +60,34 @@ export function ManageMembersModal() {
     ),
     [MemberRole.GUEST]: null,
   };
+
+  // Check if user is global admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        setAdminCheckLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/check-status');
+        if (response.ok) {
+          const data = await response.json();
+          setIsAdmin(data.isAdmin);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setAdminCheckLoading(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   const onRoleChange = async (memberId: string, role: MemberRole) => {
     try {
@@ -95,6 +127,79 @@ export function ManageMembersModal() {
     }
   };
 
+  // Show loading state while checking admin status
+  if (adminCheckLoading) {
+    return (
+      <Dialog open={isModelOpen} onOpenChange={onClose}>
+        <DialogContent
+          aria-describedby={undefined}
+          className='bg-white text-black overflow-hidden'
+        >
+          <DialogHeader className='pt-8 px-6'>
+            <DialogTitle className='text-2xl text-center font-bold'>
+              Loading...
+            </DialogTitle>
+          </DialogHeader>
+          <div className='px-6 py-8'>
+            <div className='text-center'>
+              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto mb-4'></div>
+              <p className='text-gray-600'>Checking permissions...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Show restricted message for non-admin users
+  if (!isAdmin) {
+    return (
+      <Dialog open={isModelOpen} onOpenChange={onClose}>
+        <DialogContent
+          aria-describedby={undefined}
+          className='bg-white text-black overflow-hidden'
+        >
+          <DialogHeader className='pt-8 px-6'>
+            <DialogTitle className='text-2xl text-center font-bold'>
+              Administrator Access Required
+            </DialogTitle>
+            <DialogDescription className='text-center text-sm text-zinc-500 dark:text-neutral-400 px-6 py-2'>
+              Only global administrators can manage member roles
+            </DialogDescription>
+          </DialogHeader>
+          <div className='px-6 py-8'>
+            <div className='text-center'>
+              <div className='flex items-center justify-center mb-4'>
+                <svg
+                  className='w-12 h-12 text-gray-400'
+                  fill='currentColor'
+                  viewBox='0 0 20 20'
+                >
+                  <path
+                    fillRule='evenodd'
+                    d='M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z'
+                    clipRule='evenodd'
+                  />
+                </svg>
+              </div>
+              <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+                Global Admin Required
+              </h3>
+              <p className='text-gray-600 mb-4'>
+                Only global administrators can manage server member roles and
+                permissions.
+              </p>
+              <p className='text-sm text-gray-500'>
+                Server has {data?.server?.members?.length || 0} members
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Global admin interface - full member management
   return (
     <Dialog open={isModelOpen} onOpenChange={onClose}>
       <DialogContent
@@ -153,6 +258,15 @@ export function ManageMembersModal() {
                                 <ShieldCheck className=' mr-2 h-4 w-4' />
                                 Moderator
                                 {member.role === MemberRole.MODERATOR && (
+                                  <Check className='w-4 h-4 ml-auto' />
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => onRoleChange(member.id, 'ADMIN')}
+                              >
+                                <ShieldAlert className=' mr-2 h-4 w-4' />
+                                Admin
+                                {member.role === MemberRole.ADMIN && (
                                   <Check className='w-4 h-4 ml-auto' />
                                 )}
                               </DropdownMenuItem>

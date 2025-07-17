@@ -17,16 +17,16 @@ const videoSections = [
         id: 1,
         title: 'Trading Fundamentals - Lesson 1',
         duration: '12:45',
-        embedUrl: 'https://www.youtube.com/embed/TdPQNrQrpXw',
-        youtubeId: 'TdPQNrQrpXw',
+        embedUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+        youtubeId: 'dQw4w9WgXcQ',
         description: 'Learn essential trading concepts and strategies.',
       },
       {
         id: 2,
         title: 'Trading Fundamentals - Lesson 2',
         duration: '15:20',
-        embedUrl: 'https://www.youtube.com/embed/HQ1rT821rdc',
-        youtubeId: 'HQ1rT821rdc',
+        embedUrl: 'https://www.youtube-nocookie.com/embed/jNQXAC9IVRw',
+        youtubeId: 'jNQXAC9IVRw',
         description: 'Foundation principles for successful trading.',
       },
       {
@@ -407,13 +407,34 @@ export default function FreeVideosPage() {
                     {/* YouTube Video Embed */}
                     <div className='relative aspect-video bg-gradient-to-br from-gray-900 to-black overflow-hidden'>
                       <iframe
-                        src={`${video.embedUrl}?rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent&controls=1&autohide=1`}
+                        src={`${video.embedUrl}?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent`}
                         title={video.title}
                         className='w-full h-full'
                         allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
                         allowFullScreen
                         loading='lazy'
+                        referrerPolicy='strict-origin-when-cross-origin'
+                        frameBorder='0'
                       />
+
+                      {/* Fallback for when video doesn't load */}
+                      <div
+                        className='absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-black'
+                        style={{ zIndex: -1 }}
+                      >
+                        <div className='text-center'>
+                          <div className='w-12 h-12 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-3'>
+                            <svg
+                              className='w-6 h-6 text-red-400'
+                              fill='currentColor'
+                              viewBox='0 0 24 24'
+                            >
+                              <path d='M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' />
+                            </svg>
+                          </div>
+                          <p className='text-gray-400 text-xs'>Video Loading</p>
+                        </div>
+                      </div>
 
                       {/* Duration Badge */}
                       <div className='absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded text-white text-xs flex items-center gap-1 z-10'>

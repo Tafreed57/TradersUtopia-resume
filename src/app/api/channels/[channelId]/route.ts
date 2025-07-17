@@ -83,20 +83,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Channel not found' }, { status: 404 });
     }
 
-    // Check permissions: server member with admin/moderator role OR global admin
-    const serverMember = await prisma.member.findFirst({
-      where: {
-        serverId: serverId,
-        profileId: profile.id,
-        role: {
-          in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-        },
-      },
-    });
-
-    if (!serverMember && !profile.isAdmin) {
+    // ✅ GLOBAL ADMIN ONLY: Only global admins can edit channels
+    if (!profile.isAdmin) {
+      trackSuspiciousActivity(req, 'NON_ADMIN_CHANNEL_EDIT_ATTEMPT');
       return NextResponse.json(
-        { error: 'Insufficient permissions to update this channel' },
+        { error: 'Only administrators can edit channels' },
         { status: 403 }
       );
     }
@@ -192,20 +183,11 @@ export async function DELETE(
       return new NextResponse('Channel not found', { status: 404 });
     }
 
-    // Check permissions: server member with admin/moderator role OR global admin
-    const serverMember = await prisma.member.findFirst({
-      where: {
-        serverId: serverId,
-        profileId: profile.id,
-        role: {
-          in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-        },
-      },
-    });
-
-    if (!serverMember && !profile.isAdmin) {
+    // ✅ GLOBAL ADMIN ONLY: Only global admins can delete channels
+    if (!profile.isAdmin) {
+      trackSuspiciousActivity(req, 'NON_ADMIN_CHANNEL_DELETE_ATTEMPT');
       return NextResponse.json(
-        { error: 'Insufficient permissions to delete this channel' },
+        { error: 'Only administrators can delete channels' },
         { status: 403 }
       );
     }

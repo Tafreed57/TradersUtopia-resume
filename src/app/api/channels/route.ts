@@ -60,15 +60,20 @@ export async function POST(req: NextRequest) {
       position = (lastChannel?.position || 0) + 1;
     }
 
+    // ✅ GLOBAL ADMIN ONLY: Only global admins can create channels
+    if (!profile.isAdmin) {
+      trackSuspiciousActivity(req, 'NON_ADMIN_CHANNEL_CREATION_ATTEMPT');
+      return new NextResponse('Only administrators can create channels', {
+        status: 403,
+      });
+    }
+
     const server = await prisma.server.update({
       where: {
         id: serverId,
         members: {
           some: {
             profileId: profile.id,
-            role: {
-              in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-            },
           },
         },
       },

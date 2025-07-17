@@ -70,7 +70,37 @@ export function EnhancedTrialButton({
       const response = await makeSecureRequest('/api/subscription/check');
       const data = await response.json();
       if (data.hasAccess) {
-        router.push('/dashboard');
+        // Use smart server navigation for users with access
+        try {
+          const serverResponse = await makeSecureRequest(
+            '/api/servers/ensure-default',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          const serverResult = await serverResponse.json();
+
+          if (serverResult.success && serverResult.server) {
+            const server = serverResult.server;
+            const firstChannel = server.channels?.[0];
+
+            if (firstChannel) {
+              router.push(`/servers/${server.id}/channels/${firstChannel.id}`);
+            } else {
+              router.push(`/servers/${server.id}`);
+            }
+          } else {
+            // Fallback to dashboard if server lookup fails
+            router.push('/dashboard');
+          }
+        } catch (error) {
+          console.error('❌ [ENHANCED-TRIAL] Server navigation error:', error);
+          router.push('/dashboard');
+        }
         return;
       }
 
@@ -84,7 +114,43 @@ export function EnhancedTrialButton({
         const trialData = await trialResponse.json();
         if (trialData.success) {
           toast.success(trialData.message);
-          router.push('/dashboard');
+
+          // Use smart server navigation after successful trial start
+          try {
+            const serverResponse = await makeSecureRequest(
+              '/api/servers/ensure-default',
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              }
+            );
+
+            const serverResult = await serverResponse.json();
+
+            if (serverResult.success && serverResult.server) {
+              const server = serverResult.server;
+              const firstChannel = server.channels?.[0];
+
+              if (firstChannel) {
+                router.push(
+                  `/servers/${server.id}/channels/${firstChannel.id}`
+                );
+              } else {
+                router.push(`/servers/${server.id}`);
+              }
+            } else {
+              // Fallback to dashboard if server lookup fails
+              router.push('/dashboard');
+            }
+          } catch (error) {
+            console.error(
+              '❌ [ENHANCED-TRIAL] Post-trial server navigation error:',
+              error
+            );
+            router.push('/dashboard');
+          }
         } else {
           throw new Error(trialData.error);
         }
@@ -132,7 +198,7 @@ export function EnhancedTrialButton({
         ) : (
           <div className='flex items-center gap-2'>
             <ArrowRight className='h-4 w-4 sm:h-5 sm:w-5' />
-            <span>Go to Dashboard</span>
+            <span>Enter Traders Utopia</span>
           </div>
         )}
       </Button>

@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { SimplePricingButtons } from '@/components/simple-pricing-buttons';
-import { EnhancedTrialButton } from '@/components/enhanced-trial-button';
+import { PricingButtons } from '@/components/pricing-buttons';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, Crown, Star, ArrowRight, Loader2 } from 'lucide-react';
@@ -214,51 +213,33 @@ export function ComprehensivePricingSection({
 
       {/* Enhanced Action Buttons - Mobile-Optimized */}
       <div className='bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 border border-gray-600/30'>
-        {isSignedIn ? (
-          <SimplePricingButtons />
-        ) : (
-          <div className='space-y-4 sm:space-y-6'>
-            <EnhancedTrialButton isSignedIn={false}>
-              <span className='hidden sm:inline'>
-                Get Access Now - $149.99/month
-              </span>
-              <span className='sm:hidden'>Get Access Now</span>
-            </EnhancedTrialButton>
-
-            <div className='text-center'>
-              <p className='text-gray-400 text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-2 flex-wrap'>
-                <CheckCircle className='w-3 h-3 sm:w-4 sm:h-4 text-green-400' />
-                <span>Premium access • Cancel anytime</span>
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Additional Info for Existing Members */}
-        {isSignedIn && subscriptionData?.hasAccess && (
-          <div className='mt-6 pt-6 border-t border-gray-600/30'>
-            <div className='text-center'>
-              <p className='text-gray-400 text-sm mb-3'>
-                As an active member, you have full access to:
-              </p>
-              <div className='flex flex-wrap justify-center gap-3 text-xs'>
-                <span className='bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full'>
-                  Premium Alerts
-                </span>
-                <span className='bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full'>
-                  Live Classes
-                </span>
-                <span className='bg-green-500/20 text-green-300 px-3 py-1 rounded-full'>
-                  Private Channels
-                </span>
-                <span className='bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full'>
-                  Community Resources
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+        <PricingButtons />
       </div>
+
+      {/* Additional Info for Existing Members */}
+      {isSignedIn && subscriptionData?.hasAccess && (
+        <div className='mt-6 pt-6 border-t border-gray-600/30'>
+          <div className='text-center'>
+            <p className='text-gray-400 text-sm mb-3'>
+              As an active member, you have full access to:
+            </p>
+            <div className='flex flex-wrap justify-center gap-3 text-xs'>
+              <span className='bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full'>
+                Premium Alerts
+              </span>
+              <span className='bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full'>
+                Live Classes
+              </span>
+              <span className='bg-green-500/20 text-green-300 px-3 py-1 rounded-full'>
+                Private Channels
+              </span>
+              <span className='bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full'>
+                Community Resources
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

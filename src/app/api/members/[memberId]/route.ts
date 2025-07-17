@@ -76,6 +76,16 @@ export async function PATCH(
       trackSuspiciousActivity(req, 'UNAUTHENTICATED_MEMBER_UPDATE');
       return new NextResponse('Unauthorized', { status: 401 });
     }
+    
+    // ✅ GLOBAL ADMIN ONLY: Only global admins can change member roles
+    if (!profile.isAdmin) {
+      trackSuspiciousActivity(req, 'NON_ADMIN_MEMBER_ROLE_UPDATE_ATTEMPT');
+      return NextResponse.json(
+        { error: 'Only global administrators can change member roles' },
+        { status: 403 }
+      );
+    }
+    
     if (!params.memberId) {
       trackSuspiciousActivity(req, 'MISSING_MEMBER_ID');
       return new NextResponse('Member not found', { status: 404 });
@@ -128,6 +138,7 @@ export async function PATCH(
     );
   }
 }
+
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { memberId: string } }

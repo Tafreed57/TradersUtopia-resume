@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
+import { TRADING_ALERT_PRODUCTS, PRODUCT_TIERS } from '@/lib/product-config';
 
 /**
  * Check if the current user has access to any of the specified products
@@ -55,36 +56,24 @@ export async function checkProductAccess(allowedProductIds: string[]) {
 }
 
 /**
- * Product access middleware for API routes
- * Use this to protect API endpoints with product-specific access
+ * Enhanced product access check with auto-sync
  */
-export async function requireProductAccess(allowedProductIds: string[]) {
-  const accessCheck = await checkProductAccess(allowedProductIds);
+export async function checkProductAccessWithSync(allowedProductIds: string[]) {
+  // First try the quick database check
+  const quickCheck = await checkProductAccess(allowedProductIds);
 
-  if (!accessCheck.hasAccess) {
-    throw new Error(`Access denied: ${accessCheck.reason}`);
+  if (quickCheck.hasAccess) {
+    return quickCheck;
   }
 
-  return accessCheck;
+  // If no access found, this could be a stale cache issue
+  // Return the result but recommend using the enhanced API endpoint
+  return {
+    ...quickCheck,
+    recommendSync: true,
+    syncEndpoint: '/api/check-product-subscription',
+  };
 }
-
-/**
- * Common product ID configurations
- * Define your product tiers here for easy reuse
- */
-export const PRODUCT_TIERS = {
-  // Your actual product configurations
-  DASHBOARD_ACCESS: ['prod_SWIyAf2tfVrJao'], // Your current product for dashboard access
-
-  // Example configurations for when you add more products
-  // BASIC: ['prod_basic_monthly', 'prod_basic_yearly'],
-  // PREMIUM: ['prod_premium_monthly', 'prod_premium_yearly'],
-  // VIP: ['prod_vip_monthly', 'prod_vip_yearly'],
-  // LIFETIME: ['prod_lifetime_access'],
-
-  // Combined tiers (user with any of these gets access)
-  // ALL_PAID: ['prod_SWIyAf2tfVrJao', 'prod_future_product2', 'prod_future_product3']
-} as const;
 
 /**
  * Hook for client-side product access checking
@@ -101,3 +90,20 @@ export async function fetchProductAccess(allowedProductIds: string[]) {
 
   return response.json();
 }
+
+/**
+ * ✅ CONVENIENCE: Quick access check for trading alerts
+ */
+export async function checkTradingAlertAccess() {
+  return checkProductAccess([...TRADING_ALERT_PRODUCTS]);
+}
+
+/**
+ * ✅ CONVENIENCE: Client-side trading alert access check
+ */
+export async function fetchTradingAlertAccess() {
+  return fetchProductAccess([...TRADING_ALERT_PRODUCTS]);
+}
+
+// Re-export the product configurations for backward compatibility
+export { TRADING_ALERT_PRODUCTS, PRODUCT_TIERS } from '@/lib/product-config';

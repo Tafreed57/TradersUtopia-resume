@@ -42,20 +42,11 @@ export async function POST(req: NextRequest) {
     }
     const { name } = validationResult.data;
 
-    // Check if user has permission to create sections (admin/moderator)
-    const serverMember = await prisma.member.findFirst({
-      where: {
-        serverId,
-        profileId: profile.id,
-        role: {
-          in: [MemberRole.ADMIN, MemberRole.MODERATOR],
-        },
-      },
-    });
-
-    if (!serverMember && !profile.isAdmin) {
+    // ✅ GLOBAL ADMIN ONLY: Only global admins can create sections
+    if (!profile.isAdmin) {
+      trackSuspiciousActivity(req, 'NON_ADMIN_SECTION_CREATION_ATTEMPT');
       return NextResponse.json(
-        { error: 'Insufficient permissions to create sections' },
+        { error: 'Only administrators can create sections' },
         { status: 403 }
       );
     }

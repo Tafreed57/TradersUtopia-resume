@@ -1,5 +1,5 @@
 import { ChatHeader } from '@/components/chat/chat-header';
-import { ChatInput } from '@/components/chat/chat-input';
+import { ConditionalChatInput } from '@/components/chat/conditional-chat-input';
 import { ChatMessages } from '@/components/chat/chat-messages';
 import {
   getChannel,
@@ -95,18 +95,16 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
             paramValue={channel.id}
           />
         </div>
-        <div className='relative z-10 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/30 overflow-visible'>
-          <ChatInput
-            name={channel.name}
-            type='channel'
-            apiUrl='/api/messages'
-            query={{
-              channelId: channel.id,
-              serverId: channel.serverId,
-            }}
-            member={member}
-          />
-        </div>
+        <ConditionalChatInput
+          name={channel.name}
+          type='channel'
+          apiUrl='/api/messages'
+          query={{
+            channelId: channel.id,
+            serverId: channel.serverId,
+          }}
+          member={member}
+        />
 
         {/* ✅ REMOVED: Audio and Video channel MediaRoom components */}
       </div>

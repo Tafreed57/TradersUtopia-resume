@@ -206,6 +206,14 @@ export async function POST(req: NextRequest) {
     const member = channelWithMember.server.members[0];
     const channel = channelWithMember;
 
+    // ✅ GLOBAL ADMIN ONLY: Only global admins can send messages
+    if (!profile.isAdmin) {
+      trackSuspiciousActivity(req, 'NON_ADMIN_MESSAGE_ATTEMPT');
+      return new NextResponse('Only administrators can send messages', {
+        status: 403,
+      });
+    }
+
     // Create the message
     const message = await prisma.message.create({
       data: {

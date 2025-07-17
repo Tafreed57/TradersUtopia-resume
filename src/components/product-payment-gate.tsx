@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { useNavigationLoading } from '@/hooks/use-navigation-loading';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
-import { ApiLoading, ButtonLoading } from '@/components/ui/loading-components';
+import { ApiLoading } from '@/components/ui/loading-components';
 import {
   Card,
   CardContent,
@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import { Lock, Star, CheckCircle, Shield } from 'lucide-react';
 
 interface ProductPaymentGateProps {
@@ -91,6 +92,8 @@ export function ProductPaymentGate({
   );
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [hasChecked, setHasChecked] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
 
   const checkProductAccess = useCallback(async () => {
     if (!isLoaded || !user) {
@@ -98,22 +101,20 @@ export function ProductPaymentGate({
       return;
     }
 
+    setLoading(true);
+    setApiError(null);
+
+    console.log('🔍 [ProductPaymentGate] Checking product access...');
+
     try {
-      setApiError(null);
-
-      // ✅ PERFORMANCE: Check cache first
-      const cachedStatus = getCachedAccess(user.id, allowedProductIds);
-      if (cachedStatus) {
-        setAccessStatus(cachedStatus);
-        setLoading(false);
-        return;
+      // Fetch profile data first
+      const profileResponse = await fetch('/api/user/profile');
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        setProfile(profileData);
       }
-
-      const data = await apiLoading.withLoading(
+      const result = await apiLoading.withLoading(
         async () => {
-          // ✅ PERFORMANCE: Debounce multiple rapid calls
-          await new Promise(resolve => setTimeout(resolve, 100));
-
           const response = await fetch('/api/check-product-subscription', {
             method: 'POST',
             headers: {
@@ -124,58 +125,46 @@ export function ProductPaymentGate({
             }),
           });
 
-          if (response.status === 429) {
-            // Rate limited - wait and retry once
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            const retryResponse = await fetch(
-              '/api/check-product-subscription',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  allowedProductIds,
-                }),
-              }
-            );
-
-            if (retryResponse.status === 429) {
-              throw new Error(
-                'Rate limit exceeded. Please wait a moment and refresh the page.'
-              );
-            }
-
-            return retryResponse.json();
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
           }
 
           return response.json();
         },
         {
           loadingMessage: `Checking ${productName} access...`,
-          errorMessage: 'Failed to verify subscription access',
+          errorMessage: 'Failed to verify subscription',
         }
       );
 
-      setAccessStatus(data);
-      setCachedAccess(user.id, allowedProductIds, data);
+      console.log('📊 [ProductPaymentGate] Access check result:', result);
+
+      if (result.hasAccess) {
+        setAccessStatus({
+          hasAccess: true,
+          productId: result.productId,
+          reason: result.reason,
+        });
+      } else {
+        setAccessStatus({
+          hasAccess: false,
+          reason: result.reason || 'No valid subscription found',
+        });
+      }
     } catch (error) {
-      console.error('Error checking product access:', error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Error checking subscription status';
-      setApiError(errorMessage);
-      const errorStatus = {
+      console.error('❌ [ProductPaymentGate] Access check failed:', error);
+      setApiError(
+        error instanceof Error ? error.message : 'Unknown error occurred'
+      );
+      setAccessStatus({
         hasAccess: false,
-        reason: errorMessage,
-      };
-      setAccessStatus(errorStatus);
+        reason: 'Failed to verify subscription access',
+      });
     } finally {
       setLoading(false);
+      setHasChecked(true);
     }
-  }, [isLoaded, user, allowedProductIds, apiLoading, productName]);
+  }, [isLoaded, user?.id, allowedProductIds]); // ✅ SIMPLIFIED: Removed heavy dependencies
 
   const verifyStripePayment = async () => {
     try {
@@ -216,9 +205,12 @@ export function ProductPaymentGate({
   };
 
   useEffect(() => {
-    // ✅ PERFORMANCE: Only check once on mount, rely on cache for subsequent renders
-    checkProductAccess();
-  }, [isLoaded, user?.id]); // Removed checkProductAccess from deps to prevent loops
+    // ✅ PERFORMANCE: Only check once on mount if we don't have cached data
+    if (!hasChecked && isLoaded) {
+      checkProductAccess();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, hasChecked]); // ✅ FIXED: Exclude checkProductAccess to prevent re-render loops
 
   useEffect(() => {
     if (!isLoaded || !user) {
@@ -228,10 +220,10 @@ export function ProductPaymentGate({
         '🔍 [ProductPaymentGate] User not authenticated, showing payment gate instead of redirecting'
       );
     }
-  }, [isLoaded, user, navigate]);
+  }, [isLoaded, user]);
 
-  // 🚀 ADMIN BYPASS: Check this FIRST before any other logic
-  if (adminBypass) {
+  // ✅ ADMIN BYPASS: Skip all checks for admin users
+  if (isLoaded && user && profile?.isAdmin && adminBypass) {
     console.log(
       '🚀 [ProductPaymentGate] Admin bypass active - rendering content directly'
     );
@@ -490,12 +482,14 @@ export function ProductPaymentGate({
                 onClick={verifyStripePayment}
                 disabled={verifyLoading.isLoading}
               >
-                <ButtonLoading
-                  isLoading={verifyLoading.isLoading}
-                  loadingText={verifyLoading.message}
-                >
-                  🔍 Verify My Payment with Stripe
-                </ButtonLoading>
+                {verifyLoading.isLoading ? (
+                  <div className='flex items-center gap-2'>
+                    <Loader2 className='w-4 h-4 animate-spin' />
+                    <span>{verifyLoading.message || 'Loading...'}</span>
+                  </div>
+                ) : (
+                  '🔍 Verify My Payment with Stripe'
+                )}
               </Button>
             </div>
 

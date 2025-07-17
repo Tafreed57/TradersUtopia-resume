@@ -19,11 +19,7 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // ✅ SECURITY: Prevent clickjacking attacks (allow same origin for our own content)
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
+          // ✅ SECURITY: Frame options removed - using CSP frame-src for more granular control of YouTube embeds
           // ✅ SECURITY: Prevent MIME type sniffing
           {
             key: 'X-Content-Type-Options',
@@ -50,7 +46,7 @@ const nextConfig = {
               "img-src 'self' data: https: blob:",
               "media-src 'self' https:",
               "connect-src 'self' https: wss: blob:",
-              "frame-src 'self' https://clerk.com https://*.clerk.com https://*.clerk.accounts.dev https://www.google.com https://www.recaptcha.net https://hcaptcha.com https://*.hcaptcha.com https://challenges.cloudflare.com https://www.youtube.com https://youtube.com https://*.youtube.com",
+              "frame-src 'self' https: http: https://www.youtube.com https://www.youtube-nocookie.com https://youtube.com",
               "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",
