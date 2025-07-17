@@ -106,8 +106,10 @@ export default function SubscriptionStatusPage() {
   }
 
   return (
-    <div className='container mx-auto p-6 max-w-4xl'>
-      <h1 className='text-3xl font-bold mb-6'>Subscription Status</h1>
+    <div className='min-h-screen pwa-layout safe-min-height bg-gray-50 dark:bg-gray-900'>
+      <div className='pwa-safe-top pwa-safe-bottom safe-area-inset-left safe-area-inset-right'>
+        <div className='container mx-auto p-6 max-w-4xl'>
+          <h1 className='text-3xl font-bold mb-6'>Subscription Status</h1>
 
       <div className='grid gap-6'>
         {/* Environment Check */}
@@ -469,6 +471,7 @@ export default function SubscriptionStatusPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

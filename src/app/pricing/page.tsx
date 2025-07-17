@@ -6,7 +6,7 @@ import { Users, TrendingUp, Shield } from 'lucide-react';
 
 export default function PricingPage() {
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden'>
+    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden pwa-layout safe-min-height'>
       {/* Animated Background Effects */}
       <div className='absolute inset-0 overflow-hidden'>
         <div className='absolute -top-40 -right-40 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl animate-pulse'></div>
@@ -16,15 +16,15 @@ export default function PricingPage() {
         <div className='absolute bottom-20 left-1/4 w-56 h-56 bg-pink-500/6 rounded-full blur-3xl animate-pulse delay-4000'></div>
       </div>
 
-      <div className='relative z-10'>
+      <div className='relative z-10 pwa-safe-top pwa-safe-bottom safe-area-inset-left safe-area-inset-right'>
         {/* Hero Banner */}
         <HeroBanner />
 
         {/* Shared Navigation */}
         <SharedNavbar currentPage='pricing' />
 
-        {/* Enhanced Main Content - Mobile-Optimized */}
-        <main className='flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 sm:px-6 py-8 sm:py-16'>
+        {/* Enhanced Main Content - Mobile-Optimized with PWA Support */}
+        <main className='flex flex-col items-center justify-center min-h-[calc(100vh-200px)] px-4 sm:px-6 py-8 sm:py-16 pwa-safe-bottom safe-area-inset-bottom'>
           {/* Hero Section - Mobile-First */}
           <div className='text-center max-w-6xl mx-auto mb-8 sm:mb-16'>
             <div className='flex items-center justify-center mb-4 sm:mb-6'>

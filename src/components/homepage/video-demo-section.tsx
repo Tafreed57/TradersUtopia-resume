@@ -16,7 +16,7 @@ export function VideoDemoSection() {
           {/* YouTube Video Embed */}
           <iframe
             className='w-full h-full rounded-xl sm:rounded-2xl'
-            src='https://www.youtube-nocookie.com/embed/R6MlUcmOul8?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent'
+            src='https://www.youtube-nocookie.com/embed/XMW0WVYBbLY?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent'
             title='TradersUtopia Demo - See Our Platform in Action'
             frameBorder='0'
             allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
@@ -43,7 +43,7 @@ export function VideoDemoSection() {
               <h3 className='text-white font-semibold mb-2'>Video Loading</h3>
               <p className='text-gray-400 text-sm'>Click to watch on YouTube</p>
               <a
-                href='https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+                href='https://www.youtube.com/watch?v=XMW0WVYBbLY'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors inline-block'

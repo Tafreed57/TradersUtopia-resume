@@ -46,7 +46,6 @@ const middlewareOptions: ClerkMiddlewareOptions = {
       ? 'https://tradersutopia.com'
       : 'http://localhost:3000',
   ],
-  contentSecurityPolicy: {},
 };
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {

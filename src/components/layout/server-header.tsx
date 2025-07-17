@@ -50,7 +50,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
           className='w-full text-md font-semibold px-4 py-3 flex items-center h-14 transition-all duration-300 group relative overflow-hidden
           min-h-[4rem] md:min-h-[3.5rem]
           touch-manipulation
-          pt-4 md:pt-3'
+          pwa-chat-header-safe safe-area-inset-top'
         >
           <div className='flex items-center w-full relative z-10'>
             <div className='flex items-center gap-3 flex-1 min-w-0'>
@@ -99,7 +99,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
             className='w-full text-md font-semibold px-4 py-3 flex items-center h-14 hover:bg-gradient-to-r hover:from-gray-700/50 hover:to-gray-600/50 transition-all duration-300 group relative overflow-hidden
             min-h-[4rem] md:min-h-[3.5rem]
             touch-manipulation
-            pt-4 md:pt-3'
+            pwa-chat-header-safe safe-area-inset-top'
           >
             {/* Background gradient on hover */}
             <div className='absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300' />

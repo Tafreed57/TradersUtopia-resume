@@ -281,84 +281,149 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className='min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-slate-900 via-gray-900 to-black safe-area-full'>
-      {/* Header */}
-      <div className='w-full max-w-md mx-auto mb-8 text-center'>
-        <h1 className='text-2xl sm:text-3xl font-bold text-white mb-2'>
-          {isPasswordReset ? 'Reset Your Password' : 'Set Up Your Password'}
-        </h1>
-        <p className='text-gray-400 text-sm sm:text-base'>
-          {successfulCreation
-            ? `Enter the code sent to your email and ${isPasswordReset ? 'reset' : 'create'} your password`
-            : isPasswordReset
-              ? 'Enter your email to receive a password reset code'
-              : 'Create a password for your account to enable password-based sign-in'}
-        </p>
-      </div>
+    <div className='min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-slate-900 via-gray-900 to-black pwa-layout safe-min-height'>
+      <div className='pwa-safe-top pwa-safe-bottom safe-area-inset-left safe-area-inset-right w-full'>
+        {/* Header */}
+        <div className='w-full max-w-md mx-auto mb-8 text-center'>
+          <h1 className='text-2xl sm:text-3xl font-bold text-white mb-2'>
+            {isPasswordReset ? 'Reset Your Password' : 'Set Up Your Password'}
+          </h1>
+          <p className='text-gray-400 text-sm sm:text-base'>
+            {successfulCreation
+              ? `Enter the code sent to your email and ${isPasswordReset ? 'reset' : 'create'} your password`
+              : isPasswordReset
+                ? 'Enter your email to receive a password reset code'
+                : 'Create a password for your account to enable password-based sign-in'}
+          </p>
+        </div>
 
-      {/* Main Form */}
-      <Card className='w-full max-w-md bg-gray-800/50 backdrop-blur-sm border border-gray-700/50'>
-        <CardHeader className='text-center'>
-          <CardTitle className='flex items-center justify-center gap-2 text-white'>
-            {successfulCreation ? (
-              <Key className='w-5 h-5' />
+        {/* Main Form */}
+        <Card className='w-full max-w-md bg-gray-800/50 backdrop-blur-sm border border-gray-700/50'>
+          <CardHeader className='text-center'>
+            <CardTitle className='flex items-center justify-center gap-2 text-white'>
+              {successfulCreation ? (
+                <Key className='w-5 h-5' />
+              ) : (
+                <Mail className='w-5 h-5' />
+              )}
+              {successfulCreation
+                ? isPasswordReset
+                  ? 'Reset Your Password'
+                  : 'Create Your Password'
+                : isPasswordReset
+                  ? 'Password Reset'
+                  : 'Password Setup'}
+            </CardTitle>
+            <CardDescription>
+              {successfulCreation
+                ? 'We sent a verification code to your email'
+                : isPasswordReset
+                  ? "We'll send you a code to reset your password"
+                  : "We'll send you a code to verify your email and set up your password"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!successfulCreation ? (
+              // Email form
+              <>
+                {needsSignOut && (
+                  <Alert className='mb-4 bg-blue-900/20 border-blue-500/30'>
+                    <Info className='h-4 w-4 text-blue-400' />
+                    <AlertDescription className='text-blue-300'>
+                      You'll be signed out first to complete the{' '}
+                      {isPasswordReset ? 'password reset' : 'password setup'}{' '}
+                      process. This is required by the security system.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {user?.primaryEmailAddress?.emailAddress && (
+                  <Alert className='mb-4 bg-gray-900/20 border-gray-600/30'>
+                    <Mail className='h-4 w-4 text-gray-400' />
+                    <AlertDescription className='text-gray-300'>
+                      Use your account email:{' '}
+                      <span className='font-mono text-yellow-400'>
+                        {user.primaryEmailAddress.emailAddress}
+                      </span>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <form onSubmit={handleSendCode} className='space-y-4'>
+                  <div className='space-y-2'>
+                    <Label htmlFor='email' className='text-gray-300'>
+                      Email Address
+                    </Label>
+                    <Input
+                      id='email'
+                      type='email'
+                      placeholder='Enter your account email address'
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className='bg-gray-700/50 border-gray-600 text-white'
+                      required
+                    />
+                  </div>
+
+                  {error && (
+                    <Alert className='bg-red-900/20 border-red-500/30'>
+                      <AlertDescription className='text-red-400'>
+                        {error}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    type='submit'
+                    disabled={!email || isLoading}
+                    className='w-full bg-yellow-600 hover:bg-yellow-700 text-black font-semibold'
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                        {needsSignOut
+                          ? 'Signing Out & Sending...'
+                          : 'Sending Code...'}
+                      </>
+                    ) : (
+                      'Send Verification Code'
+                    )}
+                  </Button>
+                </form>
+              </>
             ) : (
-              <Mail className='w-5 h-5' />
-            )}
-            {successfulCreation
-              ? isPasswordReset
-                ? 'Reset Your Password'
-                : 'Create Your Password'
-              : isPasswordReset
-                ? 'Password Reset'
-                : 'Password Setup'}
-          </CardTitle>
-          <CardDescription>
-            {successfulCreation
-              ? 'We sent a verification code to your email'
-              : isPasswordReset
-                ? "We'll send you a code to reset your password"
-                : "We'll send you a code to verify your email and set up your password"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!successfulCreation ? (
-            // Email form
-            <>
-              {needsSignOut && (
-                <Alert className='mb-4 bg-blue-900/20 border-blue-500/30'>
-                  <Info className='h-4 w-4 text-blue-400' />
-                  <AlertDescription className='text-blue-300'>
-                    You'll be signed out first to complete the{' '}
-                    {isPasswordReset ? 'password reset' : 'password setup'}{' '}
-                    process. This is required by the security system.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {user?.primaryEmailAddress?.emailAddress && (
-                <Alert className='mb-4 bg-gray-900/20 border-gray-600/30'>
-                  <Mail className='h-4 w-4 text-gray-400' />
-                  <AlertDescription className='text-gray-300'>
-                    Use your account email:{' '}
-                    <span className='font-mono text-yellow-400'>
-                      {user.primaryEmailAddress.emailAddress}
-                    </span>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <form onSubmit={handleSendCode} className='space-y-4'>
+              // Password reset form
+              <form onSubmit={handleResetPassword} className='space-y-4'>
                 <div className='space-y-2'>
-                  <Label htmlFor='email' className='text-gray-300'>
-                    Email Address
+                  <Label htmlFor='code' className='text-gray-300'>
+                    Verification Code
                   </Label>
                   <Input
-                    id='email'
-                    type='email'
-                    placeholder='Enter your account email address'
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    id='code'
+                    type='text'
+                    placeholder='Enter the 6-digit code'
+                    value={code}
+                    onChange={e => setCode(e.target.value)}
+                    className='bg-gray-700/50 border-gray-600 text-white'
+                    maxLength={6}
+                    required
+                  />
+                </div>
+
+                <div className='space-y-2'>
+                  <Label htmlFor='password' className='text-gray-300'>
+                    {isPasswordReset ? 'New Password' : 'Password'}
+                  </Label>
+                  <Input
+                    id='password'
+                    type='password'
+                    placeholder={
+                      isPasswordReset
+                        ? 'Enter your new password'
+                        : 'Create your password'
+                    }
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
                     className='bg-gray-700/50 border-gray-600 text-white'
                     required
                   />
@@ -374,118 +439,55 @@ export default function ForgotPasswordPage() {
 
                 <Button
                   type='submit'
-                  disabled={!email || isLoading}
+                  disabled={!code || !password || isLoading}
                   className='w-full bg-yellow-600 hover:bg-yellow-700 text-black font-semibold'
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                      {needsSignOut
-                        ? 'Signing Out & Sending...'
-                        : 'Sending Code...'}
+                      {isPasswordReset
+                        ? 'Resetting Password...'
+                        : 'Creating Password...'}
                     </>
+                  ) : isPasswordReset ? (
+                    'Reset Password'
                   ) : (
-                    'Send Verification Code'
+                    'Create Password'
                   )}
                 </Button>
+
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => {
+                    setSuccessfulCreation(false);
+                    setError('');
+                    setCode('');
+                    setPassword('');
+                    // Clean up storage when going back
+                    localStorage.removeItem('forgot-password-email');
+                    localStorage.removeItem('forgot-password-flow');
+                  }}
+                  className='w-full bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700/50'
+                >
+                  Back to Email Entry
+                </Button>
               </form>
-            </>
-          ) : (
-            // Password reset form
-            <form onSubmit={handleResetPassword} className='space-y-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='code' className='text-gray-300'>
-                  Verification Code
-                </Label>
-                <Input
-                  id='code'
-                  type='text'
-                  placeholder='Enter the 6-digit code'
-                  value={code}
-                  onChange={e => setCode(e.target.value)}
-                  className='bg-gray-700/50 border-gray-600 text-white'
-                  maxLength={6}
-                  required
-                />
-              </div>
+            )}
 
-              <div className='space-y-2'>
-                <Label htmlFor='password' className='text-gray-300'>
-                  {isPasswordReset ? 'New Password' : 'Password'}
-                </Label>
-                <Input
-                  id='password'
-                  type='password'
-                  placeholder={
-                    isPasswordReset
-                      ? 'Enter your new password'
-                      : 'Create your password'
-                  }
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className='bg-gray-700/50 border-gray-600 text-white'
-                  required
-                />
-              </div>
-
-              {error && (
-                <Alert className='bg-red-900/20 border-red-500/30'>
-                  <AlertDescription className='text-red-400'>
-                    {error}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <Button
-                type='submit'
-                disabled={!code || !password || isLoading}
-                className='w-full bg-yellow-600 hover:bg-yellow-700 text-black font-semibold'
+            {/* Back to Sign In */}
+            <div className='mt-6 pt-6 border-t border-gray-700/50'>
+              <Link
+                href='/sign-in'
+                className='flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors'
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                    {isPasswordReset
-                      ? 'Resetting Password...'
-                      : 'Creating Password...'}
-                  </>
-                ) : isPasswordReset ? (
-                  'Reset Password'
-                ) : (
-                  'Create Password'
-                )}
-              </Button>
-
-              <Button
-                type='button'
-                variant='outline'
-                onClick={() => {
-                  setSuccessfulCreation(false);
-                  setError('');
-                  setCode('');
-                  setPassword('');
-                  // Clean up storage when going back
-                  localStorage.removeItem('forgot-password-email');
-                  localStorage.removeItem('forgot-password-flow');
-                }}
-                className='w-full bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700/50'
-              >
-                Back to Email Entry
-              </Button>
-            </form>
-          )}
-
-          {/* Back to Sign In */}
-          <div className='mt-6 pt-6 border-t border-gray-700/50'>
-            <Link
-              href='/sign-in'
-              className='flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-gray-300 transition-colors'
-            >
-              <ArrowLeft className='w-4 h-4' />
-              Back to Sign In
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+                <ArrowLeft className='w-4 h-4' />
+                Back to Sign In
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -17,16 +17,16 @@ const videoSections = [
         id: 1,
         title: 'Trading Fundamentals - Lesson 1',
         duration: '12:45',
-        embedUrl: 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
-        youtubeId: 'dQw4w9WgXcQ',
+        embedUrl: 'https://www.youtube-nocookie.com/embed/TdPQNrQrpXw',
+        youtubeId: 'TdPQNrQrpXw',
         description: 'Learn essential trading concepts and strategies.',
       },
       {
         id: 2,
         title: 'Trading Fundamentals - Lesson 2',
         duration: '15:20',
-        embedUrl: 'https://www.youtube-nocookie.com/embed/jNQXAC9IVRw',
-        youtubeId: 'jNQXAC9IVRw',
+        embedUrl: 'https://www.youtube-nocookie.com/embed/HQ1rT821rdc',
+        youtubeId: 'HQ1rT821rdc',
         description: 'Foundation principles for successful trading.',
       },
       {
@@ -290,7 +290,7 @@ export default function FreeVideosPage() {
   );
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black text-white'>
+    <div className='min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black text-white pwa-layout safe-min-height'>
       {/* Animated Background Effects */}
       <div className='absolute inset-0 overflow-hidden'>
         <div className='absolute -top-40 -right-40 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl animate-pulse'></div>
@@ -298,7 +298,7 @@ export default function FreeVideosPage() {
         <div className='absolute bottom-40 right-20 w-64 h-64 bg-yellow-500/8 rounded-full blur-3xl animate-pulse delay-2000'></div>
       </div>
 
-      <div className='relative z-10'>
+      <div className='relative z-10 pwa-safe-top pwa-safe-bottom safe-area-inset-left safe-area-inset-right'>
         {/* Hero Banner */}
         <HeroBanner />
 

@@ -16,6 +16,7 @@ import { AuthHeader } from '@/components/auth-header';
 import { GlobalMobileMenu } from '@/components/global-mobile-menu';
 import { NavigationButton } from '@/components/navigation-button';
 import { useLoading } from '@/contexts/loading-provider';
+import { EmailWarningModal } from '@/components/modals/email-warning-modal';
 import {
   CheckCircle,
   CreditCard,
@@ -32,6 +33,17 @@ export default function PaymentVerificationPage() {
     'idle' | 'success' | 'error'
   >('idle');
   const [verificationResult, setVerificationResult] = useState<any>(null);
+  const [showEmailWarning, setShowEmailWarning] = useState(false);
+
+  const stripeUrl = 'https://buy.stripe.com/3cI5kC46X5Bmbft2Kc4Ja0k';
+
+  const handlePaymentClick = () => {
+    setShowEmailWarning(true);
+  };
+
+  const handleConfirmProceedToStripe = () => {
+    window.open(stripeUrl, '_blank');
+  };
 
   const verifyStripePayment = async () => {
     setIsVerifying(true);
@@ -170,12 +182,7 @@ export default function PaymentVerificationPage() {
                   {/* Mobile: Full width button */}
                   <div className='px-4 pb-4'>
                     <Button
-                      onClick={() =>
-                        window.open(
-                          'https://buy.stripe.com/3cI5kC46X5Bmbft2Kc4Ja0k',
-                          '_blank'
-                        )
-                      }
+                      onClick={handlePaymentClick}
                       className='w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 font-semibold text-base py-4 rounded-lg touch-manipulation'
                     >
                       <CreditCard className='w-5 h-5 mr-2' />
@@ -277,6 +284,14 @@ export default function PaymentVerificationPage() {
           </Card>
         </div>
       </div>
+
+      {/* Email Warning Modal */}
+      <EmailWarningModal
+        isOpen={showEmailWarning}
+        onClose={() => setShowEmailWarning(false)}
+        onConfirmProceed={handleConfirmProceedToStripe}
+        stripeUrl={stripeUrl}
+      />
     </div>
   );
 }

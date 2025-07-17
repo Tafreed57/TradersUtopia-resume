@@ -25,7 +25,7 @@ import {
 
 export default function HomePage() {
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden'>
+    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden pwa-layout safe-min-height'>
       {/* Animated Background Effects */}
       <div className='absolute inset-0 overflow-hidden'>
         <div className='absolute -top-40 -right-40 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl animate-pulse'></div>
@@ -33,7 +33,7 @@ export default function HomePage() {
         <div className='absolute bottom-40 right-20 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-2000'></div>
       </div>
 
-      <div className='relative z-10'>
+      <div className='relative z-10 pwa-safe-top pwa-safe-bottom safe-area-inset-left safe-area-inset-right'>
         {/* Auto-route component for handling post-sign-in routing */}
         <Suspense fallback={null}>
           <AutoRouteAfterSignIn />
@@ -169,7 +169,7 @@ export default function HomePage() {
                 {/* YouTube Video Embed */}
                 <iframe
                   className='w-full h-full rounded-xl sm:rounded-2xl'
-                  src='https://www.youtube-nocookie.com/embed/YE7VzlLtp-4?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent'
+                  src='https://www.youtube-nocookie.com/embed/XMW0WVYBbLY?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent'
                   title='TradersUtopia Demo - See Our Platform in Action'
                   frameBorder='0'
                   allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
@@ -200,7 +200,7 @@ export default function HomePage() {
                       Click to watch on YouTube
                     </p>
                     <a
-                      href='https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+                      href='https://www.youtube.com/watch?v=XMW0WVYBbLY'
                       target='_blank'
                       rel='noopener noreferrer'
                       className='mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors inline-block'
@@ -511,7 +511,7 @@ export default function HomePage() {
                     {/* YouTube Video Embed for Free Videos Preview */}
                     <iframe
                       className='w-full h-full rounded-xl sm:rounded-2xl'
-                      src='https://www.youtube-nocookie.com/embed/eRsGyueVLvQ?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent'
+                      src='https://www.youtube-nocookie.com/embed/TdPQNrQrpXw?autoplay=0&mute=0&controls=1&rel=0&modestbranding=1&showinfo=0&iv_load_policy=3&fs=1&cc_load_policy=0&wmode=transparent'
                       title='TradersUtopia Free Trading Education Preview'
                       frameBorder='0'
                       allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
@@ -542,7 +542,7 @@ export default function HomePage() {
                           Click to watch on YouTube
                         </p>
                         <a
-                          href='https://www.youtube.com/watch?v=jNQXAC9IVRw'
+                          href='https://www.youtube.com/watch?v=TdPQNrQrpXw'
                           target='_blank'
                           rel='noopener noreferrer'
                           className='mt-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors inline-block'
