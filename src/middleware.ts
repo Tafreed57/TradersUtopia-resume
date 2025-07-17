@@ -39,7 +39,31 @@ const middlewareOptions: ClerkMiddlewareOptions = {
       ? 'https://tradersutopia.com'
       : 'http://localhost:3000',
   ],
-  contentSecurityPolicy: {},
+  contentSecurityPolicy: {
+    directives: {
+      // 'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      // 'style-src': ["'self'", "'unsafe-inline'"],
+      // 'font-src': ["'self'"],
+      // 'img-src': ["'self'", 'data:', 'blob:'],
+      // 'media-src': ["'self'"],
+      // 'connect-src': ["'self'"],
+      'frame-src': [
+        "'self'",
+        'https://challenges.cloudflare.com',
+        'https://*.js.stripe.com',
+        'https://js.stripe.com',
+        'https://hooks.stripe.com',
+        'https://www.youtube.com',
+        'https://www.youtube-nocookie.com',
+        'https://*.youtube.com',
+        'https://youtube.com',
+      ],
+      // 'worker-src': ["'self'"],
+      // 'object-src': ["'none'"],
+      // 'base-uri': ["'self'"],
+      // 'form-action': ["'self'"],
+    },
+  },
 };
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
