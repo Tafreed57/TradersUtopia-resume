@@ -194,13 +194,13 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className='relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+      <main className='relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pwa-safe-bottom dashboard-mobile-container'>
         {/* Welcome Section */}
-        <div className='mb-8'>
-          <h1 className='text-3xl font-bold text-white mb-2'>
+        <div className='mb-6 sm:mb-8'>
+          <h1 className='text-2xl sm:text-3xl font-bold text-white mb-2'>
             Welcome back, {profile.name || user?.firstName || 'User'}! 👋
           </h1>
-          <p className='text-lg text-gray-400'>
+          <p className='text-base sm:text-lg text-gray-400'>
             {hasActiveSubscription
               ? 'Manage your premium trading account and access all features'
               : 'Get started with trading insights and upgrade to access premium features'}
@@ -208,7 +208,7 @@ export default function Dashboard() {
         </div>
 
         {/* Status Cards Row */}
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8 grid-mobile-safe'>
           {/* Account Status */}
           <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-3'>
@@ -269,7 +269,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions Grid */}
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-8'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8 grid-mobile-safe'>
           {/* Premium Trading Servers */}
           <div className='relative'>
             <Card
@@ -374,60 +374,60 @@ export default function Dashboard() {
         </div>
 
         {/* Main Dashboard Tabs */}
-        <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
+        <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
-            className='w-full'
+            className='w-full overflow-hidden'
           >
-            <CardHeader className='pb-4'>
-              <TabsList className='grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 h-auto p-1 bg-gray-800/50 border border-gray-700/50'>
+            <CardHeader className='px-4 sm:px-6 py-4 sm:py-6 pb-3 sm:pb-4'>
+              <TabsList className='grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 h-auto p-1 bg-gray-800/50 border border-gray-700/50 gap-1 force-horizontal-scroll'>
                 <TabsTrigger
                   value='overview'
-                  className='flex items-center gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-2 px-3 text-sm'
+                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
                 >
-                  <Activity className='w-4 h-4' />
+                  <Activity className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
                   <span className='hidden sm:inline'>Overview</span>
                   <span className='sm:hidden'>Home</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value='subscription'
-                  className='flex items-center gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-2 px-3 text-sm'
+                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
                 >
-                  <Crown className='w-4 h-4' />
+                  <Crown className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
                   <span className='hidden sm:inline'>Subscription</span>
                   <span className='sm:hidden'>Plan</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value='profile'
-                  className='flex items-center gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-2 px-3 text-sm'
+                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
                 >
-                  <User className='w-4 h-4' />
+                  <User className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
                   <span className='hidden sm:inline'>Profile</span>
                   <span className='sm:hidden'>User</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value='settings'
-                  className='flex items-center gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-2 px-3 text-sm'
+                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
                 >
-                  <Settings className='w-4 h-4' />
+                  <Settings className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
                   <span className='hidden sm:inline'>Settings</span>
                   <span className='sm:hidden'>Config</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value='notifications'
-                  className='flex items-center gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-2 px-3 text-sm'
+                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
                 >
-                  <Bell className='w-4 h-4' />
+                  <Bell className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
                   <span className='hidden sm:inline'>Notifications</span>
                   <span className='sm:hidden'>Alerts</span>
                 </TabsTrigger>
                 {profile.isAdmin && (
                   <TabsTrigger
                     value='admin'
-                    className='flex items-center gap-2 data-[state=active]:bg-red-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-2 px-3 text-sm'
+                    className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-red-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
                   >
-                    <Shield className='w-4 h-4' />
+                    <Shield className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
                     <span className='hidden sm:inline'>Admin</span>
                     <span className='sm:hidden'>Admin</span>
                   </TabsTrigger>
@@ -435,9 +435,12 @@ export default function Dashboard() {
               </TabsList>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
               {/* Overview Tab */}
-              <TabsContent value='overview' className='space-y-6 mt-0'>
+              <TabsContent
+                value='overview'
+                className='space-y-4 sm:space-y-6 mt-0 tab-content-mobile'
+              >
                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
                   {/* Account Status Details */}
                   <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
@@ -585,93 +588,118 @@ export default function Dashboard() {
                 </div>
               </TabsContent>
 
-              {/* Subscription Tab - Keep existing content */}
-              <TabsContent value='subscription'>
-                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
-                  <CardHeader>
-                    <CardTitle className='flex items-center gap-2 text-white'>
-                      <Crown className='w-5 h-5 text-yellow-400' />
-                      Subscription Management
+              {/* Subscription Tab - Mobile Optimized */}
+              <TabsContent
+                value='subscription'
+                className='tab-content-mobile mt-4 sm:mt-6'
+              >
+                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
+                  <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
+                    <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
+                      <Crown className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 flex-shrink-0' />
+                      <span className='truncate'>Subscription Management</span>
                     </CardTitle>
-                    <CardDescription className='text-gray-400'>
+                    <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
                       Manage your subscription and billing information
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <SubscriptionManager />
+                  <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
+                    <div className='w-full overflow-hidden'>
+                      <SubscriptionManager />
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Profile Tab - Keep existing content */}
-              <TabsContent value='profile'>
-                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
-                  <CardHeader>
-                    <CardTitle className='flex items-center gap-2 text-white'>
-                      <User className='w-5 h-5 text-blue-400' />
-                      Profile Information
+              {/* Profile Tab - Mobile Optimized */}
+              <TabsContent
+                value='profile'
+                className='tab-content-mobile mt-4 sm:mt-6'
+              >
+                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
+                  <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
+                    <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
+                      <User className='w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0' />
+                      <span className='truncate'>Profile Information</span>
                     </CardTitle>
-                    <CardDescription className='text-gray-400'>
+                    <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
                       Manage your personal information and account details
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <UserDetails />
+                  <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
+                    <div className='w-full overflow-hidden'>
+                      <UserDetails />
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Settings Tab - Keep existing content */}
-              <TabsContent value='settings'>
-                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
-                  <CardHeader>
-                    <CardTitle className='flex items-center gap-2 text-white'>
-                      <Settings className='w-5 h-5 text-blue-400' />
-                      Security Settings
+              {/* Settings Tab - Mobile Optimized */}
+              <TabsContent
+                value='settings'
+                className='tab-content-mobile mt-4 sm:mt-6'
+              >
+                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
+                  <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
+                    <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
+                      <Settings className='w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0' />
+                      <span className='truncate'>Security Settings</span>
                     </CardTitle>
-                    <CardDescription className='text-gray-400'>
+                    <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
                       Manage your password and security preferences
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <PasswordManager />
+                  <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
+                    <div className='w-full overflow-hidden'>
+                      <PasswordManager />
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Notifications Tab - Keep existing content */}
-              <TabsContent value='notifications'>
-                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
-                  <CardHeader>
-                    <CardTitle className='flex items-center gap-2 text-white'>
-                      <Bell className='w-5 h-5 text-blue-400' />
-                      Notification Settings
+              {/* Notifications Tab - Mobile Optimized */}
+              <TabsContent
+                value='notifications'
+                className='tab-content-mobile mt-4 sm:mt-6'
+              >
+                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
+                  <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
+                    <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
+                      <Bell className='w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0' />
+                      <span className='truncate'>Notification Settings</span>
                     </CardTitle>
-                    <CardDescription className='text-gray-400'>
+                    <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
                       Control your notification preferences
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <NotificationSettings />
+                  <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
+                    <div className='w-full overflow-hidden'>
+                      <NotificationSettings />
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              {/* Admin Tab - Keep existing content */}
+              {/* Admin Tab - Mobile Optimized */}
               {profile.isAdmin && (
-                <TabsContent value='admin'>
-                  <Card className='bg-gradient-to-br from-red-900/30 to-red-800/30 border-red-700/50'>
-                    <CardHeader>
-                      <CardTitle className='flex items-center gap-2 text-white'>
-                        <Shield className='w-5 h-5 text-red-400' />
-                        Admin Panel
+                <TabsContent
+                  value='admin'
+                  className='tab-content-mobile mt-4 sm:mt-6'
+                >
+                  <Card className='bg-gradient-to-br from-red-900/30 to-red-800/30 border-red-700/50 card-mobile-safe'>
+                    <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
+                      <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
+                        <Shield className='w-4 h-4 sm:w-5 sm:h-5 text-red-400 flex-shrink-0' />
+                        <span className='truncate'>Admin Panel</span>
                       </CardTitle>
-                      <CardDescription className='text-gray-400'>
+                      <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
                         Administrative tools and user management
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <UserManagement />
+                    <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
+                      <div className='w-full overflow-hidden'>
+                        <UserManagement />
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>

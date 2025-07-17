@@ -78,46 +78,54 @@ export default function PaymentVerificationPage() {
       </div>
 
       {/* Header */}
-      <header className='absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 sm:p-6 max-w-7xl mx-auto w-full pwa-safe-top safe-area-inset-left safe-area-inset-right'>
-        <div className='flex items-center gap-3 sm:gap-6'>
-          {/* Logo and Title */}
-          <Link href='/' className='flex items-center gap-2 sm:gap-3'>
-            <div className='w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center'>
-              <NextImage
-                src='/logo.png'
-                alt='TradersUtopia'
-                width={20}
-                height={20}
-                className='sm:w-6 sm:h-6'
-              />
+      <header className='absolute top-0 left-0 right-0 z-20 pwa-header-safe safe-area-inset-left safe-area-inset-right bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-md border-b border-gray-700/30'>
+        <div className='flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 max-w-7xl mx-auto w-full min-h-[60px]'>
+          <div className='flex items-center gap-2 sm:gap-4 flex-1 min-w-0'>
+            {/* Logo and Title */}
+            <Link
+              href='/'
+              className='flex items-center gap-2 sm:gap-3 flex-shrink-0'
+            >
+              <div className='w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg'>
+                <NextImage
+                  src='/logo.png'
+                  alt='TradersUtopia'
+                  width={20}
+                  height={20}
+                  className='sm:w-6 sm:h-6'
+                />
+              </div>
+              <span className='text-white text-base sm:text-lg font-bold truncate'>
+                TradersUtopia
+              </span>
+            </Link>
+
+            {/* Authentication Section - Show on tablets+ */}
+            <div className='hidden md:block ml-4'>
+              <AuthHeader />
             </div>
-            <span className='text-white text-lg sm:text-xl font-bold'>
-              TradersUtopia
-            </span>
-          </Link>
-
-          {/* Authentication Section */}
-          <div className='hidden lg:block'>
-            <AuthHeader />
           </div>
-        </div>
 
-        <div className='flex items-center gap-2 sm:gap-4'>
-          <NavigationButton
-            href='/pricing'
-            asButton={true}
-            variant='ghost'
-            className='text-white hover:bg-white/10 bg-gray-700/30 backdrop-blur-sm border border-gray-600/30'
-            loadingMessage='Loading pricing information...'
-          >
-            Back to Pricing
-          </NavigationButton>
-          <GlobalMobileMenu />
+          <div className='flex items-center gap-2 sm:gap-3 flex-shrink-0'>
+            <NavigationButton
+              href='/pricing'
+              asButton={true}
+              variant='ghost'
+              className='text-white hover:bg-white/10 bg-gray-700/50 backdrop-blur-sm border border-gray-600/40 text-sm sm:text-base px-3 py-2 sm:px-4 sm:py-2 rounded-lg touch-manipulation min-h-[44px] font-medium'
+              loadingMessage='Loading pricing information...'
+            >
+              <span className='hidden sm:inline'>Back to Pricing</span>
+              <span className='sm:hidden'>Pricing</span>
+            </NavigationButton>
+            <div className='md:hidden'>
+              <GlobalMobileMenu />
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* Main Content - Absolutely Centered */}
-      <div className='absolute inset-0 z-10 flex items-center justify-center p-4 sm:p-6'>
+      {/* Main Content - Properly positioned below header */}
+      <div className='absolute inset-0 z-10 flex items-center justify-center p-4 sm:p-6 pt-20 sm:pt-24'>
         <div className='w-full max-w-2xl'>
           <Card className='bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 backdrop-blur-md rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 w-full border border-gray-600/30 shadow-2xl'>
             <CardHeader className='text-center pb-6'>
@@ -139,45 +147,56 @@ export default function PaymentVerificationPage() {
 
             <CardContent>
               {/* Payment Steps */}
-              <div className='grid gap-4'>
-                <div className='flex items-center gap-4 p-4 bg-gradient-to-r from-blue-600/20 to-blue-700/20 rounded-xl border border-blue-400/30'>
-                  <div className='w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0'>
-                    <span className='text-blue-400 font-bold'>1</span>
+              <div className='grid gap-4 sm:gap-6'>
+                {/* Step 1 - Payment */}
+                <div className='bg-gradient-to-r from-blue-600/30 to-blue-700/30 rounded-xl border-2 border-blue-400/40 shadow-lg overflow-hidden'>
+                  <div className='flex items-start gap-3 p-4 sm:p-6'>
+                    <div className='w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg mt-1'>
+                      <span className='text-white font-bold text-sm sm:text-lg'>
+                        1
+                      </span>
+                    </div>
+                    <div className='flex-1 min-w-0'>
+                      <p className='text-white font-bold text-base sm:text-lg mb-1'>
+                        Complete Payment in Stripe
+                      </p>
+                      <p className='text-blue-100 text-sm sm:text-base leading-relaxed'>
+                        Secure checkout powered by Stripe - Industry-leading
+                        payment security
+                      </p>
+                    </div>
                   </div>
-                  <div className='flex-1'>
-                    <p className='text-white font-semibold'>
-                      Complete Payment in Stripe
-                    </p>
-                    <p className='text-blue-200 text-sm'>
-                      Secure checkout powered by Stripe
-                    </p>
+
+                  {/* Mobile: Full width button */}
+                  <div className='px-4 pb-4'>
+                    <Button
+                      onClick={() =>
+                        window.open(
+                          'https://buy.stripe.com/3cI5kC46X5Bmbft2Kc4Ja0k',
+                          '_blank'
+                        )
+                      }
+                      className='w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-none shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 font-semibold text-base py-4 rounded-lg touch-manipulation'
+                    >
+                      <CreditCard className='w-5 h-5 mr-2' />
+                      Click Here for Secure Payment
+                    </Button>
                   </div>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={() =>
-                      window.open(
-                        'https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01',
-                        '_blank'
-                      )
-                    }
-                    className='border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black flex-shrink-0'
-                  >
-                    <ExternalLink className='w-4 h-4 mr-2' />
-                    Open Stripe
-                  </Button>
                 </div>
 
-                <div className='flex items-center gap-4 p-4 bg-gradient-to-r from-green-600/20 to-green-700/20 rounded-xl border border-green-400/30'>
-                  <div className='w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0'>
-                    <span className='text-green-400 font-bold'>2</span>
+                {/* Step 2 - Verification */}
+                <div className='flex items-start gap-3 p-4 sm:p-6 bg-gradient-to-r from-green-600/30 to-green-700/30 rounded-xl border-2 border-green-400/40 shadow-lg'>
+                  <div className='w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg mt-1'>
+                    <span className='text-white font-bold text-sm sm:text-lg'>
+                      2
+                    </span>
                   </div>
-                  <div className='flex-1'>
-                    <p className='text-white font-semibold'>
+                  <div className='flex-1 min-w-0'>
+                    <p className='text-white font-bold text-base sm:text-lg mb-1'>
                       Verify Your Purchase
                     </p>
-                    <p className='text-green-200 text-sm'>
-                      Click below after completing payment
+                    <p className='text-green-100 text-sm sm:text-base leading-relaxed'>
+                      Return here after payment to activate your premium access
                     </p>
                   </div>
                 </div>
