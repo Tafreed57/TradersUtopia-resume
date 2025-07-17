@@ -35,7 +35,6 @@ export function DeleteSectionModal() {
       onClose();
       router.refresh();
     } catch (error: any) {
-      console.log(error, 'DELETE SECTION ERROR');
     } finally {
       setIsLoading(false);
     }

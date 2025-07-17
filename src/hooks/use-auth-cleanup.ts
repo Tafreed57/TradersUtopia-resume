@@ -61,8 +61,6 @@ export function useAuthCleanup(options: UseAuthCleanupOptions = {}) {
 
     try {
       if (enableLogging) {
-        console.log('🔄 [AUTH-SYNC] Starting authentication verification...');
-        console.log('🎯 [AUTH-SYNC] Checking products:', customProductIds);
       }
 
       // Step 1: Verify product subscription with enhanced endpoint
@@ -95,7 +93,6 @@ export function useAuthCleanup(options: UseAuthCleanupOptions = {}) {
       } else {
         const errorData = await productResponse.json().catch(() => ({}));
         if (enableLogging) {
-          console.warn('⚠️ [AUTH-SYNC] Subscription check failed:', errorData);
         }
       }
 

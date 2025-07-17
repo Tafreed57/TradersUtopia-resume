@@ -35,7 +35,6 @@ export function DeleteMessageModal() {
       onClose();
       router.refresh();
     } catch (error: any) {
-      console.log(error, 'DELETE MESSAGE ERROR');
     } finally {
       setIsLoading(false);
     }

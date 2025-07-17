@@ -77,16 +77,13 @@ function AutoRouteAfterSignInClient() {
           timeoutPromise,
         ])) as Response;
         const productResult = await productResponse.json();
-        console.log('📊 Auto-check subscription result:', productResult);
 
         // Route based on subscription status
         if (productResult.hasAccess) {
-          console.log('✅ User has subscription, auto-routing to dashboard...');
           setTimeout(() => {
             router.push('/dashboard');
           }, 1000);
         } else {
-          console.log('❌ User needs subscription, auto-routing to pricing...');
           setTimeout(() => {
             router.push('/pricing');
           }, 1000);

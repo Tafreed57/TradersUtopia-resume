@@ -41,7 +41,6 @@ export function SmartEntryButton({
       const result = await loading.withLoading(
         async () => {
           // Check if user has valid product subscription
-          console.log('🎯 [SMART-ENTRY] Checking products:', customProductIds);
 
           const productResponse = await fetch(
             '/api/check-product-subscription',
@@ -57,7 +56,6 @@ export function SmartEntryButton({
           );
 
           const productResult = await productResponse.json();
-          console.log('📊 [SMART-ENTRY] Subscription result:', productResult);
 
           if (productResult.hasAccess) {
             // Get or create the default server and redirect to it
@@ -103,7 +101,6 @@ export function SmartEntryButton({
           }
         } else {
           // Has access but server lookup failed - try to create/get server again
-          console.log('🔄 [SMART-ENTRY] Server lookup failed, retrying...');
 
           try {
             const retryServerResponse = await makeSecureRequest(

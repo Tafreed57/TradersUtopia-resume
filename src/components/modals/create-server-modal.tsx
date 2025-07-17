@@ -133,9 +133,7 @@ export function CreateServerModal() {
                             onUploadError={(error: Error) => {
                               console.error('Upload error:', error.message);
                             }}
-                            onUploadBegin={name => {
-                              console.log('Uploading: ', name);
-                            }}
+                            onUploadBegin={name => {}}
                           />
                         )}
                       </FormControl>

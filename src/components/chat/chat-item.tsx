@@ -111,9 +111,7 @@ export function ChatItem({
       setIsEditing(false);
 
       router.refresh();
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) {}
   };
 
   return (

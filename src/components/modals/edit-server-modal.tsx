@@ -145,17 +145,14 @@ export function EditServerModal() {
                             endpoint='serverImage'
                             onClientUploadComplete={res => {
                               field.onChange(res?.[0].url);
-                              console.log('Files: ', res);
+
                               alert('Upload Completed');
                             }}
                             onUploadError={(error: Error) => {
-                              console.log('UploadthingERROR\n', error.message);
-
                               alert(`ERROR! ${error.message}`);
                             }}
                             onUploadBegin={name => {
                               // Do something once upload begins
-                              console.log('Uploading: ', name);
                             }}
                           />
                         )}

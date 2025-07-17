@@ -103,9 +103,7 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
 
       // ✅ PERFORMANCE: Removed router.refresh() - this was causing the slow message sending
       // Messages will appear via React Query refetch or real-time updates
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) {}
   };
 
   // Handle keyboard events for multi-line input

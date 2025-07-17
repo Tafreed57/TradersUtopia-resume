@@ -54,9 +54,7 @@ export function TrackRecordInput({ apiUrl }: TrackRecordInputProps) {
 
       // Invalidate and refetch track record messages
       queryClient.invalidateQueries({ queryKey: ['track-record-messages'] });
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) {}
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {

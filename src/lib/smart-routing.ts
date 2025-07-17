@@ -35,7 +35,6 @@ export function useSmartRouting(options: SmartRoutingOptions = {}) {
       }
 
       // User is signed in - check subscription status
-      console.log('🎯 [SMART-ROUTING] Checking products:', customProductIds);
 
       const response = await fetch('/api/check-product-subscription', {
         method: 'POST',
@@ -56,7 +55,6 @@ export function useSmartRouting(options: SmartRoutingOptions = {}) {
       }
 
       const result = await response.json();
-      console.log('📊 [SMART-ROUTING] Subscription result:', result);
 
       if (result.hasAccess) {
         // User has subscription - go to dashboard
@@ -66,7 +64,7 @@ export function useSmartRouting(options: SmartRoutingOptions = {}) {
         router.push('/dashboard');
       } else {
         // User doesn't have subscription - go to pricing
-        console.log('❌ [SMART-ROUTING] No access, redirecting to pricing');
+
         router.push('/pricing');
       }
     } catch (error) {

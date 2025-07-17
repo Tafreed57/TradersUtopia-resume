@@ -127,9 +127,7 @@ export function TrackRecordStandalone() {
       } else {
         throw new Error('Failed to post message');
       }
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) {}
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {

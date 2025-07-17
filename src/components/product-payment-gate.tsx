@@ -104,8 +104,6 @@ export function ProductPaymentGate({
     setLoading(true);
     setApiError(null);
 
-    console.log('🔍 [ProductPaymentGate] Checking product access...');
-
     try {
       // Fetch profile data first
       const profileResponse = await fetch('/api/user/profile');
@@ -136,8 +134,6 @@ export function ProductPaymentGate({
           errorMessage: 'Failed to verify subscription',
         }
       );
-
-      console.log('📊 [ProductPaymentGate] Access check result:', result);
 
       if (result.hasAccess) {
         setAccessStatus({
@@ -216,9 +212,6 @@ export function ProductPaymentGate({
     if (!isLoaded || !user) {
       // Don't automatically redirect to sign-in to prevent homepage redirects
       // Users will see the payment gate with manual sign-in options
-      console.log(
-        '🔍 [ProductPaymentGate] User not authenticated, showing payment gate instead of redirecting'
-      );
     }
   }, [isLoaded, user]);
 

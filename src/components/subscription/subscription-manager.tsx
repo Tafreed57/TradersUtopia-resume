@@ -228,8 +228,6 @@ export function SubscriptionManager() {
 
     setIsLoading(true);
     try {
-      console.log('🔄 Refreshing and syncing subscription with Stripe...');
-
       // First, try to sync with Stripe to get the latest data
       try {
         const syncResponse = await makeSecureRequest('/api/subscription/sync', {
@@ -240,11 +238,10 @@ export function SubscriptionManager() {
         });
 
         if (syncResponse.ok) {
-          console.log('✅ Sync successful, fetching updated details...');
           showToast.success('🔄 Synced', 'Subscription data synchronized!');
         } else {
           const syncData = await syncResponse.json();
-          console.log('⚠️ Sync failed, still refreshing local data...');
+
           showToast.warning(
             '⚠️ Partial Sync',
             'Refreshing with available data...'
@@ -267,7 +264,7 @@ export function SubscriptionManager() {
       }
 
       const data = await response.json();
-      console.log('📊 Updated subscription data received:', data);
+
       setSubscription(data.subscription);
 
       showToast.success('✅ Refreshed', 'Subscription data updated!');

@@ -75,7 +75,6 @@ export function EditTrackRecordMessageModal() {
       // Also trigger a custom event to refresh the track record component
       window.dispatchEvent(new CustomEvent('trackRecordRefresh'));
     } catch (error: any) {
-      console.log(error, 'EDIT TRACK RECORD MESSAGE ERROR');
     } finally {
       setIsLoading(false);
     }

@@ -62,8 +62,6 @@ export function PricingButtons(
 
     // If user has subscription, use smart server navigation
     if (subscriptionData?.hasAccess) {
-      console.log('✅ User has subscription, using smart server navigation...');
-
       try {
         const serverResponse = await fetch('/api/servers/ensure-default', {
           method: 'POST',
@@ -85,9 +83,7 @@ export function PricingButtons(
           }
         } else {
           // Fallback to dashboard if server lookup fails
-          console.log(
-            '⚠️ [PRICING-BUTTONS] Server lookup failed, fallback to dashboard'
-          );
+
           router.push('/dashboard');
         }
       } catch (error) {
@@ -98,9 +94,7 @@ export function PricingButtons(
     }
 
     // If user doesn't have subscription, go to payment verification page
-    console.log(
-      '❌ User has no subscription, redirecting to payment verification page...'
-    );
+
     router.push('/payment-verification');
   };
 

@@ -31,13 +31,6 @@ const isPublicRoute = createRouteMatcher([
   '/api/user/validate-email',
   '/api/auth/signout',
   '/api/get-participant-token',
-  // Debug routes for development
-  '/api/test-env',
-  '/api/test-clerk',
-  '/api/debug-emails',
-  '/api/debug-stripe',
-  '/api/test-login-sync',
-  '/api/test-2fa-status',
 ]);
 
 const middlewareOptions: ClerkMiddlewareOptions = {

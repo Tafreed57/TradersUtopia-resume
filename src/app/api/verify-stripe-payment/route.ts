@@ -45,8 +45,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No email found' }, { status: 400 });
     }
 
-    console.log(`🔍 Checking Stripe payment for user: ${userEmail}`);
-
     // Step 1: Search for customer in Stripe by email
     const customers = await stripe.customers.list({
       email: userEmail,
@@ -62,7 +60,6 @@ export async function POST(request: NextRequest) {
     }
 
     const customer = customers.data[0];
-    console.log(`✅ Found Stripe customer: ${customer.id}`);
 
     // Step 2: Check for active subscriptions
     const subscriptions = await stripe.subscriptions.list({
@@ -90,23 +87,6 @@ export async function POST(request: NextRequest) {
     const completedSessions = checkoutSessions.data.filter(
       session => session.status === 'complete'
     );
-
-    console.log(
-      `💳 Found ${successfulPayments.length} successful payment intents`
-    );
-    console.log(
-      `🎟️ Found ${completedSessions.length} completed checkout sessions (including promo codes)`
-    );
-    console.log(`📋 Found ${subscriptions.data.length} active subscriptions`);
-
-    // Log details about payments and sessions
-    if (completedSessions.length > 0) {
-      completedSessions.forEach((session, index) => {
-        console.log(
-          `Session ${index + 1}: Amount: $${(session.amount_total || 0) / 100}, Status: ${session.status}`
-        );
-      });
-    }
 
     // Step 4: Determine if user should have access (including $0 promo payments)
     const hasActiveSubscription = subscriptions.data.length > 0;
@@ -146,7 +126,6 @@ export async function POST(request: NextRequest) {
           subscriptionStatus: 'FREE',
         },
       });
-      console.log(`➕ Created new profile: ${profile.id}`);
     }
 
     // Step 6: Update subscription status based on Stripe data
@@ -164,17 +143,14 @@ export async function POST(request: NextRequest) {
         );
       } else {
         subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        console.log(`📅 No period end found, using 30-day fallback`);
       }
     } else {
       // For one-time payments or when no active subscription
       subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      console.log(`📅 Using 30-day fallback for one-time payment`);
     }
 
     // Validate the date
     if (isNaN(subscriptionEnd.getTime())) {
-      console.log('⚠️ Invalid subscription end date, using 30-day fallback');
       subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     }
 
@@ -233,16 +209,6 @@ export async function POST(request: NextRequest) {
           `✅ Auto-joined user ${userEmail} to admin server "${server.name}" as ${profile.isAdmin ? 'ADMIN' : 'GUEST'}`
         );
       }
-    }
-
-    if (serversJoined > 0) {
-      console.log(
-        `🎉 User ${userEmail} joined ${serversJoined} admin servers: ${joinedServerNames.join(', ')}`
-      );
-    } else {
-      console.log(
-        `ℹ️ User ${userEmail} was already a member of all admin servers`
-      );
     }
 
     // Determine the access reason for better messaging

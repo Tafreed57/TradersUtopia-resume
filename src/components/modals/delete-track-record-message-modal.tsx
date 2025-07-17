@@ -40,7 +40,6 @@ export function DeleteTrackRecordMessageModal() {
       // Also trigger a custom event to refresh the track record component
       window.dispatchEvent(new CustomEvent('trackRecordRefresh'));
     } catch (error: any) {
-      console.log(error, 'DELETE TRACK RECORD MESSAGE ERROR');
     } finally {
       setIsLoading(false);
     }

@@ -36,8 +36,6 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed':
         const session = event.data.object as Stripe.Checkout.Session;
 
-        console.log(`🎉 Checkout session completed: ${session.id}`);
-
         let email: string | null = null;
         let customerName: string | null = null;
         let customerId: string | null = null;
@@ -62,7 +60,6 @@ export async function POST(request: NextRequest) {
           // Use customer details from session when no customer object exists
           email = session.customer_details.email;
           customerName = session.customer_details.name;
-          console.log(`📧 Using email from customer_details: ${email}`);
         }
 
         if (!email) {
@@ -74,8 +71,6 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-          console.log(`🔍 Looking for profiles with email: ${email}`);
-
           // Find ALL profiles with this email (to handle duplicates)
           const allProfiles = await db.profile.findMany({
             where: { email: email },
