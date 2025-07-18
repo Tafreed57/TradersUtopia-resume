@@ -34,6 +34,7 @@ import { SmartEntryButton } from '@/components/smart-entry-button';
 import { PricingButtons } from '@/components/pricing-buttons';
 import { SubscriptionManager } from '@/components/subscription/subscription-manager';
 import { NotificationSettings } from '@/components/notifications/notification-settings';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import UserManagement from '@/components/admin/user-management';
 import { useUnifiedAuth } from '@/contexts/unified-auth-provider';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
@@ -248,6 +249,9 @@ export default function Dashboard() {
                     </span>
                   </div>
                 )}
+
+                {/* Notification Bell */}
+                <NotificationBell />
 
                 {/* Clerk User Profile Button */}
                 <div className='flex items-center'>
