@@ -81,7 +81,7 @@ export function ProductPaymentGate({
     'Premium features',
     'Priority support',
   ],
-  adminBypass = false,
+  adminBypass = true, // ✅ UPDATED: Default to true so admins automatically get premium access
 }: ProductPaymentGateProps) {
   const { isLoaded, user } = useUser();
   const { navigate } = useNavigationLoading();

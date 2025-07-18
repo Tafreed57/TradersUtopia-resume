@@ -5,6 +5,7 @@ import { TRADING_ALERT_PRODUCTS, PRODUCT_TIERS } from '@/lib/product-config';
 /**
  * Check if the current user has access to any of the specified products
  * Use this in server components or API routes
+ * ADMIN USERS: Automatically have access to all premium features
  */
 export async function checkProductAccess(allowedProductIds: string[]) {
   try {
@@ -18,6 +19,27 @@ export async function checkProductAccess(allowedProductIds: string[]) {
       };
     }
 
+    // ✅ NEW: Check if user is admin first - admins get automatic premium access
+    const adminProfile = await db.profile.findFirst({
+      where: {
+        userId: user.id,
+        isAdmin: true,
+      },
+    });
+
+    if (adminProfile) {
+      console.log(
+        `🔑 [PRODUCT-ACCESS] Admin user ${adminProfile.email} granted automatic premium access`
+      );
+      return {
+        hasAccess: true,
+        reason: 'Admin user - automatic premium access granted',
+        productId: 'admin_access',
+        isAdminAccess: true,
+      };
+    }
+
+    // Continue with regular subscription check for non-admin users
     const profile = await db.profile.findFirst({
       where: {
         userId: user.id,

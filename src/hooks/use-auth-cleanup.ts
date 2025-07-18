@@ -82,13 +82,6 @@ export function useAuthCleanup(options: UseAuthCleanupOptions = {}) {
         hasValidSubscription = subscriptionData.hasAccess;
 
         if (enableLogging) {
-          console.log('✅ [AUTH-SYNC] Subscription check completed:', {
-            hasAccess: hasValidSubscription,
-            productId: subscriptionData.productId,
-            reason: subscriptionData.reason,
-            foundWithEmail: subscriptionData.foundWithEmail,
-            searchedEmails: subscriptionData.searchedEmails,
-          });
         }
       } else {
         const errorData = await productResponse.json().catch(() => ({}));

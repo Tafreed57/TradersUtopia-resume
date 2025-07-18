@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
+import { OfferConfirmationModal } from './offer-confirmation-modal';
 
 interface CancellationFlowModalProps {
   isOpen: boolean;
@@ -73,6 +74,7 @@ interface CancellationFlowModalProps {
       email: string;
       created: string;
     };
+    stripeSubscriptionId?: string; // Added for new webhook data
   };
 }
 
@@ -169,6 +171,14 @@ export function CancellationFlowModal({
   const [currentOffer, setCurrentOffer] = useState<number | null>(null);
   const [password, setPassword] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showOfferConfirmation, setShowOfferConfirmation] = useState(false);
+  const [offerDetails, setOfferDetails] = useState<{
+    originalPrice: number;
+    userInput: number;
+    offerPrice: number;
+    savings: number;
+    percentOff: number;
+  } | null>(null);
 
   // Debug subscription data when modal opens
   useEffect(() => {
@@ -188,6 +198,8 @@ export function CancellationFlowModal({
     setCurrentOffer(null);
     setPassword('');
     setIsLoading(false);
+    setShowOfferConfirmation(false);
+    setOfferDetails(null);
   };
 
   // Enhanced onClose that resets state
@@ -221,8 +233,8 @@ export function CancellationFlowModal({
       return;
     }
 
-    // Calculate offer: $5 less than their input (minimum $19.99)
-    let offerPrice = Math.max(19.99, inputPrice - 5);
+    // Calculate offer: $5 less than their input (minimum $20.00)
+    let offerPrice = Math.max(20.0, inputPrice - 5);
 
     // If they can already afford the full price, keep them at current price
     if (inputPrice >= 150) {
@@ -234,14 +246,41 @@ export function CancellationFlowModal({
       return;
     }
 
-    console.log('💰 Calculated offer:', offerPrice);
-    console.log('🔄 Applying discount immediately...');
+    // Use 150 as the original price since that's our actual service price
+    const originalPrice = 150;
+    const savings = originalPrice - offerPrice;
+    const percentOff = Math.round((savings / originalPrice) * 100);
 
+    console.log('💰 Calculated offer:', {
+      inputPrice,
+      offerPrice,
+      savings,
+      percentOff,
+    });
+
+    // Store offer details and show confirmation modal
+    setOfferDetails({
+      originalPrice,
+      userInput: inputPrice,
+      offerPrice,
+      savings,
+      percentOff,
+    });
     setCurrentOffer(offerPrice);
+    setShowOfferConfirmation(true);
+  };
+
+  const handleConfirmOffer = async () => {
+    if (!offerDetails) return;
+
     setIsLoading(true);
+    setShowOfferConfirmation(false);
 
     try {
-      if (!subscription?.stripe) {
+      // ✅ FIXED: Handle both new webhook data and legacy subscription data
+      const stripeData = subscription?.stripe;
+
+      if (!stripeData) {
         showToast.error(
           'Error',
           'Subscription data not available. Please refresh the page and try again.'
@@ -249,21 +288,15 @@ export function CancellationFlowModal({
         return;
       }
 
-      // Use 150 as the original price since that's our actual service price
-      const originalPrice = 150;
-      const currentDiscountedPrice = subscription.stripe.amount / 100;
+      const currentDiscountedPrice = stripeData.amount / 100;
 
-      const totalDiscountAmount = originalPrice - offerPrice;
-      const percentOff = Math.round(
-        (totalDiscountAmount / originalPrice) * 100
-      );
-
-      console.log('💰 Discount calculation:', {
-        originalPrice,
+      console.log('💰 Applying discount:', {
+        originalPrice: offerDetails.originalPrice,
         currentDiscountedPrice,
-        offerPrice,
-        totalDiscountAmount,
-        percentOff,
+        offerPrice: offerDetails.offerPrice,
+        percentOff: offerDetails.percentOff,
+        stripeData,
+        subscription,
       });
 
       const response = await makeSecureRequest(
@@ -272,18 +305,18 @@ export function CancellationFlowModal({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            percentOff,
-            newMonthlyPrice: offerPrice,
+            percentOff: offerDetails.percentOff,
+            newMonthlyPrice: offerDetails.offerPrice,
             currentPrice: currentDiscountedPrice,
-            originalPrice: originalPrice,
-            customerId: subscription.customer?.id,
-            subscriptionId: subscription.stripe?.id,
+            originalPrice: offerDetails.originalPrice,
+            // ✅ FIXED: Handle both new and legacy data formats
+            customerId: subscription.customer?.id || subscription.customerId,
+            subscriptionId: stripeData.id,
           }),
         }
       );
 
       const data = await response.json();
-      console.log('📡 API Response:', { response: response.ok, data });
 
       if (response.ok) {
         console.log('✅ Discount successfully applied:', data);
@@ -291,7 +324,7 @@ export function CancellationFlowModal({
         // Show success with detailed information
         showToast.success(
           '🎉 Custom Discount Applied!',
-          `Your negotiated rate of $${offerPrice}/month has been permanently applied!`
+          `Your negotiated rate of $${offerDetails.offerPrice}/month has been permanently applied!`
         );
 
         // Create a notification for the user about the permanent discount
@@ -303,7 +336,7 @@ export function CancellationFlowModal({
               action: 'create',
               type: 'PAYMENT',
               title: 'Custom Discount Applied! 🎉',
-              message: `Your negotiated rate of $${offerPrice}/month has been permanently applied. This discount will continue for the lifetime of your subscription.`,
+              message: `Your negotiated rate of $${offerDetails.offerPrice}/month has been permanently applied. This discount will continue for the lifetime of your subscription.`,
             }),
           });
         } catch (notifError) {
@@ -322,13 +355,10 @@ export function CancellationFlowModal({
         );
 
         // If discount failed, offer to go to final offer
-        showToast.info(
-          'Alternative Option',
-          'Would you like to see our final $19.99 offer instead?'
-        );
         setTimeout(() => {
           setStep('final-offer');
-          setCurrentOffer(19.99);
+          const finalOfferPrice = 20.0; // Fixed $20/month final offer
+          setCurrentOffer(finalOfferPrice);
         }, 2000);
       }
     } catch (error) {
@@ -341,7 +371,8 @@ export function CancellationFlowModal({
       // If error, offer to go to final offer
       setTimeout(() => {
         setStep('final-offer');
-        setCurrentOffer(19.99);
+        const finalOfferPrice = 20.0; // Fixed $20/month final offer
+        setCurrentOffer(finalOfferPrice);
       }, 2000);
     } finally {
       setIsLoading(false);
@@ -349,8 +380,8 @@ export function CancellationFlowModal({
   };
 
   const handleAcceptOffer = async () => {
-    // Use finalOfferPrice or default to 19.99 for the final offer
-    const finalOfferPrice = currentOffer || 19.99;
+    // Use finalOfferPrice or default to 20.00 for the final offer
+    const finalOfferPrice = currentOffer || 20.0;
 
     console.log('🎯 Accept Offer clicked:', {
       currentOffer,
@@ -358,7 +389,10 @@ export function CancellationFlowModal({
       subscription,
     });
 
-    if (!subscription?.stripe) {
+    // ✅ FIXED: Handle both new webhook data and legacy subscription data
+    const stripeData = subscription?.stripe;
+
+    if (!stripeData) {
       showToast.error(
         'Error',
         'Subscription data not available. Please refresh the page and try again.'
@@ -371,7 +405,7 @@ export function CancellationFlowModal({
     try {
       // Use 150 as the original price since that's our actual service price
       const originalPrice = 150;
-      const currentDiscountedPrice = subscription.stripe.amount / 100;
+      const currentDiscountedPrice = stripeData.amount / 100;
 
       const totalDiscountAmount = originalPrice - finalOfferPrice;
       const percentOff = Math.round(
@@ -384,6 +418,8 @@ export function CancellationFlowModal({
         finalOfferPrice,
         totalDiscountAmount,
         percentOff,
+        stripeData,
+        subscription,
       });
 
       const response = await makeSecureRequest(
@@ -396,14 +432,29 @@ export function CancellationFlowModal({
             newMonthlyPrice: finalOfferPrice,
             currentPrice: currentDiscountedPrice,
             originalPrice: originalPrice,
-            customerId: subscription.customer?.id,
-            subscriptionId: subscription.stripe?.id,
+            // ✅ FIXED: Handle both new and legacy data formats
+            customerId: subscription.customer?.id || subscription.customerId,
+            subscriptionId: stripeData.id,
           }),
         }
       );
 
       const data = await response.json();
-      console.log('📡 API Response:', { response: response.ok, data });
+      console.log('📡 [FINAL OFFER] API Response:', {
+        status: response.status,
+        ok: response.ok,
+        data,
+        requestBody: {
+          percentOff,
+          newMonthlyPrice: finalOfferPrice,
+          currentPrice: currentDiscountedPrice,
+          originalPrice: originalPrice,
+          // ✅ FIXED: Handle both new and legacy data formats
+          customerId: subscription.customer?.id || subscription.customerId,
+          subscriptionId:
+            subscription.stripe?.id || subscription.stripeSubscriptionId,
+        },
+      });
 
       if (response.ok) {
         console.log('✅ Discount successfully applied:', data);
@@ -925,7 +976,7 @@ export function CancellationFlowModal({
 
                 {/* Savings Badge */}
                 <div className='absolute -top-4 -right-4 sm:-top-6 sm:-right-6 bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold transform rotate-12 shadow-lg'>
-                  SAVE ${Math.round(150 - finalOfferPrice)}
+                  SAVE $130
                 </div>
               </div>
 
@@ -998,8 +1049,7 @@ export function CancellationFlowModal({
                 Your final offer: ${finalOfferPrice.toFixed(2)}/month
               </div>
               <div className='text-orange-300 text-sm font-semibold mt-1'>
-                Save ${Math.round(150 - finalOfferPrice)}/month (
-                {Math.round(((150 - finalOfferPrice) / 150) * 100)}% off)
+                Save $130/month (87% off)
               </div>
             </div>
           </div>
@@ -1092,15 +1142,20 @@ export function CancellationFlowModal({
                 <span className='text-base sm:text-lg font-semibold block'>
                   Your subscription stays{' '}
                   <span className='text-emerald-600'>active</span> until{' '}
-                  {subscription?.stripe?.currentPeriodEnd
-                    ? new Date(
-                        subscription.stripe.currentPeriodEnd
-                      ).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : 'period end'}
+                  {(() => {
+                    // ✅ FIXED: Handle both new webhook data and legacy subscription data
+                    const stripeData = subscription?.stripe;
+
+                    return stripeData?.currentPeriodEnd
+                      ? new Date(
+                          stripeData.currentPeriodEnd
+                        ).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
+                      : 'period end';
+                  })()}
                 </span>
                 <span className='text-gray-600 text-sm'>
                   Continue enjoying all premium features
@@ -1245,10 +1300,13 @@ export function CancellationFlowModal({
       case 'price':
         return renderPriceNegotiation();
       case 'final-offer':
-        // Ensure we have a default offer when going to final offer step
+        // ✅ FIXED: Set final offer to exactly $20/month
         if (!currentOffer) {
-          console.log('🔧 Setting default final offer to 19.99');
-          setCurrentOffer(19.99);
+          const finalOfferPrice = 20.0; // Fixed $20/month final offer
+          console.log('🔧 Setting final offer to exactly $20/month:', {
+            finalOfferPrice,
+          });
+          setCurrentOffer(finalOfferPrice);
         }
         return renderFinalOffer();
       case 'password':
@@ -1259,21 +1317,36 @@ export function CancellationFlowModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className='max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-transparent border-none p-0 w-[calc(100vw-1rem)] sm:w-full flex flex-col'>
-        <div className='relative flex-1 overflow-y-auto p-2 sm:p-4'>
-          {/* Custom X button that actually works */}
-          <button
-            onClick={handleClose}
-            className='absolute right-4 top-4 z-50 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/40 hover:border-white/60 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg'
-            aria-label='Close modal'
-            type='button'
-          >
-            <X className='h-4 w-4 sm:h-5 sm:w-5 text-white drop-shadow-lg' />
-          </button>
-          <div className='w-full pb-4'>{renderStep()}</div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className='max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-transparent border-none p-0 w-[calc(100vw-1rem)] sm:w-full flex flex-col'>
+          <div className='relative flex-1 overflow-y-auto p-2 sm:p-4'>
+            {/* Custom X button that actually works */}
+            <button
+              onClick={handleClose}
+              className='absolute right-4 top-4 z-50 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/40 hover:border-white/60 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg'
+              aria-label='Close modal'
+              type='button'
+            >
+              <X className='h-4 w-4 sm:h-5 sm:w-5 text-white drop-shadow-lg' />
+            </button>
+            <div className='w-full pb-4'>{renderStep()}</div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Offer Confirmation Modal */}
+      {offerDetails && (
+        <OfferConfirmationModal
+          isOpen={showOfferConfirmation}
+          onClose={handleConfirmOffer}
+          originalPrice={offerDetails.originalPrice}
+          userInput={offerDetails.userInput}
+          offerPrice={offerDetails.offerPrice}
+          savings={offerDetails.savings}
+          percentOff={offerDetails.percentOff}
+        />
+      )}
+    </>
   );
 }

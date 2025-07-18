@@ -18,6 +18,11 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Sparkles,
+  Crown,
+  TrendingDown,
+  CheckCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
@@ -29,6 +34,14 @@ interface SubscriptionDetails {
   customerId: string;
   subscriptionStart: string;
   subscriptionEnd: string;
+  // Additional fields from database
+  stripeSubscriptionId?: string;
+  subscriptionAmount?: number;
+  subscriptionCurrency?: string;
+  subscriptionInterval?: string;
+  stripePriceId?: string;
+  discountPercent?: number;
+  discountName?: string;
   product?: {
     id: string;
     name: string;
@@ -63,6 +76,7 @@ interface SubscriptionDetails {
     email: string;
     created: string;
   };
+  isAdminAccess?: boolean;
 }
 
 export function SubscriptionManager() {
@@ -125,14 +139,24 @@ export function SubscriptionManager() {
   const createAndApplyCoupon = async (newPrice: number) => {
     setIsApplyingCoupon(true);
     try {
+      // ✅ FIXED: Handle both new webhook data and legacy subscription data
+      const stripeData =
+        subscription?.stripe ||
+        (subscription?.status === 'ACTIVE'
+          ? {
+              amount: subscription.subscriptionAmount || 14999,
+              originalAmount: subscription.subscriptionAmount || 14999,
+            }
+          : null);
+
       // Get the actual current discounted price the user is paying
-      const currentDiscountedPrice = subscription?.stripe?.amount
-        ? subscription.stripe.amount / 100
+      const currentDiscountedPrice = stripeData?.amount
+        ? stripeData.amount / 100
         : 0;
 
       // Get the original price (before any discounts)
-      const originalPrice = subscription?.stripe?.originalAmount
-        ? subscription.stripe.originalAmount / 100
+      const originalPrice = stripeData?.originalAmount
+        ? stripeData.originalAmount / 100
         : currentDiscountedPrice;
 
       console.log(
@@ -166,8 +190,10 @@ export function SubscriptionManager() {
             newMonthlyPrice: newPrice,
             currentPrice: currentDiscountedPrice,
             originalPrice: originalPrice,
-            customerId: subscription?.customer?.id,
-            subscriptionId: subscription?.stripe?.id,
+            // ✅ FIXED: Handle both new and legacy data formats
+            customerId: subscription?.customer?.id || subscription?.customerId,
+            subscriptionId:
+              subscription?.stripe?.id || subscription?.stripeSubscriptionId,
           }),
         }
       );
@@ -194,6 +220,299 @@ export function SubscriptionManager() {
     }
   };
 
+  const statusConfig = useMemo(() => {
+    if (!subscription || !subscription.status) {
+      return {
+        bgColor: 'bg-green-100 dark:bg-green-900/30',
+        textColor: 'text-green-600',
+        textColorCls: 'text-green-600 dark:text-green-400',
+        title: 'Active',
+        description: (date: string) =>
+          `Your subscription is active until ${date}`,
+        Icon: () => (
+          <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
+            <svg
+              className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M5 13l4 4L19 7'
+              />
+            </svg>
+          </div>
+        ),
+      };
+    }
+
+    // Check for admin access first
+    if (
+      subscription.isAdminAccess ||
+      subscription.productId === 'admin_access'
+    ) {
+      return {
+        bgColor:
+          'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30',
+        textColor: 'text-purple-600',
+        textColorCls: 'text-purple-600 dark:text-purple-400',
+        title: 'Admin Access',
+        description: () => 'Full premium access as an administrator',
+        Icon: () => (
+          <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center'>
+            <svg
+              className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'
+              />
+            </svg>
+          </div>
+        ),
+      };
+    }
+
+    switch (subscription.status.toLowerCase()) {
+      case 'active':
+        return {
+          bgColor: 'bg-green-100 dark:bg-green-900/30',
+          textColor: 'text-green-600',
+          textColorCls: 'text-green-600 dark:text-green-400',
+          title: 'Active',
+          description: (date: string) =>
+            `Your subscription is active until ${date}`,
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
+              <svg
+                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M5 13l4 4L19 7'
+                />
+              </svg>
+            </div>
+          ),
+        };
+      case 'cancelled':
+        return {
+          bgColor: 'bg-red-100 dark:bg-red-900/30',
+          textColor: 'text-red-600',
+          textColorCls: 'text-red-600 dark:text-red-400',
+          title: 'Cancelled',
+          description: (date: string) =>
+            `Your subscription was cancelled on ${date}`,
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-red-500 flex items-center justify-center'>
+              <svg
+                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M6 18L18 6M6 6l12 12'
+                />
+              </svg>
+            </div>
+          ),
+        };
+      default:
+        return {
+          bgColor: 'bg-gray-100 dark:bg-gray-700/30',
+          textColor: 'text-gray-600',
+          textColorCls: 'text-gray-600 dark:text-gray-400',
+          title: 'Active',
+          description: (date: string) =>
+            `Your subscription is active until ${date}`,
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
+              <svg
+                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M5 13l4 4L19 7'
+                />
+              </svg>
+            </div>
+          ),
+        };
+    }
+  }, [subscription]);
+
+  const cardClasses =
+    'bg-white dark:bg-gray-800/50 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700/60 p-4 sm:p-8 transition-all duration-300 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 backdrop-blur-sm';
+
+  // ✅ FIXED: Handle both new webhook data and legacy subscription data
+  const stripeData = useMemo(() => {
+    if (subscription?.stripe) {
+      return subscription.stripe;
+    }
+
+    // Create fallback stripe data from subscription details if active
+    if (
+      subscription?.status === 'ACTIVE' ||
+      subscription?.status === 'active'
+    ) {
+      return {
+        id:
+          subscription.stripeSubscriptionId ||
+          subscription.customerId ||
+          'legacy',
+        status: subscription.status?.toLowerCase() || 'active',
+        currentPeriodStart: subscription.subscriptionStart,
+        currentPeriodEnd: subscription.subscriptionEnd,
+        cancelAtPeriodEnd: false,
+        canceledAt: null,
+        autoRenew: true,
+        priceId: subscription.stripePriceId || 'legacy_price',
+        amount: subscription.subscriptionAmount || 14999,
+        originalAmount: subscription.subscriptionAmount || 14999,
+        currency: subscription.subscriptionCurrency || 'usd',
+        interval: subscription.subscriptionInterval || 'month',
+        trialStart: null,
+        trialEnd: null,
+        created: subscription.subscriptionStart,
+        pauseStartDate: null,
+        discountPercent: subscription.discountPercent || null,
+        discountAmount: null,
+        hasDiscount: !!(
+          subscription.discountPercent && subscription.discountPercent > 0
+        ),
+        discountDetails:
+          subscription.discountPercent && subscription.discountPercent > 0
+            ? {
+                id: 'legacy_discount',
+                name: subscription.discountName || 'Applied Discount',
+                percentOff: subscription.discountPercent,
+                amountOff: null,
+                duration: 'unknown',
+                valid: true,
+              }
+            : null,
+      };
+    }
+
+    return null;
+  }, [subscription]);
+
+  // ✅ ENHANCED: Check if subscription data is incomplete
+  const isSubscriptionDataIncomplete =
+    subscription?.status === 'ACTIVE' &&
+    subscription?.stripeSubscriptionId === undefined &&
+    subscription?.subscriptionAmount === undefined;
+
+  // ✅ NEW: Add backfill subscription data function
+  const backfillSubscriptionData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        '/api/subscription/backfill-subscription-ids',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        showToast.success(
+          data.alreadyPopulated
+            ? 'Subscription data is already up to date'
+            : 'Subscription data updated successfully'
+        );
+
+        // Refresh subscription data
+        await fetchSubscriptionDetails();
+      } else {
+        showToast.error(data.error || 'Failed to update subscription data');
+      }
+    } catch (error) {
+      console.error('Failed to backfill subscription data:', error);
+      showToast.error('Failed to update subscription data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderInvoices = () => {
+    return (
+      <div className='text-center py-6 sm:py-8'>
+        <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+          <CreditCard className='w-6 h-6 sm:w-8 sm:h-8 text-gray-400' />
+        </div>
+        <p className='text-gray-600 dark:text-gray-400 font-medium mb-2 text-sm sm:text-base'>
+          No invoices available
+        </p>
+        <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
+          Your invoice history will appear here once generated
+        </p>
+      </div>
+    );
+  };
+
+  const handleCancellationFlowComplete = async (
+    action: 'cancelled' | 'retained' | 'discounted'
+  ) => {
+    setShowCancellationFlow(false);
+
+    if (action === 'cancelled') {
+      // Refresh subscription details to show updated state
+      await fetchSubscriptionDetails();
+    } else if (action === 'discounted') {
+      // Refresh subscription details to show new pricing
+      await fetchSubscriptionDetails();
+    }
+    // If retained, just close the modal (no changes needed)
+  };
+
+  const handleToggleAutoRenew = async () => {
+    // ✅ FIXED: Use stripeData instead of subscription?.stripe for legacy data compatibility
+    const newAutoRenewValue = !stripeData?.autoRenew;
+
+    // If user is trying to disable auto-renewal, show cancellation flow
+    if (!newAutoRenewValue && stripeData?.autoRenew) {
+      setShowCancellationFlow(true);
+      return;
+    }
+
+    // If user is enabling auto-renewal, proceed directly
+    try {
+      setIsLoading(true);
+      await toggleAutoRenew(newAutoRenewValue);
+    } catch (err: any) {
+      setError(err.message || 'Failed to toggle auto-renewal');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const fetchSubscriptionDetails = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
@@ -206,10 +525,6 @@ export function SubscriptionManager() {
       const result = await response.json();
       if (result.success) {
         console.log('📊 Subscription details received:', result.subscription);
-        console.log(
-          '📅 Current period end value:',
-          result.subscription?.stripe?.currentPeriodEnd
-        );
         setSubscription(result.subscription);
       } else {
         throw new Error(result.message || 'Failed to get subscription data');
@@ -222,6 +537,13 @@ export function SubscriptionManager() {
       setIsLoading(false);
     }
   }, [userId]);
+
+  // ✅ FIXED: Fetch subscription details on component mount
+  useEffect(() => {
+    if (isLoaded && userId) {
+      fetchSubscriptionDetails();
+    }
+  }, [isLoaded, userId, fetchSubscriptionDetails]);
 
   const refreshAndSync = async () => {
     if (isLoading) return; // Prevent multiple simultaneous refreshes
@@ -404,269 +726,97 @@ export function SubscriptionManager() {
     }
   };
 
-  const handleToggleAutoRenew = async () => {
-    const newAutoRenewValue = !subscription?.stripe?.autoRenew;
+  const handleForceSync = async () => {
+    try {
+      setIsSyncing(true);
+      console.log('🚀 [FORCE-SYNC] Starting manual force sync...');
 
-    // If user is trying to disable auto-renewal, show cancellation flow
-    if (!newAutoRenewValue && subscription?.stripe?.autoRenew) {
-      setShowCancellationFlow(true);
-      return;
+      const response = await makeSecureRequest('/api/subscription/force-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('✅ [FORCE-SYNC] Success:', data);
+        showToast.success(
+          '🎉 Sync Complete!',
+          'Your subscription data has been forcefully synced from Stripe!'
+        );
+
+        // Refresh the subscription details to show updated data
+        await fetchSubscriptionDetails();
+      } else {
+        console.error('❌ [FORCE-SYNC] Error:', data);
+        showToast.error(
+          'Sync Failed',
+          data.message || 'Failed to sync subscription data'
+        );
+      }
+    } catch (err: any) {
+      console.error('❌ [FORCE-SYNC] Network Error:', err);
+      showToast.error(
+        'Sync Error',
+        'Network error while syncing. Please try again.'
+      );
+    } finally {
+      setIsSyncing(false);
     }
+  };
 
-    // If user is enabling auto-renewal, proceed directly
+  // ✅ NEW: Add debug pricing function
+  const debugProductPricing = async () => {
     try {
       setIsLoading(true);
-      await toggleAutoRenew(newAutoRenewValue);
-    } catch (err: any) {
-      setError(err.message || 'Failed to toggle auto-renewal');
+      const response = await fetch('/api/subscription/debug-product-pricing', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('🔍 [PRICING-DEBUG] Full analysis:', data.analysis);
+        console.log(
+          '📊 [PRICING-DEBUG] Recommendations:',
+          data.recommendations
+        );
+
+        const analysis = data.analysis;
+        const recommendations = data.recommendations;
+
+        if (!analysis.priceComparison.amountsMatch) {
+          showToast.error(
+            `Price mismatch! DB: $${(analysis.databaseData.storedAmount / 100).toFixed(2)} vs Stripe: $${(analysis.stripeSubscriptionData.currentPriceAmount / 100).toFixed(2)}`
+          );
+        } else {
+          showToast.success('Pricing data matches between database and Stripe');
+        }
+
+        // Show detailed info in console for debugging
+        console.table({
+          'Database Amount': `$${(analysis.databaseData.storedAmount / 100).toFixed(2)}`,
+          'Stripe Amount': `$${(analysis.stripeSubscriptionData.currentPriceAmount / 100).toFixed(2)}`,
+          'Product Name': analysis.productInformation.productName,
+          'Price ID': analysis.stripeSubscriptionData.currentPriceId,
+          'Discount %': analysis.databaseData.storedDiscountPercent + '%',
+          'Calculated Original': `$${(recommendations.correctOriginalAmount / 100).toFixed(2)}`,
+        });
+      } else {
+        showToast.error(data.error || 'Failed to debug pricing data');
+      }
+    } catch (error) {
+      console.error('Failed to debug pricing data:', error);
+      showToast.error('Failed to debug pricing data');
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleCancellationFlowComplete = async (
-    action: 'cancelled' | 'retained' | 'discounted'
-  ) => {
-    setShowCancellationFlow(false);
-
-    if (action === 'cancelled') {
-      // Refresh subscription details to show updated state
-      await fetchSubscriptionDetails();
-    } else if (action === 'discounted') {
-      // Refresh subscription details to show new pricing
-      await fetchSubscriptionDetails();
-    }
-    // If retained, just close the modal (no changes needed)
-  };
-
-  useEffect(() => {
-    if (isLoaded && userId) {
-      fetchSubscriptionDetails();
-    }
-  }, [isLoaded, userId, fetchSubscriptionDetails]);
-
-  const cardClasses =
-    'bg-white dark:bg-gray-800/50 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700/60 p-4 sm:p-8 transition-all duration-300 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 backdrop-blur-sm';
-
-  const statusConfig = useMemo(() => {
-    if (!subscription || !subscription.status) {
-      return {
-        bgColor: 'bg-green-100 dark:bg-green-900/30',
-        textColor: 'text-green-600',
-        textColorCls: 'text-green-600 dark:text-green-400',
-        title: 'Active',
-        description: (date: string) =>
-          `Your subscription is active until ${date}`,
-        Icon: () => (
-          <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
-            <svg
-              className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-              fill='none'
-              stroke='currentColor'
-              viewBox='0 0 24 24'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M5 13l4 4L19 7'
-              />
-            </svg>
-          </div>
-        ),
-      };
-    }
-
-    switch (subscription.status.toLowerCase()) {
-      case 'active':
-        return {
-          bgColor: 'bg-green-100 dark:bg-green-900/30',
-          textColor: 'text-green-600',
-          textColorCls: 'text-green-600 dark:text-green-400',
-          title: 'Active',
-          description: (date: string) =>
-            `Your subscription is active until ${date}`,
-          Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
-              <svg
-                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M5 13l4 4L19 7'
-                />
-              </svg>
-            </div>
-          ),
-        };
-      case 'trialing':
-        return {
-          bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
-          textColor: 'text-yellow-600',
-          textColorCls: 'text-yellow-600 dark:text-yellow-400',
-          title: 'Trialing',
-          description: (date: string) => `Your trial ends on ${date}`,
-          Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-yellow-500 flex items-center justify-center'>
-              <svg
-                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-                fill='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' />
-              </svg>
-            </div>
-          ),
-        };
-      case 'cancelled':
-        return {
-          bgColor: 'bg-red-100 dark:bg-red-900/30',
-          textColor: 'text-red-600',
-          textColorCls: 'text-red-600 dark:text-red-400',
-          title: 'Cancelled',
-          description: (date: string) =>
-            `Your subscription was cancelled on ${date}`,
-          Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-red-500 flex items-center justify-center'>
-              <svg
-                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M6 18L18 6M6 6l12 12'
-                />
-              </svg>
-            </div>
-          ),
-        };
-      case 'unpaid':
-      case 'past_due':
-        return {
-          bgColor: 'bg-red-100 dark:bg-red-900/30',
-          textColor: 'text-red-600',
-          textColorCls: 'text-red-600 dark:text-red-400',
-          title: 'Past Due',
-          description: (date: string) =>
-            `Your subscription is past due. Payment is required by ${date}`,
-          Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-red-500 flex items-center justify-center'>
-              <svg
-                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z'
-                />
-              </svg>
-            </div>
-          ),
-        };
-      default:
-        return {
-          bgColor: 'bg-gray-100 dark:bg-gray-700/30',
-          textColor: 'text-gray-600',
-          textColorCls: 'text-gray-600 dark:text-gray-400',
-          title: 'Unknown',
-          description: (date: string) =>
-            `Subscription status unknown. Last updated on ${date}`,
-          Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-500 flex items-center justify-center'>
-              <svg
-                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                />
-              </svg>
-            </div>
-          ),
-        };
-    }
-  }, [subscription]);
-
-  const renderInvoices = () => {
-    return (
-      <div className='text-center py-6 sm:py-8'>
-        <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4'>
-          <CreditCard className='w-6 h-6 sm:w-8 sm:h-8 text-gray-400' />
-        </div>
-        <p className='text-gray-600 dark:text-gray-400 font-medium mb-2 text-sm sm:text-base'>
-          No invoices available
-        </p>
-        <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
-          Your invoice history will appear here once generated
-        </p>
-      </div>
-    );
-  };
-
-  if (!isLoaded || isLoading) {
-    return (
-      <Card>
-        <CardContent className='flex items-center justify-center py-6'>
-          <div className='flex items-center gap-2'>
-            <Loader2 className='h-4 w-4 animate-spin' />
-            <span>Loading subscription details...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!userId) {
-    return null;
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <CreditCard className='h-5 w-5' />
-            Subscription
-          </CardTitle>
-          <CardDescription>No subscription found</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  if (!subscription) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className='flex items-center gap-2'>
-            <CreditCard className='h-5 w-5' />
-            Subscription
-          </CardTitle>
-          <CardDescription>No subscription found</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  const { stripe: stripeData } = subscription;
 
   return (
     <div className='max-w-5xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8'>
@@ -706,12 +856,45 @@ export function SubscriptionManager() {
                   )}
                   Refresh
                 </Button>
+
+                {/* Health Check for Incomplete Subscription Data */}
+                {isSubscriptionDataIncomplete && (
+                  <div className='mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg'>
+                    <div className='flex items-start gap-3'>
+                      <AlertTriangle className='w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0' />
+                      <div>
+                        <h4 className='font-semibold text-amber-800 dark:text-amber-200 mb-1'>
+                          Subscription Data Incomplete
+                        </h4>
+                        <p className='text-sm text-amber-700 dark:text-amber-300 mb-3'>
+                          Some subscription details are missing. This can be
+                          fixed automatically.
+                        </p>
+                        <Button
+                          onClick={backfillSubscriptionData}
+                          variant='outline'
+                          size='sm'
+                          disabled={isLoading}
+                          className='bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700 hover:bg-amber-200 dark:hover:bg-amber-800/60 text-amber-800 dark:text-amber-200'
+                        >
+                          {isLoading ? (
+                            <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                          ) : (
+                            <RefreshCw className='w-4 h-4 mr-2' />
+                          )}
+                          Sync Subscription Data
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Subscription Overview Section */}
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8'>
         {/* Current Plan Card */}
         <div className={`${cardClasses} relative overflow-hidden`}>
@@ -725,7 +908,7 @@ export function SubscriptionManager() {
             </div>
             <div className='flex items-center gap-4 sm:gap-6 mb-4 sm:mb-6'>
               <div className='flex items-center justify-center'>
-                <statusConfig.Icon />
+                {statusConfig?.Icon && <statusConfig.Icon />}
               </div>
               <div className='flex-1'>
                 <p
@@ -734,7 +917,10 @@ export function SubscriptionManager() {
                   {statusConfig.title}
                 </p>
                 <p className='text-sm sm:text-lg text-gray-600 dark:text-gray-400'>
-                  Premium Plan
+                  {subscription?.isAdminAccess ||
+                  subscription?.productId === 'admin_access'
+                    ? 'Admin Access'
+                    : subscription?.product?.name || 'Premium Plan'}
                 </p>
               </div>
             </div>
@@ -788,79 +974,94 @@ export function SubscriptionManager() {
                   }`}
                 >
                   {stripeData.hasDiscount ? (
-                    // Discount Active Display
+                    // Enhanced Discount Active Display
                     <div className='space-y-4'>
-                      {/* Current Discounted Price */}
-                      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
-                        <div className='flex items-center gap-2'>
-                          <span className='text-gray-600 dark:text-gray-400 font-medium text-sm sm:text-base'>
-                            Your Discounted Price
+                      {/* Discount Header */}
+                      <div className='text-center pb-2'>
+                        <div className='inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-2 rounded-full shadow-lg'>
+                          <Sparkles className='w-4 h-4 animate-pulse' />
+                          <span className='font-bold text-sm'>
+                            🎉 SPECIAL DISCOUNT ACTIVE
                           </span>
-                          <div className='flex items-center gap-1 bg-emerald-100 dark:bg-emerald-800/30 px-2 py-1 rounded-full'>
-                            <div className='w-2 h-2 bg-emerald-500 rounded-full animate-pulse'></div>
-                            <span className='text-xs font-semibold text-emerald-700 dark:text-emerald-300'>
-                              {stripeData.discountPercent}% OFF
-                            </span>
-                          </div>
-                        </div>
-                        <div className='text-left sm:text-right'>
-                          <span className='text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400'>
-                            ${(stripeData.amount / 100).toFixed(2)}
-                          </span>
-                          <span className='text-gray-500 dark:text-gray-400 text-base sm:text-lg'>
-                            /{stripeData.interval}
-                          </span>
+                          <Sparkles className='w-4 h-4 animate-pulse' />
                         </div>
                       </div>
 
-                      {/* Original Price Comparison */}
-                      {stripeData.originalAmount && (
-                        <div className='bg-white/60 dark:bg-gray-800/60 rounded-xl p-3 border border-emerald-200/50 dark:border-emerald-700/50'>
-                          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm'>
-                            <span className='text-gray-600 dark:text-gray-400'>
-                              Original Price
+                      {/* Current Discounted Price - Made More Prominent */}
+                      <div className='bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-2xl p-6 border-2 border-emerald-200 dark:border-emerald-700/50 shadow-lg'>
+                        <div className='text-center space-y-3'>
+                          <div className='flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold'>
+                            <Crown className='w-5 h-5' />
+                            <span className='text-lg'>
+                              Your Negotiated Price
                             </span>
-                            <div className='flex items-center gap-2'>
-                              <span className='text-gray-500 dark:text-gray-400 line-through'>
-                                ${(stripeData.originalAmount / 100).toFixed(2)}/
-                                {stripeData.interval}
-                              </span>
-                              <span className='text-emerald-600 dark:text-emerald-400 font-semibold'>
-                                Save $
-                                {(
-                                  (stripeData.originalAmount -
-                                    stripeData.amount) /
-                                  100
-                                ).toFixed(2)}
-                                /month
-                              </span>
+                          </div>
+
+                          <div className='space-y-2'>
+                            <div className='text-4xl sm:text-5xl font-black text-emerald-600 dark:text-emerald-400'>
+                              ${(stripeData.amount / 100).toFixed(2)}
+                            </div>
+                            <div className='text-emerald-600 dark:text-emerald-400 text-lg font-medium'>
+                              per {stripeData.interval} • locked forever
+                            </div>
+                          </div>
+
+                          {/* Discount Badge */}
+                          <div className='inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg'>
+                            <TrendingDown className='w-4 h-4' />
+                            <span>{stripeData.discountPercent}% OFF</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Price Comparison - Enhanced */}
+                      <div className='bg-white/60 dark:bg-gray-800/60 rounded-2xl p-4 border border-emerald-200/50 dark:border-emerald-700/50'>
+                        <div className='grid grid-cols-2 gap-4 text-center'>
+                          <div className='space-y-2'>
+                            <div className='text-gray-500 dark:text-gray-400 text-sm font-medium'>
+                              Original Price
+                            </div>
+                            <div className='text-2xl font-bold text-gray-500 dark:text-gray-400 line-through opacity-75'>
+                              $
+                              {stripeData.originalAmount
+                                ? (stripeData.originalAmount / 100).toFixed(2)
+                                : '150.00'}
+                            </div>
+                          </div>
+                          <div className='space-y-2'>
+                            <div className='text-emerald-600 dark:text-emerald-400 text-sm font-medium'>
+                              You Save
+                            </div>
+                            <div className='text-2xl font-bold text-emerald-600 dark:text-emerald-400'>
+                              $
+                              {(
+                                ((stripeData.originalAmount || 15000) -
+                                  stripeData.amount) /
+                                100
+                              ).toFixed(2)}
+                            </div>
+                            <div className='text-emerald-600 dark:text-emerald-400 text-xs font-medium'>
+                              every month
                             </div>
                           </div>
                         </div>
-                      )}
+                      </div>
 
-                      {/* Discount Details */}
-                      <div className='bg-emerald-100/50 dark:bg-emerald-800/20 rounded-xl p-3'>
-                        <div className='flex items-center gap-2 text-sm'>
-                          <div className='w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center'>
-                            <svg
-                              className='w-3 h-3 text-white'
-                              fill='none'
-                              stroke='currentColor'
-                              viewBox='0 0 24 24'
-                            >
-                              <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M5 13l4 4L19 7'
-                              />
-                            </svg>
+                      {/* Success Message */}
+                      <div className='bg-gradient-to-r from-emerald-100/80 to-green-100/80 dark:from-emerald-800/20 dark:to-green-800/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-700/50'>
+                        <div className='flex items-center gap-3'>
+                          <div className='w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0'>
+                            <CheckCircle className='w-4 h-4 text-white' />
                           </div>
-                          <span className='text-emerald-700 dark:text-emerald-300 font-medium'>
-                            Permanent discount applied - this rate is locked in
-                            forever!
-                          </span>
+                          <div className='text-emerald-700 dark:text-emerald-300'>
+                            <div className='font-semibold text-sm sm:text-base'>
+                              🎉 Congratulations! Your custom discount is active
+                            </div>
+                            <div className='text-xs sm:text-sm opacity-90'>
+                              This special rate is locked in permanently - it
+                              will never increase
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -929,7 +1130,17 @@ export function SubscriptionManager() {
                     </div>
                     <Switch
                       checked={stripeData.autoRenew}
-                      onCheckedChange={handleToggleAutoRenew}
+                      onCheckedChange={checked => {
+                        console.log(
+                          '🔄 [SWITCH] Auto-renewal toggle clicked:',
+                          {
+                            currentValue: stripeData.autoRenew,
+                            newValue: checked,
+                            stripeData: stripeData,
+                          }
+                        );
+                        handleToggleAutoRenew();
+                      }}
                       className='data-[state=checked]:bg-green-500 scale-110 sm:scale-125'
                     />
                   </div>
@@ -983,12 +1194,14 @@ export function SubscriptionManager() {
       </div>
 
       {/* Cancellation Flow Modal */}
-      <CancellationFlowModal
-        isOpen={showCancellationFlow}
-        onClose={() => setShowCancellationFlow(false)}
-        onComplete={handleCancellationFlowComplete}
-        subscription={subscription}
-      />
+      {subscription && (
+        <CancellationFlowModal
+          isOpen={showCancellationFlow}
+          onClose={() => setShowCancellationFlow(false)}
+          onComplete={handleCancellationFlowComplete}
+          subscription={subscription}
+        />
+      )}
     </div>
   );
 }

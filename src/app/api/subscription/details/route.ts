@@ -6,7 +6,6 @@ import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   try {
     // ✅ SECURITY FIX: Add rate limiting
     const rateLimitResult = await rateLimitGeneral()(request);
@@ -15,7 +14,20 @@ export async function GET(request: NextRequest) {
       return rateLimitResult.error;
     }
 
-    const user = await currentUser();
+    // ✅ FIXED: Handle Clerk API errors gracefully
+    let user;
+    try {
+      user = await currentUser();
+    } catch (clerkError) {
+      console.error('❌ [SUBSCRIPTION-DETAILS] Clerk API Error:', clerkError);
+      return NextResponse.json(
+        {
+          error: 'Authentication service temporarily unavailable',
+          message: 'Please try again in a moment',
+        },
+        { status: 503 }
+      );
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
@@ -30,15 +42,132 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    // ✅ ENHANCED: Get comprehensive subscription info from webhook-updated database
+    // ✅ NEW: Check if user is admin first - admins get special admin access status
+    if (profile.isAdmin) {
+      console.log(
+        `🔑 [SUBSCRIPTION-DETAILS] Admin user ${profile.email} - showing admin access status`
+      );
+
+      return NextResponse.json({
+        success: true,
+        subscription: {
+          status: 'ACTIVE',
+          productId: 'admin_access',
+          customerId: profile.stripeCustomerId || 'admin_override',
+          subscriptionStart: profile.createdAt,
+          subscriptionEnd: null, // Admins don't have expiration
+          lastUpdated: profile.updatedAt,
+          isWebhookUpdated: false,
+          isAdminAccess: true,
+          product: {
+            id: 'admin_access',
+            name: 'Admin Premium Access',
+            description:
+              'Full access to all premium features as an administrator',
+            images: [],
+          },
+          stripe: {
+            id: 'admin_override',
+            status: 'active',
+            currentPeriodStart: profile.createdAt?.toISOString(),
+            currentPeriodEnd: null, // No expiration for admins
+            cancelAtPeriodEnd: false,
+            canceledAt: null,
+            autoRenew: true, // Always auto-renewing for admins
+            priceId: 'admin_access',
+            amount: 0, // Free for admins
+            originalAmount: 0,
+            currency: 'usd',
+            interval: 'lifetime',
+            trialStart: null,
+            trialEnd: null,
+            created: profile.createdAt?.toISOString(),
+            pauseStartDate: null,
+            discountPercent: 100, // 100% discount for admins
+            discountAmount: null,
+            hasDiscount: true,
+            discountDetails: {
+              id: 'admin_discount',
+              name: 'Administrator Access',
+              percentOff: 100,
+              amountOff: null,
+              duration: 'forever',
+              valid: true,
+            },
+          },
+          customer: profile.stripeCustomerId
+            ? null
+            : {
+                id: 'admin_override',
+                email: profile.email,
+                created: profile.createdAt?.toISOString(),
+              },
+          dataSource: 'admin_override',
+          metadata: {
+            lastDatabaseUpdate: profile.updatedAt,
+            hasStripeConnection: !!profile.stripeCustomerId,
+            isActive: true,
+            daysUntilExpiry: null, // Never expires for admins
+            dataFreshness: 'admin_override',
+            adminNote:
+              'This user has administrative privileges and automatic premium access',
+          },
+        },
+      });
+    }
+
+    // ✅ WEBHOOK-ONLY: Use database data instead of Stripe API calls
+    console.log(
+      `📊 [SUBSCRIPTION-DETAILS] Using webhook-cached data for user: ${profile.email}`
+    );
+
+    // ✅ ENHANCED DEBUG: Log discount-related database fields
+    console.log('💰 [DISCOUNT-API-DEBUG] Database discount fields:', {
+      discountPercent: profile.discountPercent,
+      discountName: profile.discountName,
+      subscriptionAmount: profile.subscriptionAmount, // Actual amount customer pays
+      originalAmount: profile.originalAmount, // Original price before discount
+      stripeSubscriptionId: profile.stripeSubscriptionId,
+      lastWebhookUpdate: profile.lastWebhookUpdate,
+      subscriptionStatus: profile.subscriptionStatus,
+    });
+
+    // ✅ FIXED: Determine subscription status based on data availability and expiry (same logic as product check)
+    const hasActiveSubscription =
+      profile.stripeProductId &&
+      profile.subscriptionEnd &&
+      new Date(profile.subscriptionEnd) > new Date() &&
+      profile.subscriptionAmount;
+
+    const subscriptionStatus = hasActiveSubscription
+      ? 'ACTIVE'
+      : profile.subscriptionStatus || 'INACTIVE';
+
+    console.log('🔍 [SUBSCRIPTION-DETAILS] Status determination:', {
+      hasActiveSubscription,
+      subscriptionStatus,
+      stripeProductId: profile.stripeProductId,
+      subscriptionEnd: profile.subscriptionEnd,
+      subscriptionAmount: profile.subscriptionAmount,
+      originalSubscriptionStatus: profile.subscriptionStatus,
+    });
+
+    // Build subscription info from database (webhook-cached data)
     const subscriptionInfo = {
-      status: profile.subscriptionStatus,
+      status: subscriptionStatus,
       productId: profile.stripeProductId,
       customerId: profile.stripeCustomerId,
       subscriptionStart: profile.subscriptionStart,
       subscriptionEnd: profile.subscriptionEnd,
       lastUpdated: profile.updatedAt,
-      isWebhookUpdated: true, // Flag to indicate this comes from webhook data
+      isWebhookUpdated: true,
+      // ✅ NEW: Add fields that are available from webhook data
+      stripeSubscriptionId: profile.stripeSubscriptionId,
+      subscriptionAmount: profile.subscriptionAmount,
+      subscriptionCurrency: profile.subscriptionCurrency,
+      subscriptionInterval: profile.subscriptionInterval,
+      discountPercent: profile.discountPercent,
+      discountName: profile.discountName,
     };
 
     let responseData: any = {
@@ -48,224 +177,107 @@ export async function GET(request: NextRequest) {
         product: null,
         stripe: null,
         customer: null,
-        dataSource: 'database', // Track data source for debugging
+        dataSource: 'webhook_cached', // ✅ NEW: Indicate data source
       },
     };
 
-    // ✅ ENHANCED: Enrich with Stripe data if customer ID exists
-    if (profile.stripeCustomerId) {
-      try {
-        // Get customer details
-        const customer = (await stripe.customers.retrieve(
-          profile.stripeCustomerId
-        )) as any;
-
-        if (!customer.deleted) {
-          responseData.subscription.customer = {
-            id: customer.id,
-            email: customer.email,
-            created: customer.created
-              ? new Date(customer.created * 1000).toISOString()
-              : null,
-          };
-        }
-
-        // Get product details if we have a product ID
-        if (profile.stripeProductId) {
-          try {
-            const product = await stripe.products.retrieve(
-              profile.stripeProductId
-            );
-            responseData.subscription.product = {
-              id: product.id,
-              name: product.name,
-              description: product.description,
-              images: product.images,
-            };
-          } catch (error) {
-            //
-          }
-        }
-
-        // ✅ ENHANCED: Get current subscription details from Stripe for real-time status
-        const subscriptions = await stripe.subscriptions.list({
-          customer: profile.stripeCustomerId,
-          limit: 10,
-          expand: ['data.discounts', 'data.discount.coupon'], // Expand discount information
-        });
-
-        if (subscriptions.data.length > 0) {
-          // Find the most relevant subscription
-          const relevantSubscription =
-            subscriptions.data.find(
-              (sub: any) =>
-                sub.status === 'active' ||
-                (sub.status === 'canceled' &&
-                  new Date(sub.current_period_end * 1000) > new Date())
-            ) || subscriptions.data[0];
-
-          let subscription = relevantSubscription as any;
-
-          // 🔍 ENHANCED: Get full subscription details with all discount information
-          try {
-            const fullSubscription = await stripe.subscriptions.retrieve(
-              subscription.id,
-              {
-                expand: ['discounts', 'discount.coupon'],
-              }
-            );
-            subscription = fullSubscription;
-          } catch (error) {}
-
-          // Get discount information from the new discounts array format
-          const activeDiscount =
-            subscription.discounts && subscription.discounts.length > 0
-              ? subscription.discounts[0] // Get the first active discount
-              : subscription.discount; // Fallback to old single discount format
-
-          const originalAmount =
-            subscription.items.data[0]?.price.unit_amount || 0;
-          let discountedAmount = originalAmount;
-          let discountPercent = null;
-          let discountAmount = null;
-
-          if (activeDiscount?.coupon) {
-            discountPercent = activeDiscount.coupon.percent_off;
-            discountAmount = activeDiscount.coupon.amount_off;
-
-            // Calculate the actual discounted amount
-            if (discountPercent) {
-              discountedAmount = Math.round(
-                originalAmount * (1 - discountPercent / 100)
-              );
-            } else if (discountAmount) {
-              discountedAmount = Math.max(0, originalAmount - discountAmount);
-            }
-          }
-
-          // 🔍 DEBUG: Log the actual subscription object to see what fields are available
-          console.log(
-            '🔍 DEBUG: Stripe subscription object:',
-            JSON.stringify(subscription, null, 2)
-          );
-          console.log(
-            '🔍 DEBUG: current_period_start:',
-            subscription.current_period_start
-          );
-          console.log(
-            '🔍 DEBUG: current_period_end:',
-            subscription.current_period_end
-          );
-          console.log('🔍 DEBUG: subscription status:', subscription.status);
-          console.log('🔍 DEBUG: subscription items:', subscription.items.data);
-
-          // ✅ ENHANCED: Use database values as fallback when Stripe fields are null
-          const currentPeriodStart = subscription.current_period_start
-            ? new Date(subscription.current_period_start * 1000).toISOString()
-            : profile.subscriptionStart
-              ? profile.subscriptionStart.toISOString()
-              : null;
-
-          const currentPeriodEnd = subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
-            : profile.subscriptionEnd
-              ? profile.subscriptionEnd.toISOString()
-              : null;
-
-          console.log(
-            '🔍 DEBUG: Using currentPeriodStart:',
-            currentPeriodStart
-          );
-          console.log('🔍 DEBUG: Using currentPeriodEnd:', currentPeriodEnd);
-
-          // ✅ ENHANCED: Comprehensive subscription details for UI
-          responseData.subscription.stripe = {
-            id: subscription.id,
-            status: subscription.status,
-            currentPeriodStart: currentPeriodStart,
-            currentPeriodEnd: currentPeriodEnd,
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
-            canceledAt: subscription.canceled_at
-              ? new Date(subscription.canceled_at * 1000).toISOString()
-              : null,
-            autoRenew: !subscription.cancel_at_period_end,
-            priceId: subscription.items.data[0]?.price.id,
-            amount: discountedAmount, // Use discounted amount instead of original
-            originalAmount: originalAmount, // Keep original for reference
-            currency: subscription.items.data[0]?.price.currency,
-            interval: subscription.items.data[0]?.price.recurring?.interval,
-            // ✅ ENHANCED: Additional metadata for better UI display
-            trialStart: subscription.trial_start
-              ? new Date(subscription.trial_start * 1000).toISOString()
-              : null,
-            trialEnd: subscription.trial_end
-              ? new Date(subscription.trial_end * 1000).toISOString()
-              : null,
-            created: subscription.created
-              ? new Date(subscription.created * 1000).toISOString()
-              : null,
-            pauseStartDate: null, // Placeholder for pause functionality
-            discountPercent: discountPercent,
-            discountAmount: discountAmount,
-            hasDiscount: !!activeDiscount?.coupon,
-            discountDetails: activeDiscount?.coupon
-              ? {
-                  id: activeDiscount.coupon.id,
-                  name: activeDiscount.coupon.name,
-                  percentOff: activeDiscount.coupon.percent_off,
-                  amountOff: activeDiscount.coupon.amount_off,
-                  duration: activeDiscount.coupon.duration,
-                  valid: activeDiscount.coupon.valid,
-                }
-              : null,
-          };
-
-          responseData.dataSource = 'stripe-enhanced';
-
-          // ✅ WEBHOOK SYNC CHECK: Compare webhook data vs Stripe data
-          const webhookEndDate = profile.subscriptionEnd
-            ? new Date(profile.subscriptionEnd)
-            : null;
-          const stripeEndDate = subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000)
-            : null;
-
-          if (
-            webhookEndDate &&
-            stripeEndDate &&
-            Math.abs(webhookEndDate.getTime() - stripeEndDate.getTime()) >
-              24 * 60 * 60 * 1000
-          ) {
-            responseData.subscription.syncWarning = {
-              message: 'Subscription data may be out of sync',
-              webhookDate: webhookEndDate,
-              stripeDate: stripeEndDate,
-            };
-          }
-        } else {
-          responseData.subscription.noActiveSubscription = true;
-        }
-
-        responseData.dataSource = 'database-with-stripe';
-      } catch (stripeError) {
-        responseData.subscription.stripeError = {
-          message: 'Unable to fetch real-time Stripe data',
-          error:
-            stripeError instanceof Error
-              ? stripeError.message
-              : 'Unknown error',
-        };
-        responseData.dataSource = 'database-only';
-      }
-    } else {
-      responseData.dataSource = 'database-only';
+    // ✅ WEBHOOK-ONLY: Build product info from cached data
+    if (profile.stripeProductId) {
+      responseData.subscription.product = {
+        id: profile.stripeProductId,
+        name: 'Premium Plan', // Could be cached in future if needed
+        description: 'Premium trading platform access',
+        images: [],
+      };
     }
 
-    // ✅ ENHANCED: Add helpful metadata for the UI
+    // ✅ WEBHOOK-ONLY: Build customer info from cached data
+    if (profile.stripeCustomerId) {
+      responseData.subscription.customer = {
+        id: profile.stripeCustomerId,
+        email: profile.stripeCustomerEmail || profile.email,
+        created:
+          profile.subscriptionCreated?.toISOString() ||
+          profile.createdAt?.toISOString(),
+      };
+    }
+
+    // ✅ WEBHOOK-ONLY: Build comprehensive Stripe data from cached fields
+    if (profile.stripeSubscriptionId) {
+      const hasDiscount =
+        profile.discountPercent && profile.discountPercent > 0;
+
+      responseData.subscription.stripe = {
+        id: profile.stripeSubscriptionId,
+        status: subscriptionStatus?.toLowerCase() || 'active',
+        currentPeriodStart: profile.subscriptionStart?.toISOString(),
+        currentPeriodEnd: profile.subscriptionEnd?.toISOString(),
+        cancelAtPeriodEnd: !profile.subscriptionAutoRenew,
+        canceledAt: profile.subscriptionCancelledAt?.toISOString() || null,
+        autoRenew: profile.subscriptionAutoRenew || false,
+        priceId: profile.stripePriceId,
+        amount: profile.subscriptionAmount || 0,
+        originalAmount: (() => {
+          // If originalAmount is stored, use it
+          if (profile.originalAmount) {
+            return profile.originalAmount;
+          }
+
+          // If missing, calculate it from discounted amount and discount percentage
+          if (
+            profile.subscriptionAmount &&
+            profile.discountPercent &&
+            profile.discountPercent > 0
+          ) {
+            const discountedAmount = profile.subscriptionAmount;
+            const discountPercent = profile.discountPercent;
+            const calculatedOriginal = Math.round(
+              discountedAmount / (1 - discountPercent / 100)
+            );
+            console.log(
+              `💰 [SUBSCRIPTION-DETAILS] Calculated missing original amount:`,
+              {
+                discountedAmount: `$${(discountedAmount / 100).toFixed(2)}`,
+                discountPercent: `${discountPercent}%`,
+                calculatedOriginal: `$${(calculatedOriginal / 100).toFixed(2)}`,
+              }
+            );
+            return calculatedOriginal;
+          }
+
+          // Fallback: no discount or missing data
+          return profile.subscriptionAmount || 0;
+        })(),
+        currency: profile.subscriptionCurrency || 'usd',
+        interval: profile.subscriptionInterval || 'month',
+        trialStart: null, // Could add these fields if needed
+        trialEnd: null,
+        created:
+          profile.subscriptionCreated?.toISOString() ||
+          profile.createdAt?.toISOString(),
+        pauseStartDate: null,
+        discountPercent: profile.discountPercent,
+        discountAmount: null, // Not currently stored separately
+        hasDiscount: hasDiscount,
+        discountDetails: hasDiscount
+          ? {
+              id: 'cached_discount',
+              name: profile.discountName || 'Applied Discount',
+              percentOff: profile.discountPercent,
+              amountOff: null,
+              duration: 'unknown', // Could enhance if needed
+              valid: true,
+            }
+          : null,
+      };
+    }
+
+    // ✅ WEBHOOK-ONLY: Build metadata from cached data
     responseData.subscription.metadata = {
       lastDatabaseUpdate: profile.updatedAt,
+      lastWebhookUpdate: profile.lastWebhookUpdate,
       hasStripeConnection: !!profile.stripeCustomerId,
-      isActive: profile.subscriptionStatus === 'ACTIVE',
+      isActive: subscriptionStatus === 'ACTIVE',
       daysUntilExpiry: profile.subscriptionEnd
         ? Math.ceil(
             (new Date(profile.subscriptionEnd).getTime() -
@@ -273,12 +285,18 @@ export async function GET(request: NextRequest) {
               (1000 * 60 * 60 * 24)
           )
         : null,
-      dataFreshness: responseData.dataSource,
+      dataFreshness: 'webhook_cached',
+      performanceNote:
+        'This data is served from webhook-cached database for optimal performance',
     };
+
+    console.log(
+      `✅ [SUBSCRIPTION-DETAILS] Served cached data for ${profile.email} - No Stripe API calls made`
+    );
 
     return NextResponse.json(responseData);
   } catch (error) {
-    // ✅ SECURITY: Generic error response - no internal details exposed
+    console.error('❌ [SUBSCRIPTION-DETAILS] Error:', error);
     return NextResponse.json(
       {
         error: 'Failed to fetch subscription details',

@@ -8,46 +8,60 @@ datasource db {
 }
 
 model Profile {
-  id                 String             @id @default(cuid())
-  userId             String             @unique
-  name               String
-  email              String
-  imageUrl           String?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  stripeCustomerId   String?
-  stripeSessionId    String?
-  subscriptionEnd    DateTime?
-  subscriptionStart  DateTime?
-  subscriptionStatus SubscriptionStatus @default(FREE)
-  stripeProductId    String?
-  backupCodes        String[]
-  isAdmin            Boolean            @default(false)
-  pushNotifications  Json?              @default("{\"system\": true, \"payment\": true, \"mentions\": true, \"messages\": true, \"security\": true, \"serverUpdates\": false}")
-  pushSubscriptions  Json[]             @default([])
-  channels           Channel[]
-  members            Member[]
-  servers            Server[]
-  sections           Section[]
+  id                             String                          @id @default(cuid())
+  userId                         String                          @unique
+  name                           String
+  email                          String
+  imageUrl                       String?
+  createdAt                      DateTime                        @default(now())
+  updatedAt                      DateTime                        @updatedAt
+  stripeCustomerId               String?
+  stripeSessionId                String?
+  subscriptionEnd                DateTime?
+  subscriptionStart              DateTime?
+  subscriptionStatus             SubscriptionStatus              @default(FREE)
+  stripeProductId                String?
+  backupCodes                    String[]
+  isAdmin                        Boolean                         @default(false)
+  pushNotifications              Json?                           @default("{\"system\": true, \"payment\": true, \"mentions\": true, \"messages\": true, \"security\": true, \"serverUpdates\": false}")
+  pushSubscriptions              Json[]                          @default([])
+  discountName                   String?
+  discountPercent                Int?
+  lastInvoiceUrl                 String?
+  lastWebhookUpdate              DateTime?
+  stripeCustomerEmail            String?
+  stripePriceId                  String?
+  stripeSubscriptionId           String?
+  subscriptionAmount             Int?     // Amount in cents (actual amount customer pays after discount)
+  originalAmount                 Int?     // Original amount before discount in cents
+  subscriptionAutoRenew          Boolean?
+  subscriptionCancelledAt        DateTime?
+  subscriptionCreated            DateTime?
+  subscriptionCurrency           String?
+  subscriptionInterval           String?
+  channels                       Channel[]
   channelNotificationPreferences ChannelNotificationPreference[]
-  trackRecordMessages TrackRecordMessage[]
+  members                        Member[]
+  sections                       Section[]
+  servers                        Server[]
+  trackRecordMessages            TrackRecordMessage[]
 }
 
 model Member {
-  id                     String          @id @default(cuid())
-  role                   MemberRole      @default(GUEST)
+  id                     String             @id @default(cuid())
+  role                   MemberRole         @default(GUEST)
   profileId              String
   serverId               String
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
   subscriptionEnd        DateTime?
   subscriptionStart      DateTime?
   subscriptionStatus     SubscriptionStatus @default(FREE)
-  conversationsInitiated Conversation[]  @relation("memberOne")
-  conversationsReceived  Conversation[]  @relation("memberTwo")
+  conversationsInitiated Conversation[]     @relation("memberOne")
+  conversationsReceived  Conversation[]     @relation("memberTwo")
   directMessages         DirectMessage[]
-  profile                Profile         @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  server                 Server          @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  profile                Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  server                 Server             @relation(fields: [serverId], references: [id], onDelete: Cascade)
   messages               Message[]
 
   @@index([profileId])
@@ -82,7 +96,6 @@ model Server {
   members            Member[]
   sections           Section[]
   profile            Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  
 
   @@index([profileId])
 }
@@ -98,10 +111,10 @@ model Section {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   channels  Channel[]
-  server    Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
   parent    Section?  @relation("SectionParent", fields: [parentId], references: [id], onDelete: Cascade)
   children  Section[] @relation("SectionParent")
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  server    Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
 
   @@index([serverId])
   @@index([profileId])
@@ -109,20 +122,20 @@ model Section {
 }
 
 model Channel {
-  id        String      @id @default(cuid())
-  name      String
-  type      ChannelType @default(TEXT)
-  profileId String
-  serverId  String
-  sectionId String?
-  position  Int         @default(0)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  profile   Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  server    Server      @relation(fields: [serverId], references: [id], onDelete: Cascade)
-  section   Section?    @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  messages  Message[]
+  id                      String                          @id @default(cuid())
+  name                    String
+  type                    ChannelType                     @default(TEXT)
+  profileId               String
+  serverId                String
+  sectionId               String?
+  position                Int                             @default(0)
+  createdAt               DateTime                        @default(now())
+  updatedAt               DateTime                        @updatedAt
+  profile                 Profile                         @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  section                 Section?                        @relation(fields: [sectionId], references: [id])
+  server                  Server                          @relation(fields: [serverId], references: [id], onDelete: Cascade)
   notificationPreferences ChannelNotificationPreference[]
+  messages                Message[]
 
   @@index([profileId])
   @@index([serverId])
@@ -175,6 +188,35 @@ model DirectMessage {
   @@index([memberId])
 }
 
+model ChannelNotificationPreference {
+  id        String   @id @default(cuid())
+  profileId String
+  channelId String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, channelId])
+  @@index([profileId])
+  @@index([channelId])
+}
+
+model TrackRecordMessage {
+  id        String   @id @default(cuid())
+  content   String
+  adminId   String
+  fileUrl   String?
+  deleted   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  admin     Profile  @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([createdAt])
+}
+
 enum ChannelType {
   TEXT
 }
@@ -201,35 +243,3 @@ enum NotificationType {
   PAYMENT
   SECURITY
 }
-
-model ChannelNotificationPreference {
-  id         String   @id @default(cuid())
-  profileId  String
-  channelId  String
-  enabled    Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  
-  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  
-  @@unique([profileId, channelId])
-  @@index([profileId])
-  @@index([channelId])
-}
-
-model TrackRecordMessage {
-  id        String   @id @default(cuid())
-  content   String
-  adminId   String
-  fileUrl   String?
-  deleted   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  admin     Profile  @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  
-  @@index([adminId])
-  @@index([createdAt])
-}
-

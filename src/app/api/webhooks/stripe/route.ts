@@ -192,6 +192,7 @@ export async function POST(request: NextRequest) {
               `🔒 [SECURITY] Updating ONLY the target profile: ${targetProfile.id} (${targetProfile.userId})`
             );
 
+            // Update profile with subscription data
             const updated = await db.profile.update({
               where: { id: targetProfile.id },
               data: {
@@ -201,6 +202,15 @@ export async function POST(request: NextRequest) {
                 stripeCustomerId: customerId,
                 stripeSessionId: session.id,
                 stripeProductId: stripeProductId,
+                // ✅ FIX: Also try to get the actual subscription ID from Stripe
+                ...(customerId
+                  ? await getSubscriptionDataFromCheckout(
+                      customerId,
+                      session.id,
+                      stripeProductId
+                    )
+                  : {}),
+                updatedAt: new Date(),
               },
             });
 
@@ -347,18 +357,62 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ✅ HELPER FUNCTION: Update subscription data in database
+// ✅ ENHANCED HELPER FUNCTION: Store comprehensive subscription data for webhook-only operation
 async function updateSubscriptionInDatabase(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
   const subscriptionWithPeriods = subscription as any;
 
-  // Calculate subscription dates
-  const subscriptionStart = new Date(
-    subscriptionWithPeriods.current_period_start * 1000
-  );
-  const subscriptionEnd = new Date(
-    subscriptionWithPeriods.current_period_end * 1000
-  );
+  // ✅ FIXED: Calculate subscription dates with proper fallbacks
+  let subscriptionStart: Date;
+  let subscriptionEnd: Date;
+
+  // Try multiple sources for period dates
+  if (
+    subscriptionWithPeriods.current_period_start &&
+    subscriptionWithPeriods.current_period_end
+  ) {
+    // Available at subscription level
+    subscriptionStart = new Date(
+      subscriptionWithPeriods.current_period_start * 1000
+    );
+    subscriptionEnd = new Date(
+      subscriptionWithPeriods.current_period_end * 1000
+    );
+  } else if (subscription.items?.data?.[0]) {
+    // Try subscription item level
+    const item = subscription.items.data[0] as any;
+    if (item.current_period_start && item.current_period_end) {
+      subscriptionStart = new Date(item.current_period_start * 1000);
+      subscriptionEnd = new Date(item.current_period_end * 1000);
+    } else {
+      // Fallback: Use subscription creation time + 30 days
+      subscriptionStart = new Date(subscription.created * 1000);
+      subscriptionEnd = new Date(
+        subscription.created * 1000 + 30 * 24 * 60 * 60 * 1000
+      );
+      console.warn(
+        `⚠️ [WEBHOOK] Using fallback dates for subscription ${subscription.id}`
+      );
+    }
+  } else {
+    // Final fallback
+    subscriptionStart = new Date(subscription.created * 1000);
+    subscriptionEnd = new Date(
+      subscription.created * 1000 + 30 * 24 * 60 * 60 * 1000
+    );
+    console.warn(
+      `⚠️ [WEBHOOK] Using final fallback dates for subscription ${subscription.id}`
+    );
+  }
+
+  // ✅ FIXED: Validate dates before using them
+  if (isNaN(subscriptionStart.getTime()) || isNaN(subscriptionEnd.getTime())) {
+    console.error(
+      `❌ [WEBHOOK] Invalid dates calculated for subscription ${subscription.id}`
+    );
+    subscriptionStart = new Date();
+    subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  }
 
   // Determine status based on Stripe subscription status
   let dbStatus: 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'FREE' = 'ACTIVE';
@@ -373,39 +427,234 @@ async function updateSubscriptionInDatabase(subscription: Stripe.Subscription) {
     dbStatus = 'ACTIVE';
   }
 
-  // Get product ID from subscription
+  // ✅ NEW: Extract comprehensive subscription data
   let productId = null;
+  let priceId = null;
+  let baseAmount = null;
+  let actualAmount = null;
+  let currency = null;
+  let interval = null;
+
   if (subscription.items.data.length > 0) {
     const price = subscription.items.data[0].price;
     productId = price.product as string;
+    priceId = price.id;
+    baseAmount = price.unit_amount; // Original price before discount
+    currency = price.currency;
+    interval = price.recurring?.interval;
   }
 
-  console.log(`📊 Updating subscription in database:`, {
+  // ✅ NEW: Extract discount information and calculate actual amount
+  let discountPercent = null;
+  let discountName = null;
+
+  // Handle both old single discount format and new discounts array format
+  const activeDiscount =
+    subscription.discounts && subscription.discounts.length > 0
+      ? subscription.discounts[0] // New format
+      : (subscription as any).discount; // Legacy format
+
+  if (activeDiscount?.coupon) {
+    discountPercent = activeDiscount.coupon.percent_off;
+    discountName = activeDiscount.coupon.name;
+  }
+
+  // ✅ CRITICAL FIX: Calculate the actual amount the customer pays
+  if (baseAmount) {
+    if (discountPercent && discountPercent > 0) {
+      // Calculate the discounted amount (what customer actually pays)
+      actualAmount = Math.round(baseAmount * (1 - discountPercent / 100));
+      console.log(`💰 [WEBHOOK] Discount calculation:`, {
+        baseAmount: `$${(baseAmount / 100).toFixed(2)}`,
+        discountPercent: `${discountPercent}%`,
+        actualAmount: `$${(actualAmount / 100).toFixed(2)}`,
+        savings: `$${((baseAmount - actualAmount) / 100).toFixed(2)}`,
+      });
+    } else {
+      // No discount, actual amount = base amount
+      actualAmount = baseAmount;
+    }
+  }
+
+  // ✅ NEW: Calculate cancellation date
+  const cancelledAt = subscription.canceled_at
+    ? new Date(subscription.canceled_at * 1000)
+    : null;
+
+  // ✅ NEW: Calculate creation date
+  const createdAt = subscription.created
+    ? new Date(subscription.created * 1000)
+    : null;
+
+  console.log(`📊 [WEBHOOK] Storing comprehensive subscription data:`, {
     customerId,
     subscriptionId: subscription.id,
     status: dbStatus,
-    start: subscriptionStart,
-    end: subscriptionEnd,
+    start: subscriptionStart.toISOString(),
+    end: subscriptionEnd.toISOString(),
     productId,
-    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    priceId,
+    baseAmount: baseAmount ? `$${(baseAmount / 100).toFixed(2)}` : null,
+    actualAmount: actualAmount ? `$${(actualAmount / 100).toFixed(2)}` : null,
+    currency,
+    interval,
+    autoRenew: !subscription.cancel_at_period_end,
+    discountPercent,
+    discountName,
+    cancelledAt: cancelledAt?.toISOString() || null,
+    createdAt: createdAt?.toISOString() || null,
   });
+
+  // ✅ NEW: Get customer email (try to avoid extra API call if possible)
+  let customerEmail = null;
+  try {
+    if (
+      typeof subscription.customer === 'object' &&
+      subscription.customer &&
+      !subscription.customer.deleted &&
+      'email' in subscription.customer
+    ) {
+      // Customer object is expanded in webhook
+      customerEmail = subscription.customer.email;
+    } else {
+      // Fall back to API call only if needed
+      const customer = await stripe.customers.retrieve(customerId);
+      if (!customer.deleted && customer.email) {
+        customerEmail = customer.email;
+      }
+    }
+  } catch (error) {
+    console.warn(
+      `⚠️ [WEBHOOK] Could not fetch customer email for ${customerId}:`,
+      error
+    );
+  }
+
+  // ✅ NEW: Comprehensive database update with all Stripe data
+  const updateData = {
+    // Existing fields
+    subscriptionStatus: dbStatus,
+    subscriptionStart: subscriptionStart,
+    subscriptionEnd: subscriptionEnd,
+    stripeProductId: productId,
+    updatedAt: new Date(),
+
+    // ✅ NEW: Store all Stripe data for webhook-only operation
+    stripeSubscriptionId: subscription.id,
+    subscriptionAutoRenew: !subscription.cancel_at_period_end,
+    stripePriceId: priceId,
+    // ✅ CRITICAL FIX: Store the actual amount customer pays (not original price)
+    subscriptionAmount: actualAmount, // What customer actually pays after discount
+    originalAmount: baseAmount, // Original price before discount for reference
+    subscriptionCurrency: currency,
+    subscriptionInterval: interval,
+    subscriptionCancelledAt: cancelledAt,
+    discountPercent: discountPercent,
+    discountName: discountName,
+    stripeCustomerEmail: customerEmail,
+    subscriptionCreated: createdAt,
+    lastWebhookUpdate: new Date(),
+  };
 
   // Update all profiles with this customer ID
   const updateResult = await db.profile.updateMany({
     where: { stripeCustomerId: customerId },
-    data: {
-      subscriptionStatus: dbStatus,
-      subscriptionStart: subscriptionStart,
-      subscriptionEnd: subscriptionEnd,
-      stripeProductId: productId,
-      // Store additional subscription metadata that can be used in UI
-      updatedAt: new Date(),
-    },
+    data: updateData,
   });
 
   console.log(
-    `✅ Updated ${updateResult.count} profile(s) for customer ${customerId}`
+    `✅ [WEBHOOK] Updated ${updateResult.count} profile(s) with comprehensive Stripe data for customer ${customerId}`
   );
 
   return updateResult;
+}
+
+// ✅ NEW: Helper function to get subscription data during checkout processing
+async function getSubscriptionDataFromCheckout(
+  customerId: string,
+  sessionId: string,
+  productId: string | null
+) {
+  try {
+    console.log(
+      `🔍 [CHECKOUT-SUBSCRIPTION] Attempting to fetch subscription for customer: ${customerId}`
+    );
+
+    // Get the customer's subscriptions from Stripe
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      limit: 5,
+    });
+
+    // Find the most recent active subscription that matches our product
+    let targetSubscription = null;
+
+    if (productId) {
+      // Look for subscription with matching product
+      targetSubscription = subscriptions.data.find(
+        sub =>
+          sub.items.data.some(item => item.price.product === productId) &&
+          ['active', 'trialing'].includes(sub.status)
+      );
+    }
+
+    // If no product match, get the most recent active subscription
+    if (!targetSubscription) {
+      targetSubscription = subscriptions.data.find(sub =>
+        ['active', 'trialing'].includes(sub.status)
+      );
+    }
+
+    if (targetSubscription) {
+      console.log(
+        `✅ [CHECKOUT-SUBSCRIPTION] Found subscription: ${targetSubscription.id}`
+      );
+
+      // Extract comprehensive data like the webhook does
+      const price = targetSubscription.items.data[0]?.price;
+      let discountPercent = null;
+      let discountName = null;
+
+      // Handle discounts
+      const activeDiscount =
+        targetSubscription.discounts && targetSubscription.discounts.length > 0
+          ? targetSubscription.discounts[0]
+          : (targetSubscription as any).discount;
+
+      if (activeDiscount?.coupon) {
+        discountPercent = activeDiscount.coupon.percent_off;
+        discountName = activeDiscount.coupon.name;
+      }
+
+      const subscriptionData = {
+        stripeSubscriptionId: targetSubscription.id,
+        subscriptionAutoRenew: !targetSubscription.cancel_at_period_end,
+        stripePriceId: price?.id,
+        subscriptionAmount: price?.unit_amount,
+        subscriptionCurrency: price?.currency,
+        subscriptionInterval: price?.recurring?.interval,
+        discountPercent,
+        discountName,
+        subscriptionCreated: new Date(targetSubscription.created * 1000),
+        lastWebhookUpdate: new Date(),
+      };
+
+      console.log(
+        `📊 [CHECKOUT-SUBSCRIPTION] Populated subscription data:`,
+        subscriptionData
+      );
+      return subscriptionData;
+    } else {
+      console.log(
+        `⚠️ [CHECKOUT-SUBSCRIPTION] No active subscription found for customer: ${customerId}`
+      );
+      return {};
+    }
+  } catch (error) {
+    console.error(
+      `❌ [CHECKOUT-SUBSCRIPTION] Error fetching subscription data:`,
+      error
+    );
+    return {}; // Return empty object on error to not break the main flow
+  }
 }

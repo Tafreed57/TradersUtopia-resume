@@ -117,120 +117,99 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Enrich with Clerk and Stripe data
-    const enrichedUsers = await Promise.all(
-      profiles.map(async profile => {
-        try {
-          // Get Clerk user data
-          let clerkData = null;
-          try {
-            const clerk = await clerkClient();
-            const clerkUser = await clerk.users.getUser(profile.userId);
-            clerkData = {
-              id: clerkUser.id,
-              username: clerkUser.username,
-              firstName: clerkUser.firstName,
-              lastName: clerkUser.lastName,
-              emailAddresses: clerkUser.emailAddresses,
-              phoneNumbers: clerkUser.phoneNumbers,
-              externalAccounts: clerkUser.externalAccounts,
-              createdAt: clerkUser.createdAt,
-              updatedAt: clerkUser.updatedAt,
-              lastSignInAt: clerkUser.lastSignInAt,
-              passwordEnabled: clerkUser.passwordEnabled,
-            };
-          } catch (clerkError: any) {
-            // Only log for non-404 errors (user not found is expected for deleted users)
-            if (clerkError?.status !== 404) {
-              //
-            }
-            // For 404 errors, silently continue without Clerk data
-          }
+    // Format user data for admin panel
+    const formattedUsers = profiles.map(profile => {
+      let subscriptionInfo = null;
+      let productInfo = null;
 
-          // Get Stripe customer data if exists
-          let stripeCustomer = null;
-          if (profile.stripeCustomerId) {
-            try {
-              const customer = await stripe.customers.retrieve(
-                profile.stripeCustomerId
-              );
-              if (customer && !customer.deleted) {
-                // Get customer's subscriptions
-                const subscriptions = await stripe.subscriptions.list({
-                  customer: profile.stripeCustomerId,
-                  limit: 10,
-                });
-
-                // Get customer's payment methods
-                const paymentMethods = await stripe.paymentMethods.list({
-                  customer: profile.stripeCustomerId,
-                  limit: 10,
-                });
-
-                // Get recent invoices
-                const invoices = await stripe.invoices.list({
-                  customer: profile.stripeCustomerId,
-                  limit: 5,
-                });
-
-                stripeCustomer = {
-                  id: customer.id,
-                  email: customer.email,
-                  name: customer.name,
-                  created: customer.created,
-                  defaultSource: customer.default_source,
-                  subscriptions: subscriptions.data,
-                  paymentMethods: paymentMethods.data,
-                  invoices: invoices.data,
-                };
+      // ✅ WEBHOOK-OPTIMIZED: Use cached subscription data instead of live Stripe calls
+      if (profile.subscriptionStatus === 'ACTIVE' && profile.stripeProductId) {
+        subscriptionInfo = {
+          id: profile.stripeSubscriptionId || 'unknown',
+          status: profile.subscriptionStatus,
+          current_period_start: profile.subscriptionStart?.getTime()
+            ? profile.subscriptionStart.getTime() / 1000
+            : null,
+          current_period_end: profile.subscriptionEnd?.getTime()
+            ? profile.subscriptionEnd.getTime() / 1000
+            : null,
+          cancel_at_period_end: !profile.subscriptionAutoRenew,
+          canceled_at: profile.subscriptionCancelledAt?.getTime()
+            ? profile.subscriptionCancelledAt.getTime() / 1000
+            : null,
+          // Additional cached data
+          items: profile.stripePriceId
+            ? {
+                data: [
+                  {
+                    price: {
+                      id: profile.stripePriceId,
+                      unit_amount: profile.subscriptionAmount,
+                      currency: profile.subscriptionCurrency,
+                      recurring: {
+                        interval: profile.subscriptionInterval,
+                      },
+                    },
+                  },
+                ],
               }
-            } catch (stripeError) {
-              //
-            }
-          }
+            : null,
+          discount: profile.discountPercent
+            ? {
+                coupon: {
+                  name: profile.discountName,
+                  percent_off: profile.discountPercent,
+                },
+              }
+            : null,
+          lastWebhookUpdate: profile.lastWebhookUpdate,
+          dataSource: 'webhook_cached',
+        };
 
-          return {
-            id: profile.id,
-            userId: profile.userId,
-            name: profile.name,
-            email: profile.email,
-            imageUrl: profile.imageUrl,
-            isAdmin: profile.isAdmin,
-            createdAt: profile.createdAt.toISOString(),
-            updatedAt: profile.updatedAt.toISOString(),
-            lastActiveAt: undefined, // lastActiveAt field doesn't exist in this schema
-            subscription:
-              profile.subscriptionStatus !== 'FREE'
-                ? await getSubscriptionWithName(profile)
-                : undefined,
-            stripeCustomer,
-            clerkData,
-          };
-        } catch (error) {
-          // Return basic profile data even if enrichment fails
-          return {
-            id: profile.id,
-            userId: profile.userId,
-            name: profile.name,
-            email: profile.email,
-            imageUrl: profile.imageUrl,
-            isAdmin: profile.isAdmin,
-            createdAt: profile.createdAt.toISOString(),
-            updatedAt: profile.updatedAt.toISOString(),
-            lastActiveAt: undefined, // lastActiveAt field doesn't exist in this schema
-            subscription:
-              profile.subscriptionStatus !== 'FREE'
-                ? await getSubscriptionWithName(profile)
-                : undefined,
-          };
-        }
-      })
-    );
+        // ✅ WEBHOOK-OPTIMIZED: Use cached product info or provide default
+        productInfo = {
+          id: profile.stripeProductId,
+          name: 'Premium Plan', // Could be cached in future if needed
+          description: 'Premium trading platform access',
+          metadata: {},
+          dataSource: 'default', // Indicate this is default data
+        };
+      }
+
+      return {
+        id: profile.userId,
+        name: profile.name,
+        email: profile.email,
+        imageUrl: profile.imageUrl,
+        subscriptionStatus: profile.subscriptionStatus,
+        subscriptionStart: profile.subscriptionStart,
+        subscriptionEnd: profile.subscriptionEnd,
+        stripeCustomerId: profile.stripeCustomerId,
+        isAdmin: profile.isAdmin,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt,
+
+        // ✅ WEBHOOK-OPTIMIZED: Enhanced subscription data from cache
+        subscription: subscriptionInfo,
+        product: productInfo,
+        cachedSubscriptionData: {
+          stripeSubscriptionId: profile.stripeSubscriptionId,
+          subscriptionAmount: profile.subscriptionAmount,
+          subscriptionCurrency: profile.subscriptionCurrency,
+          subscriptionInterval: profile.subscriptionInterval,
+          subscriptionAutoRenew: profile.subscriptionAutoRenew,
+          discountPercent: profile.discountPercent,
+          discountName: profile.discountName,
+          lastWebhookUpdate: profile.lastWebhookUpdate,
+        },
+        performanceNote: 'Using webhook-cached data for optimal performance',
+      };
+    });
 
     return NextResponse.json({
       success: true,
-      users: enrichedUsers,
-      total: enrichedUsers.length,
+      users: formattedUsers,
+      total: formattedUsers.length,
     });
   } catch (error) {
     trackSuspiciousActivity(request, 'ADMIN_USERS_FETCH_ERROR');
