@@ -47,24 +47,18 @@ export function HeroSection() {
           {/* Main Headline - Mobile-First */}
           <h1 className='text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-[0.9] tracking-tight px-4 sm:px-0'>
             <span className='bg-gradient-to-r from-white via-yellow-100 to-yellow-300 bg-clip-text text-transparent animate-gradient'>
-              Turn Market Knowledge
+              More Than Alerts.
             </span>
             <br />
-            <span className='text-white drop-shadow-2xl'>Into Consistent</span>
-            <br />
             <span className='bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 bg-clip-text text-transparent animate-gradient'>
-              Profits
+              More Than Education.
             </span>
           </h1>
 
           {/* Subheadline */}
           <p className='text-lg sm:text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed px-4 sm:px-0'>
-            Join elite traders who receive{' '}
-            <span className='text-yellow-400 font-semibold'>
-              high-probability setups
-            </span>
-            , expert analysis, and live coaching sessions. Join our premium
-            community today.
+            Join the most accurate trade alert service in the world - with real
+            results, verified track record, and expert coaching.
           </p>
 
           {/* Stats Row - Mobile-First Grid */}

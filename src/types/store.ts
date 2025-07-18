@@ -17,7 +17,8 @@ export type ModalType =
   | 'deleteSection'
   | 'trackRecordFile'
   | 'editTrackRecordMessage'
-  | 'deleteTrackRecordMessage';
+  | 'deleteTrackRecordMessage'
+  | 'timerSettings';
 
 export type ModalData = {
   server?: Server;

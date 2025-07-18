@@ -1,6 +1,7 @@
 'use client';
 
 import { CountdownTimer } from '@/components/countdown-timer';
+import { TimerAdminButton } from '@/components/timer-admin-button';
 
 interface HeroBannerProps {
   className?: string;
@@ -39,8 +40,9 @@ export function HeroBanner({ className = '' }: HeroBannerProps) {
           </div>
 
           {/* Enhanced countdown timer */}
-          <div className='bg-gradient-to-r from-red-800/50 to-orange-800/50 rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-red-300/30 backdrop-blur-sm shadow-lg'>
+          <div className='bg-gradient-to-r from-red-800/50 to-orange-800/50 rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-red-300/30 backdrop-blur-sm shadow-lg flex items-center'>
             <CountdownTimer />
+            <TimerAdminButton />
           </div>
         </div>
       </div>
