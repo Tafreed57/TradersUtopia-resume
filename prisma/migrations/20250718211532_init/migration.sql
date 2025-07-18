@@ -29,8 +29,37 @@ CREATE TABLE "Profile" (
     "isAdmin" BOOLEAN NOT NULL DEFAULT false,
     "pushNotifications" JSONB DEFAULT '{"system": true, "payment": true, "mentions": true, "messages": true, "security": true, "serverUpdates": false}',
     "pushSubscriptions" JSONB[] DEFAULT ARRAY[]::JSONB[],
+    "discountName" TEXT,
+    "discountPercent" INTEGER,
+    "lastInvoiceUrl" TEXT,
+    "lastWebhookUpdate" TIMESTAMP(3),
+    "stripeCustomerEmail" TEXT,
+    "stripePriceId" TEXT,
+    "stripeSubscriptionId" TEXT,
+    "subscriptionAmount" INTEGER,
+    "subscriptionAutoRenew" BOOLEAN,
+    "subscriptionCancelledAt" TIMESTAMP(3),
+    "subscriptionCreated" TIMESTAMP(3),
+    "subscriptionCurrency" TEXT,
+    "subscriptionInterval" TEXT,
+    "originalAmount" INTEGER,
 
     CONSTRAINT "Profile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Member" (
+    "id" TEXT NOT NULL,
+    "role" "MemberRole" NOT NULL DEFAULT 'GUEST',
+    "profileId" TEXT NOT NULL,
+    "serverId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "subscriptionEnd" TIMESTAMP(3),
+    "subscriptionStart" TIMESTAMP(3),
+    "subscriptionStatus" "SubscriptionStatus" NOT NULL DEFAULT 'FREE',
+
+    CONSTRAINT "Member_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -75,18 +104,6 @@ CREATE TABLE "Section" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Section_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Member" (
-    "id" TEXT NOT NULL,
-    "role" "MemberRole" NOT NULL DEFAULT 'GUEST',
-    "profileId" TEXT NOT NULL,
-    "serverId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Member_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -172,6 +189,12 @@ CREATE TABLE "TrackRecordMessage" (
 CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
 
 -- CreateIndex
+CREATE INDEX "Member_profileId_idx" ON "Member"("profileId");
+
+-- CreateIndex
+CREATE INDEX "Member_serverId_idx" ON "Member"("serverId");
+
+-- CreateIndex
 CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
 
 -- CreateIndex
@@ -191,12 +214,6 @@ CREATE INDEX "Section_profileId_idx" ON "Section"("profileId");
 
 -- CreateIndex
 CREATE INDEX "Section_parentId_idx" ON "Section"("parentId");
-
--- CreateIndex
-CREATE INDEX "Member_profileId_idx" ON "Member"("profileId");
-
--- CreateIndex
-CREATE INDEX "Member_serverId_idx" ON "Member"("serverId");
 
 -- CreateIndex
 CREATE INDEX "Channel_profileId_idx" ON "Channel"("profileId");
@@ -241,31 +258,31 @@ CREATE INDEX "TrackRecordMessage_adminId_idx" ON "TrackRecordMessage"("adminId")
 CREATE INDEX "TrackRecordMessage_createdAt_idx" ON "TrackRecordMessage"("createdAt");
 
 -- AddForeignKey
-ALTER TABLE "Server" ADD CONSTRAINT "Server_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Section" ADD CONSTRAINT "Section_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Section" ADD CONSTRAINT "Section_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Section" ADD CONSTRAINT "Section_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Section"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Member" ADD CONSTRAINT "Member_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Member" ADD CONSTRAINT "Member_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Server" ADD CONSTRAINT "Server_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Section" ADD CONSTRAINT "Section_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Section"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Section" ADD CONSTRAINT "Section_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Section" ADD CONSTRAINT "Section_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Channel" ADD CONSTRAINT "Channel_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Channel" ADD CONSTRAINT "Channel_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Channel" ADD CONSTRAINT "Channel_sectionId_fkey" FOREIGN KEY ("sectionId") REFERENCES "Section"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Channel" ADD CONSTRAINT "Channel_sectionId_fkey" FOREIGN KEY ("sectionId") REFERENCES "Section"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Channel" ADD CONSTRAINT "Channel_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Message" ADD CONSTRAINT "Message_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -286,10 +303,10 @@ ALTER TABLE "DirectMessage" ADD CONSTRAINT "DirectMessage_conversationId_fkey" F
 ALTER TABLE "DirectMessage" ADD CONSTRAINT "DirectMessage_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ChannelNotificationPreference" ADD CONSTRAINT "ChannelNotificationPreference_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ChannelNotificationPreference" ADD CONSTRAINT "ChannelNotificationPreference_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ChannelNotificationPreference" ADD CONSTRAINT "ChannelNotificationPreference_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ChannelNotificationPreference" ADD CONSTRAINT "ChannelNotificationPreference_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TrackRecordMessage" ADD CONSTRAINT "TrackRecordMessage_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;

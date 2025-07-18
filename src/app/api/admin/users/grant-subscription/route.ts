@@ -36,23 +36,26 @@ async function getOptimizedProductPrice(): Promise<{
 }> {
   try {
     // Get most common product/price combination from webhook-cached subscriptions
-    const recentSubscription = await db.subscription.findFirst({
+    const recentSubscription = await db.profile.findFirst({
       where: {
-        status: 'ACTIVE',
-        productId: { not: '' },
-        priceId: { not: '' },
+        subscriptionStatus: 'ACTIVE',
+        stripeProductId: { not: '' },
+        stripePriceId: { not: '' },
       },
       orderBy: { updatedAt: 'desc' },
     });
 
-    if (recentSubscription?.productId && recentSubscription?.priceId) {
+    if (
+      recentSubscription?.stripeProductId &&
+      recentSubscription?.stripePriceId
+    ) {
       console.log(
-        `⚡ [ADMIN-OPTIMIZED] Using webhook-cached product/price: ${recentSubscription.productId}/${recentSubscription.priceId}`
+        `⚡ [ADMIN-OPTIMIZED] Using webhook-cached product/price: ${recentSubscription.stripeProductId}/${recentSubscription.stripePriceId}`
       );
 
       return {
-        productId: recentSubscription.productId,
-        priceId: recentSubscription.priceId,
+        productId: recentSubscription.stripeProductId,
+        priceId: recentSubscription.stripePriceId,
         dataSource: 'webhook-cache',
       };
     }

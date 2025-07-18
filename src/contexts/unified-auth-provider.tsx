@@ -40,6 +40,7 @@ interface UnifiedAuthState {
     name: string;
     isAdmin: boolean;
     subscriptionStatus: string;
+    createdAt: Date;
   } | null;
 
   // Performance tracking
@@ -177,6 +178,7 @@ export function UnifiedAuthProvider({
             name: user.fullName || `${user.firstName} ${user.lastName}`,
             isAdmin: result.isAdminAccess || false,
             subscriptionStatus: result.subscriptionDetails?.status || 'FREE',
+            createdAt: new Date(),
           },
           lastFetchTime: now,
           dataSource:

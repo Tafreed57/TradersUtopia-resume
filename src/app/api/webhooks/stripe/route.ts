@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.text();
+    console.log('body', body);
     const signature = request.headers.get('stripe-signature')!;
 
     let event: Stripe.Event;
@@ -277,7 +278,7 @@ export async function POST(request: NextRequest) {
 
         try {
           // ⚡ OPTIMIZATION: Use invoice data directly instead of API call
-          if (successfulInvoice.subscription && successfulInvoice.customer) {
+          if (successfulInvoice.customer) {
             console.log(
               `⚡ [WEBHOOK-OPTIMIZED] Processing payment success using invoice data only`
             );
@@ -286,7 +287,7 @@ export async function POST(request: NextRequest) {
             const updateResult = await db.profile.updateMany({
               where: {
                 stripeCustomerId: successfulInvoice.customer as string,
-                stripeSubscriptionId: successfulInvoice.subscription as string,
+                stripeSubscriptionId: successfulInvoice.id,
               },
               data: {
                 subscriptionStatus: 'ACTIVE',

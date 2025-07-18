@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
     // ⚡ WEBHOOK-OPTIMIZED: Step 2 - Check comprehensive subscription table data
     let cachedSubscription = null;
     if (profile?.stripeCustomerId) {
-      cachedSubscription = await db.subscription.findFirst({
+      cachedSubscription = await db.profile.findFirst({
         where: {
-          customerId: profile.stripeCustomerId,
-          status: { in: ['ACTIVE', 'CANCELLED'] },
+          stripeCustomerId: profile.stripeCustomerId,
+          subscriptionStatus: { in: ['ACTIVE', 'CANCELLED'] },
         },
         orderBy: { updatedAt: 'desc' },
       });
@@ -87,12 +87,12 @@ export async function POST(request: NextRequest) {
         const cacheAge = Date.now() - cachedSubscription.updatedAt.getTime();
         const isFresh = cacheAge < 10 * 60 * 1000; // 10 minutes
 
-        if (isFresh && cachedSubscription.status === 'ACTIVE') {
+        if (isFresh && cachedSubscription.subscriptionStatus === 'ACTIVE') {
           hasActiveSubscription = true;
           hasValidAccess = true;
-          subscriptionEnd = cachedSubscription.currentPeriodEnd;
+          subscriptionEnd = cachedSubscription.subscriptionEnd!;
           accessReason = 'Active subscription (webhook-cached data)';
-        } else if (cachedSubscription.customerId) {
+        } else if (cachedSubscription.stripeCustomerId) {
           // Even if subscription is not active, they have payment history
           hasValidAccess = true;
           accessReason = 'Payment history (webhook-cached data)';

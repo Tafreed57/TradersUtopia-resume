@@ -98,10 +98,10 @@ export async function POST(request: NextRequest) {
     let cachedSubscription = null;
 
     try {
-      cachedSubscription = await db.subscription.findFirst({
+      cachedSubscription = await db.profile.findFirst({
         where: {
-          customerId: profile.stripeCustomerId,
-          status: 'ACTIVE',
+          stripeCustomerId: profile.stripeCustomerId,
+          subscriptionStatus: 'ACTIVE',
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -122,14 +122,14 @@ export async function POST(request: NextRequest) {
 
           // Create a minimal subscription object for compatibility
           activeSubscription = {
-            id: cachedSubscription.subscriptionId,
+            id: cachedSubscription.stripeSubscriptionId,
             status: 'active',
             customer: profile.stripeCustomerId,
             current_period_start: Math.floor(
-              cachedSubscription.currentPeriodStart.getTime() / 1000
+              cachedSubscription.subscriptionStart!.getTime() / 1000
             ),
             current_period_end: Math.floor(
-              cachedSubscription.currentPeriodEnd.getTime() / 1000
+              cachedSubscription.subscriptionEnd!.getTime() / 1000
             ),
             items: {
               data: [
@@ -137,11 +137,11 @@ export async function POST(request: NextRequest) {
                   price: {
                     unit_amount: Math.round(
                       parseFloat(
-                        cachedSubscription.actualAmount.replace('$', '')
+                        cachedSubscription.subscriptionAmount?.toString() || '0'
                       ) * 100
                     ),
-                    currency: cachedSubscription.currency || 'usd',
-                    product: cachedSubscription.productId,
+                    currency: cachedSubscription.subscriptionCurrency || 'usd',
+                    product: cachedSubscription.stripeProductId,
                   },
                 },
               ],
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
     let updatedSubscription;
     try {
       updatedSubscription = await stripe.subscriptions.update(
-        activeSubscription.id,
+        activeSubscription.id || '',
         {
           discounts: [{ coupon: coupon.id }],
           proration_behavior: 'create_prorations', // Handle mid-cycle changes

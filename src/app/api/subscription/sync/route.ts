@@ -34,10 +34,10 @@ export async function POST(request: NextRequest) {
     // 🚀 WEBHOOK-OPTIMIZED: Try webhook-cached data first
     let cachedSubscription = null;
     try {
-      cachedSubscription = await db.subscription.findFirst({
+      cachedSubscription = await db.profile.findFirst({
         where: {
-          customerId: profile.stripeCustomerId,
-          status: { in: ['ACTIVE', 'CANCELLED'] },
+          stripeCustomerId: profile.stripeCustomerId,
+          subscriptionStatus: { in: ['ACTIVE', 'CANCELLED'] },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         const cacheAge = Date.now() - cachedSubscription.updatedAt.getTime();
         const isFresh = cacheAge < 5 * 60 * 1000; // 5 minutes
 
-        if (isFresh && cachedSubscription.status === 'ACTIVE') {
+        if (isFresh && cachedSubscription.subscriptionStatus === 'ACTIVE') {
           console.log(
             '⚡ [SYNC-OPTIMIZED] Using fresh webhook data, skipping Stripe API call'
           );
@@ -60,9 +60,9 @@ export async function POST(request: NextRequest) {
           await db.profile.update({
             where: { id: profile.id },
             data: {
-              subscriptionStart: cachedSubscription.currentPeriodStart,
-              subscriptionEnd: cachedSubscription.currentPeriodEnd,
-              stripeProductId: cachedSubscription.productId,
+              subscriptionStart: cachedSubscription.subscriptionStart,
+              subscriptionEnd: cachedSubscription.subscriptionEnd,
+              stripeProductId: cachedSubscription.stripeProductId,
               updatedAt: new Date(),
             },
           });
@@ -72,11 +72,11 @@ export async function POST(request: NextRequest) {
             message: 'Subscription synchronized with cached data',
             optimized: true,
             subscription: {
-              id: cachedSubscription.subscriptionId,
-              status: cachedSubscription.status.toLowerCase(),
-              currentPeriodStart: cachedSubscription.currentPeriodStart,
-              currentPeriodEnd: cachedSubscription.currentPeriodEnd,
-              cancelAtPeriodEnd: cachedSubscription.cancelAtPeriodEnd,
+              id: cachedSubscription.stripeSubscriptionId,
+              status: cachedSubscription.subscriptionStatus.toLowerCase(),
+              currentPeriodStart: cachedSubscription.subscriptionStart,
+              currentPeriodEnd: cachedSubscription.subscriptionEnd,
+              cancelAtPeriodEnd: cachedSubscription.subscriptionCancelledAt,
             },
           });
         }
