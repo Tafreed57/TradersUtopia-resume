@@ -12,6 +12,7 @@ import {
   productSubscriptionSchema,
 } from '@/lib/validation';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
+import { conditionalLog } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,25 +67,19 @@ export async function POST(request: NextRequest) {
       allowedProductIds,
     });
 
-    console.log(
-      '🎯 [PRODUCT-CHECK] Starting webhook-only subscription verification...'
-    );
-    console.log('🎯 [PRODUCT-CHECK] User ID:', user.id);
-    console.log(
-      '🎯 [PRODUCT-CHECK] User Primary Email:',
+    conditionalLog.productCheck('🎯 [PRODUCT-CHECK] Starting verification...');
+    conditionalLog.productCheck('🎯 [PRODUCT-CHECK] User ID:', user.id);
+    conditionalLog.productCheck(
+      '🎯 [PRODUCT-CHECK] User Email:',
       user.primaryEmailAddress?.emailAddress
     );
-    console.log(
-      '🎯 [PRODUCT-CHECK] All User Emails:',
-      user.emailAddresses.map(e => e.emailAddress)
-    );
-    console.log(
-      '🎯 [PRODUCT-CHECK] Checking products:',
+    conditionalLog.productCheck(
+      '🎯 [PRODUCT-CHECK] Products:',
       validatedData.allowedProductIds
     );
 
     // ✅ STEP 0: Check if user is admin first - admins get automatic premium access
-    console.log('🔑 [STEP 0] Checking if user is admin...');
+    conditionalLog.productCheck('🔑 [STEP 0] Checking if user is admin...');
 
     const adminProfile = await db.profile.findFirst({
       where: {

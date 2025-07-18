@@ -3,6 +3,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import Stripe from 'stripe';
 import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { conditionalLog } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
@@ -117,20 +118,23 @@ export async function GET(request: NextRequest) {
     }
 
     // ✅ WEBHOOK-ONLY: Use database data instead of Stripe API calls
-    console.log(
+    conditionalLog.subscriptionDetails(
       `📊 [SUBSCRIPTION-DETAILS] Using webhook-cached data for user: ${profile.email}`
     );
 
-    // ✅ ENHANCED DEBUG: Log discount-related database fields
-    console.log('💰 [DISCOUNT-API-DEBUG] Database discount fields:', {
-      discountPercent: profile.discountPercent,
-      discountName: profile.discountName,
-      subscriptionAmount: profile.subscriptionAmount, // Actual amount customer pays
-      originalAmount: profile.originalAmount, // Original price before discount
-      stripeSubscriptionId: profile.stripeSubscriptionId,
-      lastWebhookUpdate: profile.lastWebhookUpdate,
-      subscriptionStatus: profile.subscriptionStatus,
-    });
+    // ✅ ENHANCED DEBUG: Log discount-related database fields (verbose only)
+    conditionalLog.subscriptionDetails(
+      '💰 [DISCOUNT-API-DEBUG] Database discount fields:',
+      {
+        discountPercent: profile.discountPercent,
+        discountName: profile.discountName,
+        subscriptionAmount: profile.subscriptionAmount,
+        originalAmount: profile.originalAmount,
+        stripeSubscriptionId: profile.stripeSubscriptionId,
+        lastWebhookUpdate: profile.lastWebhookUpdate,
+        subscriptionStatus: profile.subscriptionStatus,
+      }
+    );
 
     // ✅ FIXED: Determine subscription status based on data availability and expiry (same logic as product check)
     const hasActiveSubscription =
@@ -143,14 +147,17 @@ export async function GET(request: NextRequest) {
       ? 'ACTIVE'
       : profile.subscriptionStatus || 'INACTIVE';
 
-    console.log('🔍 [SUBSCRIPTION-DETAILS] Status determination:', {
-      hasActiveSubscription,
-      subscriptionStatus,
-      stripeProductId: profile.stripeProductId,
-      subscriptionEnd: profile.subscriptionEnd,
-      subscriptionAmount: profile.subscriptionAmount,
-      originalSubscriptionStatus: profile.subscriptionStatus,
-    });
+    conditionalLog.subscriptionDetails(
+      '🔍 [SUBSCRIPTION-DETAILS] Status determination:',
+      {
+        hasActiveSubscription,
+        subscriptionStatus,
+        stripeProductId: profile.stripeProductId,
+        subscriptionEnd: profile.subscriptionEnd,
+        subscriptionAmount: profile.subscriptionAmount,
+        originalSubscriptionStatus: profile.subscriptionStatus,
+      }
+    );
 
     // Build subscription info from database (webhook-cached data)
     const subscriptionInfo = {
