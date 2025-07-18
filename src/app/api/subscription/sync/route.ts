@@ -7,6 +7,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  console.log('🔄 [SYNC] Starting subscription sync process...');
+
   try {
     const user = await currentUser();
 
@@ -25,7 +27,69 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get latest data from Stripe
+    console.log(
+      `🎯 [SYNC] Syncing subscription for customer: ${profile.stripeCustomerId}`
+    );
+
+    // 🚀 WEBHOOK-OPTIMIZED: Try webhook-cached data first
+    let cachedSubscription = null;
+    try {
+      cachedSubscription = await db.subscription.findFirst({
+        where: {
+          customerId: profile.stripeCustomerId,
+          status: { in: ['ACTIVE', 'CANCELLED'] },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (cachedSubscription) {
+        console.log(
+          '⚡ [SYNC-OPTIMIZED] Found webhook-cached subscription data'
+        );
+
+        // Check if webhook data is recent (within last 5 minutes)
+        const cacheAge = Date.now() - cachedSubscription.updatedAt.getTime();
+        const isFresh = cacheAge < 5 * 60 * 1000; // 5 minutes
+
+        if (isFresh && cachedSubscription.status === 'ACTIVE') {
+          console.log(
+            '⚡ [SYNC-OPTIMIZED] Using fresh webhook data, skipping Stripe API call'
+          );
+
+          // Update profile with webhook-cached data
+          await db.profile.update({
+            where: { id: profile.id },
+            data: {
+              subscriptionStart: cachedSubscription.currentPeriodStart,
+              subscriptionEnd: cachedSubscription.currentPeriodEnd,
+              stripeProductId: cachedSubscription.productId,
+              updatedAt: new Date(),
+            },
+          });
+
+          return NextResponse.json({
+            success: true,
+            message: 'Subscription synchronized with cached data',
+            optimized: true,
+            subscription: {
+              id: cachedSubscription.subscriptionId,
+              status: cachedSubscription.status.toLowerCase(),
+              currentPeriodStart: cachedSubscription.currentPeriodStart,
+              currentPeriodEnd: cachedSubscription.currentPeriodEnd,
+              cancelAtPeriodEnd: cachedSubscription.cancelAtPeriodEnd,
+            },
+          });
+        }
+      }
+    } catch (cacheError) {
+      console.warn(
+        '⚠️ [SYNC] Cache lookup failed, falling back to Stripe API:',
+        cacheError
+      );
+    }
+
+    // 🔄 FALLBACK: Get latest data from Stripe if no fresh cache
+    console.log('📡 [SYNC] Cache miss or stale - fetching from Stripe API...');
     const subscriptions = await stripe.subscriptions.list({
       customer: profile.stripeCustomerId,
       limit: 10,
@@ -107,9 +171,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log('✅ [SYNC] Successfully synced with Stripe API data');
+
     return NextResponse.json({
       success: true,
       message: 'Subscription synchronized with Stripe',
+      optimized: false,
       subscription: {
         id: activeSubscription.id,
         status: activeSubscription.status,
@@ -119,6 +186,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    console.error('❌ [SYNC] Sync failed:', error);
     return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
   }
 }
@@ -132,5 +200,6 @@ export async function GET(request: NextRequest) {
       authentication: 'Required',
       purpose: 'Synchronize database subscription data with Stripe',
     },
+    optimization: 'Uses webhook-cached data when fresh, Stripe API as fallback',
   });
 }

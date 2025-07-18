@@ -40,33 +40,42 @@ export async function POST(request: NextRequest) {
         let customerName: string | null = null;
         let customerId: string | null = null;
 
-        // Handle cases where customer might be null (when customer_creation is "if_required")
+        // ✅ OPTIMIZED: Use session data directly instead of API calls
         if (session.customer) {
-          // Customer object exists, get details from Stripe
           customerId = session.customer as string;
-          const customer = await stripe.customers.retrieve(customerId);
+        }
 
-          if (customer.deleted) {
-            console.error('Customer was deleted');
-            return NextResponse.json(
-              { error: 'Customer deleted' },
-              { status: 400 }
-            );
-          }
-
-          email = customer.email;
-          customerName = customer.name || null;
-        } else if (session.customer_details?.email) {
-          // Use customer details from session when no customer object exists
+        // ✅ OPTIMIZED: Always use customer_details from session (no API call needed)
+        if (session.customer_details?.email) {
           email = session.customer_details.email;
           customerName = session.customer_details.name;
+          console.log(
+            `📧 [WEBHOOK-OPTIMIZED] Using customer details from session: ${email}`
+          );
         }
 
         if (!email) {
-          console.error('No email found in session or customer');
+          console.error('No email found in session customer_details');
           return NextResponse.json(
             { error: 'No email found' },
             { status: 400 }
+          );
+        }
+
+        // ✅ OPTIMIZED: Extract product ID from session metadata or mode instead of API calls
+        let stripeProductId = null;
+
+        // Try to get product ID from session metadata first (fastest)
+        if (session.metadata?.productId) {
+          stripeProductId = session.metadata.productId;
+          console.log(
+            `📦 [WEBHOOK-OPTIMIZED] Product ID from metadata: ${stripeProductId}`
+          );
+        }
+        // If not in metadata, we can still function without it (will be set by subscription webhook)
+        else {
+          console.log(
+            `⚠️ [WEBHOOK-OPTIMIZED] No product ID in metadata, will be set by subscription webhook`
           );
         }
 
@@ -81,30 +90,6 @@ export async function POST(request: NextRequest) {
             console.log(
               `No profiles found for email: ${email}, creating new profile...`
             );
-
-            // Get product ID from the checkout session
-            let stripeProductId = null;
-            if (session.line_items) {
-              try {
-                const lineItems = await stripe.checkout.sessions.listLineItems(
-                  session.id
-                );
-                if (lineItems.data.length > 0 && lineItems.data[0].price) {
-                  const price = await stripe.prices.retrieve(
-                    lineItems.data[0].price.id
-                  );
-                  stripeProductId = price.product as string;
-                  console.log(
-                    `📦 Product ID from checkout: ${stripeProductId}`
-                  );
-                }
-              } catch (error) {
-                console.log(
-                  'Could not retrieve product ID from line items:',
-                  error
-                );
-              }
-            }
 
             // Create a new profile for this user
             const profile = await db.profile.create({
@@ -125,7 +110,7 @@ export async function POST(request: NextRequest) {
             });
 
             console.log(
-              `✅ Created new profile for user: ${email} with product: ${stripeProductId}`
+              `✅ [WEBHOOK-OPTIMIZED] Created new profile for user: ${email} with product: ${stripeProductId || 'TBD'}`
             );
           } else {
             console.log(
@@ -138,30 +123,6 @@ export async function POST(request: NextRequest) {
                 `   Profile ${index + 1}: ${profile.id} (${profile.userId}) - Status: ${profile.subscriptionStatus}`
               );
             });
-
-            // Get product ID from the checkout session
-            let stripeProductId = null;
-            if (session.line_items) {
-              try {
-                const lineItems = await stripe.checkout.sessions.listLineItems(
-                  session.id
-                );
-                if (lineItems.data.length > 0 && lineItems.data[0].price) {
-                  const price = await stripe.prices.retrieve(
-                    lineItems.data[0].price.id
-                  );
-                  stripeProductId = price.product as string;
-                  console.log(
-                    `📦 Product ID from checkout: ${stripeProductId}`
-                  );
-                }
-              } catch (error) {
-                console.log(
-                  'Could not retrieve product ID from line items:',
-                  error
-                );
-              }
-            }
 
             // 🚨 SECURITY FIX: Only update the profile associated with the specific Stripe customer
             // Previously this granted access to ALL accounts with the same email (major security flaw)
@@ -192,6 +153,12 @@ export async function POST(request: NextRequest) {
               `🔒 [SECURITY] Updating ONLY the target profile: ${targetProfile.id} (${targetProfile.userId})`
             );
 
+            // ⚡ WEBHOOK-OPTIMIZED: Skip subscription data lookup for checkout
+            // The actual subscription data will be set by subsequent subscription webhook events
+            console.log(
+              `⚡ [WEBHOOK-OPTIMIZED] Skipping subscription API lookup - data will be set by subscription webhook`
+            );
+
             // Update profile with subscription data
             const updated = await db.profile.update({
               where: { id: targetProfile.id },
@@ -202,26 +169,21 @@ export async function POST(request: NextRequest) {
                 stripeCustomerId: customerId,
                 stripeSessionId: session.id,
                 stripeProductId: stripeProductId,
-                // ✅ FIX: Also try to get the actual subscription ID from Stripe
-                ...(customerId
-                  ? await getSubscriptionDataFromCheckout(
-                      customerId,
-                      session.id,
-                      stripeProductId
-                    )
-                  : {}),
                 updatedAt: new Date(),
               },
             });
 
             console.log(
-              `✅ [SECURITY] Updated single profile: ${updated.id} (${updated.userId}) with product: ${stripeProductId}`
+              `✅ [WEBHOOK-OPTIMIZED] Updated single profile: ${updated.id} (${updated.userId}) with product: ${stripeProductId || 'TBD'}`
             );
             console.log(
               `📅 Subscription valid until: ${subscriptionEnd.toISOString()}`
             );
             console.log(
               `🔒 [SECURITY] Access granted to specific account only, not all accounts with same email`
+            );
+            console.log(
+              `⚡ [PERFORMANCE] Optimized webhook processing - Zero Stripe API calls for checkout`
             );
           }
         } catch (error) {
@@ -241,6 +203,9 @@ export async function POST(request: NextRequest) {
 
         try {
           await updateSubscriptionInDatabase(newSubscription);
+          console.log(
+            `⚡ [WEBHOOK-OPTIMIZED] Subscription creation processed efficiently`
+          );
         } catch (error) {
           console.error('Error handling subscription creation:', error);
           return NextResponse.json(
@@ -257,6 +222,9 @@ export async function POST(request: NextRequest) {
 
         try {
           await updateSubscriptionInDatabase(updatedSubscription);
+          console.log(
+            `⚡ [WEBHOOK-OPTIMIZED] Subscription update processed efficiently`
+          );
         } catch (error) {
           console.error('Error handling subscription update:', error);
           return NextResponse.json(
@@ -288,6 +256,9 @@ export async function POST(request: NextRequest) {
           console.log(
             `✅ Successfully cancelled subscription for customer: ${cancelledCustomerId}`
           );
+          console.log(
+            `⚡ [WEBHOOK-OPTIMIZED] Cancellation processed efficiently`
+          );
         } catch (error) {
           console.error('Error cancelling subscription:', error);
           return NextResponse.json(
@@ -298,23 +269,45 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'invoice.payment_succeeded':
-        // Handle successful payment - extend subscription
+        // ⚡ WEBHOOK-OPTIMIZED: Handle successful payment without additional API calls
         const successfulInvoice = event.data.object as Stripe.Invoice;
         console.log(
           `💳 Payment succeeded for invoice: ${successfulInvoice.id}`
         );
 
-        const successfulInvoiceWithSubscription = successfulInvoice as any;
-        if (successfulInvoiceWithSubscription.subscription) {
-          try {
-            const subscription = await stripe.subscriptions.retrieve(
-              successfulInvoiceWithSubscription.subscription as string
+        try {
+          // ⚡ OPTIMIZATION: Use invoice data directly instead of API call
+          if (successfulInvoice.subscription && successfulInvoice.customer) {
+            console.log(
+              `⚡ [WEBHOOK-OPTIMIZED] Processing payment success using invoice data only`
             );
-            await updateSubscriptionInDatabase(subscription);
-            console.log(`✅ Updated subscription after successful payment`);
-          } catch (error) {
-            console.error('Error updating subscription after payment:', error);
+
+            // Update subscription status using invoice data - no API call needed
+            const updateResult = await db.profile.updateMany({
+              where: {
+                stripeCustomerId: successfulInvoice.customer as string,
+                stripeSubscriptionId: successfulInvoice.subscription as string,
+              },
+              data: {
+                subscriptionStatus: 'ACTIVE',
+                lastWebhookUpdate: new Date(),
+                updatedAt: new Date(),
+              },
+            });
+
+            console.log(
+              `✅ [WEBHOOK-OPTIMIZED] Updated ${updateResult.count} profile(s) after successful payment`
+            );
+            console.log(
+              `⚡ [WEBHOOK-OPTIMIZED] Payment success processed with zero API calls`
+            );
+          } else {
+            console.log(
+              `⚠️ [WEBHOOK] Invoice missing subscription or customer data, skipping update`
+            );
           }
+        } catch (error) {
+          console.error('Error updating subscription after payment:', error);
         }
         break;
 
@@ -335,6 +328,9 @@ export async function POST(request: NextRequest) {
 
             console.log(
               `⚠️ Marked payment issue for customer: ${failedInvoice.customer}`
+            );
+            console.log(
+              `⚡ [WEBHOOK-OPTIMIZED] Payment failure processed efficiently`
             );
           } catch (error) {
             console.error('Error handling payment failure:', error);
@@ -505,7 +501,7 @@ async function updateSubscriptionInDatabase(subscription: Stripe.Subscription) {
     createdAt: createdAt?.toISOString() || null,
   });
 
-  // ✅ NEW: Get customer email (try to avoid extra API call if possible)
+  // ✅ OPTIMIZED: Get customer email efficiently without unnecessary API calls
   let customerEmail = null;
   try {
     if (
@@ -514,21 +510,25 @@ async function updateSubscriptionInDatabase(subscription: Stripe.Subscription) {
       !subscription.customer.deleted &&
       'email' in subscription.customer
     ) {
-      // Customer object is expanded in webhook
+      // Customer object is expanded in webhook - use it directly
       customerEmail = subscription.customer.email;
+      console.log(
+        `📧 [WEBHOOK-OPTIMIZED] Using expanded customer email: ${customerEmail}`
+      );
     } else {
-      // Fall back to API call only if needed
-      const customer = await stripe.customers.retrieve(customerId);
-      if (!customer.deleted && customer.email) {
-        customerEmail = customer.email;
-      }
+      // Customer ID only - skip email for performance (not critical for functionality)
+      console.log(
+        `⚡ [WEBHOOK-OPTIMIZED] Skipping customer email fetch for performance`
+      );
     }
   } catch (error) {
     console.warn(
-      `⚠️ [WEBHOOK] Could not fetch customer email for ${customerId}:`,
+      `⚠️ [WEBHOOK] Could not get customer email for ${customerId}:`,
       error
     );
   }
+
+  // ✅ FIXED: Removed non-existent subscription table update (subscription data is stored in profile)
 
   // ✅ NEW: Comprehensive database update with all Stripe data
   const updateData = {
@@ -566,95 +566,9 @@ async function updateSubscriptionInDatabase(subscription: Stripe.Subscription) {
     `✅ [WEBHOOK] Updated ${updateResult.count} profile(s) with comprehensive Stripe data for customer ${customerId}`
   );
 
+  console.log(
+    `⚡ [WEBHOOK-OPTIMIZED] Subscription update completed with zero unnecessary API calls`
+  );
+
   return updateResult;
-}
-
-// ✅ NEW: Helper function to get subscription data during checkout processing
-async function getSubscriptionDataFromCheckout(
-  customerId: string,
-  sessionId: string,
-  productId: string | null
-) {
-  try {
-    console.log(
-      `🔍 [CHECKOUT-SUBSCRIPTION] Attempting to fetch subscription for customer: ${customerId}`
-    );
-
-    // Get the customer's subscriptions from Stripe
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      limit: 5,
-    });
-
-    // Find the most recent active subscription that matches our product
-    let targetSubscription = null;
-
-    if (productId) {
-      // Look for subscription with matching product
-      targetSubscription = subscriptions.data.find(
-        sub =>
-          sub.items.data.some(item => item.price.product === productId) &&
-          ['active', 'trialing'].includes(sub.status)
-      );
-    }
-
-    // If no product match, get the most recent active subscription
-    if (!targetSubscription) {
-      targetSubscription = subscriptions.data.find(sub =>
-        ['active', 'trialing'].includes(sub.status)
-      );
-    }
-
-    if (targetSubscription) {
-      console.log(
-        `✅ [CHECKOUT-SUBSCRIPTION] Found subscription: ${targetSubscription.id}`
-      );
-
-      // Extract comprehensive data like the webhook does
-      const price = targetSubscription.items.data[0]?.price;
-      let discountPercent = null;
-      let discountName = null;
-
-      // Handle discounts
-      const activeDiscount =
-        targetSubscription.discounts && targetSubscription.discounts.length > 0
-          ? targetSubscription.discounts[0]
-          : (targetSubscription as any).discount;
-
-      if (activeDiscount?.coupon) {
-        discountPercent = activeDiscount.coupon.percent_off;
-        discountName = activeDiscount.coupon.name;
-      }
-
-      const subscriptionData = {
-        stripeSubscriptionId: targetSubscription.id,
-        subscriptionAutoRenew: !targetSubscription.cancel_at_period_end,
-        stripePriceId: price?.id,
-        subscriptionAmount: price?.unit_amount,
-        subscriptionCurrency: price?.currency,
-        subscriptionInterval: price?.recurring?.interval,
-        discountPercent,
-        discountName,
-        subscriptionCreated: new Date(targetSubscription.created * 1000),
-        lastWebhookUpdate: new Date(),
-      };
-
-      console.log(
-        `📊 [CHECKOUT-SUBSCRIPTION] Populated subscription data:`,
-        subscriptionData
-      );
-      return subscriptionData;
-    } else {
-      console.log(
-        `⚠️ [CHECKOUT-SUBSCRIPTION] No active subscription found for customer: ${customerId}`
-      );
-      return {};
-    }
-  } catch (error) {
-    console.error(
-      `❌ [CHECKOUT-SUBSCRIPTION] Error fetching subscription data:`,
-      error
-    );
-    return {}; // Return empty object on error to not break the main flow
-  }
 }

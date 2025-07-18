@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentProfileWithSync } from '@/lib/query';
-import { rateLimitAdmin, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // ✅ SECURITY: Rate limiting for admin status checks
-    const rateLimitResult = await rateLimitAdmin()(request);
+    // ✅ SECURITY: Use general rate limiting for frequent admin status checks (not admin operations)
+    const rateLimitResult = await rateLimitGeneral()(request);
     if (!rateLimitResult.success) {
       trackSuspiciousActivity(request, 'ADMIN_STATUS_RATE_LIMIT_EXCEEDED');
       return rateLimitResult.error;

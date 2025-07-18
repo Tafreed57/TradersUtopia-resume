@@ -419,11 +419,12 @@ export function SubscriptionManager() {
     return null;
   }, [subscription]);
 
-  // ✅ ENHANCED: Check if subscription data is incomplete
+  // ✅ ENHANCED: Check if subscription data is incomplete (exclude admin users)
   const isSubscriptionDataIncomplete =
     subscription?.status === 'ACTIVE' &&
     subscription?.stripeSubscriptionId === undefined &&
-    subscription?.subscriptionAmount === undefined;
+    subscription?.subscriptionAmount === undefined &&
+    !subscription?.isAdminAccess; // Don't show warning for admin users
 
   // ✅ NEW: Add backfill subscription data function
   const backfillSubscriptionData = async () => {

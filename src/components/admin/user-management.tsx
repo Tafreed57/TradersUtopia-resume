@@ -526,7 +526,10 @@ export function UserManagement({
                               )}
                               <div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-gray-500 mt-1'>
                                 <span className='truncate'>
-                                  ID: {userData.userId.substring(0, 8)}...
+                                  ID:{' '}
+                                  {userData.userId
+                                    ? userData.userId.substring(0, 8) + '...'
+                                    : 'N/A'}
                                 </span>
                                 <span className='truncate'>
                                   Joined:{' '}

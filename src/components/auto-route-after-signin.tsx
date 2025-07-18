@@ -1,48 +1,42 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
+import { useUnifiedAuth } from '@/contexts/unified-auth-provider';
+import { Loader2 } from 'lucide-react';
 
 function AutoRouteAfterSignInClient() {
-  const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentPath =
-    typeof window !== 'undefined' ? window.location.pathname : '';
-
-  const [hasChecked, setHasChecked] = useState(false);
+  const currentPath = usePathname();
+  const { isLoaded, isSignedIn, user } = useUser();
   const [isAutoRouting, setIsAutoRouting] = useState(false);
+  const [hasChecked, setHasChecked] = useState(false);
 
-  // Check if auto-routing is requested
-  const shouldAutoRoute = searchParams?.get('auto_route') === 'true';
+  // ✅ OPTIMIZED: Use unified auth instead of making separate API call
+  const { hasAccess, isLoading: authLoading, refetch } = useUnifiedAuth();
+
+  // Check if this is an auto-route scenario
+  const shouldAutoRoute = searchParams.get('auto_route') === 'true';
 
   useEffect(() => {
     const checkAndRoute = async () => {
-      // Only run auto-routing once and if requested
-      if (!shouldAutoRoute || hasChecked || isAutoRouting) {
-        return;
-      }
-
-      // Wait for Clerk to fully load
-      if (!isLoaded) {
-        return;
-      }
-
-      // Only run for signed-in users
-      if (!isSignedIn || !user) {
-        setHasChecked(true);
-        return;
-      }
-
-      // Don't auto-route if we're already on dashboard or servers
+      // Only auto-route if:
+      // 1. User just signed in (isLoaded && isSignedIn && user)
+      // 2. We have the auto_route parameter
+      // 3. We haven't already checked
+      // 4. We're on the homepage (to prevent loops)
       if (
-        currentPath.includes('/dashboard') ||
-        currentPath.includes('/servers')
+        !isLoaded ||
+        !isSignedIn ||
+        !user ||
+        !shouldAutoRoute ||
+        hasChecked ||
+        isAutoRouting ||
+        currentPath !== '/' ||
+        authLoading
       ) {
-        setHasChecked(true);
         return;
       }
 
@@ -50,40 +44,31 @@ function AutoRouteAfterSignInClient() {
       setIsAutoRouting(true);
 
       console.log(
-        '🔄 [AUTO-ROUTE] Starting automatic routing check for user:',
-        user.emailAddresses[0]?.emailAddress
+        '🔄 [AUTO-ROUTE] User returned from sign-in, checking subscription status...'
       );
-      console.log('🎯 [AUTO-ROUTE] Checking products:', TRADING_ALERT_PRODUCTS);
 
       try {
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Auto-route timeout')), 5000)
+        // ✅ OPTIMIZED: Use unified auth data instead of making API call
+        // If auth data is still loading, wait a moment for it to load
+        if (authLoading) {
+          console.log('⏳ [AUTO-ROUTE] Waiting for auth data to load...');
+          setTimeout(() => checkAndRoute(), 500);
+          return;
+        }
+
+        // ✅ OPTIMIZED: Use cached auth data or force refresh if needed
+        console.log(
+          '⚡ [AUTO-ROUTE] Using unified auth data for routing decision'
         );
 
-        // Check subscription status
-        const productPromise = fetch('/api/check-product-subscription', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            allowedProductIds: TRADING_ALERT_PRODUCTS, // ✅ UPDATED: Use client-safe config
-          }),
-        });
-
-        const productResponse = (await Promise.race([
-          productPromise,
-          timeoutPromise,
-        ])) as Response;
-        const productResult = await productResponse.json();
-
         // Route based on subscription status
-        if (productResult.hasAccess) {
+        if (hasAccess) {
+          console.log('✅ [AUTO-ROUTE] Access granted, routing to dashboard');
           setTimeout(() => {
             router.push('/dashboard');
           }, 1000);
         } else {
+          console.log('❌ [AUTO-ROUTE] No access, routing to pricing');
           setTimeout(() => {
             router.push('/pricing');
           }, 1000);
@@ -106,29 +91,30 @@ function AutoRouteAfterSignInClient() {
     currentPath,
     shouldAutoRoute,
     isAutoRouting,
+    hasAccess,
+    authLoading,
   ]);
 
-  // Show loading state only when auto-routing is active
-  if (shouldAutoRoute && isAutoRouting) {
+  // Show auto-routing overlay if we're in the process
+  if (isAutoRouting && shouldAutoRoute && currentPath === '/') {
     return (
       <div className='fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center'>
-        <div className='bg-gray-900/90 backdrop-blur-md rounded-2xl p-8 border border-gray-700/50 shadow-2xl max-w-sm w-full mx-4'>
-          <div className='text-center space-y-4'>
-            <div className='w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg'>
-              <div className='w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin'></div>
-            </div>
-            <div>
-              <h3 className='text-xl font-bold text-white mb-2'>
-                🔄 Setting Up Your Access
-              </h3>
-              <p className='text-gray-300 text-sm'>
-                Checking your subscription and preparing your dashboard...
-              </p>
-            </div>
-            <div className='flex items-center justify-center gap-1'>
-              <div className='w-2 h-2 bg-blue-400 rounded-full animate-pulse'></div>
-              <div className='w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-100'></div>
-              <div className='w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-200'></div>
+        <div className='bg-white dark:bg-gray-800 rounded-xl p-8 shadow-2xl max-w-md mx-4'>
+          <div className='text-center'>
+            <Loader2 className='w-12 h-12 animate-spin mx-auto mb-4 text-blue-500' />
+            <h3 className='text-xl font-semibold mb-2 text-gray-900 dark:text-white'>
+              Welcome back! 🎉
+            </h3>
+            <p className='text-gray-600 dark:text-gray-300 mb-4'>
+              ✅ Successfully signed in
+            </p>
+            <p className='text-sm text-gray-500 dark:text-gray-400'>
+              ⚡ Using optimized authentication cache
+            </p>
+            <div className='mt-4 flex items-center justify-center gap-2'>
+              <div className='w-2 h-2 bg-blue-500 rounded-full animate-pulse' />
+              <div className='w-2 h-2 bg-blue-500 rounded-full animate-pulse delay-75' />
+              <div className='w-2 h-2 bg-blue-500 rounded-full animate-pulse delay-150' />
             </div>
           </div>
         </div>

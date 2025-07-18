@@ -38,7 +38,11 @@ export async function POST(request: NextRequest) {
 
     const { autoRenew } = validationResult.data;
 
-    // Find the user's profile
+    console.log(
+      `⚡ [TOGGLE-AUTORENEW-OPTIMIZED] Processing auto-renewal toggle for user: ${user.id}, setting: ${autoRenew}`
+    );
+
+    // Find the user's profile with webhook-cached subscription data
     const profile = await db.profile.findFirst({
       where: { userId: user.id },
     });
@@ -48,50 +52,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
-    if (!profile.stripeCustomerId) {
+    // ✅ OPTIMIZED: Use webhook-cached subscription data instead of Stripe API call
+    if (!profile.stripeSubscriptionId) {
+      console.log(
+        '❌ [TOGGLE-AUTORENEW-OPTIMIZED] No cached subscription ID found'
+      );
       return NextResponse.json(
-        { error: 'No Stripe customer found' },
+        { error: 'No active subscription found in system' },
         { status: 400 }
       );
     }
 
-    // ✅ SECURITY: Enhanced Stripe API interaction with error handling
-    let subscriptions;
-    try {
-      // Get active subscriptions
-      subscriptions = await stripe.subscriptions.list({
-        customer: profile.stripeCustomerId,
-        status: 'active',
-        limit: 1,
-      });
-    } catch (stripeError) {
-      trackSuspiciousActivity(request, 'STRIPE_API_ERROR');
-      return NextResponse.json(
-        {
-          error: 'Failed to access subscription data',
-          message: 'Service temporarily unavailable',
-        },
-        { status: 503 }
-      );
-    }
+    // ✅ OPTIMIZED: Verify subscription is active using cached data
+    const hasActiveSubscription =
+      profile.subscriptionStatus === 'ACTIVE' &&
+      profile.subscriptionEnd &&
+      new Date(profile.subscriptionEnd) > new Date();
 
-    if (subscriptions.data.length === 0) {
+    if (!hasActiveSubscription) {
+      console.log(
+        '❌ [TOGGLE-AUTORENEW-OPTIMIZED] Subscription not active according to cache'
+      );
       return NextResponse.json(
         { error: 'No active subscription found' },
         { status: 400 }
       );
     }
 
-    const subscription = subscriptions.data[0];
+    console.log(
+      `⚡ [TOGGLE-AUTORENEW-OPTIMIZED] Using cached subscription ID: ${profile.stripeSubscriptionId}`
+    );
 
-    // ✅ SECURITY: Enhanced Stripe operation with error handling
+    // ✅ NECESSARY: Update the subscription in Stripe (state-changing operation)
     let updatedSubscription;
     try {
-      // Update the subscription in Stripe
-      updatedSubscription = await stripe.subscriptions.update(subscription.id, {
-        cancel_at_period_end: !autoRenew, // If autoRenew is true, don't cancel at period end
-      });
+      updatedSubscription = await stripe.subscriptions.update(
+        profile.stripeSubscriptionId,
+        {
+          cancel_at_period_end: !autoRenew, // If autoRenew is true, don't cancel at period end
+        }
+      );
+
+      console.log(
+        `✅ [TOGGLE-AUTORENEW-OPTIMIZED] Successfully updated Stripe subscription`
+      );
     } catch (stripeError) {
+      console.error(
+        '❌ [TOGGLE-AUTORENEW-OPTIMIZED] Stripe update failed:',
+        stripeError
+      );
       trackSuspiciousActivity(request, 'STRIPE_UPDATE_ERROR');
       return NextResponse.json(
         {
@@ -102,17 +111,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ SECURITY: Safe access to current_period_end with proper validation
-    // Try subscription level first, then fall back to subscription item level (same pattern as sync/cancel routes)
-    let periodEndTimestamp = (updatedSubscription as any).current_period_end;
+    // ✅ OPTIMIZED: Use cached subscription end date with Stripe data as backup
+    let periodEndDate = profile.subscriptionEnd;
 
-    // If not found at subscription level, check subscription items
-    if (!periodEndTimestamp && subscription.items?.data?.[0]) {
-      periodEndTimestamp = subscription.items.data[0].current_period_end;
+    if (!periodEndDate) {
+      // Fallback to Stripe data if cached date is missing
+      const periodEndTimestamp = (updatedSubscription as any)
+        .current_period_end;
+      if (periodEndTimestamp && typeof periodEndTimestamp === 'number') {
+        periodEndDate = new Date(periodEndTimestamp * 1000);
+      }
     }
 
-    // Validate timestamp before creating date
-    if (!periodEndTimestamp || typeof periodEndTimestamp !== 'number') {
+    // Validate the period end date
+    if (!periodEndDate || isNaN(periodEndDate.getTime())) {
       return NextResponse.json(
         {
           error: 'Invalid subscription period data',
@@ -122,17 +134,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const periodEndDate = new Date(periodEndTimestamp * 1000);
-
-    // Validate the resulting date
-    if (isNaN(periodEndDate.getTime())) {
-      return NextResponse.json(
-        {
-          error: 'Invalid subscription period data',
-          message: 'Unable to calculate subscription end date',
+    // ✅ OPTIMIZED: Update database cache with new auto-renewal setting
+    try {
+      await db.profile.update({
+        where: { id: profile.id },
+        data: {
+          subscriptionAutoRenew: autoRenew,
+          lastWebhookUpdate: new Date(),
+          updatedAt: new Date(),
         },
-        { status: 400 }
+      });
+
+      console.log(
+        `⚡ [TOGGLE-AUTORENEW-OPTIMIZED] Updated database cache with new auto-renewal setting`
       );
+    } catch (dbError) {
+      console.error(
+        '⚠️ [TOGGLE-AUTORENEW-OPTIMIZED] Failed to update database cache:',
+        dbError
+      );
+      // Don't fail the request if cache update fails, Stripe update succeeded
     }
 
     // Create notification
@@ -145,6 +166,10 @@ export async function POST(request: NextRequest) {
         : `Auto-renewal disabled. Your subscription remains active until ${periodEndDate.toLocaleDateString()}. You can re-enable anytime before then.`,
     });
 
+    console.log(
+      `✅ [TOGGLE-AUTORENEW-OPTIMIZED] Auto-renewal ${autoRenew ? 'enabled' : 'disabled'} successfully with optimized performance`
+    );
+
     return NextResponse.json({
       success: true,
       autoRenew: !(updatedSubscription as any).cancel_at_period_end,
@@ -154,8 +179,14 @@ export async function POST(request: NextRequest) {
         cancelAtPeriodEnd: (updatedSubscription as any).cancel_at_period_end,
         currentPeriodEnd: periodEndDate,
       },
+      performance: {
+        optimized: true,
+        stripeApiCalls: 1, // Down from 2
+        usedWebhookCache: true,
+      },
     });
   } catch (error) {
+    console.error('❌ [TOGGLE-AUTORENEW-OPTIMIZED] Operation failed:', error);
     trackSuspiciousActivity(request, 'AUTORENEW_OPERATION_ERROR');
 
     // ✅ SECURITY: Don't expose detailed error information

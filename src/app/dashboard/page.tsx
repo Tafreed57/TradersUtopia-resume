@@ -1,10 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { UserButton } from '@clerk/nextjs';
-import { useUser } from '@clerk/nextjs';
-import { NotificationBell } from '@/components/notifications/notification-bell';
-import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
+import { useUser, useAuth, UserButton } from '@clerk/nextjs';
+import {
+  Loader2,
+  Crown,
+  AlertTriangle,
+  Zap,
+  Settings,
+  Bell,
+  BarChart3,
+  User,
+  CreditCard,
+  ArrowRight,
+  Shield,
+  CheckCircle,
+  Clock,
+  Home,
+  Users,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -12,116 +27,105 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import {
-  Shield,
-  User,
-  Settings,
-  Crown,
-  Users,
-  Activity,
-  TrendingUp,
-  Home,
-  Bell,
-  Zap,
-  Lock,
-  CheckCircle,
-  Star,
-  Loader2,
-} from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { GlobalMobileMenu } from '@/components/global-mobile-menu';
-import { UserManagement } from '@/components/admin/user-management';
-import { NotificationSettings } from '@/components/notifications/notification-settings';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SmartEntryButton } from '@/components/smart-entry-button';
+import { PricingButtons } from '@/components/pricing-buttons';
 import { SubscriptionManager } from '@/components/subscription/subscription-manager';
-import { PasswordManager } from '@/components/user/password-manager';
-import { UserDetails } from '@/components/user/user-details';
+import { NotificationSettings } from '@/components/notifications/notification-settings';
+import UserManagement from '@/components/admin/user-management';
+import { useUnifiedAuth } from '@/contexts/unified-auth-provider';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
 
-// Move allowedProductIds outside component to avoid dependency issues
+// Allowed product IDs for access control
 const allowedProductIds = [...TRADING_ALERT_PRODUCTS];
 
+// Professional card styling
+const cardClasses = `
+  bg-gradient-to-br from-gray-800/90 via-gray-800/70 to-gray-900/90 
+  backdrop-blur-xl border border-gray-600/30 shadow-2xl 
+  hover:shadow-3xl transition-all duration-500 
+  hover:border-blue-400/50 hover:shadow-blue-400/10
+  rounded-2xl relative overflow-hidden
+`;
+
+const statCardClasses = `
+  bg-gradient-to-br from-gray-800/80 via-gray-800/60 to-gray-900/80 
+  backdrop-blur-md border border-gray-600/30 shadow-xl
+  hover:shadow-2xl transition-all duration-300
+  hover:border-purple-400/40 hover:shadow-purple-400/5
+  rounded-xl relative overflow-hidden group
+`;
+
 export default function Dashboard() {
-  const { user, isLoaded } = useUser();
-  const [profile, setProfile] = useState<any>(null);
+  const { user } = useUser();
+  const { isLoaded } = useAuth();
   const [servers, setServers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('account');
 
-  // Smart server navigation function
-  const handleServerNavigation = async () => {
-    try {
-      const response = await fetch('/api/servers/ensure-default', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+  // ✅ OPTIMIZED: Use unified auth instead of making separate API calls
+  const {
+    hasAccess,
+    isLoading: authLoading,
+    profile,
+    subscriptionData,
+    dataSource,
+  } = useUnifiedAuth();
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.server?.id) {
-          window.location.href = `/servers/${data.server.id}`;
-          return;
-        }
+  // Check for tab parameter in URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      if (tab === 'settings' || tab === 'notifications') {
+        setActiveTab('notifications');
+      } else if (tab === 'subscription') {
+        setActiveTab('subscription');
       }
-    } catch (error) {
-      console.error('Error getting default server:', error);
     }
-
-    // Fallback to dashboard if server navigation fails
-    window.location.href = '/dashboard';
-  };
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchServersData = async () => {
       try {
-        // Fetch profile data
-        const profileResponse = await fetch('/api/user/profile');
-        const profileData = await profileResponse.json();
-        setProfile(profileData);
-
-        // Check subscription access
-        const accessResponse = await fetch('/api/check-product-subscription', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            allowedProductIds,
-          }),
-        });
-        const accessData = await accessResponse.json();
-        setHasAccess(accessData.hasAccess || false);
-
-        // Fetch servers data
+        // ✅ OPTIMIZED: Only fetch servers data (profile and access already loaded)
         const serversResponse = await fetch('/api/servers');
         if (serversResponse.ok) {
           const serversData = await serversResponse.json();
           setServers(serversData || []);
         }
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error('Error fetching servers data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (isLoaded && user) {
-      fetchData();
+    if (isLoaded && user && !authLoading) {
+      fetchServersData();
     }
-  }, [isLoaded, user]);
+  }, [isLoaded, user, authLoading]);
 
-  if (!isLoaded || loading) {
+  if (!isLoaded || loading || authLoading) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black flex items-center justify-center'>
         <div className='text-center'>
-          <Loader2 className='w-8 h-8 animate-spin mx-auto mb-4 text-blue-400' />
-          <p className='text-gray-300'>Loading dashboard...</p>
+          <div className='w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl'>
+            <Loader2 className='w-8 h-8 animate-spin text-white' />
+          </div>
+          <h3 className='text-xl font-bold text-white mb-2'>
+            Loading dashboard...
+          </h3>
+          <p className='text-gray-400'>Preparing your trading workspace</p>
+          {dataSource && (
+            <div className='mt-4 px-4 py-2 bg-blue-500/10 border border-blue-400/30 rounded-lg'>
+              <p className='text-xs text-blue-400'>
+                ⚡ Using {dataSource} optimization
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -130,584 +134,589 @@ export default function Dashboard() {
   if (!profile) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black flex items-center justify-center'>
-        <div className='text-center'>
-          <p className='text-gray-300'>Unable to load profile data</p>
-        </div>
+        <Card className={cardClasses}>
+          <CardContent className='p-8 text-center'>
+            <AlertTriangle className='w-12 h-12 text-amber-400 mx-auto mb-4' />
+            <h3 className='text-xl font-bold text-white mb-2'>
+              Profile Loading Error
+            </h3>
+            <p className='text-gray-400'>
+              Unable to load your profile data. Please refresh the page.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Check if user has active subscription - prioritize actual access check
-  const hasActiveSubscription =
-    hasAccess ||
-    (profile.subscriptionStatus === 'ACTIVE' &&
-      profile.subscriptionEnd &&
-      new Date(profile.subscriptionEnd) > new Date());
+  const getStatusConfig = () => {
+    if (profile?.isAdmin) {
+      return {
+        status: 'Admin Access',
+        color: 'from-red-500 to-red-600',
+        textColor: 'text-red-400',
+        bgColor: 'bg-red-500/10',
+        borderColor: 'border-red-400/30',
+        icon: Crown,
+        description: 'Full administrative privileges',
+      };
+    }
+
+    if (hasAccess && subscriptionData) {
+      return {
+        status: 'Premium Active',
+        color: 'from-green-500 to-emerald-600',
+        textColor: 'text-green-400',
+        bgColor: 'bg-green-500/10',
+        borderColor: 'border-green-400/30',
+        icon: CheckCircle,
+        description: `Valid until ${new Date(subscriptionData.subscriptionEnd || '').toLocaleDateString()}`,
+      };
+    }
+
+    return {
+      status: 'Free Access',
+      color: 'from-gray-500 to-gray-600',
+      textColor: 'text-gray-400',
+      bgColor: 'bg-gray-500/10',
+      borderColor: 'border-gray-400/30',
+      icon: Clock,
+      description: 'Limited access to platform features',
+    };
+  };
+
+  const statusConfig = getStatusConfig();
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative'>
-      {/* Animated Background Effects */}
+    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black'>
+      {/* Background Effects */}
       <div className='absolute inset-0 pointer-events-none overflow-hidden'>
-        <div className='absolute -top-40 -right-40 w-80 h-80 bg-blue-500/8 rounded-full blur-3xl animate-pulse'></div>
-        <div className='absolute top-60 -left-40 w-96 h-96 bg-purple-500/6 rounded-full blur-3xl animate-pulse delay-1000'></div>
-        <div className='absolute bottom-40 right-20 w-64 h-64 bg-yellow-500/8 rounded-full blur-3xl animate-pulse delay-2000'></div>
-        <div className='absolute top-20 left-1/2 w-72 h-72 bg-green-500/5 rounded-full blur-3xl animate-pulse delay-3000'></div>
+        <div className='absolute -top-40 -right-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl animate-pulse'></div>
+        <div className='absolute top-60 -left-40 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-1000'></div>
+        <div className='absolute bottom-40 right-20 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl animate-pulse delay-2000'></div>
       </div>
 
-      {/* Modern Header */}
-      <header className='relative z-10 border-b border-gray-800/50 bg-gray-900/30'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='flex justify-between items-center h-16'>
-            {/* Logo Section */}
-            <Link href='/' className='flex items-center space-x-3'>
-              <div className='w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center'>
-                <Image
-                  src='/logo.png'
-                  alt='TradersUtopia'
-                  width={20}
-                  height={20}
-                  className='w-5 h-5'
-                />
+      <div className='container mx-auto px-4 py-6 max-w-7xl relative z-10'>
+        {/* Premium Professional Header */}
+        <div className='mb-8'>
+          <div className='bg-gradient-to-r from-gray-800/90 via-gray-800/70 to-gray-900/90 backdrop-blur-xl border border-gray-600/30 rounded-2xl p-6 shadow-2xl'>
+            <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+              {/* Left: Welcome Section */}
+              <div className='flex items-center gap-4'>
+                <div className='w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-xl'>
+                  <Zap className='w-7 h-7 text-white' />
+                </div>
+                <div>
+                  <h1 className='text-2xl md:text-3xl font-bold text-white flex items-center gap-2'>
+                    <Crown className='w-6 h-6 text-yellow-400' />
+                    Welcome back,{' '}
+                    <span className='text-blue-400'>
+                      {user?.firstName || 'Trader'}
+                    </span>
+                    !
+                  </h1>
+                  <p className='text-gray-400 text-sm mt-1'>
+                    {profile.email} • Trading Dashboard
+                  </p>
+                </div>
               </div>
-              <span className='text-xl font-bold text-white'>
-                TradersUtopia
-              </span>
-              {profile.isAdmin && (
-                <Badge
-                  variant='destructive'
-                  className='ml-2 bg-red-600/20 text-red-400 border border-red-500/30'
-                >
-                  <Shield className='w-3 h-3 mr-1' />
-                  Admin
-                </Badge>
-              )}
-            </Link>
 
-            {/* Right Section */}
-            <div className='flex items-center space-x-4'>
-              <NotificationBell />
-              <UserButton />
-              <GlobalMobileMenu currentPage='dashboard' />
+              {/* Right: Navigation & Status */}
+              <div className='flex items-center gap-3'>
+                {/* Home Button */}
+                <Button
+                  onClick={() => (window.location.href = '/')}
+                  variant='outline'
+                  size='sm'
+                  className='bg-gray-700/50 hover:bg-gray-600/50 border-gray-600/50 hover:border-gray-500/50 text-gray-300 hover:text-white transition-all duration-200'
+                >
+                  <Home className='w-4 h-4 mr-2' />
+                  Home
+                </Button>
+
+                <Badge
+                  className={`${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor} border px-4 py-2 text-sm font-medium`}
+                >
+                  <statusConfig.icon className='w-4 h-4 mr-2' />
+                  {statusConfig.status}
+                </Badge>
+                {hasAccess && (
+                  <div className='hidden md:flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-400/30 rounded-lg'>
+                    <div className='w-2 h-2 bg-green-400 rounded-full animate-pulse'></div>
+                    <span className='text-xs text-green-400 font-medium'>
+                      Active
+                    </span>
+                  </div>
+                )}
+
+                {/* Clerk User Profile Button */}
+                <div className='flex items-center'>
+                  <UserButton
+                    appearance={{
+                      elements: {
+                        avatarBox:
+                          'w-10 h-10 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200',
+                        userButtonPopoverCard:
+                          'bg-gray-800 border border-gray-600 shadow-2xl',
+                        userButtonPopoverActionButton:
+                          'text-gray-300 hover:bg-gray-700 hover:text-white',
+                        userButtonPopoverActionButtonText: 'text-gray-300',
+                        userButtonPopoverFooter: 'hidden',
+                      },
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className='relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pwa-safe-bottom dashboard-mobile-container'>
-        {/* Welcome Section */}
-        <div className='mb-6 sm:mb-8'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-white mb-2'>
-            Welcome back, {profile.name || user?.firstName || 'User'}! 👋
-          </h1>
-          <p className='text-base sm:text-lg text-gray-400'>
-            {hasActiveSubscription
-              ? 'Manage your premium trading account and access all features'
-              : 'Get started with trading insights and upgrade to access premium features'}
-          </p>
-        </div>
-
-        {/* Status Cards Row */}
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8 grid-mobile-safe'>
-          {/* Account Status */}
-          <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-3'>
-              <CardTitle className='text-sm font-medium text-gray-300'>
-                Account Status
-              </CardTitle>
-              <div
-                className={`w-3 h-3 rounded-full ${hasActiveSubscription ? 'bg-green-500' : 'bg-yellow-500'}`}
-              />
-            </CardHeader>
-            <CardContent>
-              <div className='text-2xl font-bold text-white mb-1'>
-                {hasActiveSubscription ? 'Active' : 'Free'}
-              </div>
-              <p className='text-sm text-gray-400'>
-                {hasActiveSubscription
-                  ? profile.subscriptionEnd
-                    ? `Expires ${new Date(profile.subscriptionEnd).toLocaleDateString()}`
-                    : 'Premium access active'
-                  : 'Upgrade to unlock all features'}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Trading Servers */}
-          <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-3'>
-              <CardTitle className='text-sm font-medium text-gray-300'>
-                Trading Servers
-              </CardTitle>
-              <Users className='w-4 h-4 text-gray-400' />
-            </CardHeader>
-            <CardContent>
-              <div className='text-2xl font-bold text-white mb-1'>
-                {servers.length}
-              </div>
-              <p className='text-sm text-gray-400'>Available servers</p>
-            </CardContent>
-          </Card>
-
-          {/* Quick Stats */}
-          <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-3'>
-              <CardTitle className='text-sm font-medium text-gray-300'>
-                Your Role
-              </CardTitle>
-              <Star className='w-4 h-4 text-gray-400' />
-            </CardHeader>
-            <CardContent>
-              <div className='text-2xl font-bold text-white mb-1'>
-                {profile.isAdmin ? 'Admin' : 'Member'}
-              </div>
-              <p className='text-sm text-gray-400'>
-                {profile.isAdmin ? 'Full system access' : 'Standard access'}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions Grid */}
-        <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8 grid-mobile-safe'>
-          {/* Premium Trading Servers */}
-          <div className='relative'>
-            <Card
-              className='h-full hover:shadow-lg transition-all duration-200 cursor-pointer relative overflow-hidden group bg-gradient-to-br from-blue-600/20 to-blue-700/20 border border-blue-500/30 hover:from-blue-600/30 hover:to-blue-700/30 hover:border-blue-400/50'
-              onClick={
-                hasActiveSubscription
-                  ? handleServerNavigation
-                  : () => (window.location.href = '/pricing')
-              }
-            >
-              {!hasActiveSubscription && (
-                <div className='absolute top-2 right-2 z-10'>
-                  <Badge
-                    variant='secondary'
-                    className='text-xs bg-gray-600/20 text-gray-400 border border-gray-500/30'
-                  >
-                    <Crown className='w-3 h-3 mr-1' />
-                    Premium
-                  </Badge>
-                </div>
-              )}
-              <CardContent className='p-6 text-center'>
+        {/* Professional Stats Grid */}
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
+          {/* Access Status Card */}
+          <Card className={statCardClasses}>
+            <div className='absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-full blur-xl'></div>
+            <CardContent className='p-6 relative z-10'>
+              <div className='flex items-center justify-between mb-4'>
                 <div
-                  className={`w-12 h-12 rounded-lg mx-auto mb-4 flex items-center justify-center ${
-                    hasActiveSubscription
-                      ? 'bg-blue-500/20 text-blue-400'
-                      : 'bg-gray-600/20 text-gray-400'
-                  }`}
+                  className={`w-12 h-12 bg-gradient-to-br ${statusConfig.color} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
                 >
-                  <Users className='w-6 h-6' />
+                  <statusConfig.icon className='w-6 h-6 text-white' />
                 </div>
-                <h3 className='font-semibold text-white mb-2'>
-                  Trading Servers
-                </h3>
-                <p className='text-sm text-blue-200'>
-                  Join live trading discussions
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+                <Badge
+                  className={`${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor} border`}
+                >
+                  {statusConfig.status}
+                </Badge>
+              </div>
+              <h3 className='font-bold text-white text-lg mb-1'>
+                Access Status
+              </h3>
+              <p className='text-gray-400 text-sm'>
+                {statusConfig.description}
+              </p>
+            </CardContent>
+          </Card>
 
-          {/* Track Record - Free */}
-          <Link href='/track-record'>
-            <Card className='h-full hover:shadow-lg transition-all duration-200 cursor-pointer bg-gradient-to-br from-green-600/20 to-green-700/20 border border-green-500/30 hover:from-green-600/30 hover:to-green-700/30 hover:border-green-400/50'>
-              <CardContent className='p-6 text-center'>
-                <div className='w-12 h-12 bg-green-500/20 text-green-400 rounded-lg mx-auto mb-4 flex items-center justify-center'>
-                  <TrendingUp className='w-6 h-6' />
+          {/* Servers Available */}
+          <Card className={statCardClasses}>
+            <div className='absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-purple-500/10 to-transparent rounded-full blur-xl'></div>
+            <CardContent className='p-6 relative z-10'>
+              <div className='flex items-center justify-between mb-4'>
+                <div className='w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300'>
+                  <Shield className='w-6 h-6 text-white' />
                 </div>
-                <h3 className='font-semibold text-white mb-2'>Track Record</h3>
-                <p className='text-sm text-green-200'>
-                  View trading performance
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
+                <span className='text-2xl font-bold text-purple-400'>
+                  {servers.length}
+                </span>
+              </div>
+              <h3 className='font-bold text-white text-lg mb-1'>
+                Servers Available
+              </h3>
+              <p className='text-gray-400 text-sm'>
+                Active trading communities
+              </p>
+            </CardContent>
+          </Card>
 
-          {/* Billing/Upgrade */}
-          {hasActiveSubscription ? (
-            <Card
-              className='h-full hover:shadow-lg transition-all duration-200 cursor-pointer bg-gradient-to-br from-yellow-600/20 to-yellow-700/20 border border-yellow-500/30 hover:from-yellow-600/30 hover:to-yellow-700/30 hover:border-yellow-400/50'
-              onClick={() => {
-                // Switch to subscription tab
-                setActiveTab('subscription');
-              }}
-            >
-              <CardContent className='p-6 text-center'>
-                <div className='w-12 h-12 bg-yellow-500/20 text-yellow-400 rounded-lg mx-auto mb-4 flex items-center justify-center'>
-                  <Crown className='w-6 h-6' />
+          {/* Admin Status or Premium Features */}
+          <Card className={statCardClasses}>
+            <div className='absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full blur-xl'></div>
+            <CardContent className='p-6 relative z-10'>
+              <div className='flex items-center justify-between mb-4'>
+                <div className='w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300'>
+                  {profile.isAdmin ? (
+                    <Crown className='w-6 h-6 text-white' />
+                  ) : (
+                    <Settings className='w-6 h-6 text-white' />
+                  )}
                 </div>
-                <h3 className='font-semibold text-white mb-2'>Billing</h3>
-                <p className='text-sm text-yellow-200'>Manage subscription</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Link href='/pricing'>
-              <Card className='h-full hover:shadow-lg transition-all duration-200 cursor-pointer bg-gradient-to-br from-yellow-600/20 to-yellow-700/20 border border-yellow-500/30 hover:from-yellow-600/30 hover:to-yellow-700/30 hover:border-yellow-400/50'>
-                <CardContent className='p-6 text-center'>
-                  <div className='w-12 h-12 bg-yellow-500/20 text-yellow-400 rounded-lg mx-auto mb-4 flex items-center justify-center'>
-                    <Crown className='w-6 h-6' />
-                  </div>
-                  <h3 className='font-semibold text-white mb-2'>Upgrade</h3>
-                  <p className='text-sm text-yellow-200'>
-                    Get premium features
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          )}
-
-          {/* Homepage */}
-          <Link href='/'>
-            <Card className='h-full hover:shadow-lg transition-all duration-200 cursor-pointer bg-gradient-to-br from-purple-600/20 to-purple-700/20 border border-purple-500/30 hover:from-purple-600/30 hover:to-purple-700/30 hover:border-purple-400/50'>
-              <CardContent className='p-6 text-center'>
-                <div className='w-12 h-12 bg-purple-500/20 text-purple-400 rounded-lg mx-auto mb-4 flex items-center justify-center'>
-                  <Home className='w-6 h-6' />
-                </div>
-                <h3 className='font-semibold text-white mb-2'>Homepage</h3>
-                <p className='text-sm text-purple-200'>Back to main site</p>
-              </CardContent>
-            </Card>
-          </Link>
+                <Badge
+                  className={
+                    profile.isAdmin
+                      ? 'bg-red-500/10 text-red-400 border-red-400/30'
+                      : 'bg-amber-500/10 text-amber-400 border-amber-400/30'
+                  }
+                >
+                  {profile.isAdmin ? 'Admin' : 'User'}
+                </Badge>
+              </div>
+              <h3 className='font-bold text-white text-lg mb-1'>
+                Account Type
+              </h3>
+              <p className='text-gray-400 text-sm'>
+                {profile.isAdmin
+                  ? 'Administrative access enabled'
+                  : 'Standard user privileges'}
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Main Dashboard Tabs */}
-        <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className='w-full overflow-hidden'
-          >
-            <CardHeader className='px-4 sm:px-6 py-4 sm:py-6 pb-3 sm:pb-4'>
-              <TabsList className='grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 h-auto p-1 bg-gray-800/50 border border-gray-700/50 gap-1 force-horizontal-scroll'>
-                <TabsTrigger
-                  value='overview'
-                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
-                >
-                  <Activity className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
-                  <span className='hidden sm:inline'>Overview</span>
-                  <span className='sm:hidden'>Home</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value='subscription'
-                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
-                >
-                  <Crown className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
-                  <span className='hidden sm:inline'>Subscription</span>
-                  <span className='sm:hidden'>Plan</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value='profile'
-                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
-                >
-                  <User className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
-                  <span className='hidden sm:inline'>Profile</span>
-                  <span className='sm:hidden'>User</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value='settings'
-                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
-                >
-                  <Settings className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
-                  <span className='hidden sm:inline'>Settings</span>
-                  <span className='sm:hidden'>Config</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value='notifications'
-                  className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
-                >
-                  <Bell className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
-                  <span className='hidden sm:inline'>Notifications</span>
-                  <span className='sm:hidden'>Alerts</span>
-                </TabsTrigger>
-                {profile.isAdmin && (
-                  <TabsTrigger
-                    value='admin'
-                    className='flex items-center gap-1 sm:gap-2 data-[state=active]:bg-red-600/50 data-[state=active]:text-white text-gray-300 hover:text-white transition-all duration-200 py-3 px-2 sm:px-3 text-xs sm:text-sm min-h-[44px] touch-manipulation'
-                  >
-                    <Shield className='w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0' />
-                    <span className='hidden sm:inline'>Admin</span>
-                    <span className='sm:hidden'>Admin</span>
-                  </TabsTrigger>
-                )}
-              </TabsList>
-            </CardHeader>
-
-            <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
-              {/* Overview Tab */}
-              <TabsContent
-                value='overview'
-                className='space-y-4 sm:space-y-6 mt-0 tab-content-mobile'
-              >
-                <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                  {/* Account Status Details */}
-                  <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
-                    <CardHeader>
-                      <CardTitle className='flex items-center gap-2 text-white'>
-                        <Activity className='w-5 h-5 text-blue-400' />
-                        Account Overview
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className='space-y-4'>
-                      <div className='flex justify-between items-center py-2 border-b border-gray-700/50'>
-                        <span className='font-medium text-gray-300'>
-                          Status
-                        </span>
-                        <Badge
-                          variant={
-                            hasActiveSubscription ? 'default' : 'secondary'
-                          }
-                          className={
-                            hasActiveSubscription
-                              ? 'bg-green-600/20 text-green-400 border border-green-500/30'
-                              : 'bg-gray-600/20 text-gray-400 border border-gray-500/30'
-                          }
-                        >
-                          {hasActiveSubscription ? 'ACTIVE' : 'FREE'}
-                        </Badge>
-                      </div>
-                      <div className='flex justify-between items-center py-2 border-b border-gray-700/50'>
-                        <span className='font-medium text-gray-300'>Role</span>
-                        <Badge
-                          variant={profile.isAdmin ? 'destructive' : 'outline'}
-                          className={
-                            profile.isAdmin
-                              ? 'bg-red-600/20 text-red-400 border border-red-500/30'
-                              : 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                          }
-                        >
-                          {profile.isAdmin ? 'Admin' : 'Member'}
-                        </Badge>
-                      </div>
-                      {hasActiveSubscription && profile.subscriptionEnd && (
-                        <div className='flex justify-between items-center py-2'>
-                          <span className='font-medium text-gray-300'>
-                            Expires
-                          </span>
-                          <span className='text-sm text-gray-400'>
-                            {new Date(
-                              profile.subscriptionEnd
-                            ).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Quick Access */}
-                  <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50'>
-                    <CardHeader>
-                      <CardTitle className='flex items-center gap-2 text-white'>
-                        <Zap className='w-5 h-5 text-green-400' />
-                        Quick Access
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className='space-y-3'>
-                      <Link
-                        href='/track-record'
-                        className='flex items-center justify-between p-3 rounded-lg bg-gray-700/30 hover:bg-gray-700/50 transition-colors'
-                      >
-                        <div className='flex items-center gap-3'>
-                          <TrendingUp className='w-5 h-5 text-green-400' />
-                          <span className='font-medium text-white'>
-                            Track Record
-                          </span>
-                        </div>
-                        <CheckCircle className='w-4 h-4 text-green-400' />
-                      </Link>
-
-                      <div className='flex items-center justify-between p-3 rounded-lg bg-gray-700/30'>
-                        <div className='flex items-center gap-3'>
-                          <Users className='w-5 h-5 text-blue-400' />
-                          <span className='font-medium text-white'>
-                            Trading Servers
-                          </span>
-                        </div>
-                        {hasActiveSubscription ? (
-                          <Button
-                            size='sm'
-                            variant='outline'
-                            className='border-blue-500/30 text-blue-400 hover:bg-blue-600/20'
-                            onClick={handleServerNavigation}
-                          >
-                            Access
-                          </Button>
-                        ) : (
-                          <Badge
-                            variant='secondary'
-                            className='bg-gray-600/20 text-gray-400 border border-gray-500/30'
-                          >
-                            <Lock className='w-3 h-3 mr-1' />
-                            Premium
-                          </Badge>
-                        )}
-                      </div>
-
-                      {hasActiveSubscription ? (
-                        <div
-                          className='flex items-center justify-between p-3 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 transition-colors border border-yellow-500/30 cursor-pointer'
-                          onClick={() => setActiveTab('subscription')}
-                        >
-                          <div className='flex items-center gap-3'>
-                            <Crown className='w-5 h-5 text-yellow-400' />
-                            <span className='font-medium text-white'>
-                              Manage Billing
-                            </span>
-                          </div>
-                          <Button
-                            size='sm'
-                            variant='outline'
-                            className='border-yellow-500/30 text-yellow-400 hover:bg-yellow-600/20'
-                          >
-                            Manage
-                          </Button>
-                        </div>
-                      ) : (
-                        <Link
-                          href='/pricing'
-                          className='flex items-center justify-between p-3 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 transition-colors border border-yellow-500/30'
-                        >
-                          <div className='flex items-center gap-3'>
-                            <Crown className='w-5 h-5 text-yellow-400' />
-                            <span className='font-medium text-white'>
-                              Upgrade to Premium
-                            </span>
-                          </div>
-                          <Button
-                            size='sm'
-                            className='bg-yellow-600 hover:bg-yellow-700 text-black font-semibold'
-                          >
-                            Upgrade
-                          </Button>
-                        </Link>
-                      )}
-                    </CardContent>
-                  </Card>
+        {/* Main Dashboard Content - Accessible to All Users */}
+        <div className='space-y-8'>
+          {/* Professional Trading Tools */}
+          <Card className={cardClasses}>
+            <div className='absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-full blur-2xl'></div>
+            <CardHeader className='relative z-10'>
+              <div className='flex items-center gap-4'>
+                <div className='w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg'>
+                  <Zap className='w-6 h-6 text-white' />
                 </div>
-              </TabsContent>
-
-              {/* Subscription Tab - Mobile Optimized */}
-              <TabsContent
-                value='subscription'
-                className='tab-content-mobile mt-4 sm:mt-6'
-              >
-                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
-                  <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
-                    <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
-                      <Crown className='w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 flex-shrink-0' />
-                      <span className='truncate'>Subscription Management</span>
-                    </CardTitle>
-                    <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
-                      Manage your subscription and billing information
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
-                    <div className='w-full overflow-hidden'>
-                      <SubscriptionManager />
+                <div>
+                  <CardTitle className='text-white text-xl'>
+                    Trading Tools
+                  </CardTitle>
+                  <CardDescription className='text-gray-400'>
+                    Professional trading resources and performance analysis
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='space-y-6 relative z-10'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                {/* Trading Signals */}
+                <div className='group relative'>
+                  <div className='absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300'></div>
+                  <div className='relative p-6 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-purple-500/10 border border-blue-400/30 rounded-2xl hover:border-blue-400/50 transition-all duration-300'>
+                    <div className='flex items-center gap-3 mb-4'>
+                      <div className='w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center'>
+                        <Zap className='w-5 h-5 text-blue-400' />
+                      </div>
+                      <div>
+                        <h3 className='text-white font-semibold text-lg'>
+                          Trading Signals
+                        </h3>
+                        <p className='text-blue-300 text-sm'>
+                          Live market analysis & signals
+                        </p>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                    <p className='text-gray-300 text-sm mb-4'>
+                      Access real-time trading signals, market analysis, and
+                      connect with our trading community.
+                    </p>
+                    <SmartEntryButton
+                      className='w-full'
+                      customProductIds={allowedProductIds}
+                    />
+                  </div>
+                </div>
 
-              {/* Profile Tab - Mobile Optimized */}
-              <TabsContent
-                value='profile'
-                className='tab-content-mobile mt-4 sm:mt-6'
-              >
-                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
-                  <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
-                    <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
-                      <User className='w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0' />
-                      <span className='truncate'>Profile Information</span>
-                    </CardTitle>
-                    <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
-                      Manage your personal information and account details
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
-                    <div className='w-full overflow-hidden'>
-                      <UserDetails />
+                {/* Track Record */}
+                <div className='group relative'>
+                  <div className='absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-300'></div>
+                  <div className='relative p-6 bg-gradient-to-br from-green-500/10 via-green-500/5 to-emerald-500/10 border border-green-400/30 rounded-2xl hover:border-green-400/50 transition-all duration-300'>
+                    <div className='flex items-center gap-3 mb-4'>
+                      <div className='w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center'>
+                        <BarChart3 className='w-5 h-5 text-green-400' />
+                      </div>
+                      <div>
+                        <h3 className='text-white font-semibold text-lg'>
+                          Track Record
+                        </h3>
+                        <p className='text-green-300 text-sm'>
+                          Verified performance data
+                        </p>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                    <p className='text-gray-300 text-sm mb-4'>
+                      View our comprehensive trading track record with verified
+                      results and transparent performance metrics.
+                    </p>
+                    <Button
+                      onClick={() => (window.location.href = '/track-record')}
+                      className='w-full bg-green-600 hover:bg-green-700 text-white font-medium'
+                    >
+                      <BarChart3 className='w-4 h-4 mr-2' />
+                      View Track Record
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-              {/* Settings Tab - Mobile Optimized */}
-              <TabsContent
-                value='settings'
-                className='tab-content-mobile mt-4 sm:mt-6'
+          {/* Professional Settings Tabs */}
+          <Card className={cardClasses}>
+            <div className='absolute top-0 left-0 w-40 h-40 bg-gradient-to-br from-purple-500/10 to-transparent rounded-full blur-3xl'></div>
+            <CardHeader className='relative z-10'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center'>
+                  <Settings className='w-5 h-5 text-white' />
+                </div>
+                <div>
+                  <CardTitle className='text-white text-xl'>
+                    Account Management
+                  </CardTitle>
+                  <CardDescription className='text-gray-400'>
+                    Manage your account, notifications, and subscription
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className='relative z-10'>
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className='w-full'
               >
-                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
-                  <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
-                    <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
-                      <Settings className='w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0' />
-                      <span className='truncate'>Security Settings</span>
-                    </CardTitle>
-                    <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
-                      Manage your password and security preferences
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
-                    <div className='w-full overflow-hidden'>
-                      <PasswordManager />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Notifications Tab - Mobile Optimized */}
-              <TabsContent
-                value='notifications'
-                className='tab-content-mobile mt-4 sm:mt-6'
-              >
-                <Card className='bg-gradient-to-br from-gray-800/80 to-gray-900/80 border-gray-700/50 card-mobile-safe'>
-                  <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
-                    <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
-                      <Bell className='w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0' />
-                      <span className='truncate'>Notification Settings</span>
-                    </CardTitle>
-                    <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
-                      Control your notification preferences
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
-                    <div className='w-full overflow-hidden'>
-                      <NotificationSettings />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Admin Tab - Mobile Optimized */}
-              {profile.isAdmin && (
-                <TabsContent
-                  value='admin'
-                  className='tab-content-mobile mt-4 sm:mt-6'
+                <TabsList
+                  className={`grid w-full ${profile?.isAdmin ? 'grid-cols-4' : 'grid-cols-3'} bg-gray-700/50 p-2 gap-1 rounded-xl min-h-[60px]`}
                 >
-                  <Card className='bg-gradient-to-br from-red-900/30 to-red-800/30 border-red-700/50 card-mobile-safe'>
-                    <CardHeader className='px-4 sm:px-6 py-4 sm:py-6'>
-                      <CardTitle className='flex items-center gap-2 sm:gap-3 text-white text-lg sm:text-xl'>
-                        <Shield className='w-4 h-4 sm:w-5 sm:h-5 text-red-400 flex-shrink-0' />
-                        <span className='truncate'>Admin Panel</span>
-                      </CardTitle>
-                      <CardDescription className='text-gray-400 text-sm sm:text-base mt-1 sm:mt-2'>
-                        Administrative tools and user management
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className='px-4 sm:px-6 pb-4 sm:pb-6 overflow-visible'>
-                      <div className='w-full overflow-hidden'>
+                  <TabsTrigger
+                    value='account'
+                    className='data-[state=active]:bg-blue-600 data-[state=active]:shadow-lg rounded-lg transition-all duration-200 px-3 py-2 text-sm font-medium'
+                  >
+                    <User className='w-4 h-4 mr-2 flex-shrink-0' />
+                    <span className='truncate'>Account</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value='notifications'
+                    className='data-[state=active]:bg-amber-600 data-[state=active]:shadow-lg rounded-lg transition-all duration-200 px-3 py-2 text-sm font-medium'
+                  >
+                    <Bell className='w-4 h-4 mr-2 flex-shrink-0' />
+                    <span className='truncate'>Notifications</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value='subscription'
+                    className='data-[state=active]:bg-green-600 data-[state=active]:shadow-lg rounded-lg transition-all duration-200 px-3 py-2 text-sm font-medium'
+                  >
+                    <CreditCard className='w-4 h-4 mr-2 flex-shrink-0' />
+                    <span className='truncate'>Subscription</span>
+                  </TabsTrigger>
+                  {/* ⚡ ADMIN-ONLY TAB: Only visible to admin users */}
+                  {profile?.isAdmin && (
+                    <TabsTrigger
+                      value='admin'
+                      className='data-[state=active]:bg-red-600 data-[state=active]:shadow-lg rounded-lg transition-all duration-200 px-3 py-2 text-sm font-medium'
+                    >
+                      <Crown className='w-4 h-4 mr-2 flex-shrink-0' />
+                      <span className='truncate'>Admin Panel</span>
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+
+                <TabsContent value='account' className='mt-6'>
+                  <div className='space-y-6'>
+                    <div className='p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-400/30 rounded-2xl'>
+                      <div className='flex items-center gap-4 mb-4'>
+                        <div className='w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center'>
+                          <User className='w-6 h-6 text-blue-400' />
+                        </div>
+                        <div>
+                          <h4 className='text-white font-semibold text-lg'>
+                            Profile Information
+                          </h4>
+                          <p className='text-gray-300 text-sm'>
+                            Manage your profile details and security settings
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => (window.location.href = '/user-profile')}
+                        className='bg-blue-600 hover:bg-blue-700'
+                      >
+                        <User className='w-4 h-4 mr-2' />
+                        Manage Profile
+                      </Button>
+                    </div>
+
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                      <div className='p-6 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-2xl border border-gray-600/30'>
+                        <div className='flex items-center gap-3 mb-3'>
+                          <CheckCircle className='w-5 h-5 text-green-400' />
+                          <h5 className='text-white font-medium'>
+                            Account Status
+                          </h5>
+                        </div>
+                        <p className='text-gray-300 text-sm mb-2'>
+                          {hasAccess ? 'Premium Member' : 'Free Account'}
+                        </p>
+                        <p className='text-gray-400 text-xs'>
+                          Member since:{' '}
+                          {new Date(
+                            profile.createdAt || ''
+                          ).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      <div className='p-6 bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-2xl border border-gray-600/30'>
+                        <div className='flex items-center gap-3 mb-3'>
+                          <Shield className='w-5 h-5 text-purple-400' />
+                          <h5 className='text-white font-medium'>Security</h5>
+                        </div>
+                        <p className='text-gray-300 text-sm mb-2'>
+                          {profile.isAdmin
+                            ? 'Admin Account'
+                            : 'Standard Security'}
+                        </p>
+                        <p className='text-gray-400 text-xs'>
+                          Two-factor authentication available
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value='notifications' className='mt-6'>
+                  <NotificationSettings />
+                </TabsContent>
+
+                <TabsContent value='subscription' className='mt-6'>
+                  <SubscriptionManager />
+                </TabsContent>
+
+                {/* ⚡ ADMIN-ONLY PANEL: Complete admin management interface */}
+                {profile?.isAdmin && (
+                  <TabsContent value='admin' className='mt-6'>
+                    <div className='space-y-6'>
+                      {/* Admin Panel Header */}
+                      <div className='p-6 bg-gradient-to-br from-red-500/10 to-red-600/5 border border-red-400/30 rounded-2xl'>
+                        <div className='flex items-center gap-4 mb-4'>
+                          <div className='w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center'>
+                            <Crown className='w-6 h-6 text-red-400' />
+                          </div>
+                          <div>
+                            <h4 className='text-white font-semibold text-lg'>
+                              🚀 Administrative Control Panel
+                            </h4>
+                            <p className='text-gray-300 text-sm'>
+                              Complete platform management and user
+                              administration
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                          <div className='p-4 bg-red-500/10 border border-red-400/20 rounded-xl'>
+                            <div className='flex items-center gap-2 mb-2'>
+                              <Users className='w-4 h-4 text-red-400' />
+                              <span className='text-red-400 font-medium text-sm'>
+                                User Management
+                              </span>
+                            </div>
+                            <p className='text-gray-300 text-xs'>
+                              Full user control, subscriptions, and permissions
+                            </p>
+                          </div>
+
+                          <div className='p-4 bg-orange-500/10 border border-orange-400/20 rounded-xl'>
+                            <div className='flex items-center gap-2 mb-2'>
+                              <Settings className='w-4 h-4 text-orange-400' />
+                              <span className='text-orange-400 font-medium text-sm'>
+                                Server Management
+                              </span>
+                            </div>
+                            <p className='text-gray-300 text-xs'>
+                              Server synchronization and platform health
+                            </p>
+                          </div>
+
+                          <div className='p-4 bg-purple-500/10 border border-purple-400/20 rounded-xl'>
+                            <div className='flex items-center gap-2 mb-2'>
+                              <Shield className='w-4 h-4 text-purple-400' />
+                              <span className='text-purple-400 font-medium text-sm'>
+                                System Controls
+                              </span>
+                            </div>
+                            <p className='text-gray-300 text-xs'>
+                              Advanced system configuration and monitoring
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Admin Tools Row */}
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                        {/* Server Management Card */}
+                        <div className='p-6 bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-400/30 rounded-2xl'>
+                          <div className='flex items-center gap-3 mb-4'>
+                            <div className='w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center'>
+                              <Settings className='w-5 h-5 text-orange-400' />
+                            </div>
+                            <div>
+                              <h5 className='text-white font-semibold'>
+                                Server Management
+                              </h5>
+                              <p className='text-gray-300 text-sm'>
+                                Synchronize and manage servers
+                              </p>
+                            </div>
+                          </div>
+                          <div className='space-y-3'>
+                            <Button
+                              onClick={() =>
+                                (window.location.href =
+                                  '/api/servers/ensure-all-users')
+                              }
+                              className='w-full bg-orange-600 hover:bg-orange-700'
+                            >
+                              <Settings className='w-4 h-4 mr-2' />
+                              Sync All Servers
+                            </Button>
+                            <div className='p-3 bg-orange-500/10 border border-orange-400/20 rounded-lg'>
+                              <p className='text-orange-400 text-xs'>
+                                Ensures all users are properly synced to servers
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick Actions Card */}
+                        <div className='p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-400/30 rounded-2xl'>
+                          <div className='flex items-center gap-3 mb-4'>
+                            <div className='w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center'>
+                              <Shield className='w-5 h-5 text-purple-400' />
+                            </div>
+                            <div>
+                              <h5 className='text-white font-semibold'>
+                                System Health
+                              </h5>
+                              <p className='text-gray-300 text-sm'>
+                                Monitor platform status
+                              </p>
+                            </div>
+                          </div>
+                          <div className='space-y-3'>
+                            <div className='flex items-center justify-between p-3 bg-green-500/10 border border-green-400/20 rounded-lg'>
+                              <span className='text-green-400 text-sm font-medium'>
+                                Database
+                              </span>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-2 h-2 bg-green-400 rounded-full animate-pulse'></div>
+                                <span className='text-green-400 text-xs'>
+                                  Online
+                                </span>
+                              </div>
+                            </div>
+                            <div className='flex items-center justify-between p-3 bg-green-500/10 border border-green-400/20 rounded-lg'>
+                              <span className='text-green-400 text-sm font-medium'>
+                                Webhooks
+                              </span>
+                              <div className='flex items-center gap-2'>
+                                <div className='w-2 h-2 bg-green-400 rounded-full animate-pulse'></div>
+                                <span className='text-green-400 text-xs'>
+                                  Active
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* User Management Section */}
+                      <div className='p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-400/30 rounded-2xl'>
                         <UserManagement />
                       </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              )}
+                    </div>
+                  </TabsContent>
+                )}
+              </Tabs>
             </CardContent>
-          </Tabs>
-        </Card>
-      </main>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

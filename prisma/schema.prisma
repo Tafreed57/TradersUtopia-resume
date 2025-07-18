@@ -32,13 +32,13 @@ model Profile {
   stripeCustomerEmail            String?
   stripePriceId                  String?
   stripeSubscriptionId           String?
-  subscriptionAmount             Int?     // Amount in cents (actual amount customer pays after discount)
-  originalAmount                 Int?     // Original amount before discount in cents
+  subscriptionAmount             Int?
   subscriptionAutoRenew          Boolean?
   subscriptionCancelledAt        DateTime?
   subscriptionCreated            DateTime?
   subscriptionCurrency           String?
   subscriptionInterval           String?
+  originalAmount                 Int?
   channels                       Channel[]
   channelNotificationPreferences ChannelNotificationPreference[]
   members                        Member[]

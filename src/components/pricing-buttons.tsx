@@ -2,8 +2,9 @@
 
 import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
+import { useUnifiedAuth } from '@/contexts/unified-auth-provider';
 
 interface PricingButtonsProps {
   // ... existing code ...
@@ -18,34 +19,13 @@ export function PricingButtons(
   const { user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [subscriptionData, setSubscriptionData] = useState<any>(null);
-  const [checkingStatus, setCheckingStatus] = useState(true);
 
-  useEffect(() => {
-    async function checkSubscription() {
-      try {
-        const response = await fetch('/api/check-payment-status');
-        const data = await response.json();
-        setSubscriptionData(data);
-      } catch (error) {
-        console.error('Error checking subscription:', error);
-        // If check fails, assume no subscription
-        setSubscriptionData({
-          hasAccess: false,
-          status: 'ERROR',
-          canStartTrial: false,
-        });
-      } finally {
-        setCheckingStatus(false);
-      }
-    }
-
-    if (user) {
-      checkSubscription();
-    } else {
-      setCheckingStatus(false);
-    }
-  }, [user]);
+  // ✅ OPTIMIZED: Use unified auth instead of making separate API call
+  const {
+    hasAccess,
+    subscriptionData,
+    isLoading: authLoading,
+  } = useUnifiedAuth();
 
   const handleFreeClick = async () => {
     setLoading(true);
@@ -57,93 +37,62 @@ export function PricingButtons(
     }
   };
 
-  const handleSubscribeClick = async () => {
+  const handlePremiumClick = async () => {
     setLoading(true);
 
-    // If user has subscription, use smart server navigation
-    if (subscriptionData?.hasAccess) {
-      try {
-        const serverResponse = await fetch('/api/servers/ensure-default', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const serverResult = await serverResponse.json();
-
-        if (serverResult.success && serverResult.server) {
-          const server = serverResult.server;
-          const firstChannel = server.channels?.[0];
-
-          if (firstChannel) {
-            router.push(`/servers/${server.id}/channels/${firstChannel.id}`);
-          } else {
-            router.push(`/servers/${server.id}`);
-          }
-        } else {
-          // Fallback to dashboard if server lookup fails
-
+    try {
+      if (isSignedIn) {
+        // ✅ OPTIMIZED: Use cached auth data to determine redirect
+        if (hasAccess) {
           router.push('/dashboard');
+        } else {
+          router.push('/checkout');
         }
-      } catch (error) {
-        console.error('❌ [PRICING-BUTTONS] Server navigation error:', error);
-        router.push('/dashboard');
+      } else {
+        router.push('/sign-up');
       }
-      return;
+    } catch (error) {
+      console.error('Error in premium click:', error);
+      router.push('/sign-up');
+    } finally {
+      setLoading(false);
     }
-
-    // If user doesn't have subscription, go to payment verification page
-
-    router.push('/payment-verification');
   };
 
-  if (checkingStatus) {
-    return (
-      <div className='space-y-4'>
-        <Button
-          size='lg'
-          className='w-full bg-gray-600 text-white py-4 text-lg font-semibold rounded-full'
-          disabled
-        >
-          Checking status...
-        </Button>
-      </div>
-    );
-  }
+  // ✅ PERFORMANCE: Show loading state while auth data loads
+  const isLoadingState = loading || authLoading;
 
-  // User has active subscription
-  if (subscriptionData?.hasAccess) {
-    return (
-      <div className='space-y-4'>
-        <Button
-          size='lg'
-          onClick={handleSubscribeClick}
-          className='w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl'
-        >
-          Enter Traders Utopia
-        </Button>
-        <p className='text-green-400 text-sm text-center'>
-          ✅ You have access to Traders Utopia
-        </p>
-      </div>
-    );
-  }
-
-  // User doesn't have subscription - show subscribe button that goes to payment verification page
   return (
-    <div className='space-y-4'>
+    <div className='flex flex-col sm:flex-row gap-4 justify-center items-center w-full max-w-md mx-auto'>
       <Button
+        onClick={handleFreeClick}
+        disabled={isLoadingState}
+        variant='outline'
         size='lg'
-        onClick={handleSubscribeClick}
-        disabled={loading}
-        className='w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-xl'
+        className='w-full sm:w-auto bg-gray-800/50 border-gray-600 text-white hover:bg-gray-700 hover:border-gray-500 min-h-[48px] px-8'
       >
-        {loading ? 'Loading...' : 'Subscribe Now'}
+        {isLoadingState ? 'Loading...' : 'View Free Content'}
       </Button>
-      <p className='text-gray-400 text-sm text-center'>
-        Complete payment verification to access your subscription
-      </p>
+
+      <Button
+        onClick={handlePremiumClick}
+        disabled={isLoadingState}
+        size='lg'
+        className='w-full sm:w-auto bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold min-h-[48px] px-8'
+      >
+        {isLoadingState
+          ? 'Loading...'
+          : hasAccess
+            ? 'Access Dashboard'
+            : 'Get Premium Access'}
+      </Button>
+
+      {/* ✅ PERFORMANCE: Show optimization indicator */}
+      {!isLoadingState && (
+        <div className='text-xs text-gray-500 mt-2 text-center'>
+          ⚡ Optimized loading
+        </div>
+      )}
     </div>
   );
 }

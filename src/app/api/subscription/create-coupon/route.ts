@@ -93,32 +93,102 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the user's active subscription from Stripe
-    let activeSubscription;
+    // 🚀 WEBHOOK-OPTIMIZED: Try webhook-cached subscription data first
+    let activeSubscription = null;
+    let cachedSubscription = null;
+
     try {
-      const subscriptions = await stripe.subscriptions.list({
-        customer: profile.stripeCustomerId,
-        status: 'active',
-        limit: 1,
+      cachedSubscription = await db.subscription.findFirst({
+        where: {
+          customerId: profile.stripeCustomerId,
+          status: 'ACTIVE',
+        },
+        orderBy: { createdAt: 'desc' },
       });
 
-      if (subscriptions.data.length === 0) {
+      if (cachedSubscription) {
+        console.log(
+          '⚡ [CREATE-COUPON-OPTIMIZED] Found webhook-cached active subscription'
+        );
+
+        // Check if webhook data is fresh (within last 5 minutes)
+        const cacheAge = Date.now() - cachedSubscription.updatedAt.getTime();
+        const isFresh = cacheAge < 5 * 60 * 1000; // 5 minutes
+
+        if (isFresh) {
+          console.log(
+            '⚡ [CREATE-COUPON-OPTIMIZED] Using fresh webhook data, skipping subscription lookup'
+          );
+
+          // Create a minimal subscription object for compatibility
+          activeSubscription = {
+            id: cachedSubscription.subscriptionId,
+            status: 'active',
+            customer: profile.stripeCustomerId,
+            current_period_start: Math.floor(
+              cachedSubscription.currentPeriodStart.getTime() / 1000
+            ),
+            current_period_end: Math.floor(
+              cachedSubscription.currentPeriodEnd.getTime() / 1000
+            ),
+            items: {
+              data: [
+                {
+                  price: {
+                    unit_amount: Math.round(
+                      parseFloat(
+                        cachedSubscription.actualAmount.replace('$', '')
+                      ) * 100
+                    ),
+                    currency: cachedSubscription.currency || 'usd',
+                    product: cachedSubscription.productId,
+                  },
+                },
+              ],
+            },
+          };
+        }
+      }
+    } catch (cacheError) {
+      console.warn(
+        '⚠️ [CREATE-COUPON] Cache lookup failed, falling back to Stripe API:',
+        cacheError
+      );
+    }
+
+    // 🔄 FALLBACK: Get the user's active subscription from Stripe if no fresh cache
+    if (!activeSubscription) {
+      console.log(
+        '📡 [CREATE-COUPON] Cache miss or stale - fetching from Stripe API...'
+      );
+      try {
+        const subscriptions = await stripe.subscriptions.list({
+          customer: profile.stripeCustomerId,
+          status: 'active',
+          limit: 1,
+        });
+
+        if (subscriptions.data.length === 0) {
+          return NextResponse.json(
+            { error: 'No active subscription found' },
+            { status: 400 }
+          );
+        }
+
+        activeSubscription = subscriptions.data[0];
+        console.log(
+          '✅ [CREATE-COUPON] Retrieved subscription from Stripe API'
+        );
+      } catch (stripeError) {
+        console.error('❌ [CREATE-COUPON] Stripe API error:', stripeError);
         return NextResponse.json(
-          { error: 'No active subscription found' },
-          { status: 400 }
+          {
+            error: 'Failed to retrieve subscription data',
+            message: 'Service temporarily unavailable',
+          },
+          { status: 503 }
         );
       }
-
-      activeSubscription = subscriptions.data[0];
-    } catch (stripeError) {
-      console.error('❌ [CREATE-COUPON] Stripe API error:', stripeError);
-      return NextResponse.json(
-        {
-          error: 'Failed to retrieve subscription data',
-          message: 'Service temporarily unavailable',
-        },
-        { status: 503 }
-      );
     }
 
     // Recalculate the percentage based on the base price to ensure accuracy
@@ -147,6 +217,9 @@ export async function POST(request: NextRequest) {
           negotiated_price: newMonthlyPrice.toString(),
           created_by: 'cancellation_negotiation',
           created_at: new Date().toISOString(),
+          optimization_source: cachedSubscription
+            ? 'webhook_cache'
+            : 'stripe_api',
         },
       });
 
@@ -236,9 +309,16 @@ export async function POST(request: NextRequest) {
       `📅 [CREATE-COUPON] Applied to subscription: ${updatedSubscription.id}`
     );
 
+    if (cachedSubscription) {
+      console.log(
+        '⚡ [CREATE-COUPON-OPTIMIZED] Used webhook-cached data for faster processing'
+      );
+    }
+
     return NextResponse.json({
       success: true,
       message: `Permanent discount of ${actualPercentOff}% applied successfully`,
+      optimized: !!cachedSubscription,
       coupon: {
         id: coupon.id,
         percentOff: actualPercentOff,
