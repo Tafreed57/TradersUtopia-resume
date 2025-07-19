@@ -43,25 +43,6 @@ function getCacheKey(userId: string, productIds: string[]): string {
   return `${userId}:${productIds.sort().join(',')}`;
 }
 
-function getCachedAccess(
-  userId: string,
-  productIds: string[]
-): ProductAccessStatus | null {
-  const key = getCacheKey(userId, productIds);
-  const cached = accessCache.get(key);
-
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.status;
-  }
-
-  // Clean up expired cache entries
-  if (cached) {
-    accessCache.delete(key);
-  }
-
-  return null;
-}
-
 function setCachedAccess(
   userId: string,
   productIds: string[],

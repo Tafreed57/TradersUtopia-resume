@@ -9,13 +9,6 @@ export async function checkUserSubscription() {
   };
 }
 
-export async function startTrial(userId: string) {
-  // UI-only - just simulate success
-  const trialEnd = new Date();
-  trialEnd.setDate(trialEnd.getDate() + 14);
-  return trialEnd;
-}
-
 export async function activateSubscription(userId: string, paymentId: string) {
   // UI-only - just simulate success
   const subscriptionEnd = new Date();
