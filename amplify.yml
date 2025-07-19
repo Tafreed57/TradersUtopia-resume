@@ -23,7 +23,7 @@ frontend:
         - env | grep -e STRIPE_SECRET_KEY >> .env.production
         - env | grep -e CLERK_SECRET_KEY >> .env.production
         - env | grep -e STRIPE_WEBHOOK_SECRET >> .env.production
-        - env | grep -e STRIPE_CHECKOUT_URL >> .env.production
+        - env | grep -e NEXT_PUBLIC_STRIPE_CHECKOUT_URL >> .env.production
         - pnpm build
   artifacts:
     # For Next.js SSR apps, use .next directory

@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { AuthHeader } from '@/components/auth-header';
 
 export default function CheckoutPage() {
+  const stripeUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL!;
+  console.log('stripeUrl', stripeUrl);
   return (
     <div className='min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900'>
       {/* Header */}
@@ -44,9 +46,7 @@ export default function CheckoutPage() {
             If not, click the button below.
           </p>
           <Button
-            onClick={() =>
-              window.open(process.env.STRIPE_CHECKOUT_URL, '_blank')
-            }
+            onClick={() => window.open(stripeUrl, '_blank')}
             className='w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-semibold'
           >
             Go to Secure Checkout

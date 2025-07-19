@@ -17,13 +17,7 @@ import { GlobalMobileMenu } from '@/components/global-mobile-menu';
 import { NavigationButton } from '@/components/navigation-button';
 import { useLoading } from '@/contexts/loading-provider';
 import { EmailWarningModal } from '@/components/modals/email-warning-modal';
-import {
-  CheckCircle,
-  CreditCard,
-  Loader2,
-  ExternalLink,
-  Users,
-} from 'lucide-react';
+import { CheckCircle, CreditCard, Loader2, Users } from 'lucide-react';
 
 export default function PaymentVerificationPage() {
   const router = useRouter();
@@ -35,7 +29,7 @@ export default function PaymentVerificationPage() {
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [showEmailWarning, setShowEmailWarning] = useState(false);
 
-  const stripeUrl = process.env.STRIPE_CHECKOUT_URL!;
+  const stripeUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL!;
 
   const handlePaymentClick = () => {
     setShowEmailWarning(true);
