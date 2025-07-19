@@ -13,6 +13,7 @@ export const TRADING_ALERT_PRODUCTS = [
   'prod_QhRSRDcYmiwNPQ', // Premium Trading Alerts Product 5
   'prod_PjwDEddsi171yy', // Premium Trading Alerts Product 6
   'prod_PWrdZSGb1DPJR9', // Premium Trading Alerts Product 7
+  'prod_SWIyAf2tfVrJao', // Premium Trading Alerts Product 8
 ] as const;
 
 /**

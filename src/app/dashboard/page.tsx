@@ -91,7 +91,14 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchServersData = async () => {
       try {
-        // ✅ OPTIMIZED: Only fetch servers data (profile and access already loaded)
+        const response = await fetch('/api/verify-stripe-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const result = await response.json();
         const serversResponse = await fetch('/api/servers');
         if (serversResponse.ok) {
           const serversData = await serversResponse.json();

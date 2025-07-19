@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
     let hasActiveSubscription = false;
     let hasValidAccess = false;
     let subscriptionEnd: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    let stripeProductId: string | null = null;
     let stripeCustomerId: string | null = null;
     let accessReason = '';
     let dataSource = 'webhook-cache';
@@ -144,6 +145,8 @@ export async function POST(request: NextRequest) {
         if (customers.data.length > 0) {
           const customer = customers.data[0];
           stripeCustomerId = customer.id;
+          stripeProductId = customer.subscriptions?.data[0]?.items?.data[0]
+            ?.plan?.product as string;
 
           // ⚡ OPTIMIZATION: Check expanded subscription data (no additional API call)
           const expandedCustomer = customer as any;
@@ -245,6 +248,7 @@ export async function POST(request: NextRequest) {
           subscriptionStart: hasActiveSubscription ? new Date() : undefined,
           subscriptionEnd: hasActiveSubscription ? subscriptionEnd : undefined,
           stripeCustomerId: stripeCustomerId,
+          stripeProductId: stripeProductId,
         },
       });
       console.log(
@@ -262,6 +266,7 @@ export async function POST(request: NextRequest) {
           subscriptionStart: new Date(),
           subscriptionEnd: subscriptionEnd,
           stripeCustomerId: stripeCustomerId,
+          stripeProductId: stripeProductId,
           updatedAt: new Date(),
         },
       });

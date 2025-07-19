@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // ✅ UPDATED: Use client-safe product IDs as default
-    const allowedProductIds = body.allowedProductIds || TRADING_ALERT_PRODUCTS;
+    const allowedProductIds = TRADING_ALERT_PRODUCTS;
 
     const validatedData = validateInputSimple(productSubscriptionSchema, {
       allowedProductIds,
