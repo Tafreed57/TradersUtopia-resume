@@ -137,11 +137,12 @@ export async function GET(request: NextRequest) {
     );
 
     // ✅ FIXED: Determine subscription status based on data availability and expiry (same logic as product check)
+    // ✅ CIRCULAR DEPENDENCY FIX: Don't require subscriptionAmount for active status determination
     const hasActiveSubscription =
       profile.stripeProductId &&
       profile.subscriptionEnd &&
       new Date(profile.subscriptionEnd) > new Date() &&
-      profile.subscriptionAmount;
+      (profile.subscriptionStatus === 'ACTIVE' || profile.subscriptionAmount);
 
     const subscriptionStatus = hasActiveSubscription
       ? 'ACTIVE'
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Build subscription info from database (webhook-cached data)
-    const subscriptionInfo = {
+    let subscriptionInfo = {
       status: subscriptionStatus,
       productId: profile.stripeProductId,
       customerId: profile.stripeCustomerId,
@@ -176,6 +177,194 @@ export async function GET(request: NextRequest) {
       discountPercent: profile.discountPercent,
       discountName: profile.discountName,
     };
+
+    // ✅ BILLING FIX: If billing details are missing or outdated, fetch fresh from Stripe
+    const shouldFetchFreshData =
+      hasActiveSubscription &&
+      profile.stripeCustomerId &&
+      (!profile.stripeSubscriptionId ||
+        !profile.subscriptionAmount ||
+        profile.discountPercent === null);
+
+    conditionalLog.subscriptionDetails(
+      `🔍 [SUBSCRIPTION-DETAILS] Fresh data check:`,
+      {
+        shouldFetchFreshData,
+        hasActiveSubscription,
+        hasCustomerId: !!profile.stripeCustomerId,
+        hasSubscriptionId: !!profile.stripeSubscriptionId,
+        hasSubscriptionAmount: !!profile.subscriptionAmount,
+        hasDiscountPercent: profile.discountPercent !== null,
+      }
+    );
+
+    if (shouldFetchFreshData) {
+      conditionalLog.subscriptionDetails(
+        `🔄 [SUBSCRIPTION-DETAILS] Fetching fresh billing data from Stripe for accurate pricing`
+      );
+
+      try {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+        let stripeSubscription;
+
+        if (profile.stripeSubscriptionId) {
+          // We have the subscription ID, fetch it directly
+          conditionalLog.subscriptionDetails(
+            `🔍 [SUBSCRIPTION-DETAILS] Fetching subscription by ID: ${profile.stripeSubscriptionId}`
+          );
+          stripeSubscription = await stripe.subscriptions.retrieve(
+            profile.stripeSubscriptionId,
+            {
+              expand: ['discount.coupon', 'items.data.price'],
+            }
+          );
+        } else {
+          // We don't have subscription ID, find it via customer
+          conditionalLog.subscriptionDetails(
+            `🔍 [SUBSCRIPTION-DETAILS] No subscription ID in cache, searching by customer: ${profile.stripeCustomerId}`
+          );
+          const subscriptions = await stripe.subscriptions.list({
+            customer: profile.stripeCustomerId,
+            status: 'active',
+            limit: 1,
+            expand: ['data.discount.coupon', 'data.items.data.price'],
+          });
+
+          if (subscriptions.data.length > 0) {
+            stripeSubscription = subscriptions.data[0];
+            conditionalLog.subscriptionDetails(
+              `✅ [SUBSCRIPTION-DETAILS] Found active subscription: ${stripeSubscription.id}`
+            );
+          } else {
+            conditionalLog.subscriptionDetails(
+              `❌ [SUBSCRIPTION-DETAILS] No active subscription found for customer`
+            );
+            stripeSubscription = null;
+          }
+        }
+
+        if (stripeSubscription && stripeSubscription.status === 'active') {
+          const price = stripeSubscription.items.data[0]?.price;
+          const discount = stripeSubscription.discount;
+
+          // ✅ DEBUG: Log the raw subscription data to see what Stripe is returning
+          conditionalLog.subscriptionDetails(
+            `🔍 [SUBSCRIPTION-DETAILS] Raw Stripe subscription data:`,
+            {
+              id: stripeSubscription.id,
+              status: stripeSubscription.status,
+              hasDiscount: !!discount,
+              discountId: discount?.id,
+              discountCouponId: discount?.coupon?.id,
+              discountCouponPercent: discount?.coupon?.percent_off,
+              discountCouponAmountOff: discount?.coupon?.amount_off,
+              priceAmount: price?.unit_amount,
+              currency: price?.currency,
+            }
+          );
+
+          // Calculate billing amounts
+          const baseAmount = price?.unit_amount || 0;
+          let currentAmount = baseAmount;
+          let discountPercent = null;
+          let discountName = null;
+
+          if (discount && discount.coupon) {
+            conditionalLog.subscriptionDetails(
+              `✅ [SUBSCRIPTION-DETAILS] Discount found on subscription`
+            );
+            if (discount.coupon.percent_off) {
+              discountPercent = discount.coupon.percent_off;
+              currentAmount = Math.round(
+                baseAmount * (1 - discountPercent / 100)
+              );
+              discountName = discount.coupon.name || `${discountPercent}% off`;
+            } else if (discount.coupon.amount_off) {
+              const amountOff = discount.coupon.amount_off;
+              currentAmount = Math.max(0, baseAmount - amountOff);
+              discountPercent = Math.round((amountOff / baseAmount) * 100);
+              discountName =
+                discount.coupon.name || `$${(amountOff / 100).toFixed(2)} off`;
+            }
+          } else {
+            conditionalLog.subscriptionDetails(
+              `❌ [SUBSCRIPTION-DETAILS] No discount found on subscription - coupon may have been removed or expired`
+            );
+          }
+
+          // Update subscription info with fresh data
+          subscriptionInfo = {
+            ...subscriptionInfo,
+            stripeSubscriptionId: stripeSubscription.id, // Always include the subscription ID
+            subscriptionAmount: currentAmount, // ✅ FIXED: Store cents for component (database stores cents)
+            subscriptionCurrency: price?.currency || 'usd',
+            discountPercent,
+            discountName,
+            originalAmount: baseAmount, // ✅ FIXED: Store cents for component (database stores cents)
+            dataFreshness: 'stripe_fresh',
+          };
+
+          // ✅ DEBUG: Log what we're about to store
+          conditionalLog.subscriptionDetails(
+            `💾 [SUBSCRIPTION-DETAILS] Values being stored in database (CENTS):`,
+            {
+              subscriptionAmountCents: currentAmount, // Store cents in DB
+              originalAmountCents: baseAmount, // Store cents in DB
+              subscriptionAmountDollars: currentAmount / 100, // For component display
+              originalAmountDollars: baseAmount / 100, // For component display
+              discountPercent,
+              discountName,
+            }
+          );
+
+          conditionalLog.subscriptionDetails(
+            `✅ [SUBSCRIPTION-DETAILS] Fresh billing data retrieved:`,
+            {
+              subscriptionId: stripeSubscription.id,
+              baseAmountCents: baseAmount,
+              currentAmountCents: currentAmount,
+              originalAmountDollars: baseAmount / 100,
+              currentAmountDollars: currentAmount / 100,
+              discountPercent,
+              discountName,
+              // Debug: What will be stored in database
+              willStoreSubscriptionAmount: currentAmount / 100,
+              willStoreOriginalAmount: baseAmount / 100,
+            }
+          );
+
+          // ✅ CACHE UPDATE: Always update database with fresh data
+          try {
+            await db.profile.update({
+              where: { id: profile.id },
+              data: {
+                stripeSubscriptionId: stripeSubscription.id,
+                subscriptionAmount: currentAmount, // ✅ FIXED: Store cents (integer) not dollars (decimal)
+                discountPercent,
+                discountName,
+                originalAmount: baseAmount, // ✅ FIXED: Store cents (integer) not dollars (decimal)
+                lastWebhookUpdate: new Date(),
+              },
+            });
+            conditionalLog.subscriptionDetails(
+              `🔄 [SUBSCRIPTION-DETAILS] Updated database cache with fresh billing data`
+            );
+          } catch (updateError) {
+            conditionalLog.subscriptionDetails(
+              `⚠️ [SUBSCRIPTION-DETAILS] Failed to update database cache:`,
+              updateError
+            );
+          }
+        }
+      } catch (stripeError) {
+        conditionalLog.subscriptionDetails(
+          `⚠️ [SUBSCRIPTION-DETAILS] Failed to fetch fresh Stripe data, using cached:`,
+          stripeError
+        );
+        // Continue with cached data if Stripe fetch fails
+      }
+    }
 
     let responseData: any = {
       success: true,

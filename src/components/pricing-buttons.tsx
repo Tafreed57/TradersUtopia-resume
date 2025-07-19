@@ -46,7 +46,7 @@ export function PricingButtons(
         if (hasAccess) {
           router.push('/dashboard');
         } else {
-          router.push('/checkout');
+          router.push('/payment-verification');
         }
       } else {
         router.push('/sign-up');

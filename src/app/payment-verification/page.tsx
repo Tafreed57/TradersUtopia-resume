@@ -29,7 +29,7 @@ export default function PaymentVerificationPage() {
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [showEmailWarning, setShowEmailWarning] = useState(false);
 
-  const stripeUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL!;
+  const stripeUrl = 'https://buy.stripe.com/3cI5kC46X5Bmbft2Kc4Ja0k';
 
   const handlePaymentClick = () => {
     setShowEmailWarning(true);

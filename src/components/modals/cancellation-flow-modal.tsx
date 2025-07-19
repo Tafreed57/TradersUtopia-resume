@@ -190,6 +190,87 @@ export function CancellationFlowModal({
     }
   }, [isOpen, subscription]);
 
+  // ✅ NEW: Fetch fresh subscription data directly from Stripe API
+  const fetchFreshSubscriptionData = async () => {
+    try {
+      console.log(
+        '🔄 [FRESH-STRIPE] Fetching subscription data directly from Stripe API...'
+      );
+
+      const response = await makeSecureRequest(
+        '/api/subscription/stripe-direct',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_subscription_data' }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API response not ok: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.subscription) {
+        console.log(
+          '✅ [FRESH-STRIPE] Got fresh subscription data:',
+          data.subscription
+        );
+        return data.subscription;
+      } else {
+        throw new Error(data.error || 'No subscription data returned');
+      }
+    } catch (error) {
+      console.error(
+        '❌ [FRESH-STRIPE] Failed to fetch subscription data:',
+        error
+      );
+      return null;
+    }
+  };
+
+  // ✅ ENHANCED: Create stripe data with fresh API calls as fallback
+  const getStripeData = async () => {
+    // First try to use existing subscription data if complete
+    if (subscription?.stripe?.amount && subscription?.stripe?.id) {
+      console.log('✅ Using existing complete stripe data');
+      return subscription.stripe;
+    }
+
+    // If subscription data is incomplete, fetch fresh data from Stripe
+    console.log(
+      '⚠️ Subscription data incomplete, fetching fresh data from Stripe...'
+    );
+    const freshData = await fetchFreshSubscriptionData();
+
+    if (freshData) {
+      return {
+        id: freshData.id,
+        amount: freshData.amount,
+        originalAmount: freshData.originalAmount || freshData.amount,
+        currency: freshData.currency || 'usd',
+        interval: freshData.interval || 'month',
+        customerId: freshData.customerId,
+      };
+    }
+
+    // Final fallback - try to construct from available data
+    if (subscription?.status === 'ACTIVE') {
+      console.log('⚠️ Using fallback pricing - will use default $149.99');
+      return {
+        id: subscription.stripeSubscriptionId || 'unknown',
+        amount: 14999, // Default to $149.99 if no amount available
+        originalAmount: 14999,
+        currency: 'usd',
+        interval: 'month',
+        customerId: subscription.customerId || subscription.customer?.id,
+      };
+    }
+
+    return null;
+  };
+
   // Reset all state when modal closes
   const resetState = () => {
     setStep('reason');
@@ -277,17 +358,24 @@ export function CancellationFlowModal({
     setShowOfferConfirmation(false);
 
     try {
-      // ✅ FIXED: Handle both new webhook data and legacy subscription data
-      const stripeData = subscription?.stripe;
+      // ✅ NEW: Use direct Stripe API calls instead of webhook cache
+      if (!subscription || subscription.status !== 'ACTIVE') {
+        showToast.error('Error', 'No active subscription found');
+        return;
+      }
+
+      console.log('🔄 [CONFIRM-OFFER] Fetching fresh subscription data...');
+      const stripeData = await getStripeData();
 
       if (!stripeData) {
         showToast.error(
           'Error',
-          'Subscription data not available. Please refresh the page and try again.'
+          'Unable to retrieve subscription data from Stripe. Please try again.'
         );
         return;
       }
 
+      console.log('✅ [CONFIRM-OFFER] Got stripe data:', stripeData);
       const currentDiscountedPrice = stripeData.amount / 100;
 
       console.log('💰 Applying discount:', {
@@ -309,8 +397,11 @@ export function CancellationFlowModal({
             newMonthlyPrice: offerDetails.offerPrice,
             currentPrice: currentDiscountedPrice,
             originalPrice: offerDetails.originalPrice,
-            // ✅ FIXED: Handle both new and legacy data formats
-            customerId: subscription.customer?.id || subscription.customerId,
+            // ✅ NEW: Use fresh Stripe data identifiers
+            customerId:
+              stripeData.customerId ||
+              subscription?.customer?.id ||
+              subscription?.customerId,
             subscriptionId: stripeData.id,
           }),
         }
@@ -389,20 +480,28 @@ export function CancellationFlowModal({
       subscription,
     });
 
-    // ✅ FIXED: Handle both new webhook data and legacy subscription data
-    const stripeData = subscription?.stripe;
-
-    if (!stripeData) {
-      showToast.error(
-        'Error',
-        'Subscription data not available. Please refresh the page and try again.'
-      );
+    // ✅ NEW: Use direct Stripe API calls instead of webhook cache
+    if (!subscription || subscription.status !== 'ACTIVE') {
+      showToast.error('Error', 'No active subscription found');
       return;
     }
 
     setIsLoading(true);
 
     try {
+      console.log('🔄 [ACCEPT-OFFER] Fetching fresh subscription data...');
+      const stripeData = await getStripeData();
+
+      if (!stripeData) {
+        showToast.error(
+          'Error',
+          'Unable to retrieve subscription data from Stripe. Please try again.'
+        );
+        return;
+      }
+
+      console.log('✅ [ACCEPT-OFFER] Got stripe data:', stripeData);
+
       // Use 150 as the original price since that's our actual service price
       const originalPrice = 150;
       const currentDiscountedPrice = stripeData.amount / 100;
@@ -432,8 +531,11 @@ export function CancellationFlowModal({
             newMonthlyPrice: finalOfferPrice,
             currentPrice: currentDiscountedPrice,
             originalPrice: originalPrice,
-            // ✅ FIXED: Handle both new and legacy data formats
-            customerId: subscription.customer?.id || subscription.customerId,
+            // ✅ NEW: Use fresh Stripe data identifiers
+            customerId:
+              stripeData.customerId ||
+              subscription?.customer?.id ||
+              subscription?.customerId,
             subscriptionId: stripeData.id,
           }),
         }

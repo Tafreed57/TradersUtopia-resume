@@ -37,6 +37,7 @@ interface SubscriptionDetails {
   // Additional fields from database
   stripeSubscriptionId?: string;
   subscriptionAmount?: number;
+  originalAmount?: number;
   subscriptionCurrency?: string;
   subscriptionInterval?: string;
   stripePriceId?: string;
@@ -139,23 +140,114 @@ export function SubscriptionManager() {
   const createAndApplyCoupon = async (newPrice: number) => {
     setIsApplyingCoupon(true);
     try {
-      // ✅ FIXED: Handle both new webhook data and legacy subscription data
-      const stripeData =
-        subscription?.stripe ||
-        (subscription?.status === 'ACTIVE'
-          ? {
-              amount: subscription.subscriptionAmount || 14999,
-              originalAmount: subscription.subscriptionAmount || 14999,
-            }
-          : null);
+      // ✅ ENHANCED: First check if we have sufficient subscription data
+      if (!subscription || subscription.status !== 'ACTIVE') {
+        showToast.error('Error', 'No active subscription found');
+        return false;
+      }
+
+      // ✅ ENHANCED: Check for required subscription identifiers
+      const customerId = subscription?.customer?.id || subscription?.customerId;
+      const subscriptionId =
+        subscription?.stripe?.id || subscription?.stripeSubscriptionId;
+
+      if (!customerId && !subscriptionId) {
+        console.error('❌ Missing subscription identifiers:', {
+          customerId,
+          subscriptionId,
+          subscription,
+        });
+
+        // Try to sync data automatically first
+        showToast.info('🔄 Syncing', 'Refreshing subscription data...');
+
+        try {
+          await refreshAndSync();
+          showToast.success(
+            '✅ Synced',
+            'Please try applying the discount again.'
+          );
+        } catch (syncError) {
+          console.error('❌ Sync failed:', syncError);
+          showToast.error(
+            'Error',
+            'Subscription data incomplete. Please refresh the page and try again.'
+          );
+        }
+
+        return false;
+      }
+
+      // ✅ NEW: Fetch fresh subscription data directly from Stripe API
+      let stripeData = null;
+
+      try {
+        console.log(
+          '🔄 [COUPON-MANAGER] Fetching fresh subscription data from Stripe...'
+        );
+
+        const response = await makeSecureRequest(
+          '/api/subscription/stripe-direct',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_subscription_data' }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.subscription) {
+            stripeData = {
+              amount: data.subscription.amount,
+              originalAmount: data.subscription.originalAmount,
+              id: data.subscription.id,
+              customerId: data.subscription.customerId,
+            };
+            console.log(
+              '✅ [COUPON-MANAGER] Got fresh stripe data:',
+              stripeData
+            );
+          } else {
+            throw new Error(data.error || 'No subscription data returned');
+          }
+        } else {
+          throw new Error(`API response not ok: ${response.status}`);
+        }
+      } catch (apiError) {
+        console.error(
+          '❌ [COUPON-MANAGER] Failed to fetch fresh data:',
+          apiError
+        );
+
+        // Fallback to existing subscription data if API fails
+        if (subscription?.stripe?.amount) {
+          console.log(
+            '⚠️ [COUPON-MANAGER] Using existing subscription data as fallback'
+          );
+          stripeData = subscription.stripe;
+        } else {
+          showToast.error(
+            'Error',
+            'Unable to retrieve current subscription pricing. Please refresh and try again.'
+          );
+          return false;
+        }
+      }
+
+      if (!stripeData || !stripeData.amount) {
+        showToast.error(
+          'Error',
+          'Unable to retrieve subscription pricing data'
+        );
+        return false;
+      }
 
       // Get the actual current discounted price the user is paying
-      const currentDiscountedPrice = stripeData?.amount
-        ? stripeData.amount / 100
-        : 0;
+      const currentDiscountedPrice = stripeData.amount / 100;
 
       // Get the original price (before any discounts)
-      const originalPrice = stripeData?.originalAmount
+      const originalPrice = stripeData.originalAmount
         ? stripeData.originalAmount / 100
         : currentDiscountedPrice;
 
@@ -163,8 +255,22 @@ export function SubscriptionManager() {
         `🔍 Price Analysis: Original: $${originalPrice}, Current: $${currentDiscountedPrice}, Target: $${newPrice}`
       );
 
+      // ✅ ENHANCED: Better price validation
+      if (originalPrice <= 0 || currentDiscountedPrice <= 0) {
+        showToast.error('Error', 'Invalid pricing data detected');
+        return false;
+      }
+
       if (newPrice >= currentDiscountedPrice) {
-        showToast.error('Error', 'New price must be lower than current price');
+        showToast.error(
+          'Error',
+          'New price must be lower than your current price'
+        );
+        return false;
+      }
+
+      if (newPrice <= 0) {
+        showToast.error('Error', 'Price must be greater than $0');
         return false;
       }
 
@@ -190,10 +296,8 @@ export function SubscriptionManager() {
             newMonthlyPrice: newPrice,
             currentPrice: currentDiscountedPrice,
             originalPrice: originalPrice,
-            // ✅ FIXED: Handle both new and legacy data formats
-            customerId: subscription?.customer?.id || subscription?.customerId,
-            subscriptionId:
-              subscription?.stripe?.id || subscription?.stripeSubscriptionId,
+            customerId: stripeData.customerId || customerId,
+            subscriptionId: stripeData.id || subscriptionId,
           }),
         }
       );
@@ -223,14 +327,13 @@ export function SubscriptionManager() {
   const statusConfig = useMemo(() => {
     if (!subscription || !subscription.status) {
       return {
-        bgColor: 'bg-green-100 dark:bg-green-900/30',
-        textColor: 'text-green-600',
-        textColorCls: 'text-green-600 dark:text-green-400',
-        title: 'Active',
-        description: (date: string) =>
-          `Your subscription is active until ${date}`,
+        bgColor: 'bg-gray-100 dark:bg-gray-700/30',
+        textColor: 'text-gray-600',
+        textColorCls: 'text-gray-600 dark:text-gray-400',
+        title: 'No Subscription',
+        description: () => 'You do not have an active subscription',
         Icon: () => (
-          <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
+          <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-500 flex items-center justify-center'>
             <svg
               className='w-4 h-4 sm:w-5 sm:h-5 text-white'
               fill='none'
@@ -241,7 +344,7 @@ export function SubscriptionManager() {
                 strokeLinecap='round'
                 strokeLinejoin='round'
                 strokeWidth={2}
-                d='M5 13l4 4L19 7'
+                d='M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636'
               />
             </svg>
           </div>
@@ -334,16 +437,15 @@ export function SubscriptionManager() {
             </div>
           ),
         };
-      default:
+      case 'free':
         return {
-          bgColor: 'bg-gray-100 dark:bg-gray-700/30',
-          textColor: 'text-gray-600',
-          textColorCls: 'text-gray-600 dark:text-gray-400',
-          title: 'Active',
-          description: (date: string) =>
-            `Your subscription is active until ${date}`,
+          bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+          textColor: 'text-blue-600',
+          textColorCls: 'text-blue-600 dark:text-blue-400',
+          title: 'Free Account',
+          description: () => 'You have access to free content only',
           Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-500 flex items-center justify-center'>
               <svg
                 className='w-4 h-4 sm:w-5 sm:h-5 text-white'
                 fill='none'
@@ -354,7 +456,32 @@ export function SubscriptionManager() {
                   strokeLinecap='round'
                   strokeLinejoin='round'
                   strokeWidth={2}
-                  d='M5 13l4 4L19 7'
+                  d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
+                />
+              </svg>
+            </div>
+          ),
+        };
+      default:
+        return {
+          bgColor: 'bg-gray-100 dark:bg-gray-700/30',
+          textColor: 'text-gray-600',
+          textColorCls: 'text-gray-600 dark:text-gray-400',
+          title: 'Unknown Status',
+          description: () => 'Unable to determine subscription status',
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-500 flex items-center justify-center'>
+              <svg
+                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
                 />
               </svg>
             </div>
@@ -389,8 +516,16 @@ export function SubscriptionManager() {
         canceledAt: null,
         autoRenew: true,
         priceId: subscription.stripePriceId || 'legacy_price',
-        amount: subscription.subscriptionAmount || 14999,
-        originalAmount: subscription.subscriptionAmount || 14999,
+        amount: subscription.subscriptionAmount
+          ? // ✅ FIXED: Database stores cents, use directly
+            subscription.subscriptionAmount
+          : 14999,
+        originalAmount: subscription.originalAmount
+          ? // ✅ FIXED: Database stores cents, use directly
+            subscription.originalAmount
+          : subscription.subscriptionAmount
+            ? subscription.subscriptionAmount
+            : 14999,
         currency: subscription.subscriptionCurrency || 'usd',
         interval: subscription.subscriptionInterval || 'month',
         trialStart: null,
@@ -526,6 +661,23 @@ export function SubscriptionManager() {
       const result = await response.json();
       if (result.success) {
         console.log('📊 Subscription details received:', result.subscription);
+        console.log('💰 [BILLING-DEBUG] Amount data:', {
+          subscriptionAmount: result.subscription.subscriptionAmount,
+          originalAmount: result.subscription.originalAmount,
+          discountPercent: result.subscription.discountPercent,
+          discountName: result.subscription.discountName,
+        });
+
+        // ✅ DEBUG: Log the stripeData calculation
+        const calculatedAmount =
+          result.subscription.subscriptionAmount || 14999;
+        console.log('💰 [STRIPE-DATA-DEBUG] Amount conversion FINAL FIX:', {
+          rawSubscriptionAmountCents: result.subscription.subscriptionAmount,
+          usedAmountCents: calculatedAmount,
+          displayAmount: (calculatedAmount / 100).toFixed(2),
+          conversionMethod: 'Database stores cents, use directly for display',
+        });
+
         setSubscription(result.subscription);
       } else {
         throw new Error(result.message || 'Failed to get subscription data');
@@ -545,6 +697,25 @@ export function SubscriptionManager() {
       fetchSubscriptionDetails();
     }
   }, [isLoaded, userId, fetchSubscriptionDetails]);
+
+  // ✅ AUTO-REFRESH: Automatically refresh when subscription data is incomplete
+  useEffect(() => {
+    if (
+      subscription &&
+      subscription.status === 'ACTIVE' &&
+      !subscription.subscriptionAmount &&
+      !isLoading
+    ) {
+      console.log(
+        '🔄 [BILLING-AUTO-REFRESH] Incomplete subscription data detected, auto-refreshing...'
+      );
+      // Small delay to avoid rapid-fire requests
+      const timer = setTimeout(() => {
+        fetchSubscriptionDetails();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [subscription, isLoading, fetchSubscriptionDetails]);
 
   const refreshAndSync = async () => {
     if (isLoading) return; // Prevent multiple simultaneous refreshes
@@ -1149,12 +1320,23 @@ export function SubscriptionManager() {
               </div>
             ) : (
               <div className='text-center py-6 sm:py-8'>
-                <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4'>
-                  <CreditCard className='w-6 h-6 sm:w-8 sm:h-8 text-gray-400' />
+                <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+                  <Crown className='w-6 h-6 sm:w-8 sm:h-8 text-white' />
                 </div>
-                <p className='text-gray-500 dark:text-gray-400 font-medium text-sm sm:text-base'>
-                  No active subscription found
+                <p className='text-gray-900 dark:text-gray-100 font-bold text-lg sm:text-xl mb-2'>
+                  Upgrade to Premium
                 </p>
+                <p className='text-gray-500 dark:text-gray-400 text-sm sm:text-base mb-6'>
+                  Get access to exclusive trading alerts, live classes, and
+                  premium content
+                </p>
+                <Button
+                  onClick={() => (window.location.href = '/pricing')}
+                  className='bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105'
+                >
+                  <Crown className='w-4 h-4 mr-2' />
+                  View Pricing Plans
+                </Button>
               </div>
             )}
           </div>

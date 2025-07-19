@@ -62,7 +62,25 @@ export async function POST(request: NextRequest) {
       currentPrice,
       originalPrice,
       subscriptionId,
+      customerId,
     } = validatedData;
+
+    // ✅ ENHANCED: Ensure we have at least one identifier to work with
+    if (!subscriptionId && !customerId) {
+      console.error('❌ [CREATE-COUPON] Missing subscription identifiers:', {
+        subscriptionId,
+        customerId,
+        body,
+      });
+      return NextResponse.json(
+        {
+          error: 'Insufficient subscription data',
+          message:
+            'Unable to identify subscription. Please refresh and try again.',
+        },
+        { status: 400 }
+      );
+    }
 
     // Use originalPrice if provided, otherwise fallback to currentPrice
     const basePrice = originalPrice || currentPrice;
@@ -110,12 +128,15 @@ export async function POST(request: NextRequest) {
         console.log(
           '⚡ [CREATE-COUPON-OPTIMIZED] Found webhook-cached active subscription'
         );
+        console.log(
+          `🔍 [CREATE-COUPON-DEBUG] Cached subscription ID: ${cachedSubscription.stripeSubscriptionId}`
+        );
 
         // Check if webhook data is fresh (within last 5 minutes)
         const cacheAge = Date.now() - cachedSubscription.updatedAt.getTime();
         const isFresh = cacheAge < 5 * 60 * 1000; // 5 minutes
 
-        if (isFresh) {
+        if (isFresh && cachedSubscription.stripeSubscriptionId) {
           console.log(
             '⚡ [CREATE-COUPON-OPTIMIZED] Using fresh webhook data, skipping subscription lookup'
           );
@@ -147,6 +168,14 @@ export async function POST(request: NextRequest) {
               ],
             },
           };
+        } else if (!cachedSubscription.stripeSubscriptionId) {
+          console.log(
+            '⚠️ [CREATE-COUPON-DEBUG] Cached subscription missing ID, falling back to Stripe API'
+          );
+        } else {
+          console.log(
+            '⚠️ [CREATE-COUPON-DEBUG] Cached data is stale, falling back to Stripe API'
+          );
         }
       }
     } catch (cacheError) {
@@ -209,6 +238,8 @@ export async function POST(request: NextRequest) {
       coupon = await stripe.coupons.create({
         percent_off: actualPercentOff,
         duration: 'forever', // Permanent discount as requested
+        currency: 'usd', // ✅ Explicitly set currency to match subscription
+        name: `${actualPercentOff}% Permanent Discount`, // ✅ Add descriptive name
         metadata: {
           customer_id: profile.stripeCustomerId,
           user_id: user.id,
@@ -221,6 +252,16 @@ export async function POST(request: NextRequest) {
             ? 'webhook_cache'
             : 'stripe_api',
         },
+      });
+
+      // ✅ DEBUG: Log coupon details
+      console.log(`🏷️ [CREATE-COUPON] Coupon details:`, {
+        id: coupon.id,
+        percent_off: coupon.percent_off,
+        duration: coupon.duration,
+        currency: coupon.currency,
+        valid: coupon.valid,
+        name: coupon.name,
       });
 
       console.log(
@@ -240,17 +281,129 @@ export async function POST(request: NextRequest) {
     // Apply the coupon to the customer's subscription
     let updatedSubscription;
     try {
-      updatedSubscription = await stripe.subscriptions.update(
-        activeSubscription.id || '',
-        {
-          discounts: [{ coupon: coupon.id }],
-          proration_behavior: 'create_prorations', // Handle mid-cycle changes
-        }
+      // ✅ FIXED: Ensure we have a valid subscription ID
+      if (!activeSubscription.id) {
+        throw new Error(
+          'No valid subscription ID found for coupon application'
+        );
+      }
+
+      console.log(
+        `🔧 [CREATE-COUPON] Applying coupon to subscription: ${activeSubscription.id}`
       );
+
+      // ✅ STRIPE API FIX: Use correct coupon application methods
+      try {
+        // Method 1: Direct subscription discount (most reliable for existing subscriptions)
+        console.log(
+          `🔧 [CREATE-COUPON] Applying coupon directly to subscription...`
+        );
+
+        updatedSubscription = await stripe.subscriptions.update(
+          activeSubscription.id,
+          {
+            discounts: [{ coupon: coupon.id }],
+            proration_behavior: 'create_prorations', // ✅ Standard proration handling
+          }
+        );
+
+        console.log(
+          `✅ [CREATE-COUPON] Direct subscription coupon application successful`
+        );
+      } catch (subscriptionError) {
+        console.log(
+          `⚠️ [CREATE-COUPON] Direct subscription coupon failed, trying customer-level:`,
+          subscriptionError
+        );
+
+        // Method 2: Customer-level discount with correct Stripe API format
+        try {
+          await stripe.customers.update(profile.stripeCustomerId, {
+            discount: {
+              coupon: coupon.id,
+            },
+          });
+
+          console.log(
+            `🔍 [CREATE-COUPON] Applied coupon to customer: ${profile.stripeCustomerId}`
+          );
+
+          // Retrieve updated subscription to reflect customer discount
+          updatedSubscription = await stripe.subscriptions.retrieve(
+            activeSubscription.id,
+            { expand: ['discount.coupon'] }
+          );
+        } catch (customerError) {
+          console.error(
+            `❌ [CREATE-COUPON] Both subscription and customer coupon methods failed:`,
+            {
+              subscriptionError: subscriptionError?.message,
+              customerError: customerError?.message,
+            }
+          );
+          throw customerError;
+        }
+      }
 
       console.log(
         `✅ [CREATE-COUPON] Coupon applied to subscription: ${activeSubscription.id}`
       );
+
+      // ✅ DEBUG: Verify the coupon was actually applied
+      console.log(`🔍 [CREATE-COUPON] Updated subscription discount info:`, {
+        hasDiscount: !!updatedSubscription.discount,
+        discountId: updatedSubscription.discount?.id,
+        couponId: updatedSubscription.discount?.coupon?.id,
+        couponPercentOff: updatedSubscription.discount?.coupon?.percent_off,
+        couponValid: updatedSubscription.discount?.coupon?.valid,
+        subscriptionStatus: updatedSubscription.status,
+      });
+
+      // ✅ VERIFICATION: Wait a moment and verify discount persists
+      console.log(
+        `🔍 [CREATE-COUPON] Waiting 2 seconds to verify discount persistence...`
+      );
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const verificationSubscription = await stripe.subscriptions.retrieve(
+        activeSubscription.id,
+        { expand: ['discount.coupon'] }
+      );
+
+      console.log(`🔍 [CREATE-COUPON] Verification check:`, {
+        hasDiscount: !!verificationSubscription.discount,
+        discountId: verificationSubscription.discount?.id,
+        couponId: verificationSubscription.discount?.coupon?.id,
+        couponPercentOff:
+          verificationSubscription.discount?.coupon?.percent_off,
+        isPersistent:
+          !!verificationSubscription.discount &&
+          verificationSubscription.discount.coupon?.id === coupon.id,
+      });
+
+      if (
+        !verificationSubscription.discount ||
+        verificationSubscription.discount.coupon?.id !== coupon.id
+      ) {
+        // ✅ ENHANCED ERROR: Provide detailed debugging info
+        const errorDetails = {
+          expectedCouponId: coupon.id,
+          actualCouponId: verificationSubscription.discount?.coupon?.id,
+          hasAnyDiscount: !!verificationSubscription.discount,
+          subscriptionStatus: verificationSubscription.status,
+          subscriptionId: verificationSubscription.id,
+          customerId: verificationSubscription.customer,
+        };
+
+        console.error(
+          `❌ [CREATE-COUPON] Coupon verification failed:`,
+          errorDetails
+        );
+
+        throw new Error(
+          `Discount verification failed. Expected coupon ${coupon.id} but found ${verificationSubscription.discount?.coupon?.id || 'none'}. Details: ${JSON.stringify(errorDetails)}`
+        );
+      }
     } catch (stripeError) {
       console.error(
         '❌ [CREATE-COUPON] Failed to apply coupon to subscription:',
