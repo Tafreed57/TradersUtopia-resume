@@ -36,20 +36,20 @@ export async function GET(
 
     let messages: BaseMessage[] = [];
 
-    if (cursor) {
-      messages = await sql<BaseMessage[]>`
-        SELECT * FROM ${sql(tableName)}
-        WHERE id < ${cursor}
-        ORDER BY id DESC
-        LIMIT ${MESSAGES_BATCH}
-      `;
-    } else {
-      messages = await sql<BaseMessage[]>`
-        SELECT * FROM ${sql(tableName)}
-        ORDER BY id DESC
-        LIMIT ${MESSAGES_BATCH}
-      `;
-    }
+    // if (cursor) {
+    //   messages = await sql<BaseMessage[]>`
+    //     SELECT * FROM ${sql(tableName)}
+    //     WHERE id < ${cursor}
+    //     ORDER BY id DESC
+    //     LIMIT ${MESSAGES_BATCH}
+    //   `;
+    // } else {
+    //   messages = await sql<BaseMessage[]>`
+    //     SELECT * FROM ${sql(tableName)}
+    //     ORDER BY id DESC
+    //     LIMIT ${MESSAGES_BATCH}
+    //   `;
+    // }
 
     const botProfile: Profile = {
       id: `bot-profile-${channelName}`,
