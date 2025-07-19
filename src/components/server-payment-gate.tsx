@@ -154,10 +154,7 @@ export const ServerPaymentGate = ({ children }: ServerPaymentGateProps) => {
                 size='lg'
                 className='flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
                 onClick={() =>
-                  window.open(
-                    'https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01',
-                    '_blank'
-                  )
+                  window.open(process.env.STRIPE_CHECKOUT_URL, '_blank')
                 }
               >
                 Upgrade to Premium

@@ -45,10 +45,7 @@ export default function CheckoutPage() {
           </p>
           <Button
             onClick={() =>
-              window.open(
-                'https://buy.stripe.com/test_28E6oG8nd5Bm3N1esU4Ja01',
-                '_blank'
-              )
+              window.open(process.env.STRIPE_CHECKOUT_URL, '_blank')
             }
             className='w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-semibold'
           >
