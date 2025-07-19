@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { useOptimizedAuth } from '@/hooks/use-optimized-auth';
 
 export default function SubscriptionStatusPage() {
   const [envStatus, setEnvStatus] = useState<any>(null);
@@ -17,8 +18,16 @@ export default function SubscriptionStatusPage() {
   const [emailDebug, setEmailDebug] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
+  const [forceSyncing, setForceSyncing] = useState(false);
   const [debugLoading, setDebugLoading] = useState(false);
   const [emailDebugLoading, setEmailDebugLoading] = useState(false);
+
+  // ⚡ NEW: Optimized Authentication Hook
+  const optimizedAuth = useOptimizedAuth({
+    enableAutoCheck: true,
+    checkOnMount: true,
+    enableLogging: true,
+  });
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -64,6 +73,33 @@ export default function SubscriptionStatusPage() {
       alert('❌ Error verifying payment with Stripe');
     } finally {
       setActivating(false);
+    }
+  };
+
+  const forceSync = async () => {
+    setForceSyncing(true);
+    try {
+      const response = await fetch('/api/subscription/force-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        alert(`✅ ${result.message}`);
+        // Refresh the page to show updated status
+        window.location.reload();
+      } else {
+        alert(`❌ ${result.error || result.message || 'Force sync failed'}`);
+      }
+    } catch (error) {
+      console.error('Error force syncing:', error);
+      alert('❌ Error force syncing subscription');
+    } finally {
+      setForceSyncing(false);
     }
   };
 
@@ -157,6 +193,111 @@ export default function SubscriptionStatusPage() {
               </CardContent>
             </Card>
 
+            {/* ⚡ NEW: Optimized Authentication Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle>⚡ Optimized Authentication System</CardTitle>
+                <CardDescription>
+                  New system with single API call per session and caching
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className='space-y-3'>
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div>
+                      <strong>Authentication:</strong>
+                      <span
+                        className={`ml-2 px-2 py-1 rounded text-sm ${
+                          optimizedAuth.isAuthenticated
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {optimizedAuth.isAuthenticated
+                          ? '✅ Authenticated'
+                          : '❌ Not Authenticated'}
+                      </span>
+                    </div>
+                    <div>
+                      <strong>Access:</strong>
+                      <span
+                        className={`ml-2 px-2 py-1 rounded text-sm ${
+                          optimizedAuth.hasAccess
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {optimizedAuth.hasAccess
+                          ? '✅ Access Granted'
+                          : '❌ Access Denied'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className='grid grid-cols-2 gap-4 text-sm text-gray-600'>
+                    <div>
+                      <strong>Data Source:</strong> {optimizedAuth.dataSource}
+                    </div>
+                    <div>
+                      <strong>Cached:</strong>{' '}
+                      {optimizedAuth.cached ? '✅ Yes' : '❌ No'}
+                      {optimizedAuth.cacheAge &&
+                        ` (${optimizedAuth.cacheAge}s old)`}
+                    </div>
+                  </div>
+
+                  {optimizedAuth.subscriptionStatus && (
+                    <div className='grid grid-cols-2 gap-4 text-sm'>
+                      <div>
+                        <strong>Subscription:</strong>{' '}
+                        {optimizedAuth.subscriptionStatus}
+                      </div>
+                      <div>
+                        <strong>Product ID:</strong>{' '}
+                        {optimizedAuth.stripeProductId || 'None'}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className='flex gap-2'>
+                    <Button
+                      onClick={optimizedAuth.refreshAuth}
+                      disabled={optimizedAuth.isLoading}
+                      className='bg-purple-600 hover:bg-purple-700'
+                      size='sm'
+                    >
+                      {optimizedAuth.isLoading
+                        ? 'Loading...'
+                        : '🔄 Refresh Auth'}
+                    </Button>
+
+                    <span className='text-xs text-gray-500 flex items-center'>
+                      {optimizedAuth.isStale
+                        ? '⚠️ Data is stale'
+                        : '✅ Data is fresh'}
+                    </span>
+                  </div>
+
+                  <div className='mt-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg'>
+                    <p className='text-sm font-medium text-purple-800 dark:text-purple-200'>
+                      🚀 <strong>Performance Benefits:</strong>
+                    </p>
+                    <ul className='text-xs text-purple-700 dark:text-purple-300 mt-1 space-y-1'>
+                      <li>
+                        • Single comprehensive Stripe API call per 30-minute
+                        session
+                      </li>
+                      <li>
+                        • Cached results prevent repeated authentication checks
+                      </li>
+                      <li>• Automatic auth check on new account creation</li>
+                      <li>• Fallback to database for ultra-fast responses</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Stripe Verification */}
             <Card>
               <CardHeader>
@@ -167,35 +308,52 @@ export default function SubscriptionStatusPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Button
-                  onClick={verifyStripePayment}
-                  disabled={activating}
-                  className='bg-blue-600 hover:bg-blue-700'
-                  size='lg'
-                >
-                  {activating
-                    ? 'Verifying...'
-                    : '🔍 Verify My Payment with Stripe'}
-                </Button>
+                <div className='space-y-3'>
+                  <Button
+                    onClick={verifyStripePayment}
+                    disabled={activating || forceSyncing}
+                    className='bg-blue-600 hover:bg-blue-700 w-full'
+                    size='lg'
+                  >
+                    {activating
+                      ? 'Verifying...'
+                      : '🔍 Verify My Payment with Stripe'}
+                  </Button>
+
+                  <Button
+                    onClick={forceSync}
+                    disabled={activating || forceSyncing}
+                    className='bg-green-600 hover:bg-green-700 w-full'
+                    size='lg'
+                  >
+                    {forceSyncing
+                      ? 'Force Syncing...'
+                      : '🔧 Force Sync Subscription Status'}
+                  </Button>
+                </div>
 
                 <div className='mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg'>
                   <h4 className='font-semibold mb-2'>How This Works:</h4>
                   <ol className='list-decimal list-inside text-sm text-gray-600 dark:text-gray-300 space-y-1'>
                     <li>
-                      Checks if you exist as a customer in Stripe using your
-                      email
+                      <strong>Verify Payment:</strong> Checks payment history
+                      and grants general access
                     </li>
                     <li>
-                      Verifies you have active subscriptions or successful
-                      payments
+                      <strong>Force Sync:</strong> Directly syncs active
+                      subscription status from Stripe
                     </li>
-                    <li>Creates/updates your profile in our database</li>
+                    <li>
+                      Updates your profile in our database with current
+                      subscription data
+                    </li>
                     <li>
                       Grants access only if payment is confirmed in Stripe
                     </li>
                   </ol>
                   <p className='text-sm text-gray-600 dark:text-gray-300 mt-2 font-medium'>
-                    ✅ This ensures only people who actually paid get access!
+                    ✅ <strong>Try Force Sync first</strong> if you have an
+                    active subscription but can't access features!
                   </p>
                 </div>
               </CardContent>

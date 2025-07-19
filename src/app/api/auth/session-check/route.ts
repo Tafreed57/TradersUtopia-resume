@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
-import {
-  rateLimitSubscription,
-  trackSuspiciousActivity,
-} from '@/lib/rate-limit';
+import { db } from '@/lib/db';
+import Stripe from 'stripe';
+import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { strictCSRFValidation } from '@/lib/csrf';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
-import Stripe from 'stripe';
 
 // Session cache to prevent repeated API calls
 const sessionCache = new Map<
@@ -27,71 +24,56 @@ export async function POST(request: NextRequest) {
     // ✅ SECURITY: CSRF and Rate limiting
     const csrfValid = await strictCSRFValidation(request);
     if (!csrfValid) {
-      trackSuspiciousActivity(request, 'PRODUCT_CHECK_CSRF_FAILED');
+      trackSuspiciousActivity(request, 'SESSION_CHECK_CSRF_FAILED');
       return NextResponse.json(
-        {
-          error: 'CSRF validation failed',
-          hasAccess: false,
-          reason: 'Security check failed',
-        },
+        { error: 'CSRF validation failed' },
         { status: 403 }
       );
     }
 
-    // Rate limiting for subscription checks
-    const rateLimitResult = await rateLimitSubscription()(request);
+    const rateLimitResult = await rateLimitGeneral()(request);
     if (!rateLimitResult.success) {
-      trackSuspiciousActivity(request, 'PRODUCT_CHECK_RATE_LIMITED');
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          hasAccess: false,
-          reason: 'Too many requests',
-        },
-        { status: 429 }
-      );
+      trackSuspiciousActivity(request, 'SESSION_CHECK_RATE_LIMITED');
+      return rateLimitResult.error;
     }
 
-    // ✅ AUTHENTICATION: Get current user
     const user = await currentUser();
     if (!user) {
       return NextResponse.json(
         {
-          error: 'Not authenticated',
+          isAuthenticated: false,
           hasAccess: false,
-          reason: 'User not signed in',
+          reason: 'Not signed in',
+          cached: false,
         },
         { status: 401 }
       );
     }
 
-    const userEmail = user.primaryEmailAddress?.emailAddress;
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    if (!userEmail) {
+      return NextResponse.json(
+        {
+          isAuthenticated: true,
+          hasAccess: false,
+          reason: 'No email found',
+          cached: false,
+        },
+        { status: 400 }
+      );
+    }
+
     const sessionKey = `auth_${user.id}`;
     const now = Date.now();
-
-    console.log(
-      `🎯 [PRODUCT-CHECK-OPTIMIZED] Starting optimized check for user: ${user.id}`
-    );
 
     // ⚡ STEP 1: Check session cache first
     if (sessionCache.has(sessionKey)) {
       const cached = sessionCache.get(sessionKey)!;
       if (now < cached.expiresAt) {
-        console.log(
-          `⚡ [PRODUCT-CHECK-OPTIMIZED] Using cached session data (age: ${Math.round((now - cached.timestamp) / 1000)}s)`
-        );
-
+        console.log(`⚡ [SESSION-AUTH] Using cached data for: ${userEmail}`);
         return NextResponse.json({
-          hasAccess: cached.data.hasAccess,
-          reason: cached.data.reason,
-          productId: cached.data.stripeProductId,
-          subscriptionEnd: cached.data.subscriptionEnd,
-          foundWithEmail: cached.data.profile?.email,
-          source: 'session_cache',
-          isAdminAccess: cached.data.isAdmin,
-          dataSource: cached.data.dataSource,
-          stripeCallMade: false,
-          cacheHit: true,
+          ...cached.data,
+          cached: true,
           cacheAge: Math.round((now - cached.timestamp) / 1000),
         });
       } else {
@@ -100,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `🔍 [PRODUCT-CHECK-OPTIMIZED] No cache found, performing comprehensive check`
+      `🔍 [SESSION-AUTH] Starting comprehensive auth check for: ${userEmail}`
     );
 
     // ⚡ STEP 2: Check database first (fastest)
@@ -113,21 +95,21 @@ export async function POST(request: NextRequest) {
     // ⚡ STEP 3: Admin check (highest priority)
     if (profile?.isAdmin) {
       const authData = {
+        isAuthenticated: true,
         hasAccess: true,
-        reason: 'Admin user - automatic premium access granted',
-        productId: 'admin_access',
+        isAdmin: true,
+        reason: 'Admin user - automatic access',
+        subscriptionStatus: 'ADMIN',
         subscriptionEnd: null,
-        foundWithEmail: profile.email,
-        source: 'admin_access',
-        isAdminAccess: true,
-        dataSource: 'admin_bypass',
-        stripeCallMade: false,
+        stripeProductId: 'admin_access',
         profile: {
           id: profile.id,
           email: profile.email,
           name: profile.name,
           isAdmin: true,
         },
+        dataSource: 'admin_bypass',
+        stripeCallMade: false,
       };
 
       // Cache admin result
@@ -137,8 +119,8 @@ export async function POST(request: NextRequest) {
         expiresAt: now + CACHE_DURATION,
       });
 
-      console.log(`👑 [PRODUCT-CHECK-OPTIMIZED] Admin access granted`);
-      return NextResponse.json(authData);
+      console.log(`👑 [SESSION-AUTH] Admin access granted to: ${userEmail}`);
+      return NextResponse.json({ ...authData, cached: false });
     }
 
     // ⚡ STEP 4: Check for recent database data (avoid Stripe call if recent)
@@ -155,16 +137,11 @@ export async function POST(request: NextRequest) {
         profile.updatedAt &&
         now - profile.updatedAt.getTime() < STRIPE_CHECK_COOLDOWN;
 
-      if (
-        isActive &&
-        isRecent &&
-        profile.stripeProductId &&
-        TRADING_ALERT_PRODUCTS.includes(profile.stripeProductId)
-      ) {
+      if (isActive && isRecent) {
         hasValidDbSubscription = true;
         needsStripeCheck = false;
         console.log(
-          `📋 [PRODUCT-CHECK-OPTIMIZED] Using recent valid database data, skipping Stripe check`
+          `📋 [SESSION-AUTH] Using recent database data, skipping Stripe check`
         );
       }
     }
@@ -179,10 +156,8 @@ export async function POST(request: NextRequest) {
     let dataSource = 'database';
 
     // ⚡ STEP 5: Comprehensive Stripe check (only if needed)
-    if (needsStripeCheck && userEmail) {
-      console.log(
-        `🔄 [PRODUCT-CHECK-OPTIMIZED] Making ONE comprehensive Stripe check...`
-      );
+    if (needsStripeCheck) {
+      console.log(`🔄 [SESSION-AUTH] Making ONE comprehensive Stripe check...`);
       stripeCallMade = true;
       dataSource = 'stripe_comprehensive';
 
@@ -209,29 +184,17 @@ export async function POST(request: NextRequest) {
 
             if (activeSubscription) {
               subscriptionStatus = 'ACTIVE';
+              const subscriptionWithPeriods = activeSubscription as any;
 
-              // ✅ FIXED: Better subscription date extraction with logging
               if (
-                activeSubscription.current_period_start &&
-                activeSubscription.current_period_end
+                subscriptionWithPeriods.current_period_start &&
+                subscriptionWithPeriods.current_period_end
               ) {
                 subscriptionStart = new Date(
-                  activeSubscription.current_period_start * 1000
+                  subscriptionWithPeriods.current_period_start * 1000
                 );
                 subscriptionEnd = new Date(
-                  activeSubscription.current_period_end * 1000
-                );
-                console.log(
-                  `📅 [PRODUCT-CHECK-OPTIMIZED] Subscription period: ${subscriptionStart.toISOString()} to ${subscriptionEnd.toISOString()}`
-                );
-              } else {
-                // Fallback: Set subscription end to 30 days from now if dates not available
-                subscriptionStart = new Date();
-                subscriptionEnd = new Date(
-                  Date.now() + 30 * 24 * 60 * 60 * 1000
-                );
-                console.log(
-                  `⚠️ [PRODUCT-CHECK-OPTIMIZED] Using fallback dates - subscription period data not available`
+                  subscriptionWithPeriods.current_period_end * 1000
                 );
               }
 
@@ -241,24 +204,22 @@ export async function POST(request: NextRequest) {
               }
 
               console.log(
-                `✅ [PRODUCT-CHECK-OPTIMIZED] Found active subscription: ${activeSubscription.id} for product: ${stripeProductId}`
+                `✅ [SESSION-AUTH] Found active subscription: ${activeSubscription.id}`
               );
             } else {
               console.log(
-                `⚠️ [PRODUCT-CHECK-OPTIMIZED] Customer exists but no active subscription`
+                `⚠️ [SESSION-AUTH] Customer exists but no active subscription`
               );
             }
           }
         } else {
           console.log(
-            `❌ [PRODUCT-CHECK-OPTIMIZED] No Stripe customer found for: ${userEmail}`
+            `❌ [SESSION-AUTH] No Stripe customer found for: ${userEmail}`
           );
         }
       } catch (stripeError) {
-        console.error(
-          `❌ [PRODUCT-CHECK-OPTIMIZED] Stripe API error:`,
-          stripeError
-        );
+        console.error(`❌ [SESSION-AUTH] Stripe API error:`, stripeError);
+        // Continue with database data if Stripe fails
         dataSource = 'database_fallback';
       }
     } else if (hasValidDbSubscription) {
@@ -278,18 +239,18 @@ export async function POST(request: NextRequest) {
           data: {
             userId: user.id,
             name: `${user.firstName} ${user.lastName}`,
-            email: userEmail || '',
+            email: userEmail,
             imageUrl: user.imageUrl || '',
             subscriptionStatus,
             subscriptionStart,
             subscriptionEnd,
             stripeCustomerId,
             stripeProductId,
-            lastWebhookUpdate: new Date(),
+            lastStripeCheck: new Date(),
             updatedAt: new Date(),
           },
         });
-        console.log(`✅ [PRODUCT-CHECK-OPTIMIZED] Created new profile`);
+        console.log(`✅ [SESSION-AUTH] Created new profile`);
       } else if (stripeCallMade) {
         profile = await db.profile.update({
           where: { id: profile.id },
@@ -299,13 +260,11 @@ export async function POST(request: NextRequest) {
             subscriptionEnd,
             stripeCustomerId,
             stripeProductId,
-            lastWebhookUpdate: new Date(),
+            lastStripeCheck: new Date(),
             updatedAt: new Date(),
           },
         });
-        console.log(
-          `✅ [PRODUCT-CHECK-OPTIMIZED] Updated profile with Stripe data`
-        );
+        console.log(`✅ [SESSION-AUTH] Updated profile with Stripe data`);
       }
     }
 
@@ -321,7 +280,9 @@ export async function POST(request: NextRequest) {
       TRADING_ALERT_PRODUCTS.includes(stripeProductId);
 
     const authData = {
+      isAuthenticated: true,
       hasAccess: hasValidProductAccess,
+      isAdmin: false,
       reason: hasValidProductAccess
         ? 'Active subscription with valid product access'
         : hasActiveSubscription
@@ -329,19 +290,20 @@ export async function POST(request: NextRequest) {
           : subscriptionStatus === 'CANCELLED'
             ? 'Subscription cancelled'
             : 'No active subscription',
-      productId: stripeProductId,
+      subscriptionStatus,
+      subscriptionStart: subscriptionStart?.toISOString() || null,
       subscriptionEnd: subscriptionEnd?.toISOString() || null,
-      foundWithEmail: profile.email,
-      source: 'optimized_check',
-      isAdminAccess: false,
-      dataSource,
-      stripeCallMade,
+      stripeProductId,
+      stripeCustomerId,
       profile: {
         id: profile.id,
         email: profile.email,
         name: profile.name,
         isAdmin: profile.isAdmin || false,
       },
+      dataSource,
+      stripeCallMade,
+      validProducts: TRADING_ALERT_PRODUCTS,
     };
 
     // ⚡ STEP 8: Cache the result
@@ -352,25 +314,40 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(
-      `🎯 [PRODUCT-CHECK-OPTIMIZED] Complete check finished: ${hasValidProductAccess ? 'ACCESS GRANTED' : 'ACCESS DENIED'}`
+      `🎯 [SESSION-AUTH] Complete auth check finished for: ${userEmail}`
     );
     console.log(
-      `🔄 [PRODUCT-CHECK-OPTIMIZED] Stripe API call made: ${stripeCallMade ? 'YES' : 'NO'}`
+      `📊 [SESSION-AUTH] Result: ${hasValidProductAccess ? 'ACCESS GRANTED' : 'ACCESS DENIED'}`
+    );
+    console.log(
+      `🔄 [SESSION-AUTH] Stripe API call made: ${stripeCallMade ? 'YES' : 'NO'}`
     );
 
-    return NextResponse.json(authData);
+    return NextResponse.json({ ...authData, cached: false });
   } catch (error) {
-    console.error('❌ [PRODUCT-CHECK-OPTIMIZED] Error:', error);
-
+    console.error('❌ [SESSION-AUTH] Error:', error);
     return NextResponse.json(
       {
+        isAuthenticated: false,
         hasAccess: false,
-        reason: 'Product access check failed',
+        reason: 'Authentication check failed',
         error: error instanceof Error ? error.message : 'Unknown error',
-        productId: null,
-        source: 'error',
+        cached: false,
       },
       { status: 500 }
     );
   }
 }
+
+// Cleanup expired cache entries periodically
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, value] of sessionCache.entries()) {
+      if (now > value.expiresAt) {
+        sessionCache.delete(key);
+      }
+    }
+  },
+  10 * 60 * 1000
+); // Cleanup every 10 minutes
