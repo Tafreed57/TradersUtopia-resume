@@ -319,10 +319,8 @@ export async function POST(request: NextRequest) {
         // Method 2: Customer-level discount with correct Stripe API format
         try {
           await stripe.customers.update(profile.stripeCustomerId, {
-            discount: {
-              coupon: coupon.id,
-            },
-          });
+            coupon: coupon.id,
+          } as any);
 
           console.log(
             `🔍 [CREATE-COUPON] Applied coupon to customer: ${profile.stripeCustomerId}`
@@ -337,8 +335,14 @@ export async function POST(request: NextRequest) {
           console.error(
             `❌ [CREATE-COUPON] Both subscription and customer coupon methods failed:`,
             {
-              subscriptionError: subscriptionError?.message,
-              customerError: customerError?.message,
+              subscriptionError:
+                subscriptionError instanceof Error
+                  ? subscriptionError.message
+                  : String(subscriptionError),
+              customerError:
+                customerError instanceof Error
+                  ? customerError.message
+                  : String(customerError),
             }
           );
           throw customerError;
@@ -350,12 +354,17 @@ export async function POST(request: NextRequest) {
       );
 
       // ✅ DEBUG: Verify the coupon was actually applied
+      const primaryDiscount = updatedSubscription.discounts?.[0];
+      const discountObj =
+        typeof primaryDiscount === 'string' ? null : primaryDiscount;
       console.log(`🔍 [CREATE-COUPON] Updated subscription discount info:`, {
-        hasDiscount: !!updatedSubscription.discount,
-        discountId: updatedSubscription.discount?.id,
-        couponId: updatedSubscription.discount?.coupon?.id,
-        couponPercentOff: updatedSubscription.discount?.coupon?.percent_off,
-        couponValid: updatedSubscription.discount?.coupon?.valid,
+        hasDiscount: !!primaryDiscount,
+        discountId:
+          discountObj?.id ||
+          (typeof primaryDiscount === 'string' ? primaryDiscount : null),
+        couponId: discountObj?.coupon?.id,
+        couponPercentOff: discountObj?.coupon?.percent_off,
+        couponValid: discountObj?.coupon?.valid,
         subscriptionStatus: updatedSubscription.status,
       });
 
@@ -367,29 +376,35 @@ export async function POST(request: NextRequest) {
 
       const verificationSubscription = await stripe.subscriptions.retrieve(
         activeSubscription.id,
-        { expand: ['discount.coupon'] }
+        { expand: ['discounts.coupon'] }
       );
 
+      const verificationDiscount = verificationSubscription.discounts?.[0];
+      const verificationDiscountObj =
+        typeof verificationDiscount === 'string' ? null : verificationDiscount;
       console.log(`🔍 [CREATE-COUPON] Verification check:`, {
-        hasDiscount: !!verificationSubscription.discount,
-        discountId: verificationSubscription.discount?.id,
-        couponId: verificationSubscription.discount?.coupon?.id,
-        couponPercentOff:
-          verificationSubscription.discount?.coupon?.percent_off,
+        hasDiscount: !!verificationDiscount,
+        discountId:
+          verificationDiscountObj?.id ||
+          (typeof verificationDiscount === 'string'
+            ? verificationDiscount
+            : null),
+        couponId: verificationDiscountObj?.coupon?.id,
+        couponPercentOff: verificationDiscountObj?.coupon?.percent_off,
         isPersistent:
-          !!verificationSubscription.discount &&
-          verificationSubscription.discount.coupon?.id === coupon.id,
+          !!verificationDiscount &&
+          verificationDiscountObj?.coupon?.id === coupon.id,
       });
 
       if (
-        !verificationSubscription.discount ||
-        verificationSubscription.discount.coupon?.id !== coupon.id
+        !verificationDiscount ||
+        verificationDiscountObj?.coupon?.id !== coupon.id
       ) {
         // ✅ ENHANCED ERROR: Provide detailed debugging info
         const errorDetails = {
           expectedCouponId: coupon.id,
-          actualCouponId: verificationSubscription.discount?.coupon?.id,
-          hasAnyDiscount: !!verificationSubscription.discount,
+          actualCouponId: verificationDiscountObj?.coupon?.id,
+          hasAnyDiscount: !!verificationDiscount,
           subscriptionStatus: verificationSubscription.status,
           subscriptionId: verificationSubscription.id,
           customerId: verificationSubscription.customer,
@@ -401,7 +416,7 @@ export async function POST(request: NextRequest) {
         );
 
         throw new Error(
-          `Discount verification failed. Expected coupon ${coupon.id} but found ${verificationSubscription.discount?.coupon?.id || 'none'}. Details: ${JSON.stringify(errorDetails)}`
+          `Discount verification failed. Expected coupon ${coupon.id} but found ${verificationDiscountObj?.coupon?.id || 'none'}. Details: ${JSON.stringify(errorDetails)}`
         );
       }
     } catch (stripeError) {

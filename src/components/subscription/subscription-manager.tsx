@@ -296,7 +296,7 @@ export function SubscriptionManager() {
             newMonthlyPrice: newPrice,
             currentPrice: currentDiscountedPrice,
             originalPrice: originalPrice,
-            customerId: stripeData.customerId || customerId,
+            customerId: (stripeData as any).customerId || customerId,
             subscriptionId: stripeData.id || subscriptionId,
           }),
         }

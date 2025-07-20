@@ -176,6 +176,8 @@ export async function GET(request: NextRequest) {
       subscriptionInterval: profile.subscriptionInterval,
       discountPercent: profile.discountPercent,
       discountName: profile.discountName,
+      originalAmount: profile.originalAmount,
+      dataFreshness: 'webhook_cached' as 'webhook_cached' | 'stripe_fresh',
     };
 
     // ✅ BILLING FIX: If billing details are missing or outdated, fetch fresh from Stripe
@@ -219,7 +221,7 @@ export async function GET(request: NextRequest) {
               expand: ['discount.coupon', 'items.data.price'],
             }
           );
-        } else {
+        } else if (profile.stripeCustomerId) {
           // We don't have subscription ID, find it via customer
           conditionalLog.subscriptionDetails(
             `🔍 [SUBSCRIPTION-DETAILS] No subscription ID in cache, searching by customer: ${profile.stripeCustomerId}`
@@ -242,11 +244,16 @@ export async function GET(request: NextRequest) {
             );
             stripeSubscription = null;
           }
+        } else {
+          conditionalLog.subscriptionDetails(
+            `❌ [SUBSCRIPTION-DETAILS] No customer ID available to search for subscription`
+          );
+          stripeSubscription = null;
         }
 
         if (stripeSubscription && stripeSubscription.status === 'active') {
           const price = stripeSubscription.items.data[0]?.price;
-          const discount = stripeSubscription.discount;
+          const discount = (stripeSubscription as any).discount;
 
           // ✅ DEBUG: Log the raw subscription data to see what Stripe is returning
           conditionalLog.subscriptionDetails(

@@ -399,7 +399,7 @@ export function CancellationFlowModal({
             originalPrice: offerDetails.originalPrice,
             // ✅ NEW: Use fresh Stripe data identifiers
             customerId:
-              stripeData.customerId ||
+              (stripeData as any).customerId ||
               subscription?.customer?.id ||
               subscription?.customerId,
             subscriptionId: stripeData.id,
@@ -533,7 +533,7 @@ export function CancellationFlowModal({
             originalPrice: originalPrice,
             // ✅ NEW: Use fresh Stripe data identifiers
             customerId:
-              stripeData.customerId ||
+              (stripeData as any).customerId ||
               subscription?.customer?.id ||
               subscription?.customerId,
             subscriptionId: stripeData.id,

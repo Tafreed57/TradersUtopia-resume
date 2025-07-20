@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
         isActive &&
         isRecent &&
         profile.stripeProductId &&
-        TRADING_ALERT_PRODUCTS.includes(profile.stripeProductId)
+        TRADING_ALERT_PRODUCTS.includes(profile.stripeProductId as any)
       ) {
         hasValidDbSubscription = true;
         needsStripeCheck = false;
@@ -318,7 +318,7 @@ export async function POST(request: NextRequest) {
     const hasValidProductAccess =
       hasActiveSubscription &&
       stripeProductId &&
-      TRADING_ALERT_PRODUCTS.includes(stripeProductId);
+      TRADING_ALERT_PRODUCTS.includes(stripeProductId as any);
 
     const authData = {
       hasAccess: hasValidProductAccess,

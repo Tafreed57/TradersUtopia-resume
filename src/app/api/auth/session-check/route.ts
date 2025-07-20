@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
             subscriptionEnd,
             stripeCustomerId,
             stripeProductId,
-            lastStripeCheck: new Date(),
+            lastWebhookUpdate: new Date(),
             updatedAt: new Date(),
           },
         });
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
             subscriptionEnd,
             stripeCustomerId,
             stripeProductId,
-            lastStripeCheck: new Date(),
+            lastWebhookUpdate: new Date(),
             updatedAt: new Date(),
           },
         });
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
     const hasValidProductAccess =
       hasActiveSubscription &&
       stripeProductId &&
-      TRADING_ALERT_PRODUCTS.includes(stripeProductId);
+      TRADING_ALERT_PRODUCTS.includes(stripeProductId as any);
 
     const authData = {
       isAuthenticated: true,

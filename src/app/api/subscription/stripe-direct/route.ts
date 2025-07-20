@@ -96,8 +96,11 @@ export async function POST(request: NextRequest) {
     let discountAmount = null;
     let originalAmount = price?.unit_amount || 0;
 
-    if (subscription.discount && subscription.discount.coupon) {
-      const coupon = subscription.discount.coupon;
+    if (
+      (subscription as any).discount &&
+      (subscription as any).discount.coupon
+    ) {
+      const coupon = (subscription as any).discount.coupon;
       if (coupon.percent_off) {
         discountPercent = coupon.percent_off;
         originalAmount = Math.round(
@@ -118,12 +121,12 @@ export async function POST(request: NextRequest) {
       currency: price?.currency || 'usd',
       interval: price?.recurring?.interval || 'month',
       currentPeriodStart: new Date(
-        subscription.current_period_start * 1000
+        (subscription as any).current_period_start * 1000
       ).toISOString(),
       currentPeriodEnd: new Date(
-        subscription.current_period_end * 1000
+        (subscription as any).current_period_end * 1000
       ).toISOString(),
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
       productId: typeof productId === 'string' ? productId : productId,
       productName: 'Premium Plan', // We'll use a default since we can't expand to product details
       discountPercent,
