@@ -273,19 +273,3 @@ export function useUnifiedAuth(): UnifiedAuthState {
   }
   return context;
 }
-
-// ✅ CONVENIENCE: Legacy compatibility hooks
-export function useAuthStatus() {
-  const { isAuthenticated, hasAccess, isLoading } = useUnifiedAuth();
-  return { isAuthenticated, hasAccess, isLoading };
-}
-
-export function useSubscriptionData() {
-  const { subscriptionData, hasAccess } = useUnifiedAuth();
-  return { subscription: subscriptionData, hasAccess };
-}
-
-export function useUserProfile() {
-  const { profile } = useUnifiedAuth();
-  return { profile };
-}

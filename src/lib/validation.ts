@@ -24,32 +24,6 @@ export const passwordChangeSchema = z
     path: ['confirmPassword'],
   });
 
-// Message validation schemas
-export const messageSchema = z.object({
-  content: z.string().min(1),
-});
-
-export const messageFileSchema = z.object({
-  fileUrl: z.string().min(1),
-  content: z.string(),
-});
-
-// Chat query schema
-export const chatQuerySchema = z.object({
-  cursor: z.string().optional(),
-  channelId: z.string(),
-});
-
-// Server management schemas
-export const serverSchema = z.object({
-  name: z.string().min(1, {
-    message: 'Server name is required.',
-  }),
-  imageUrl: z.string().min(1, {
-    message: 'Server image is required.',
-  }),
-});
-
 export const serverCreationSchema = z.object({
   name: z.string().min(1, {
     message: 'Server name is required.',
@@ -75,40 +49,9 @@ export const channelSchema = z.object({
   type: z.enum(['TEXT']),
 });
 
-// Member management schemas
-export const memberIdSchema = z.object({
-  memberId: z.string(),
-});
-
 export const memberRoleSchema = z.object({
   memberId: z.string(),
   role: z.enum(['GUEST', 'MODERATOR']),
-});
-
-// Profile schemas
-export const profileSchema = z.object({
-  name: z.string().min(1, 'Display name is required'),
-  imageUrl: z.string().optional(),
-});
-
-export const userDetailsSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  username: z.string().min(1, 'Username is required'),
-});
-
-// Rate limiting schemas
-export const rateLimitSchema = z.object({
-  identifier: z.string(),
-  limit: z.number().positive(),
-  window: z.number().positive(),
-});
-
-// Notification schemas
-export const notificationPreferencesSchema = z.object({
-  pushEnabled: z.boolean(),
-  emailEnabled: z.boolean(),
-  soundEnabled: z.boolean(),
 });
 
 export const notificationActionSchema = z.object({
@@ -141,52 +84,8 @@ export const notificationActionSchema = z.object({
     ),
 });
 
-export const pushSubscriptionSchema = z.object({
-  endpoint: z.string().url(),
-  keys: z.object({
-    p256dh: z.string(),
-    auth: z.string(),
-  }),
-});
-
-// Admin schemas
-export const adminActionSchema = z.object({
-  userId: z.string(),
-  action: z.enum(['grant', 'revoke']),
-});
-
-export const userManagementSchema = z.object({
-  userId: z.string(),
-  action: z.enum([
-    'delete',
-    'toggleAdmin',
-    'grantSubscription',
-    'cancelSubscription',
-  ]),
-});
-
 export const revokeAccessSchema = z.object({
   reason: z.string().max(500, 'Reason too long').optional(),
-});
-
-// File upload schemas
-export const fileUploadSchema = z.object({
-  fileName: z.string(),
-  fileSize: z.number().max(4 * 1024 * 1024), // 4MB limit
-  fileType: z.string(),
-});
-
-// Product subscription schema
-export const productSubscriptionSchema = z.object({
-  allowedProductIds: z
-    .array(z.string())
-    .min(1, 'At least one product ID is required'),
-});
-
-// Subscription schemas
-export const subscriptionSchema = z.object({
-  planId: z.string(),
-  interval: z.enum(['month', 'year']),
 });
 
 export const subscriptionActivationSchema = z.object({
@@ -210,26 +109,10 @@ export const autoRenewalSchema = z.object({
   autoRenew: z.boolean(),
 });
 
-export const couponSchema = z.object({
-  code: z.string().min(1),
-  percentOff: z.number().min(1).max(100),
-  duration: z.enum(['once', 'repeating', 'forever']),
-  durationInMonths: z.number().optional(),
-});
-
 // Legacy schemas for backward compatibility
 export const cuidSchema = z
   .string()
   .regex(/^c[a-z0-9]{24}$/, 'Invalid ID format');
-
-export const serverIdSchema = z.object({
-  serverId: z.string().regex(/^c[a-z0-9]{24}$/, 'Invalid server ID format'),
-});
-
-export const channelIdSchema = z.object({
-  channelId: z.string().regex(/^c[a-z0-9]{24}$/, 'Invalid channel ID format'),
-  serverId: z.string().regex(/^c[a-z0-9]{24}$/, 'Invalid server ID format'),
-});
 
 // ==============================================
 // 🛡️ VALIDATION MIDDLEWARE
@@ -280,29 +163,8 @@ export function validateInput<T>(schema: z.ZodSchema<T>) {
   };
 }
 
-// Helper functions
-export const validateInputSimple = <T>(
-  schema: z.ZodSchema<T>,
-  data: unknown
-): T => {
-  return schema.parse(data);
-};
-
-export const sanitizeTextInput = (
-  input: string,
-  maxLength: number = 1000
-): string => {
-  if (typeof input !== 'string') return '';
-
-  return input
-    .trim()
-    .slice(0, maxLength)
-    .replace(/[<>\"'&]/g, '') // Remove potential XSS characters
-    .replace(/\s+/g, ' '); // Normalize whitespace
-};
-
 // Security analysis interface
-export interface SecurityAnalysisResult {
+interface SecurityAnalysisResult {
   clean: string;
   threats: string[];
   safe: boolean;
@@ -360,20 +222,20 @@ export const secureTextInput = (
 // 🛡️ FILE UPLOAD SECURITY FUNCTIONS
 // ==============================================
 
-export interface FileValidationResult {
+interface FileValidationResult {
   safe: boolean;
   threats: string[];
   maxAllowedSize: number;
 }
 
-export interface VirusScanResult {
+interface VirusScanResult {
   clean: boolean;
   threats: string[];
   scanTime: number;
   confidence: number;
 }
 
-export interface RateLimit {
+interface RateLimit {
   allowed: boolean;
   reason?: string;
 }

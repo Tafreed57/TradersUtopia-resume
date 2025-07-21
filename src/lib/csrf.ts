@@ -15,7 +15,7 @@ const csrfTokenStore = new Map<
 >();
 
 // Generate a secure CSRF token
-export const generateCSRFToken = (userId: string): string => {
+const generateCSRFToken = (userId: string): string => {
   const token = crypto.randomBytes(32).toString('hex');
   const expires = Date.now() + 60 * 60 * 1000; // 1 hour
 
@@ -28,9 +28,7 @@ export const generateCSRFToken = (userId: string): string => {
 };
 
 // Validate CSRF token
-export const validateCSRFToken = async (
-  request: NextRequest
-): Promise<boolean> => {
+const validateCSRFToken = async (request: NextRequest): Promise<boolean> => {
   try {
     // Get current user
     const user = await currentUser();
@@ -123,70 +121,6 @@ export const getCSRFStats = () => {
   };
 };
 
-// ==============================================
-// 🛡️ CSRF MIDDLEWARE
-// ==============================================
-
-export const csrfProtection = () => {
-  return async (
-    request: NextRequest
-  ): Promise<{ success: true } | { success: false; reason: string }> => {
-    // Skip CSRF validation for GET requests (they should be idempotent)
-    if (request.method === 'GET') {
-      return { success: true };
-    }
-
-    // Skip CSRF validation for certain endpoints that have their own protection
-    const skipCSRFPaths = [
-      '/api/webhooks/',
-      '/api/auth/',
-      '/api/uploadthing',
-      '/api/socket/',
-    ];
-
-    const pathname = request.nextUrl.pathname;
-    if (skipCSRFPaths.some(path => pathname.startsWith(path))) {
-      return { success: true };
-    }
-
-    // Validate CSRF token for state-changing operations
-    const isValid = await validateCSRFToken(request);
-
-    if (!isValid) {
-      return {
-        success: false,
-        reason: 'Invalid or missing CSRF token',
-      };
-    }
-
-    return { success: true };
-  };
-};
-
-// ==============================================
-// 🔧 UTILITY FUNCTIONS
-// ==============================================
-
-// Check if request needs CSRF protection
-export const needsCSRFProtection = (request: NextRequest): boolean => {
-  // Only protect state-changing methods
-  const protectedMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
-  if (!protectedMethods.includes(request.method)) {
-    return false;
-  }
-
-  // Skip certain endpoints
-  const skipCSRFPaths = [
-    '/api/webhooks/',
-    '/api/auth/',
-    '/api/uploadthing',
-    '/api/socket/',
-  ];
-
-  const pathname = request.nextUrl.pathname;
-  return !skipCSRFPaths.some(path => pathname.startsWith(path));
-};
-
 // Export a rate-limited CSRF validation for high-security endpoints
 export const strictCSRFValidation = async (
   request: NextRequest
@@ -209,14 +143,4 @@ export const strictCSRFValidation = async (
   }
 
   return true; // Less critical endpoints can use regular validation
-};
-
-export default {
-  generateCSRFToken,
-  validateCSRFToken,
-  getCSRFTokenForUser,
-  csrfProtection,
-  needsCSRFProtection,
-  strictCSRFValidation,
-  getCSRFStats,
 };

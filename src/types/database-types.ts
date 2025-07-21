@@ -11,7 +11,7 @@ export interface BaseMessage {
 }
 
 // Table names
-export const TABLE_NAMES = {
+const TABLE_NAMES = {
   BITCOIN_BULLETS: 'bitcoin_bullets',
   BINANCE_KILLERS: 'binance_killers',
   ALWAYS_WINNING: 'always_winning',

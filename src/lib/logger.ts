@@ -65,7 +65,7 @@ class Logger {
 }
 
 // ✅ EXPORT: Single logger instance
-export const logger = new Logger();
+const logger = new Logger();
 
 // ✅ LEGACY SUPPORT: Replace common logging patterns
 export const conditionalLog = {

@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import { SmartEntryButton } from '@/components/smart-entry-button';
 import { AutoRouteAfterSignIn } from '@/components/auto-route-after-signin';
 import { SharedNavbar } from '@/components/shared-navbar';
-// import { SubscriptionProtectedLink } from '@/components/subscription-protected-link';
 import { HeroBanner } from '@/components/hero-banner';
 import { TrackRecordMinimal } from '@/components/track-record/track-record-minimal';
 import { Suspense } from 'react';

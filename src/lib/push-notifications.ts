@@ -38,7 +38,7 @@ if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   }
 }
 
-export interface PushNotificationData {
+interface PushNotificationData {
   userId: string;
   title: string;
   message: string;
@@ -47,7 +47,7 @@ export interface PushNotificationData {
   icon?: string;
 }
 
-export interface PushSubscription {
+interface PushSubscription {
   endpoint: string;
   keys: {
     p256dh: string;
@@ -206,42 +206,4 @@ export async function subscribeToPushNotifications(
     console.error('❌ [PUSH] Full error details:', error);
     return false;
   }
-}
-
-export async function unsubscribeFromPushNotifications(
-  userId: string,
-  endpoint: string
-): Promise<boolean> {
-  try {
-    const profile = await db.profile.findFirst({
-      where: { userId },
-    });
-
-    if (!profile) {
-      return false;
-    }
-
-    const existingSubscriptions = (profile.pushSubscriptions as any[]) || [];
-    const updatedSubscriptions = existingSubscriptions.filter(
-      (sub: PushSubscription) => sub.endpoint !== endpoint
-    );
-
-    // ✅ FIX: Use profile.id instead of userId for the database update
-    await db.profile.update({
-      where: { id: profile.id }, // Use profile.id instead of userId
-      data: { pushSubscriptions: updatedSubscriptions },
-    });
-
-    return true;
-  } catch (error) {
-    console.error(
-      '❌ [PUSH] Error unsubscribing from push notifications:',
-      error
-    );
-    return false;
-  }
-}
-
-export function generateVAPIDKeys() {
-  return webpush.generateVAPIDKeys();
 }

@@ -20,7 +20,7 @@ export const TRADING_ALERT_PRODUCTS = [
  * Common product ID configurations
  * Define your product tiers here for easy reuse
  */
-export const PRODUCT_TIERS = {
+const PRODUCT_TIERS = {
   // ✅ UPDATED: All products that provide trade alert access
   TRADING_ALERTS: TRADING_ALERT_PRODUCTS,
 
@@ -43,5 +43,5 @@ export const PRODUCT_TIERS = {
 /**
  * Type definitions for product IDs
  */
-export type TradingAlertProduct = (typeof TRADING_ALERT_PRODUCTS)[number];
-export type ProductTier = keyof typeof PRODUCT_TIERS;
+type TradingAlertProduct = (typeof TRADING_ALERT_PRODUCTS)[number];
+type ProductTier = keyof typeof PRODUCT_TIERS;

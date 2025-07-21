@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { sendPushNotification } from '@/lib/push-notifications';
 
-export interface Notification {
+interface Notification {
   userId: string;
   type:
     | 'MESSAGE'

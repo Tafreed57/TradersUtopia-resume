@@ -198,40 +198,6 @@ export async function getCurrentProfile() {
   return profile;
 }
 
-export async function getCurrentProfilePage(req: NextApiRequest) {
-  const authInfo = await getAuth(req);
-  if (!authInfo.sessionId) {
-    const { redirectToSignIn } = await auth();
-    return redirectToSignIn();
-  }
-
-  const profile = await prisma.profile.findUnique({
-    where: {
-      userId: authInfo.userId as string,
-    },
-    select: {
-      id: true,
-      userId: true,
-      name: true,
-      email: true,
-      imageUrl: true,
-      createdAt: true,
-      updatedAt: true,
-      stripeCustomerId: true,
-      stripeSessionId: true,
-      subscriptionEnd: true,
-      subscriptionStart: true,
-      subscriptionStatus: true,
-      stripeProductId: true,
-      backupCodes: true,
-      isAdmin: true,
-      pushNotifications: true,
-      pushSubscriptions: true,
-    },
-  });
-  if (profile) return profile;
-}
-
 export async function getServer(serverId: string, profileId: string) {
   const server = await prisma.server.findUnique({
     where: {
@@ -334,7 +300,7 @@ export async function getAllServers(id: string) {
   if (servers) return servers;
 }
 
-export async function getFirstServer(id: string) {
+async function getFirstServer(id: string) {
   const server = await prisma.server.findFirst({
     where: {
       members: {
@@ -345,23 +311,6 @@ export async function getFirstServer(id: string) {
     },
   });
   if (server) return redirect(`/servers/${server.id}`);
-}
-
-export async function getServerByInviteCode(
-  inviteCode: string,
-  profileId: string
-) {
-  const server = await prisma.server.findFirst({
-    where: {
-      inviteCode,
-      members: {
-        some: {
-          profileId,
-        },
-      },
-    },
-  });
-  return server;
 }
 
 export async function getMember(serverId: string, profileId: string) {
@@ -389,19 +338,6 @@ export async function getChannel(channelId: string) {
   });
 
   return channel;
-}
-
-export async function getCurrentMember(serverId: string, profileId: string) {
-  const member = await prisma.member.findFirst({
-    where: {
-      serverId,
-      profileId,
-    },
-    include: {
-      profile: true,
-    },
-  });
-  if (member) return member;
 }
 
 export async function getAdminProfile(userId: string) {

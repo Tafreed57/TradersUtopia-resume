@@ -25,7 +25,7 @@ const rateLimitStore = new Map<string, RateLimitStore>();
 // 🚨 RATE LIMIT CONFIGURATIONS
 // ==============================================
 
-export const RATE_LIMITS = {
+const RATE_LIMITS = {
   // Admin operations - Very strict
   ADMIN_OPERATIONS: {
     maxRequests: 5,
@@ -169,10 +169,7 @@ const generateKey = (request: NextRequest, prefix: string): string => {
 };
 
 // Main rate limiting function
-export const rateLimit = (
-  config: RateLimitConfig,
-  prefix: string = 'default'
-) => {
+const rateLimit = (config: RateLimitConfig, prefix: string = 'default') => {
   return async (
     request: NextRequest
   ): Promise<{ success: true } | { success: false; error: NextResponse }> => {
@@ -242,17 +239,12 @@ export const rateLimit = (
 
 export const rateLimitAdmin = () =>
   rateLimit(RATE_LIMITS.ADMIN_OPERATIONS, 'admin');
-export const rateLimitPassword = () =>
-  rateLimit(RATE_LIMITS.PASSWORD_OPERATIONS, 'password');
-export const rateLimit2FA = () => rateLimit(RATE_LIMITS.TWO_FACTOR_AUTH, '2fa');
 export const rateLimitUpload = () =>
   rateLimit(RATE_LIMITS.FILE_UPLOADS, 'upload');
 export const rateLimitSubscription = () =>
   rateLimit(RATE_LIMITS.SUBSCRIPTION_OPERATIONS, 'subscription');
 export const rateLimitGeneral = () =>
   rateLimit(RATE_LIMITS.GENERAL_API, 'general');
-export const rateLimitDebug = () =>
-  rateLimit(RATE_LIMITS.DEBUG_ENDPOINTS, 'debug');
 
 // ✅ NEW: Additional rate limiters for comprehensive protection
 export const rateLimitServer = () =>
@@ -305,95 +297,4 @@ export const trackSuspiciousActivity = (
   }
 
   return activity.count;
-};
-
-// Get rate limit info for monitoring
-export const getRateLimitInfo = (request: NextRequest, prefix: string) => {
-  const key = generateKey(request, prefix);
-  const store = rateLimitStore.get(key);
-
-  if (!store) {
-    return {
-      limit: 0,
-      remaining: 0,
-      reset: null,
-      total: 0,
-    };
-  }
-
-  const remaining = Math.max(
-    0,
-    RATE_LIMITS.GENERAL_API.maxRequests - store.count
-  );
-
-  return {
-    limit: RATE_LIMITS.GENERAL_API.maxRequests,
-    remaining,
-    reset: new Date(store.resetTime),
-    total: store.count,
-  };
-};
-
-// ==============================================
-// 🧪 RATE LIMIT TESTING UTILITIES
-// ==============================================
-
-export const clearRateLimit = (request: NextRequest, prefix: string) => {
-  if (process.env.NODE_ENV !== 'development') {
-    console.warn('⚠️ Rate limit clearing is only available in development');
-    return false;
-  }
-
-  const key = generateKey(request, prefix);
-  return rateLimitStore.delete(key);
-};
-
-export const getRateLimitStats = () => {
-  if (process.env.NODE_ENV !== 'development') {
-    return { error: 'Stats only available in development' };
-  }
-
-  return {
-    totalKeys: rateLimitStore.size,
-    memoryUsage: process.memoryUsage(),
-    configs: RATE_LIMITS,
-    activeKeys: Array.from(rateLimitStore.keys()).slice(0, 10), // First 10 keys for debugging
-  };
-};
-
-export const clearAllRateLimits = () => {
-  if (process.env.NODE_ENV !== 'development') {
-    console.warn('⚠️ Rate limit clearing is only available in development');
-    return false;
-  }
-
-  const clearedCount = rateLimitStore.size;
-  rateLimitStore.clear();
-
-  return true;
-};
-
-// eslint-disable-next-line import/no-anonymous-default-export
-export default {
-  rateLimit,
-  rateLimitAdmin,
-  rateLimitPassword,
-  rateLimit2FA,
-  rateLimitUpload,
-  rateLimitSubscription,
-  rateLimitGeneral,
-  rateLimitDebug,
-  rateLimitServer,
-  rateLimitMessaging,
-  rateLimitAuth,
-  rateLimitWebhook,
-  rateLimitNotification,
-  rateLimitMedia,
-  rateLimitDragDrop,
-  trackSuspiciousActivity,
-  getRateLimitInfo,
-  clearRateLimit,
-  clearAllRateLimits,
-  getRateLimitStats,
-  RATE_LIMITS,
 };

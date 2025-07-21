@@ -120,7 +120,7 @@ export async function makeSecureRequest(
 /**
  * Clears the cached CSRF token (forces refresh on next request)
  */
-export function clearCSRFTokenCache(): void {
+function clearCSRFTokenCache(): void {
   csrfTokenCache = null;
 }
 
@@ -202,7 +202,7 @@ export const secureAxiosPost = (
   config?: AxiosRequestConfig
 ): Promise<AxiosResponse> => secureAxios.post(url, data, config);
 
-export const secureAxiosPut = (
+const secureAxiosPut = (
   url: string,
   data?: any,
   config?: AxiosRequestConfig
@@ -219,10 +219,10 @@ export const secureAxiosDelete = (
   config?: AxiosRequestConfig
 ): Promise<AxiosResponse> => secureAxios.delete(url, config);
 
-export const secureAxiosGet = (
+const secureAxiosGet = (
   url: string,
   config?: AxiosRequestConfig
 ): Promise<AxiosResponse> => secureAxios.get(url, config);
 
 // Export the secure axios instance for direct use
-export { secureAxios };
+;

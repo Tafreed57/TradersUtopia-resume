@@ -20,7 +20,7 @@ export type ModalType =
   | 'deleteTrackRecordMessage'
   | 'timerSettings';
 
-export type ModalData = {
+type ModalData = {
   server?: Server;
   channel?: Channel;
   member?: Member;
@@ -39,13 +39,13 @@ export type ModalData = {
   userId?: string;
 };
 
-export interface ModalState {
+interface ModalState {
   type: ModalType | null;
   isOpen: boolean;
   data: ModalData;
 }
 
-export interface ModalActions {
+interface ModalActions {
   onOpen: (type: ModalType, data?: ModalData) => void;
   onClose: () => void;
 }
@@ -53,4 +53,4 @@ export interface ModalActions {
 export interface ModalSlice extends ModalState, ModalActions {}
 
 // ✅ SIMPLIFIED: Removed complex middleware types that were causing build errors
-export type SliceCreator<S> = StateCreator<S, [], [], S>;
+type SliceCreator<S> = StateCreator<S, [], [], S>;

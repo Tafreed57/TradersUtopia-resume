@@ -26,13 +26,13 @@ import { useRouter } from 'next/navigation';
 import { secureAxiosPatch } from '@/lib/csrf-client';
 import { toast } from 'sonner';
 
-export type DragItem = {
+type DragItem = {
   id: string;
   type: 'channel' | 'section';
   data: any;
 };
 
-export type InsertionIndicator = {
+type InsertionIndicator = {
   type: 'channel' | 'section';
   containerId: string;
   index: number;
@@ -76,7 +76,8 @@ interface DragDropProviderProps {
 export function DragDropProvider({ children }: DragDropProviderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragItem, setDragItem] = useState<DragItem | null>(null);
-  const [insertionIndicator, setInsertionIndicator] = useState<InsertionIndicator>(null);
+  const [insertionIndicator, setInsertionIndicator] =
+    useState<InsertionIndicator>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
@@ -369,7 +370,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
-    
+
     if (!over || !active) {
       setInsertionIndicator(null);
       return;
@@ -392,7 +393,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
     // Get the bounding rect of the over item to determine insertion position
     const overRect = over.rect;
     const overData = over.data.current;
-    
+
     if (!overRect) {
       setInsertionIndicator(null);
       return;
@@ -457,5 +458,3 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
     </DragDropContext.Provider>
   );
 }
-
-export { DragDropContext };

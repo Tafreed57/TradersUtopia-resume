@@ -3,20 +3,20 @@
 import { useState, useCallback } from 'react';
 import { useLoading } from '@/contexts/loading-provider';
 
-export interface LoadingState {
+interface LoadingState {
   isLoading: boolean;
   message: string;
   progress?: number;
 }
 
-export interface LoadingActions {
+interface LoadingActions {
   startLoading: (message?: string) => void;
   stopLoading: () => void;
   updateProgress: (progress: number) => void;
   updateMessage: (message: string) => void;
 }
 
-export type LoadingType =
+type LoadingType =
   | 'global' // Full screen loading
   | 'component' // Component-level loading
   | 'button' // Button loading state

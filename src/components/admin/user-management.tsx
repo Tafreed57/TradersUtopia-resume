@@ -87,7 +87,7 @@ interface UserManagementProps {
   onUserUpdate?: (users: UserData[]) => void;
 }
 
-export function UserManagement({
+function UserManagement({
   initialUsers = [],
   onUserUpdate,
 }: UserManagementProps) {
