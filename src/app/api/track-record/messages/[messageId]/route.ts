@@ -40,14 +40,18 @@ export async function DELETE(
     }
 
     // Find the message
-    const message = await prisma.trackRecordMessage.findUnique({
+    const message = await prisma.message.findUnique({
       where: { id: params.messageId },
       include: {
-        admin: {
+        member: {
           select: {
             id: true,
-            name: true,
-            imageUrl: true,
+            profile: {
+              select: {
+                name: true,
+                imageUrl: true,
+              },
+            },
           },
         },
       },
@@ -58,7 +62,7 @@ export async function DELETE(
     }
 
     // Check if the admin is the message owner or has admin privileges
-    const isMessageOwner = message.adminId === profile.id;
+    const isMessageOwner = message.memberId === profile.id;
     const canDelete = isMessageOwner || profile.isAdmin;
 
     if (!canDelete) {
@@ -66,7 +70,7 @@ export async function DELETE(
     }
 
     // Soft delete the message
-    const deletedMessage = await prisma.trackRecordMessage.update({
+    const deletedMessage = await prisma.message.update({
       where: { id: params.messageId },
       data: {
         content: 'This message has been deleted',
@@ -74,11 +78,15 @@ export async function DELETE(
         deleted: true,
       },
       include: {
-        admin: {
+        member: {
           select: {
             id: true,
-            name: true,
-            imageUrl: true,
+            profile: {
+              select: {
+                name: true,
+                imageUrl: true,
+              },
+            },
           },
         },
       },
@@ -134,7 +142,7 @@ export async function PATCH(
     const { content, fileUrl } = validationResult.data;
 
     // Find the message
-    const message = await prisma.trackRecordMessage.findUnique({
+    const message = await prisma.message.findUnique({
       where: { id: params.messageId },
     });
 
@@ -143,7 +151,7 @@ export async function PATCH(
     }
 
     // Check if the admin is the message owner
-    const isMessageOwner = message.adminId === profile.id;
+    const isMessageOwner = message.memberId === profile.id;
 
     if (!isMessageOwner) {
       return new NextResponse('Unauthorized - Can only edit own messages', {
@@ -152,7 +160,7 @@ export async function PATCH(
     }
 
     // Update the message
-    const updatedMessage = await prisma.trackRecordMessage.update({
+    const updatedMessage = await prisma.message.update({
       where: { id: params.messageId },
       data: {
         content,
@@ -160,11 +168,15 @@ export async function PATCH(
         updatedAt: new Date(),
       },
       include: {
-        admin: {
+        member: {
           select: {
             id: true,
-            name: true,
-            imageUrl: true,
+            profile: {
+              select: {
+                name: true,
+                imageUrl: true,
+              },
+            },
           },
         },
       },

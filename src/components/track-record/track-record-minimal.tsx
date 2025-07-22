@@ -8,7 +8,6 @@ import {
   FileText,
   Image,
   Loader2,
-  Users,
   Clock,
   TrendingUp,
   Edit,
@@ -24,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { UserAvatar } from '../user/user-avatar';
 
 export function TrackRecordMinimal() {
   const { userId, isLoaded } = useAuth();
@@ -42,7 +42,7 @@ export function TrackRecordMinimal() {
     try {
       const messagesResponse = await fetch('/api/track-record/messages');
       const messagesData = await messagesResponse.json();
-
+      console.log(messagesData);
       setMessages(messagesData.items || []);
       setMessagesCount(messagesData.items?.length || 0);
     } catch (error) {
@@ -307,13 +307,16 @@ export function TrackRecordMinimal() {
                   {/* Message Header */}
                   <div className='flex items-center justify-between mb-4'>
                     <div className='flex items-center gap-3'>
-                      <div className='w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg'>
-                        <span className='text-white text-sm font-bold'>T</span>
+                      <div className='w-10 h-10 bg-gradient-to-br to-emerald-600 rounded-xl flex items-center justify-center shadow-lg'>
+                        <UserAvatar
+                          src='/logo.png'
+                          className='h-8 w-8 sm:h-10 sm:w-10'
+                        />
                       </div>
                       <div>
                         <div className='flex items-center gap-2'>
                           <span className='text-white font-semibold'>
-                            {message.admin?.name || 'Trader'}
+                            {'Shehroze Afridi'}
                           </span>
                           <div className='flex items-center gap-1 px-2 py-1 bg-green-500/20 border border-green-400/30 rounded-full'>
                             <div className='w-2 h-2 bg-green-400 rounded-full'></div>

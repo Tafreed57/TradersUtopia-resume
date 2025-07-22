@@ -57,12 +57,6 @@ export function ChatItem({
   const params = useParams();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isViewingFile, setIsViewingFile] = useState(false);
-  const [isImageLoading, setIsImageLoading] = useState(true);
-  const [isImageError, setIsImageError] = useState(false);
-  const [fadeIn, setFadeIn] = useState(false);
   const fileType = fileUrl?.split('.').pop();
 
   const form = useForm<z.infer<typeof formSchema>>({
