@@ -12,13 +12,28 @@ const timerSettingsSchema = z.object({
   priceMessage: z.string().min(1).max(100), // Price increase message
 });
 
-// Global timer settings storage (using database for persistence)
-let globalTimerSettings = {
-  startTime: Date.now(),
-  duration: 72, // hours
-  message: 'Lock in current pricing before increase',
-  priceMessage: 'Next price increase: $199/month',
-};
+// Helper function to get or create the active timer
+async function getActiveTimer() {
+  let timer = await db.timer.findFirst({
+    where: { isActive: true },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // If no active timer exists, create a default one
+  if (!timer) {
+    timer = await db.timer.create({
+      data: {
+        startTime: new Date(),
+        duration: 72, // 72 hours default
+        message: 'Lock in current pricing before increase',
+        priceMessage: 'Next price increase: $199/month',
+        isActive: true,
+      },
+    });
+  }
+
+  return timer;
+}
 
 // GET - Retrieve timer settings
 export async function GET(request: NextRequest) {
@@ -29,24 +44,32 @@ export async function GET(request: NextRequest) {
       return rateLimitResult.error;
     }
 
+    const timer = await getActiveTimer();
+
     // Calculate current time remaining
     const currentTime = Date.now();
-    const elapsedHours =
-      (currentTime - globalTimerSettings.startTime) / (1000 * 60 * 60);
-    const remainingHours = Math.max(
-      0,
-      globalTimerSettings.duration - elapsedHours
-    );
+    const startTime = timer.startTime.getTime();
+    const elapsedHours = (currentTime - startTime) / (1000 * 60 * 60);
+    const remainingHours = Math.max(0, timer.duration - elapsedHours);
 
     // If timer expired, reset it
     if (remainingHours <= 0) {
-      globalTimerSettings.startTime = Date.now();
-      const newRemainingHours = globalTimerSettings.duration;
+      const updatedTimer = await db.timer.update({
+        where: { id: timer.id },
+        data: {
+          startTime: new Date(),
+        },
+      });
+
+      const newRemainingHours = updatedTimer.duration;
 
       return NextResponse.json({
         success: true,
         settings: {
-          ...globalTimerSettings,
+          startTime: updatedTimer.startTime.getTime(),
+          duration: updatedTimer.duration,
+          message: updatedTimer.message,
+          priceMessage: updatedTimer.priceMessage,
           remainingHours: newRemainingHours,
           isExpired: false,
         },
@@ -56,7 +79,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       settings: {
-        ...globalTimerSettings,
+        startTime: timer.startTime.getTime(),
+        duration: timer.duration,
+        message: timer.message,
+        priceMessage: timer.priceMessage,
         remainingHours,
         isExpired: false,
       },
@@ -114,25 +140,38 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = timerSettingsSchema.parse(body);
 
-    // Update global timer settings
-    globalTimerSettings = {
-      startTime: Date.now(), // Reset timer when settings change
-      duration: validatedData.duration,
-      message: validatedData.message,
-      priceMessage: validatedData.priceMessage,
-    };
+    // Get the current active timer or create one
+    const currentTimer = await getActiveTimer();
+
+    // Update the timer settings and reset the start time
+    const updatedTimer = await db.timer.update({
+      where: { id: currentTimer.id },
+      data: {
+        startTime: new Date(), // Reset timer when settings change
+        duration: validatedData.duration,
+        message: validatedData.message,
+        priceMessage: validatedData.priceMessage,
+      },
+    });
 
     console.log(
       `🕒 [TIMER] Admin ${adminProfile.email} updated timer settings:`,
-      globalTimerSettings
+      {
+        duration: updatedTimer.duration,
+        message: updatedTimer.message,
+        priceMessage: updatedTimer.priceMessage,
+      }
     );
 
     return NextResponse.json({
       success: true,
       message: 'Timer settings updated successfully',
       settings: {
-        ...globalTimerSettings,
-        remainingHours: globalTimerSettings.duration,
+        startTime: updatedTimer.startTime.getTime(),
+        duration: updatedTimer.duration,
+        message: updatedTimer.message,
+        priceMessage: updatedTimer.priceMessage,
+        remainingHours: updatedTimer.duration,
         isExpired: false,
       },
     });
