@@ -113,6 +113,68 @@ export function SectionContent({
     setLocalSectionsWithChannels(sectionsWithChannels);
   }, [channelsWithoutSection, sectionsWithChannels]);
 
+  // Real-time channel deletion event listener
+  useEffect(() => {
+    const handleChannelDeleted = (event: CustomEvent) => {
+      const { channelId, serverId, sectionId } = event.detail;
+
+      // Only handle deletions for the current server
+      if (serverId !== server?.id) return;
+
+      if (sectionId) {
+        // Remove channel from a specific section
+        setLocalSectionsWithChannels(prev =>
+          prev.map(section => ({
+            ...section,
+            channels: section.channels.filter(
+              (channel: any) => channel.id !== channelId
+            ),
+            children:
+              section.children?.map((childSection: any) => ({
+                ...childSection,
+                channels: childSection.channels.filter(
+                  (channel: any) => channel.id !== channelId
+                ),
+              })) || [],
+          }))
+        );
+      } else {
+        // Remove channel from channels without section
+        setLocalChannelsWithoutSection(prev =>
+          prev.filter(channel => channel.id !== channelId)
+        );
+      }
+    };
+
+    const handleChannelDeleteError = (event: CustomEvent) => {
+      const { channelId, error } = event.detail;
+      console.error(`Failed to delete channel ${channelId}:`, error);
+      // You could add toast notification here if desired
+    };
+
+    // Add event listeners
+    window.addEventListener(
+      'channel-deleted',
+      handleChannelDeleted as EventListener
+    );
+    window.addEventListener(
+      'channel-delete-error',
+      handleChannelDeleteError as EventListener
+    );
+
+    // Cleanup event listeners
+    return () => {
+      window.removeEventListener(
+        'channel-deleted',
+        handleChannelDeleted as EventListener
+      );
+      window.removeEventListener(
+        'channel-delete-error',
+        handleChannelDeleteError as EventListener
+      );
+    };
+  }, [server?.id]);
+
   // Create a unified list of all sections including the default section for ungrouped channels
   const allSections = useMemo(() => {
     const sections = [...localSectionsWithChannels];

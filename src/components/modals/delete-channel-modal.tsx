@@ -31,12 +31,33 @@ export function DeleteChannelModal() {
         url: `/api/channels/${data?.channel?.id}`,
         query: { serverId: data?.server?.id },
       });
+
+      // Perform the deletion
       await secureAxiosDelete(url);
+
+      // Emit custom event for real-time UI update
+      const deleteEvent = new CustomEvent('channel-deleted', {
+        detail: {
+          channelId: data?.channel?.id,
+          serverId: data?.server?.id,
+          sectionId: data?.channel?.sectionId || null,
+        },
+      });
+      window.dispatchEvent(deleteEvent);
+
       onClose();
-      router.refresh();
+
+      // Navigate to server root instead of refreshing
       router.push(`/servers/${data?.server?.id}`);
     } catch (error: any) {
-      //
+      // Emit error event to allow UI to handle rollback if needed
+      const errorEvent = new CustomEvent('channel-delete-error', {
+        detail: {
+          channelId: data?.channel?.id,
+          error: error.message || 'Failed to delete channel',
+        },
+      });
+      window.dispatchEvent(errorEvent);
     } finally {
       setIsLoading(false);
     }
