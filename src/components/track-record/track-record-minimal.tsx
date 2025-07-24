@@ -15,7 +15,6 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { EmojiPicker } from '@/components/ui/emoji-picker';
 import { useStore } from '@/store/store';
 import {
   DropdownMenu,
@@ -453,71 +452,6 @@ export function TrackRecordMinimal() {
                 Share your trading insights
               </div>
             </div>
-
-            <form onSubmit={handleSubmit} className='space-y-3'>
-              <div className='relative'>
-                {/* Add File Button */}
-                <button
-                  type='button'
-                  onClick={() =>
-                    onOpen('trackRecordFile', {
-                      apiUrl: '/api/track-record/messages',
-                    })
-                  }
-                  className='absolute top-1/2 -translate-y-1/2 left-4 z-10 h-9 w-9 bg-gradient-to-br from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 border border-purple-400/30 hover:border-purple-400/50 transition-all duration-300 rounded-xl flex items-center justify-center group backdrop-blur-sm hover:scale-110 hover:shadow-lg hover:shadow-purple-400/20'
-                >
-                  <Plus className='h-4 w-4 text-purple-400 group-hover:text-purple-300 transition-colors' />
-                </button>
-
-                {/* Textarea */}
-                <textarea
-                  value={inputValue}
-                  onChange={e => {
-                    setInputValue(e.target.value);
-                    // Auto-resize
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
-                  }}
-                  onKeyDown={handleKeyDown}
-                  placeholder='Share a track record update... (Shift+Enter for new line)'
-                  disabled={isSubmitting}
-                  className='w-full pl-16 pr-32 py-4 bg-gradient-to-r from-gray-800/80 to-gray-700/80 border border-gray-600/30 focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 focus:ring-offset-0 text-white placeholder:text-gray-400 rounded-xl min-h-[56px] max-h-[200px] resize-none transition-all duration-300 hover:border-gray-500/50 backdrop-blur-sm'
-                  style={{ resize: 'none' }}
-                />
-
-                {/* Right Side Controls */}
-                <div className='absolute top-1/2 -translate-y-1/2 right-4 flex items-center gap-2'>
-                  {/* Emoji Picker */}
-                  <div className='h-9 w-9 rounded-xl bg-gradient-to-br from-gray-700/50 to-gray-600/50 border border-gray-600/30 backdrop-blur-sm hover:from-purple-600/20 hover:to-blue-600/20 hover:border-purple-400/50 transition-all duration-300 hover:scale-110 flex items-center justify-center group'>
-                    <EmojiPicker
-                      onChange={emoji => setInputValue(prev => prev + emoji)}
-                    />
-                  </div>
-
-                  {/* Send Button */}
-                  <Button
-                    type='submit'
-                    disabled={isSubmitting || !inputValue.trim()}
-                    className='h-9 w-9 p-0 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 border border-purple-400/30 hover:border-purple-400/50 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-purple-400/20 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed'
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className='h-4 w-4 animate-spin' />
-                    ) : (
-                      <Send className='h-4 w-4' />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className='flex items-center justify-between text-xs text-gray-400'>
-                <span>Enter to send • Shift+Enter for new line</span>
-                <span className='flex items-center gap-1'>
-                  <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-                  Ready to post
-                </span>
-              </div>
-            </form>
           </div>
         </div>
       )}

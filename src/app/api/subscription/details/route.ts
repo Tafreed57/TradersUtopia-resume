@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
         subscriptionAmount: profile.subscriptionAmount,
         originalAmount: profile.originalAmount,
         stripeSubscriptionId: profile.stripeSubscriptionId,
-        lastWebhookUpdate: profile.lastWebhookUpdate,
+
         subscriptionStatus: profile.subscriptionStatus,
       }
     );
@@ -351,7 +351,6 @@ export async function GET(request: NextRequest) {
                 discountPercent,
                 discountName,
                 originalAmount: baseAmount, // ✅ FIXED: Store cents (integer) not dollars (decimal)
-                lastWebhookUpdate: new Date(),
               },
             });
             conditionalLog.subscriptionDetails(
@@ -478,7 +477,7 @@ export async function GET(request: NextRequest) {
     // ✅ WEBHOOK-ONLY: Build metadata from cached data
     responseData.subscription.metadata = {
       lastDatabaseUpdate: profile.updatedAt,
-      lastWebhookUpdate: profile.lastWebhookUpdate,
+
       hasStripeConnection: !!profile.stripeCustomerId,
       isActive: subscriptionStatus === 'ACTIVE',
       daysUntilExpiry: profile.subscriptionEnd

@@ -203,7 +203,6 @@ export async function updateSubscriptionInDatabase(
     discountName: discountName,
     stripeCustomerEmail: customerEmail,
     subscriptionCreated: createdAt,
-    lastWebhookUpdate: new Date(),
   };
 
   // Update all profiles with this customer ID

@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         where: { id: profile.id },
         data: {
           subscriptionAutoRenew: autoRenew,
-          lastWebhookUpdate: new Date(),
+
           updatedAt: new Date(),
         },
       });
