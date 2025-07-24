@@ -28,7 +28,6 @@ model Profile {
   discountName                   String?
   discountPercent                Int?
   lastInvoiceUrl                 String?
-  lastWebhookUpdate              DateTime?
   stripeCustomerEmail            String?
   stripePriceId                  String?
   stripeSubscriptionId           String?

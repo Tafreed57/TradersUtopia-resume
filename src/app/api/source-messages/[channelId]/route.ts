@@ -79,7 +79,7 @@ export async function GET(
       stripeCustomerEmail: null,
       subscriptionCreated: null,
       lastInvoiceUrl: null,
-      lastWebhookUpdate: null,
+
       backupCodes: [],
       isAdmin: false,
       pushNotifications: null,

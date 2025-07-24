@@ -51,7 +51,6 @@ export async function POST(request: NextRequest) {
           discountPercent: profile.discountPercent,
           discountName: profile.discountName || 'Applied Discount',
           dataSource: 'webhook_cached',
-          lastWebhookUpdate: profile.lastWebhookUpdate,
         },
         performance: {
           optimized: true,
@@ -148,7 +147,7 @@ export async function POST(request: NextRequest) {
         data: {
           discountPercent,
           discountName,
-          lastWebhookUpdate: new Date(),
+
           updatedAt: new Date(),
         },
       });

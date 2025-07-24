@@ -285,7 +285,6 @@ export async function POST(request: NextRequest) {
             subscriptionEnd,
             stripeCustomerId,
             stripeProductId,
-            lastWebhookUpdate: new Date(),
             updatedAt: new Date(),
           },
         });
@@ -299,7 +298,6 @@ export async function POST(request: NextRequest) {
             subscriptionEnd,
             stripeCustomerId,
             stripeProductId,
-            lastWebhookUpdate: new Date(),
             updatedAt: new Date(),
           },
         });

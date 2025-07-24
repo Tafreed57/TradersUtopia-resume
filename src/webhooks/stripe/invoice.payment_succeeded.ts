@@ -21,7 +21,7 @@ export const invoicePaymentSucceeded = async (event: any) => {
         },
         data: {
           subscriptionStatus: 'ACTIVE',
-          lastWebhookUpdate: new Date(),
+
           updatedAt: new Date(),
         },
       });

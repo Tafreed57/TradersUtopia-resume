@@ -149,7 +149,6 @@ export async function GET(request: NextRequest) {
                 },
               }
             : null,
-          lastWebhookUpdate: profile.lastWebhookUpdate,
           dataSource: 'webhook_cached',
         };
 
@@ -196,7 +195,6 @@ export async function GET(request: NextRequest) {
           subscriptionAutoRenew: profile.subscriptionAutoRenew,
           discountPercent: profile.discountPercent,
           discountName: profile.discountName,
-          lastWebhookUpdate: profile.lastWebhookUpdate,
         },
         performanceNote: 'Using webhook-cached data for optimal performance',
       };

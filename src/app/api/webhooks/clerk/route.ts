@@ -176,7 +176,7 @@ async function handleUserCreated(userData: any) {
         subscriptionEnd,
         stripeCustomerId,
         stripeProductId,
-        lastWebhookUpdate: new Date(),
+
         createdAt: new Date(),
         updatedAt: new Date(),
       },

@@ -87,7 +87,6 @@ export async function POST(request: NextRequest) {
           where: { id: profile.id },
           data: {
             subscriptionAmount: calculatedActualAmount,
-            lastWebhookUpdate: new Date(),
             updatedAt: new Date(),
           },
         });
@@ -214,7 +213,6 @@ export async function POST(request: NextRequest) {
         data: {
           subscriptionAmount: actualChargedAmount,
           originalAmount: originalPrice, // Store for future webhook optimization
-          lastWebhookUpdate: new Date(),
           updatedAt: new Date(),
         },
       });

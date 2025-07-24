@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
         data: {
           subscriptionAutoRenew: false, // Cancellation disables auto-renewal
           subscriptionCancelledAt: new Date(),
-          lastWebhookUpdate: new Date(),
+
           updatedAt: new Date(),
         },
       });

@@ -7,7 +7,8 @@ import { rateLimitMessaging, trackSuspiciousActivity } from '@/lib/rate-limit';
 // Force dynamic rendering due to rate limiting using request.headers
 export const dynamic = 'force-dynamic';
 import { z } from 'zod';
-import { createNotification } from '@/lib/notifications';
+import { tasks } from '@trigger.dev/sdk/v3';
+import type { sendMessageNotifications } from '@/trigger/send-message-notifications';
 
 const MESSAGE_BATCH = 10;
 
@@ -81,6 +82,7 @@ export async function GET(req: NextRequest) {
         },
         where: {
           channelId,
+          deleted: false,
         },
         include: {
           member: {
@@ -98,6 +100,7 @@ export async function GET(req: NextRequest) {
         take: MESSAGE_BATCH,
         where: {
           channelId,
+          deleted: false,
         },
         include: {
           member: {
@@ -231,164 +234,34 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 📱 ENHANCED NOTIFICATIONS: Process notifications synchronously to ensure reliability
+    // 📱 BACKGROUND NOTIFICATIONS: Trigger background task for notification processing
     try {
-      // Get other members for notifications and server info (ACTIVE subscriptions OR admin users)
-      // Also include their channel notification preferences
-      const [otherMembers, serverInfo] = await Promise.all([
-        prisma.member.findMany({
-          where: {
-            serverId: serverId,
-            profileId: { not: profile.id },
-            profile: {
-              OR: [
-                { subscriptionStatus: 'ACTIVE' }, // ✅ SUBSCRIPTION CHECK: Users with active subscriptions
-                { isAdmin: true }, // ✅ ADMIN CHECK: Admin users (regardless of subscription status)
-              ],
-            },
-          },
-          include: {
-            profile: {
-              select: {
-                id: true,
-                userId: true,
-                name: true,
-                email: true,
-                subscriptionStatus: true, // Include for logging/debugging
-                isAdmin: true, // Include admin status for logging
-              },
-            },
-          },
-        }),
-        prisma.server.findUnique({
-          where: { id: serverId },
-          select: { name: true },
-        }),
-      ]);
-
-      // ✅ CHANNEL NOTIFICATION FILTERING: Get channel notification preferences for all members
-      const channelNotificationPrefs =
-        await prisma.channelNotificationPreference.findMany({
-          where: {
-            channelId: channelId,
-            profileId: {
-              in: otherMembers.map(member => member.profile.id),
-            },
-          },
-        });
-
-      // Create a map for quick lookup of notification preferences
-      const notificationPrefsMap = new Map(
-        channelNotificationPrefs.map(pref => [pref.profileId, pref.enabled])
-      );
-
-      // Filter members based on channel notification preferences
-      // If no preference exists, default to enabled (true)
-      const membersToNotify = otherMembers.filter(member => {
-        const preference = notificationPrefsMap.get(member.profile.id);
-        return preference !== false; // Default to true if no preference set
-      });
-
-      // ✅ ENHANCED FILTERING: Log notification targeting for eligible users
       console.log(
-        `📬 [NOTIFICATIONS] Message from ${profile.name} in ${serverInfo?.name || 'Unknown Server'}`
+        `📬 [NOTIFICATIONS] Triggering background notification task for message from ${profile.name}`
       );
 
-      // Count different types of eligible users
-      const activeSubscriptionUsers = otherMembers.filter(
-        m => m.profile.subscriptionStatus === 'ACTIVE'
+      // Trigger the background task for notification processing
+      const taskHandle = await tasks.trigger<typeof sendMessageNotifications>(
+        'send-message-notifications',
+        {
+          messageId: message.id,
+          senderId: profile.id,
+          senderName: profile.name,
+          channelId: channelId,
+          serverId: serverId,
+          content: validatedData.content,
+        }
       );
-      const adminUsers = otherMembers.filter(m => m.profile.isAdmin);
 
       console.log(
-        `📬 [NOTIFICATIONS] Found ${otherMembers.length} eligible members (${activeSubscriptionUsers.length} active subscriptions, ${adminUsers.length} admin users)`
+        `✅ [NOTIFICATIONS] Background notification task triggered successfully: ${taskHandle.id}`
       );
-      console.log(
-        `📬 [NOTIFICATIONS] ${membersToNotify.length} members have channel notifications enabled`
-      );
-
-      if (membersToNotify.length > 0) {
-        // Detect mentions in the message content (@username pattern)
-        const mentionRegex = /@(\w+)/g;
-        const mentions = Array.from(
-          validatedData.content.matchAll(mentionRegex)
-        );
-        const mentionedUsernames = mentions.map(match =>
-          match[1].toLowerCase()
-        );
-
-        const truncatedContent =
-          validatedData.content.length > 100
-            ? validatedData.content.substring(0, 100) + '...'
-            : validatedData.content;
-
-        const serverName = serverInfo?.name || 'Unknown Server';
-
-        // Create notifications for each member (all have ACTIVE subscriptions and channel notifications enabled)
-        const notificationPromises = membersToNotify.map(async serverMember => {
-          const isMentioned = mentionedUsernames.some(
-            username =>
-              serverMember.profile.name.toLowerCase().includes(username) ||
-              serverMember.profile.email.toLowerCase().includes(username)
-          );
-
-          const userType = serverMember.profile.isAdmin
-            ? 'Admin'
-            : serverMember.profile.subscriptionStatus === 'ACTIVE'
-              ? 'Active Subscription'
-              : 'Unknown';
-
-          console.log(
-            `📬 [NOTIFICATIONS] Creating notification for ${serverMember.profile.name} (${userType}) - ${isMentioned ? 'MENTION' : 'MESSAGE'}`
-          );
-
-          try {
-            const notification = await createNotification({
-              userId: serverMember.profile.userId,
-              type: isMentioned ? 'MENTION' : 'MESSAGE',
-              title: isMentioned
-                ? `You were mentioned in ${serverName} #${channel.name}`
-                : `New message in ${serverName} #${channel.name}`,
-              message: `${profile.name}: ${truncatedContent}`,
-              actionUrl: `/servers/${serverId}/channels/${channelId}`,
-            });
-
-            if (notification) {
-              console.log(
-                `✅ [NOTIFICATIONS] Successfully created notification for ${serverMember.profile.name}`
-              );
-            } else {
-              console.error(
-                `❌ [NOTIFICATIONS] Failed to create notification for ${serverMember.profile.name}`
-              );
-            }
-
-            return notification;
-          } catch (error) {
-            console.error(
-              `❌ [NOTIFICATIONS] Error creating notification for ${serverMember.profile.name}:`,
-              error
-            );
-            return null;
-          }
-        });
-
-        // Wait for all notifications to be created
-        const results = await Promise.all(notificationPromises);
-        const successCount = results.filter(r => r !== null).length;
-        console.log(
-          `📬 [NOTIFICATIONS] Created ${successCount}/${membersToNotify.length} notifications successfully`
-        );
-      } else {
-        console.log(
-          `📬 [NOTIFICATIONS] No members to notify (either no active subscriptions/admin users or channel notifications disabled)`
-        );
-      }
     } catch (error) {
       console.error(
-        `❌ [NOTIFICATIONS] Error processing notifications:`,
+        `❌ [NOTIFICATIONS] Error triggering background notification task:`,
         error
       );
+      // Don't fail the message creation if notification task fails
     }
 
     return NextResponse.json(message);
