@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     // ✅ NEW: Check if user is admin first - admins get special admin access status
     if (profile.isAdmin) {
-      console.log(
+      conditionalLog.subscriptionDetails(
         `🔑 [SUBSCRIPTION-DETAILS] Admin user ${profile.email} - showing admin access status`
       );
 
@@ -122,20 +122,6 @@ export async function GET(request: NextRequest) {
       `📊 [SUBSCRIPTION-DETAILS] Using webhook-cached data for user: ${profile.email}`
     );
 
-    // ✅ ENHANCED DEBUG: Log discount-related database fields (verbose only)
-    conditionalLog.subscriptionDetails(
-      '💰 [DISCOUNT-API-DEBUG] Database discount fields:',
-      {
-        discountPercent: profile.discountPercent,
-        discountName: profile.discountName,
-        subscriptionAmount: profile.subscriptionAmount,
-        originalAmount: profile.originalAmount,
-        stripeSubscriptionId: profile.stripeSubscriptionId,
-
-        subscriptionStatus: profile.subscriptionStatus,
-      }
-    );
-
     // ✅ FIXED: Determine subscription status based on data availability and expiry (same logic as product check)
     // ✅ CIRCULAR DEPENDENCY FIX: Don't require subscriptionAmount for active status determination
     const hasActiveSubscription =
@@ -147,18 +133,6 @@ export async function GET(request: NextRequest) {
     const subscriptionStatus = hasActiveSubscription
       ? 'ACTIVE'
       : profile.subscriptionStatus || 'INACTIVE';
-
-    conditionalLog.subscriptionDetails(
-      '🔍 [SUBSCRIPTION-DETAILS] Status determination:',
-      {
-        hasActiveSubscription,
-        subscriptionStatus,
-        stripeProductId: profile.stripeProductId,
-        subscriptionEnd: profile.subscriptionEnd,
-        subscriptionAmount: profile.subscriptionAmount,
-        originalSubscriptionStatus: profile.subscriptionStatus,
-      }
-    );
 
     // Build subscription info from database (webhook-cached data)
     let subscriptionInfo = {
@@ -177,8 +151,20 @@ export async function GET(request: NextRequest) {
       discountPercent: profile.discountPercent,
       discountName: profile.discountName,
       originalAmount: profile.originalAmount,
+      // ✅ ENHANCED: Add cached discount details for webhook data
+      discountDetails:
+        profile.discountPercent && profile.discountPercent > 0
+          ? {
+              id: 'cached_discount',
+              name: profile.discountName || 'Applied Discount',
+              percentOff: profile.discountPercent,
+              amountOff: null,
+              duration: 'unknown',
+              valid: true,
+            }
+          : null,
       dataFreshness: 'webhook_cached' as 'webhook_cached' | 'stripe_fresh',
-    };
+    } as any;
 
     // ✅ BILLING FIX: If billing details are missing or outdated, fetch fresh from Stripe
     const shouldFetchFreshData =
@@ -187,18 +173,6 @@ export async function GET(request: NextRequest) {
       (!profile.stripeSubscriptionId ||
         !profile.subscriptionAmount ||
         profile.discountPercent === null);
-
-    conditionalLog.subscriptionDetails(
-      `🔍 [SUBSCRIPTION-DETAILS] Fresh data check:`,
-      {
-        shouldFetchFreshData,
-        hasActiveSubscription,
-        hasCustomerId: !!profile.stripeCustomerId,
-        hasSubscriptionId: !!profile.stripeSubscriptionId,
-        hasSubscriptionAmount: !!profile.subscriptionAmount,
-        hasDiscountPercent: profile.discountPercent !== null,
-      }
-    );
 
     if (shouldFetchFreshData) {
       conditionalLog.subscriptionDetails(
@@ -212,20 +186,15 @@ export async function GET(request: NextRequest) {
 
         if (profile.stripeSubscriptionId) {
           // We have the subscription ID, fetch it directly
-          conditionalLog.subscriptionDetails(
-            `🔍 [SUBSCRIPTION-DETAILS] Fetching subscription by ID: ${profile.stripeSubscriptionId}`
-          );
           stripeSubscription = await stripe.subscriptions.retrieve(
             profile.stripeSubscriptionId,
             {
-              expand: ['discount.coupon', 'items.data.price'],
+              expand: ['items.data.price', 'discounts.coupon'],
             }
           );
+          console.dir(stripeSubscription, { depth: null });
         } else if (profile.stripeCustomerId) {
           // We don't have subscription ID, find it via customer
-          conditionalLog.subscriptionDetails(
-            `🔍 [SUBSCRIPTION-DETAILS] No subscription ID in cache, searching by customer: ${profile.stripeCustomerId}`
-          );
           const subscriptions = await stripe.subscriptions.list({
             customer: profile.stripeCustomerId,
             status: 'active',
@@ -245,15 +214,14 @@ export async function GET(request: NextRequest) {
             stripeSubscription = null;
           }
         } else {
-          conditionalLog.subscriptionDetails(
-            `❌ [SUBSCRIPTION-DETAILS] No customer ID available to search for subscription`
-          );
           stripeSubscription = null;
         }
 
         if (stripeSubscription && stripeSubscription.status === 'active') {
           const price = stripeSubscription.items.data[0]?.price;
-          const discount = (stripeSubscription as any).discount;
+          // ✅ FIX: Access discounts array instead of discount property
+          const discounts = (stripeSubscription as any).discounts || [];
+          const discount = discounts.length > 0 ? discounts[0] : null;
 
           // ✅ DEBUG: Log the raw subscription data to see what Stripe is returning
           conditionalLog.subscriptionDetails(
@@ -268,6 +236,18 @@ export async function GET(request: NextRequest) {
               discountCouponAmountOff: discount?.coupon?.amount_off,
               priceAmount: price?.unit_amount,
               currency: price?.currency,
+              // ✅ NEW: Log full discount structure
+              discountArrayLength: discounts.length,
+              fullDiscountData: discount
+                ? {
+                    id: discount.id,
+                    start: discount.start,
+                    end: discount.end,
+                    couponName: discount.coupon?.name,
+                    couponDuration: discount.coupon?.duration,
+                    couponCreated: discount.coupon?.created,
+                  }
+                : null,
             }
           );
 
@@ -296,21 +276,52 @@ export async function GET(request: NextRequest) {
             }
           } else {
             conditionalLog.subscriptionDetails(
-              `❌ [SUBSCRIPTION-DETAILS] No discount found on subscription - coupon may have been removed or expired`
+              `ℹ️ [SUBSCRIPTION-DETAILS] No discounts found on subscription`
             );
+          }
+
+          // ✅ ENHANCED: Build comprehensive discount details
+          let discountDetails = null;
+          if (discount && discount.coupon) {
+            discountDetails = {
+              id: discount.id,
+              couponId: discount.coupon.id,
+              name: discount.coupon.name || discountName || 'Applied Discount',
+              percentOff: discount.coupon.percent_off || null,
+              amountOff: discount.coupon.amount_off || null,
+              duration: discount.coupon.duration || 'unknown',
+              durationInMonths: discount.coupon.duration_in_months || null,
+              valid: discount.coupon.valid || true,
+              start: discount.start
+                ? new Date(discount.start * 1000).toISOString()
+                : null,
+              end: discount.end
+                ? new Date(discount.end * 1000).toISOString()
+                : null,
+              currency: discount.coupon.currency || price?.currency || 'usd',
+              maxRedemptions: discount.coupon.max_redemptions || null,
+              redeemBy: discount.coupon.redeem_by
+                ? new Date(discount.coupon.redeem_by * 1000).toISOString()
+                : null,
+              timesRedeemed: discount.coupon.times_redeemed || 0,
+              created: discount.coupon.created
+                ? new Date(discount.coupon.created * 1000).toISOString()
+                : null,
+            };
           }
 
           // Update subscription info with fresh data
           subscriptionInfo = {
             ...subscriptionInfo,
-            stripeSubscriptionId: stripeSubscription.id, // Always include the subscription ID
-            subscriptionAmount: currentAmount, // ✅ FIXED: Store cents for component (database stores cents)
+            stripeSubscriptionId: stripeSubscription.id,
+            subscriptionAmount: currentAmount,
             subscriptionCurrency: price?.currency || 'usd',
             discountPercent,
             discountName,
-            originalAmount: baseAmount, // ✅ FIXED: Store cents for component (database stores cents)
+            originalAmount: baseAmount,
+            discountDetails,
             dataFreshness: 'stripe_fresh',
-          };
+          } as any;
 
           // ✅ DEBUG: Log what we're about to store
           conditionalLog.subscriptionDetails(
@@ -347,10 +358,10 @@ export async function GET(request: NextRequest) {
               where: { id: profile.id },
               data: {
                 stripeSubscriptionId: stripeSubscription.id,
-                subscriptionAmount: currentAmount, // ✅ FIXED: Store cents (integer) not dollars (decimal)
+                subscriptionAmount: currentAmount,
                 discountPercent,
                 discountName,
-                originalAmount: baseAmount, // ✅ FIXED: Store cents (integer) not dollars (decimal)
+                originalAmount: baseAmount,
               },
             });
             conditionalLog.subscriptionDetails(
@@ -379,7 +390,7 @@ export async function GET(request: NextRequest) {
         product: null,
         stripe: null,
         customer: null,
-        dataSource: 'webhook_cached', // ✅ NEW: Indicate data source
+        dataSource: 'webhook_cached',
       },
     };
 
@@ -387,7 +398,7 @@ export async function GET(request: NextRequest) {
     if (profile.stripeProductId) {
       responseData.subscription.product = {
         id: profile.stripeProductId,
-        name: 'Premium Plan', // Could be cached in future if needed
+        name: 'Premium Plan',
         description: 'Premium trading platform access',
         images: [],
       };
@@ -436,14 +447,6 @@ export async function GET(request: NextRequest) {
             const calculatedOriginal = Math.round(
               discountedAmount / (1 - discountPercent / 100)
             );
-            console.log(
-              `💰 [SUBSCRIPTION-DETAILS] Calculated missing original amount:`,
-              {
-                discountedAmount: `$${(discountedAmount / 100).toFixed(2)}`,
-                discountPercent: `${discountPercent}%`,
-                calculatedOriginal: `$${(calculatedOriginal / 100).toFixed(2)}`,
-              }
-            );
             return calculatedOriginal;
           }
 
@@ -452,22 +455,22 @@ export async function GET(request: NextRequest) {
         })(),
         currency: profile.subscriptionCurrency || 'usd',
         interval: profile.subscriptionInterval || 'month',
-        trialStart: null, // Could add these fields if needed
+        trialStart: null,
         trialEnd: null,
         created:
           profile.subscriptionCreated?.toISOString() ||
           profile.createdAt?.toISOString(),
         pauseStartDate: null,
         discountPercent: profile.discountPercent,
-        discountAmount: null, // Not currently stored separately
+        discountAmount: null,
         hasDiscount: hasDiscount,
         discountDetails: hasDiscount
-          ? {
+          ? (subscriptionInfo as any).discountDetails || {
               id: 'cached_discount',
               name: profile.discountName || 'Applied Discount',
               percentOff: profile.discountPercent,
               amountOff: null,
-              duration: 'unknown', // Could enhance if needed
+              duration: 'unknown',
               valid: true,
             }
           : null,
@@ -477,7 +480,6 @@ export async function GET(request: NextRequest) {
     // ✅ WEBHOOK-ONLY: Build metadata from cached data
     responseData.subscription.metadata = {
       lastDatabaseUpdate: profile.updatedAt,
-
       hasStripeConnection: !!profile.stripeCustomerId,
       isActive: subscriptionStatus === 'ACTIVE',
       daysUntilExpiry: profile.subscriptionEnd
@@ -487,14 +489,12 @@ export async function GET(request: NextRequest) {
               (1000 * 60 * 60 * 24)
           )
         : null,
-      dataFreshness: 'webhook_cached',
+      dataFreshness: subscriptionInfo.dataFreshness || 'webhook_cached',
       performanceNote:
         'This data is served from webhook-cached database for optimal performance',
     };
 
-    console.log(
-      `✅ [SUBSCRIPTION-DETAILS] Served cached data for ${profile.email} - No Stripe API calls made`
-    );
+    console.log(`✅ [SUBSCRIPTION-DETAILS] Served data for ${profile.email}`);
 
     return NextResponse.json(responseData);
   } catch (error) {

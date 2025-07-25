@@ -23,10 +23,30 @@ import {
   TrendingDown,
   CheckCircle,
   AlertTriangle,
+  Clock,
+  Tag,
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
 import { CancellationFlowModal } from '@/components/modals/cancellation-flow-modal';
+
+interface DiscountDetails {
+  id: string;
+  couponId?: string;
+  name: string;
+  percentOff?: number;
+  amountOff?: number | null;
+  duration: string;
+  durationInMonths?: number;
+  valid: boolean;
+  start?: string;
+  end?: string;
+  currency?: string;
+  maxRedemptions?: number;
+  redeemBy?: string;
+  timesRedeemed?: number;
+  created?: string;
+}
 
 interface SubscriptionDetails {
   status: string;
@@ -43,6 +63,7 @@ interface SubscriptionDetails {
   stripePriceId?: string;
   discountPercent?: number;
   discountName?: string;
+  discountDetails?: DiscountDetails;
   product?: {
     id: string;
     name: string;
@@ -63,14 +84,7 @@ interface SubscriptionDetails {
     hasDiscount?: boolean;
     discountPercent?: number;
     discountAmount?: number;
-    discountDetails?: {
-      id: string;
-      name: string;
-      percentOff: number;
-      amountOff: number;
-      duration: string;
-      valid: boolean;
-    };
+    discountDetails?: DiscountDetails;
   };
   customer?: {
     id: string;
@@ -152,12 +166,6 @@ export function SubscriptionManager() {
         subscription?.stripe?.id || subscription?.stripeSubscriptionId;
 
       if (!customerId && !subscriptionId) {
-        console.error('❌ Missing subscription identifiers:', {
-          customerId,
-          subscriptionId,
-          subscription,
-        });
-
         // Try to sync data automatically first
         showToast.info('🔄 Syncing', 'Refreshing subscription data...');
 
@@ -168,7 +176,6 @@ export function SubscriptionManager() {
             'Please try applying the discount again.'
           );
         } catch (syncError) {
-          console.error('❌ Sync failed:', syncError);
           showToast.error(
             'Error',
             'Subscription data incomplete. Please refresh the page and try again.'
@@ -182,10 +189,6 @@ export function SubscriptionManager() {
       let stripeData = null;
 
       try {
-        console.log(
-          '🔄 [COUPON-MANAGER] Fetching fresh subscription data from Stripe...'
-        );
-
         const response = await makeSecureRequest(
           '/api/subscription/stripe-direct',
           {
@@ -204,10 +207,6 @@ export function SubscriptionManager() {
               id: data.subscription.id,
               customerId: data.subscription.customerId,
             };
-            console.log(
-              '✅ [COUPON-MANAGER] Got fresh stripe data:',
-              stripeData
-            );
           } else {
             throw new Error(data.error || 'No subscription data returned');
           }
@@ -215,16 +214,8 @@ export function SubscriptionManager() {
           throw new Error(`API response not ok: ${response.status}`);
         }
       } catch (apiError) {
-        console.error(
-          '❌ [COUPON-MANAGER] Failed to fetch fresh data:',
-          apiError
-        );
-
         // Fallback to existing subscription data if API fails
         if (subscription?.stripe?.amount) {
-          console.log(
-            '⚠️ [COUPON-MANAGER] Using existing subscription data as fallback'
-          );
           stripeData = subscription.stripe;
         } else {
           showToast.error(
@@ -251,10 +242,6 @@ export function SubscriptionManager() {
         ? stripeData.originalAmount / 100
         : currentDiscountedPrice;
 
-      console.log(
-        `🔍 Price Analysis: Original: $${originalPrice}, Current: $${currentDiscountedPrice}, Target: $${newPrice}`
-      );
-
       // ✅ ENHANCED: Better price validation
       if (originalPrice <= 0 || currentDiscountedPrice <= 0) {
         showToast.error('Error', 'Invalid pricing data detected');
@@ -278,10 +265,6 @@ export function SubscriptionManager() {
       const totalDiscountAmount = originalPrice - newPrice;
       const percentOff = Math.round(
         (totalDiscountAmount / originalPrice) * 100
-      );
-
-      console.log(
-        `🎯 Creating coupon: Original: $${originalPrice}, Target: $${newPrice}, Total Discount: ${percentOff}%`
       );
 
       const response = await makeSecureRequest(
@@ -539,7 +522,7 @@ export function SubscriptionManager() {
         ),
         discountDetails:
           subscription.discountPercent && subscription.discountPercent > 0
-            ? {
+            ? subscription.discountDetails || {
                 id: 'legacy_discount',
                 name: subscription.discountName || 'Applied Discount',
                 percentOff: subscription.discountPercent,
@@ -660,24 +643,6 @@ export function SubscriptionManager() {
       }
       const result = await response.json();
       if (result.success) {
-        console.log('📊 Subscription details received:', result.subscription);
-        console.log('💰 [BILLING-DEBUG] Amount data:', {
-          subscriptionAmount: result.subscription.subscriptionAmount,
-          originalAmount: result.subscription.originalAmount,
-          discountPercent: result.subscription.discountPercent,
-          discountName: result.subscription.discountName,
-        });
-
-        // ✅ DEBUG: Log the stripeData calculation
-        const calculatedAmount =
-          result.subscription.subscriptionAmount || 14999;
-        console.log('💰 [STRIPE-DATA-DEBUG] Amount conversion FINAL FIX:', {
-          rawSubscriptionAmountCents: result.subscription.subscriptionAmount,
-          usedAmountCents: calculatedAmount,
-          displayAmount: (calculatedAmount / 100).toFixed(2),
-          conversionMethod: 'Database stores cents, use directly for display',
-        });
-
         setSubscription(result.subscription);
       } else {
         throw new Error(result.message || 'Failed to get subscription data');
@@ -706,9 +671,6 @@ export function SubscriptionManager() {
       !subscription.subscriptionAmount &&
       !isLoading
     ) {
-      console.log(
-        '🔄 [BILLING-AUTO-REFRESH] Incomplete subscription data detected, auto-refreshing...'
-      );
       // Small delay to avoid rapid-fire requests
       const timer = setTimeout(() => {
         fetchSubscriptionDetails();
@@ -734,18 +696,12 @@ export function SubscriptionManager() {
         if (syncResponse.ok) {
           showToast.success('🔄 Synced', 'Subscription data synchronized!');
         } else {
-          const syncData = await syncResponse.json();
-
           showToast.warning(
             '⚠️ Partial Sync',
             'Refreshing with available data...'
           );
         }
       } catch (syncError) {
-        console.log(
-          '⚠️ Sync error, proceeding with refresh anyway...',
-          syncError
-        );
         showToast.warning('⚠️ Sync Issue', 'Refreshing with available data...');
       }
 
@@ -901,7 +857,6 @@ export function SubscriptionManager() {
   const handleForceSync = async () => {
     try {
       setIsSyncing(true);
-      console.log('🚀 [FORCE-SYNC] Starting manual force sync...');
 
       const response = await makeSecureRequest('/api/subscription/force-sync', {
         method: 'POST',
@@ -913,7 +868,6 @@ export function SubscriptionManager() {
       const data = await response.json();
 
       if (data.success) {
-        console.log('✅ [FORCE-SYNC] Success:', data);
         showToast.success(
           '🎉 Sync Complete!',
           'Your subscription data has been forcefully synced from Stripe!'
@@ -922,14 +876,12 @@ export function SubscriptionManager() {
         // Refresh the subscription details to show updated data
         await fetchSubscriptionDetails();
       } else {
-        console.error('❌ [FORCE-SYNC] Error:', data);
         showToast.error(
           'Sync Failed',
           data.message || 'Failed to sync subscription data'
         );
       }
     } catch (err: any) {
-      console.error('❌ [FORCE-SYNC] Network Error:', err);
       showToast.error(
         'Sync Error',
         'Network error while syncing. Please try again.'
@@ -939,55 +891,108 @@ export function SubscriptionManager() {
     }
   };
 
-  // ✅ NEW: Add debug pricing function
-  const debugProductPricing = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/subscription/debug-product-pricing', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+  // ✅ NEW: Enhanced discount rendering function
+  const renderDiscountDetails = (discountDetails: DiscountDetails) => {
+    const isExpiring =
+      discountDetails.end &&
+      new Date(discountDetails.end) <
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Expires within 30 days
+    const hasExpired =
+      discountDetails.end && new Date(discountDetails.end) < new Date();
 
-      const data = await response.json();
+    return (
+      <div className='space-y-3'>
+        {/* Discount Header */}
+        <div className='flex items-center gap-2 flex-wrap'>
+          <div className='inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md'>
+            <Tag className='w-4 h-4' />
+            <span>{discountDetails.name}</span>
+          </div>
+          {hasExpired && (
+            <div className='inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded-full text-xs font-medium'>
+              <AlertTriangle className='w-3 h-3' />
+              Expired
+            </div>
+          )}
+          {isExpiring && !hasExpired && (
+            <div className='inline-flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full text-xs font-medium'>
+              <Clock className='w-3 h-3' />
+              Expiring Soon
+            </div>
+          )}
+        </div>
 
-      if (data.success) {
-        console.log('🔍 [PRICING-DEBUG] Full analysis:', data.analysis);
-        console.log(
-          '📊 [PRICING-DEBUG] Recommendations:',
-          data.recommendations
-        );
+        {/* Discount Amount */}
+        <div className='text-center'>
+          <div className='text-2xl font-bold text-emerald-600 dark:text-emerald-400'>
+            {discountDetails.percentOff && `${discountDetails.percentOff}% OFF`}
+            {discountDetails.amountOff &&
+              !discountDetails.percentOff &&
+              `$${(discountDetails.amountOff / 100).toFixed(2)} OFF`}
+          </div>
+          {discountDetails.duration && (
+            <div className='text-sm text-gray-600 dark:text-gray-400'>
+              Duration: {discountDetails.duration}
+              {discountDetails.durationInMonths &&
+                ` (${discountDetails.durationInMonths} months)`}
+            </div>
+          )}
+        </div>
 
-        const analysis = data.analysis;
-        const recommendations = data.recommendations;
+        {/* Discount Timeline */}
+        {(discountDetails.start || discountDetails.end) && (
+          <div className='bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-2'>
+            <div className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide'>
+              Discount Timeline
+            </div>
+            {discountDetails.start && (
+              <div className='flex justify-between text-sm'>
+                <span className='text-gray-600 dark:text-gray-400'>
+                  Started:
+                </span>
+                <span className='font-medium'>
+                  {new Date(discountDetails.start).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+            {discountDetails.end && (
+              <div className='flex justify-between text-sm'>
+                <span className='text-gray-600 dark:text-gray-400'>
+                  {hasExpired ? 'Expired:' : 'Expires:'}
+                </span>
+                <span
+                  className={`font-medium ${hasExpired ? 'text-red-600 dark:text-red-400' : isExpiring ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                >
+                  {new Date(discountDetails.end).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
-        if (!analysis.priceComparison.amountsMatch) {
-          showToast.error(
-            `Price mismatch! DB: $${(analysis.databaseData.storedAmount / 100).toFixed(2)} vs Stripe: $${(analysis.stripeSubscriptionData.currentPriceAmount / 100).toFixed(2)}`
-          );
-        } else {
-          showToast.success('Pricing data matches between database and Stripe');
-        }
-
-        // Show detailed info in console for debugging
-        console.table({
-          'Database Amount': `$${(analysis.databaseData.storedAmount / 100).toFixed(2)}`,
-          'Stripe Amount': `$${(analysis.stripeSubscriptionData.currentPriceAmount / 100).toFixed(2)}`,
-          'Product Name': analysis.productInformation.productName,
-          'Price ID': analysis.stripeSubscriptionData.currentPriceId,
-          'Discount %': analysis.databaseData.storedDiscountPercent + '%',
-          'Calculated Original': `$${(recommendations.correctOriginalAmount / 100).toFixed(2)}`,
-        });
-      } else {
-        showToast.error(data.error || 'Failed to debug pricing data');
-      }
-    } catch (error) {
-      console.error('Failed to debug pricing data:', error);
-      showToast.error('Failed to debug pricing data');
-    } finally {
-      setIsLoading(false);
-    }
+        {/* Additional Details */}
+        {(discountDetails.maxRedemptions ||
+          discountDetails.timesRedeemed !== undefined) && (
+          <div className='bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 space-y-2'>
+            <div className='text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide'>
+              Usage Statistics
+            </div>
+            {discountDetails.timesRedeemed !== undefined && (
+              <div className='flex justify-between text-sm'>
+                <span className='text-blue-600 dark:text-blue-400'>
+                  Times Used:
+                </span>
+                <span className='font-medium text-blue-700 dark:text-blue-300'>
+                  {discountDetails.timesRedeemed}
+                  {discountDetails.maxRedemptions &&
+                    ` / ${discountDetails.maxRedemptions}`}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -1219,6 +1224,13 @@ export function SubscriptionManager() {
                         </div>
                       </div>
 
+                      {/* ✅ NEW: Enhanced Discount Details */}
+                      {stripeData.discountDetails && (
+                        <div className='bg-gradient-to-r from-emerald-100/80 to-green-100/80 dark:from-emerald-800/20 dark:to-green-800/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-700/50'>
+                          {renderDiscountDetails(stripeData.discountDetails)}
+                        </div>
+                      )}
+
                       {/* Success Message */}
                       <div className='bg-gradient-to-r from-emerald-100/80 to-green-100/80 dark:from-emerald-800/20 dark:to-green-800/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-700/50'>
                         <div className='flex items-center gap-3'>
@@ -1303,14 +1315,6 @@ export function SubscriptionManager() {
                     <Switch
                       checked={stripeData.autoRenew}
                       onCheckedChange={checked => {
-                        console.log(
-                          '🔄 [SWITCH] Auto-renewal toggle clicked:',
-                          {
-                            currentValue: stripeData.autoRenew,
-                            newValue: checked,
-                            stripeData: stripeData,
-                          }
-                        );
                         handleToggleAutoRenew();
                       }}
                       className='data-[state=checked]:bg-green-500 scale-110 sm:scale-125'
@@ -1382,7 +1386,7 @@ export function SubscriptionManager() {
           isOpen={showCancellationFlow}
           onClose={() => setShowCancellationFlow(false)}
           onComplete={handleCancellationFlowComplete}
-          subscription={subscription}
+          subscription={subscription as any}
         />
       )}
     </div>
