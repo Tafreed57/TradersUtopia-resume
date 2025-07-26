@@ -44,6 +44,7 @@ export function SmartEntryButton({
     setIsProcessing(true);
 
     try {
+      await refetch();
       // ✅ OPTIMIZED: Check if auth data is stale and refresh if needed
       if (isStale()) {
         console.log('🔄 [SMART-ENTRY] Auth data is stale, refreshing...');

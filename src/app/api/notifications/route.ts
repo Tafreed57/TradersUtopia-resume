@@ -37,10 +37,10 @@ export async function GET(request: NextRequest) {
       user.userId
     );
     console.log('📬 [NOTIFICATIONS] Notification count:', notifications.length);
-    console.log(
-      '📬 [NOTIFICATIONS] Notifications:',
-      notifications.map(n => ({ id: n.id, type: n.type, title: n.title }))
-    );
+    // console.log(
+    //   '📬 [NOTIFICATIONS] Notifications:'
+    //   // notifications.map(n => ({ id: n.id, type: n.type, title: n.title }))
+    // );
 
     return NextResponse.json({
       notifications,
