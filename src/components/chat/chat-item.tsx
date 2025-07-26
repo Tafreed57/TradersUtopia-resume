@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/user/user-avatar';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store/store';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -159,11 +160,15 @@ export function ChatItem({
           {!fileUrl && !isEditing && (
             <div
               className={cn(
-                'text-sm sm:text-base text-gray-200 break-words whitespace-pre-wrap',
+                'text-sm sm:text-base text-gray-200 break-words',
                 deleted && 'italic text-gray-400 text-xs sm:text-sm mt-1'
               )}
             >
-              {content}
+              {deleted ? (
+                <span className='italic'>{content}</span>
+              ) : (
+                <MarkdownRenderer content={content} />
+              )}
               {isUpdated && !deleted && (
                 <span className='text-[10px] sm:text-xs text-gray-400 ml-1'>
                   (edited)

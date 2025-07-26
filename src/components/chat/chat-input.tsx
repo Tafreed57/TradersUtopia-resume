@@ -14,6 +14,7 @@ import { Member } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { useState, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ChatInputProps {
   apiUrl: string;
@@ -29,16 +30,9 @@ const formSchema = z.object({
 
 export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
   const onOpen = useStore(state => state.onOpen);
-  const router = useRouter();
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
-  const [lastMessageTime, setLastMessageTime] = useState(0);
-  const [remainingCooldown, setRemainingCooldown] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
-  const [isRateLimited, setIsRateLimited] = useState(false);
-  const [userMessage, setUserMessage] = useState('');
-  const [hasUserInput, setHasUserInput] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
 
@@ -82,15 +76,23 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      setIsLoading(true);
       const url = qs.stringifyUrl({
         url: apiUrl,
         query,
       });
 
-      // ✅ OPTIMIZATION: Remove router.refresh() to eliminate expensive page reloads
-      // The chat will update via other mechanisms (React Query, sockets, etc.)
+      // Send the message to the API
       await secureAxiosPost(url, values);
       form.reset();
+
+      // ✅ IMMEDIATE UI UPDATE: Refetch messages to show the new message instantly
+      const chatId = query.channelId;
+      if (chatId) {
+        await queryClient.invalidateQueries({
+          queryKey: [`chat:${chatId}`],
+        });
+      }
 
       // ✅ RESET: Find and reset textarea height after sending
       const textarea = document.querySelector(
@@ -100,10 +102,11 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
         textarea.style.height = 'auto';
         textarea.style.height = '52px';
       }
-
-      // ✅ PERFORMANCE: Removed router.refresh() - this was causing the slow message sending
-      // Messages will appear via React Query refetch or real-time updates
-    } catch (error) {}
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle keyboard events for multi-line input
