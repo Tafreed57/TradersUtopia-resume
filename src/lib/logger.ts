@@ -67,6 +67,9 @@ class Logger {
 // ✅ EXPORT: Single logger instance
 const logger = new Logger();
 
+// ✅ EXPORT THE LOGGER INSTANCE
+export { logger };
+
 // ✅ LEGACY SUPPORT: Replace common logging patterns
 export const conditionalLog = {
   productCheck: (message: string, data?: any) => logger.debug(message, data),
