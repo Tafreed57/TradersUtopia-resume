@@ -25,6 +25,8 @@ import {
   AlertTriangle,
   Clock,
   Tag,
+  Download,
+  Eye,
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
@@ -46,6 +48,23 @@ interface DiscountDetails {
   redeemBy?: string;
   timesRedeemed?: number;
   created?: string;
+}
+
+interface InvoiceData {
+  id: string;
+  number: string;
+  status: string;
+  created: string;
+  due_date?: string;
+  amount_paid: number;
+  amount_due: number;
+  total: number;
+  currency: string;
+  hosted_invoice_url?: string;
+  invoice_pdf?: string;
+  description?: string;
+  period_start?: string;
+  period_end?: string;
 }
 
 interface SubscriptionDetails {
@@ -111,6 +130,12 @@ export function SubscriptionManager() {
   const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [showCancellationFlow, setShowCancellationFlow] = useState(false);
+
+  // ✅ NEW: Invoice-related state
+  const [invoices, setInvoices] = useState<InvoiceData[]>([]);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const [hasLoadedInvoices, setHasLoadedInvoices] = useState(false);
 
   // Multi-step cancellation flow (legacy - keeping for backwards compatibility)
   const [cancelStep, setCancelStep] = useState<
@@ -396,14 +421,36 @@ export function SubscriptionManager() {
         };
       case 'cancelled':
         return {
-          bgColor: 'bg-red-100 dark:bg-red-900/30',
-          textColor: 'text-red-600',
-          textColorCls: 'text-red-600 dark:text-red-400',
-          title: 'Cancelled',
-          description: (date: string) =>
-            `Your subscription was cancelled on ${date}`,
+          bgColor:
+            'bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30',
+          textColor: 'text-orange-600',
+          textColorCls: 'text-orange-600 dark:text-orange-400',
+          title: 'Subscription Cancelled',
+          description: (date: string) => {
+            const endDate = stripeData?.currentPeriodEnd;
+            if (endDate) {
+              try {
+                const expiryDate = new Date(endDate);
+                const now = new Date();
+                const isExpired = expiryDate < now;
+
+                if (isExpired) {
+                  return `Your subscription expired on ${expiryDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Premium access has ended.`;
+                } else {
+                  const daysLeft = Math.ceil(
+                    (expiryDate.getTime() - now.getTime()) /
+                      (1000 * 60 * 60 * 24)
+                  );
+                  return `Access continues until ${expiryDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} (${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} remaining)`;
+                }
+              } catch (error) {
+                return 'Your subscription has been cancelled and will not renew';
+              }
+            }
+            return 'Your subscription has been cancelled and will not renew';
+          },
           Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-red-500 flex items-center justify-center'>
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center'>
               <svg
                 className='w-4 h-4 sm:w-5 sm:h-5 text-white'
                 fill='none'
@@ -414,7 +461,7 @@ export function SubscriptionManager() {
                   strokeLinecap='round'
                   strokeLinejoin='round'
                   strokeWidth={2}
-                  d='M6 18L18 6M6 6l12 12'
+                  d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z'
                 />
               </svg>
             </div>
@@ -580,18 +627,273 @@ export function SubscriptionManager() {
     }
   };
 
+  // ✅ NEW: Function to fetch invoices from Stripe
+  const fetchInvoices = async () => {
+    if (hasLoadedInvoices || isLoadingInvoices) return; // Don't fetch if already loaded or loading
+
+    setIsLoadingInvoices(true);
+    setInvoiceError(null);
+
+    try {
+      const response = await makeSecureRequest('/api/invoices', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch invoices: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setInvoices(data.invoices || []);
+        setHasLoadedInvoices(true);
+      } else {
+        throw new Error(data.error || 'Failed to load invoices');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching invoices:', error);
+      setInvoiceError(
+        error instanceof Error ? error.message : 'Failed to load invoices'
+      );
+      showToast.error('Error', 'Failed to load invoice history');
+    } finally {
+      setIsLoadingInvoices(false);
+    }
+  };
+
+  // ✅ UPDATED: Handle invoice history toggle with fetching
+  const handleInvoiceHistoryToggle = () => {
+    const newShowState = !showInvoiceHistory;
+    setShowInvoiceHistory(newShowState);
+
+    // If showing and we have an active subscription, fetch invoices
+    if (
+      newShowState &&
+      subscription?.status === 'ACTIVE' &&
+      !hasLoadedInvoices
+    ) {
+      fetchInvoices();
+    }
+  };
+
   const renderInvoices = () => {
-    return (
-      <div className='text-center py-6 sm:py-8'>
-        <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4'>
-          <CreditCard className='w-6 h-6 sm:w-8 sm:h-8 text-gray-400' />
+    // Loading state
+    if (isLoadingInvoices) {
+      return (
+        <div className='text-center py-6 sm:py-8'>
+          <div className='w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+            <Loader2 className='w-6 h-6 sm:w-8 sm:h-8 text-blue-500 animate-spin' />
+          </div>
+          <p className='text-blue-600 dark:text-blue-400 font-medium mb-2 text-sm sm:text-base'>
+            Loading invoices...
+          </p>
+          <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
+            Fetching your billing history from Stripe
+          </p>
         </div>
-        <p className='text-gray-600 dark:text-gray-400 font-medium mb-2 text-sm sm:text-base'>
-          No invoices available
-        </p>
-        <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
-          Your invoice history will appear here once generated
-        </p>
+      );
+    }
+
+    // Error state
+    if (invoiceError) {
+      return (
+        <div className='text-center py-6 sm:py-8'>
+          <div className='w-12 h-12 sm:w-16 sm:h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+            <AlertTriangle className='w-6 h-6 sm:w-8 sm:h-8 text-red-500' />
+          </div>
+          <p className='text-red-600 dark:text-red-400 font-medium mb-2 text-sm sm:text-base'>
+            Failed to load invoices
+          </p>
+          <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4'>
+            {invoiceError}
+          </p>
+          <Button
+            onClick={() => {
+              setHasLoadedInvoices(false);
+              fetchInvoices();
+            }}
+            variant='outline'
+            size='sm'
+            className='text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20'
+          >
+            <RefreshCw className='w-4 h-4 mr-2' />
+            Try Again
+          </Button>
+        </div>
+      );
+    }
+
+    // No invoices state
+    if (invoices.length === 0) {
+      return (
+        <div className='text-center py-6 sm:py-8'>
+          <div className='w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4'>
+            <CreditCard className='w-6 h-6 sm:w-8 sm:h-8 text-gray-400' />
+          </div>
+          <p className='text-gray-600 dark:text-gray-400 font-medium mb-2 text-sm sm:text-base'>
+            No invoices available
+          </p>
+          <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
+            Your invoice history will appear here once generated
+          </p>
+        </div>
+      );
+    }
+
+    // Display invoices in a table
+    const displayedInvoices = showFullHistory ? invoices : invoices.slice(0, 5);
+
+    return (
+      <div className='space-y-4'>
+        {/* Invoice Table */}
+        <div className='overflow-x-auto'>
+          <table className='w-full text-sm'>
+            <thead>
+              <tr className='border-b border-gray-200 dark:border-gray-700'>
+                <th className='text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300'>
+                  Invoice
+                </th>
+                <th className='text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 hidden sm:table-cell'>
+                  Date
+                </th>
+                <th className='text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300'>
+                  Amount
+                </th>
+                <th className='text-left py-3 px-2 font-semibold text-gray-700 dark:text-gray-300'>
+                  Status
+                </th>
+                <th className='text-right py-3 px-2 font-semibold text-gray-700 dark:text-gray-300'>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayedInvoices.map(invoice => (
+                <tr
+                  key={invoice.id}
+                  className='border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors'
+                >
+                  <td className='py-4 px-2'>
+                    <div>
+                      <div className='font-medium text-gray-900 dark:text-white'>
+                        {invoice.number || `#${invoice.id.slice(-8)}`}
+                      </div>
+                      {invoice.description && (
+                        <div className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+                          {invoice.description}
+                        </div>
+                      )}
+                      {/* Show date on mobile */}
+                      <div className='text-xs text-gray-500 dark:text-gray-400 mt-1 sm:hidden'>
+                        {new Date(invoice.created).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </td>
+                  <td className='py-4 px-2 text-gray-600 dark:text-gray-400 hidden sm:table-cell'>
+                    {new Date(invoice.created).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </td>
+                  <td className='py-4 px-2'>
+                    <div className='font-semibold text-gray-900 dark:text-white'>
+                      {formatCurrency(invoice.total, invoice.currency)}
+                    </div>
+                    {invoice.amount_due > 0 && (
+                      <div className='text-xs text-orange-600 dark:text-orange-400'>
+                        Due:{' '}
+                        {formatCurrency(invoice.amount_due, invoice.currency)}
+                      </div>
+                    )}
+                  </td>
+                  <td className='py-4 px-2'>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        invoice.status === 'paid'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                          : invoice.status === 'open'
+                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                            : invoice.status === 'void'
+                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                      }`}
+                    >
+                      {invoice.status.charAt(0).toUpperCase() +
+                        invoice.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className='py-4 px-2 text-right'>
+                    <div className='flex justify-end gap-2'>
+                      {invoice.hosted_invoice_url && (
+                        <Button
+                          onClick={() =>
+                            window.open(invoice.hosted_invoice_url, '_blank')
+                          }
+                          variant='ghost'
+                          size='sm'
+                          className='h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                          title='View Invoice'
+                        >
+                          <Eye className='w-4 h-4 text-blue-600 dark:text-blue-400' />
+                        </Button>
+                      )}
+                      {invoice.invoice_pdf && (
+                        <Button
+                          onClick={() =>
+                            window.open(invoice.invoice_pdf, '_blank')
+                          }
+                          variant='ghost'
+                          size='sm'
+                          className='h-8 w-8 p-0 hover:bg-green-50 dark:hover:bg-green-900/20'
+                          title='Download PDF'
+                        >
+                          <Download className='w-4 h-4 text-green-600 dark:text-green-400' />
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Show More/Less Button */}
+        {invoices.length > 5 && (
+          <div className='text-center pt-4 border-t border-gray-200 dark:border-gray-700'>
+            <Button
+              onClick={() => setShowFullHistory(!showFullHistory)}
+              variant='ghost'
+              size='sm'
+              className='text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+            >
+              {showFullHistory ? (
+                <>
+                  <ChevronUp className='w-4 h-4 mr-2' />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <ChevronDown className='w-4 h-4 mr-2' />
+                  Show All {invoices.length} Invoices
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Summary */}
+        <div className='bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mt-4'>
+          <div className='text-center text-sm text-gray-600 dark:text-gray-400'>
+            Showing {displayedInvoices.length} of {invoices.length} invoice
+            {invoices.length !== 1 ? 's' : ''}
+          </div>
+        </div>
       </div>
     );
   };
@@ -1140,6 +1442,124 @@ export function SubscriptionManager() {
                 Billing Details
               </h3>
             </div>
+
+            {/* ✅ NEW: Special Cancelled Subscription Section */}
+            {subscription?.status?.toLowerCase() === 'cancelled' && (
+              <div className='mb-6'>
+                <div className='bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-2 border-orange-200 dark:border-orange-700/50 rounded-2xl p-6 space-y-4'>
+                  {/* Header */}
+                  <div className='text-center'>
+                    <div className='inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full shadow-lg mb-3'>
+                      <AlertTriangle className='w-5 h-5' />
+                      <span className='font-bold text-lg'>
+                        Subscription Cancelled
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Status Message */}
+                  <div className='text-center space-y-3'>
+                    {stripeData?.currentPeriodEnd ? (
+                      (() => {
+                        const endDate = new Date(stripeData.currentPeriodEnd);
+                        const now = new Date();
+                        const isExpired = endDate < now;
+                        const daysLeft = Math.ceil(
+                          (endDate.getTime() - now.getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        );
+
+                        return (
+                          <div className='space-y-3'>
+                            <div className='text-lg sm:text-xl font-semibold text-orange-700 dark:text-orange-300'>
+                              {isExpired
+                                ? 'Your Premium Access Has Ended'
+                                : `${daysLeft} ${daysLeft === 1 ? 'Day' : 'Days'} of Premium Access Remaining`}
+                            </div>
+                            <div className='text-sm sm:text-base text-orange-600 dark:text-orange-400'>
+                              {isExpired ? (
+                                <>
+                                  Your subscription expired on{' '}
+                                  <strong>
+                                    {endDate.toLocaleDateString('en-US', {
+                                      month: 'long',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                    })}
+                                  </strong>
+                                </>
+                              ) : (
+                                <>
+                                  Access continues until{' '}
+                                  <strong>
+                                    {endDate.toLocaleDateString('en-US', {
+                                      month: 'long',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                    })}
+                                  </strong>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className='text-lg font-semibold text-orange-700 dark:text-orange-300'>
+                        Your subscription has been cancelled and will not renew
+                      </div>
+                    )}
+                  </div>
+
+                  {/* What This Means Section */}
+                  <div className='bg-white/80 dark:bg-gray-800/80 rounded-xl p-4 space-y-3'>
+                    <h4 className='font-semibold text-orange-800 dark:text-orange-200 flex items-center gap-2'>
+                      <Clock className='w-4 h-4' />
+                      What This Means
+                    </h4>
+                    <ul className='text-sm text-orange-700 dark:text-orange-300 space-y-2'>
+                      <li className='flex items-start gap-2'>
+                        <span className='text-orange-500 mt-0.5'>•</span>
+                        <span>
+                          Your subscription will not automatically renew
+                        </span>
+                      </li>
+                      <li className='flex items-start gap-2'>
+                        <span className='text-orange-500 mt-0.5'>•</span>
+                        <span>
+                          {stripeData?.currentPeriodEnd &&
+                          new Date(stripeData.currentPeriodEnd) > new Date()
+                            ? 'You retain full access until your current billing period ends'
+                            : 'Your premium access has ended - you now have free access only'}
+                        </span>
+                      </li>
+                      <li className='flex items-start gap-2'>
+                        <span className='text-orange-500 mt-0.5'>•</span>
+                        <span>
+                          You can reactivate anytime to restore full premium
+                          features
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Reactivation CTA */}
+                  <div className='text-center pt-2'>
+                    <Button
+                      onClick={() => (window.location.href = '/pricing')}
+                      className='bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105'
+                    >
+                      <Crown className='w-4 h-4 mr-2' />
+                      Reactivate Subscription
+                    </Button>
+                    <p className='text-xs text-orange-600 dark:text-orange-400 mt-2'>
+                      Restore full access to premium trading alerts and content
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {stripeData ? (
               <div className='space-y-4 sm:space-y-6'>
                 {/* Price Section */}
@@ -1299,28 +1719,44 @@ export function SubscriptionManager() {
                   </div>
                 </div>
 
-                {/* Auto-renewal Section */}
-                <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
-                  <div className='flex items-center justify-between gap-4'>
-                    <div className='flex-1'>
-                      <span className='text-gray-600 dark:text-gray-400 font-medium block text-sm sm:text-base'>
-                        Auto-renewal
-                      </span>
-                      <span className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
-                        {stripeData.autoRenew
-                          ? 'Subscription will auto-renew'
-                          : 'Will expire at period end'}
-                      </span>
+                {/* Auto-renewal Section - Hide for cancelled subscriptions */}
+                {subscription?.status?.toLowerCase() !== 'cancelled' && (
+                  <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
+                    <div className='flex items-center justify-between gap-4'>
+                      <div className='flex-1'>
+                        <span className='text-gray-600 dark:text-gray-400 font-medium block text-sm sm:text-base'>
+                          Auto-renewal
+                        </span>
+                        <span className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
+                          {stripeData.autoRenew
+                            ? 'Subscription will auto-renew'
+                            : 'Will expire at period end'}
+                        </span>
+                      </div>
+                      <Switch
+                        checked={stripeData.autoRenew}
+                        onCheckedChange={checked => {
+                          handleToggleAutoRenew();
+                        }}
+                        className='data-[state=checked]:bg-green-500 scale-110 sm:scale-125'
+                      />
                     </div>
-                    <Switch
-                      checked={stripeData.autoRenew}
-                      onCheckedChange={checked => {
-                        handleToggleAutoRenew();
-                      }}
-                      className='data-[state=checked]:bg-green-500 scale-110 sm:scale-125'
-                    />
                   </div>
-                </div>
+                )}
+
+                {/* ✅ NEW: Cancelled Subscription Message */}
+                {subscription?.status?.toLowerCase() === 'cancelled' && (
+                  <div className='bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700/50 rounded-xl p-3 sm:p-4'>
+                    <div className='text-center'>
+                      <div className='text-orange-700 dark:text-orange-300 font-medium text-sm sm:text-base mb-1'>
+                        Subscription Status: Cancelled
+                      </div>
+                      <div className='text-xs sm:text-sm text-orange-600 dark:text-orange-400'>
+                        This subscription will not renew and billing has stopped
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className='text-center py-6 sm:py-8'>
@@ -1353,13 +1789,16 @@ export function SubscriptionManager() {
         <div className='relative z-10'>
           <div
             className='flex items-center justify-between cursor-pointer group'
-            onClick={() => setShowInvoiceHistory(!showInvoiceHistory)}
+            onClick={handleInvoiceHistoryToggle}
           >
             <div className='flex items-center gap-3'>
               <div className='w-3 h-3 bg-gray-500 rounded-full'></div>
               <h3 className='font-bold text-lg sm:text-xl text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors'>
                 Invoice History
               </h3>
+              {isLoadingInvoices && (
+                <Loader2 className='w-4 h-4 text-blue-500 animate-spin' />
+              )}
             </div>
             <div className='flex items-center gap-2'>
               <span className='text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:block'>

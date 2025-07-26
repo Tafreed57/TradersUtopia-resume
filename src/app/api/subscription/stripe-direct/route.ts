@@ -66,23 +66,30 @@ export async function POST(request: NextRequest) {
       `🔍 [STRIPE-DIRECT] Fetching subscription for customer: ${profile.stripeCustomerId}`
     );
 
-    // Fetch active subscriptions directly from Stripe
+    // ✅ FIXED: Fetch all subscriptions to handle cancelled ones too
     const subscriptions = await stripe.subscriptions.list({
       customer: profile.stripeCustomerId,
-      status: 'active',
-      limit: 1,
+      limit: 10, // Get more to find the most relevant one
       expand: ['data.latest_invoice', 'data.items.data.price'],
     });
 
-    if (subscriptions.data.length === 0) {
-      console.log('❌ [STRIPE-DIRECT] No active subscription found');
+    // ✅ FIXED: Find active subscription OR cancelled subscription still within paid period
+    const subscription =
+      subscriptions.data.find(
+        (sub: any) =>
+          sub.status === 'active' ||
+          (sub.status === 'canceled' &&
+            sub.current_period_end &&
+            new Date(sub.current_period_end * 1000) > new Date())
+      ) || subscriptions.data[0]; // Fallback to most recent subscription
+
+    if (!subscription) {
+      console.log('❌ [STRIPE-DIRECT] No subscription found');
       return NextResponse.json({
         success: false,
-        error: 'No active subscription found',
+        error: 'No subscription found',
       });
     }
-
-    const subscription = subscriptions.data[0];
     const price = subscription.items.data[0]?.price;
     const productId = price?.product;
 

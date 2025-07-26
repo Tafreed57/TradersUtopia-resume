@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
       new Date(profile.subscriptionEnd) > new Date() &&
       (profile.subscriptionStatus === 'ACTIVE' || profile.subscriptionAmount);
 
-    const subscriptionStatus = hasActiveSubscription
+    let subscriptionStatus = hasActiveSubscription
       ? 'ACTIVE'
       : profile.subscriptionStatus || 'INACTIVE';
 
@@ -195,33 +195,55 @@ export async function GET(request: NextRequest) {
           console.dir(stripeSubscription, { depth: null });
         } else if (profile.stripeCustomerId) {
           // We don't have subscription ID, find it via customer
+          // ✅ FIXED: Get all subscriptions (not just active) to handle cancelled ones
           const subscriptions = await stripe.subscriptions.list({
             customer: profile.stripeCustomerId,
-            status: 'active',
-            limit: 1,
+            limit: 10, // Get more to find the most relevant one
             expand: ['data.discount.coupon', 'data.items.data.price'],
           });
 
-          if (subscriptions.data.length > 0) {
-            stripeSubscription = subscriptions.data[0];
+          // ✅ FIXED: Find active subscription OR cancelled subscription still within paid period
+          stripeSubscription =
+            subscriptions.data.find(
+              (sub: any) =>
+                sub.status === 'active' ||
+                (sub.status === 'canceled' &&
+                  sub.current_period_end &&
+                  new Date(sub.current_period_end * 1000) > new Date())
+            ) || subscriptions.data[0]; // Fallback to most recent subscription
+
+          if (stripeSubscription) {
             conditionalLog.subscriptionDetails(
-              `✅ [SUBSCRIPTION-DETAILS] Found active subscription: ${stripeSubscription.id}`
+              `✅ [SUBSCRIPTION-DETAILS] Found subscription: ${stripeSubscription.id} (status: ${stripeSubscription.status})`
             );
           } else {
             conditionalLog.subscriptionDetails(
-              `❌ [SUBSCRIPTION-DETAILS] No active subscription found for customer`
+              `❌ [SUBSCRIPTION-DETAILS] No subscription found for customer`
             );
-            stripeSubscription = null;
           }
         } else {
           stripeSubscription = null;
         }
 
-        if (stripeSubscription && stripeSubscription.status === 'active') {
+        // ✅ FIXED: Process both active and cancelled subscriptions
+        if (
+          stripeSubscription &&
+          (stripeSubscription.status === 'active' ||
+            stripeSubscription.status === 'canceled')
+        ) {
           const price = stripeSubscription.items.data[0]?.price;
           // ✅ FIX: Access discounts array instead of discount property
           const discounts = (stripeSubscription as any).discounts || [];
           const discount = discounts.length > 0 ? discounts[0] : null;
+
+          // ✅ NEW: Update subscription status based on Stripe data
+          if (stripeSubscription.status === 'canceled') {
+            conditionalLog.subscriptionDetails(
+              `🚫 [SUBSCRIPTION-DETAILS] Subscription is cancelled in Stripe`
+            );
+            // Update the subscription status to reflect cancellation
+            subscriptionInfo.status = 'CANCELLED';
+          }
 
           // ✅ DEBUG: Log the raw subscription data to see what Stripe is returning
           conditionalLog.subscriptionDetails(
@@ -321,6 +343,11 @@ export async function GET(request: NextRequest) {
             originalAmount: baseAmount,
             discountDetails,
             dataFreshness: 'stripe_fresh',
+            // ✅ NEW: Include cancellation data from Stripe
+            cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+            canceledAt: stripeSubscription.canceled_at
+              ? new Date(stripeSubscription.canceled_at * 1000).toISOString()
+              : null,
           } as any;
 
           // ✅ DEBUG: Log what we're about to store
@@ -381,6 +408,14 @@ export async function GET(request: NextRequest) {
         );
         // Continue with cached data if Stripe fetch fails
       }
+    }
+
+    // ✅ NEW: Update subscription status based on fresh Stripe data if available
+    if (subscriptionInfo.status === 'CANCELLED') {
+      subscriptionStatus = 'CANCELLED';
+      conditionalLog.subscriptionDetails(
+        `🚫 [SUBSCRIPTION-DETAILS] Updated subscription status to CANCELLED based on Stripe data`
+      );
     }
 
     let responseData: any = {
