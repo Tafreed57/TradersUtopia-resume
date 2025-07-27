@@ -3,8 +3,7 @@
 import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useAuth, useUser } from '@clerk/nextjs';
-import { useUnifiedAuth } from '@/contexts/unified-auth-provider';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 interface PricingButtonsProps {
   // ... existing code ...
@@ -15,17 +14,17 @@ export function PricingButtons(
     // ... existing code ...
   }: PricingButtonsProps
 ) {
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // ✅ OPTIMIZED: Use unified auth instead of making separate API call
+  // ✅ ENHANCED: Use extended user hook with comprehensive service data
   const {
+    isSignedIn,
+    user,
     hasAccess,
     subscriptionData,
     isLoading: authLoading,
-  } = useUnifiedAuth();
+  } = useExtendedUser();
 
   const handleFreeClick = async () => {
     setLoading(true);

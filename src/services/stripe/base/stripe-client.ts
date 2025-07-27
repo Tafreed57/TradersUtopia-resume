@@ -39,11 +39,7 @@ export class StripeClientService {
    * @throws {StripeConfigError} If any required environment variables are missing
    */
   static validateConfig(): void {
-    const required = [
-      'STRIPE_SECRET_KEY',
-      'STRIPE_WEBHOOK_SECRET',
-      // 'STRIPE_PUBLISHABLE_KEY',
-    ];
+    const required = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'];
 
     const missing = required.filter(key => !process.env[key]);
     if (missing.length > 0) {

@@ -2,20 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
-import { useUnifiedAuth } from '@/contexts/unified-auth-provider';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 import { Loader2 } from 'lucide-react';
 
 function AutoRouteAfterSignInClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentPath = usePathname();
-  const { isLoaded, isSignedIn, user } = useUser();
   const [isAutoRouting, setIsAutoRouting] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
 
-  // ✅ OPTIMIZED: Use unified auth instead of making separate API call
-  const { hasAccess, isLoading: authLoading, refetch } = useUnifiedAuth();
+  // ✅ ENHANCED: Use extended user hook with comprehensive service data
+  const {
+    isLoaded,
+    isSignedIn,
+    user,
+    hasAccess,
+    isLoading: authLoading,
+    refetch,
+  } = useExtendedUser();
 
   // Check if this is an auto-route scenario
   const shouldAutoRoute = searchParams.get('auto_route') === 'true';

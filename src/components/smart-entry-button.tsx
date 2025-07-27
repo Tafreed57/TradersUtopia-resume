@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { LogIn, Shield, Loader2 } from 'lucide-react';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { makeSecureRequest } from '@/lib/csrf-client';
-import { useUnifiedAuth } from '@/contexts/unified-auth-provider';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
 
 interface SmartEntryButtonProps {
@@ -30,7 +30,7 @@ export function SmartEntryButton({
     isLoading: authLoading,
     refetch,
     isStale,
-  } = useUnifiedAuth();
+  } = useExtendedUser();
 
   const handleEntryClick = async () => {
     if (!isLoaded) return;
