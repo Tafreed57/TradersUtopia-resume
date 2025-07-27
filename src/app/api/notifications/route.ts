@@ -12,13 +12,15 @@ const notificationActionSchema = z.object({
   notificationId: z.string().optional(),
   type: z
     .enum([
-      'MESSAGE',
-      'MENTION',
-      'SERVER_UPDATE',
-      'FRIEND_REQUEST',
+      'NEW_MESSAGE',
+      'ADMIN_ANNOUNCEMENT',
+      'SUBSCRIPTION_CANCELLED',
+      'SUBSCRIPTION_RENEWED',
+      'SUBSCRIPTION_PAST_DUE',
+      'DISCOUNT_APPLIED',
+      'PAYMENT_FAILED',
+      'TRIAL_ENDING',
       'SYSTEM',
-      'PAYMENT',
-      'SECURITY',
     ])
     .optional(),
   title: z.string().optional(),

@@ -14,26 +14,6 @@ const autoRenewalSchema = z.object({
 });
 
 /**
- * Subscription Auto-Renewal Toggle API
- *
- * BEFORE: 202 lines with extensive boilerplate
- * - Rate limiting (10+ lines)
- * - Authentication (10+ lines)
- * - Manual validation (15+ lines)
- * - Complex profile lookup (20+ lines)
- * - Manual Stripe API calls (40+ lines)
- * - Cache optimization logic (50+ lines)
- * - Manual notification creation (20+ lines)
- * - Error handling (25+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 85% boilerplate elimination
- * - Centralized subscription management
- * - Simplified Stripe integration
- * - Enhanced audit logging
- */
-
-/**
  * Toggle Auto-Renewal
  * Updates subscription cancellation settings with notification
  */
@@ -69,7 +49,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     // Step 4: Create notification about the change
     await notificationService.createNotification({
       userId: user.id,
-      type: 'PAYMENT',
+      type: 'SUBSCRIPTION_RENEWED',
       title: `Auto-renewal ${autoRenew ? 'Re-enabled' : 'Disabled'}`,
       message: autoRenew
         ? `🎉 Great! Your subscription will now automatically renew. You're all set!`

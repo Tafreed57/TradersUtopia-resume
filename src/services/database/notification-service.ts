@@ -2,6 +2,7 @@ import { BaseDatabaseService } from './base-service';
 import { Notification } from '../types';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { NotFoundError, ValidationError, maskId } from '@/lib/error-handling';
+import { NotificationType } from '@prisma/client';
 
 /**
  * NotificationService
@@ -115,16 +116,7 @@ export class NotificationService extends BaseDatabaseService {
    */
   async createNotification(data: {
     userId: string;
-    type:
-      | 'NEW_MESSAGE'
-      | 'ADMIN_ANNOUNCEMENT'
-      | 'SUBSCRIPTION_CANCELLED'
-      | 'SUBSCRIPTION_RENEWED'
-      | 'SUBSCRIPTION_PAST_DUE'
-      | 'DISCOUNT_APPLIED'
-      | 'PAYMENT_FAILED'
-      | 'TRIAL_ENDING'
-      | 'SYSTEM';
+    type: NotificationType;
     title: string;
     message: string;
     actionUrl?: string;

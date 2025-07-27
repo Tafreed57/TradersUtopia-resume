@@ -104,7 +104,7 @@ export const POST = withAuth(async (req: NextRequest, { user, userEmail }) => {
   // Step 7: Create notification for user
   await createNotification({
     userId: user.id,
-    type: 'PAYMENT',
+    type: 'SUBSCRIPTION_CANCELLED',
     title: 'Subscription Cancellation Scheduled',
     message: `Your subscription has been set to cancel at the end of your current billing period on ${subscriptionStatus.nextBillingDate?.toLocaleDateString()}.`,
   });

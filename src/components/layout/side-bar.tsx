@@ -53,7 +53,7 @@ export async function SideBar() {
               key={server.id}
               name={server.name}
               id={server.id}
-              imageUrl={server.imageUrl}
+              imageUrl={server.imageUrl ?? null}
             />
           ))}
         </div>

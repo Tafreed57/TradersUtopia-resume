@@ -4,10 +4,11 @@ import { getServer } from '@/lib/query';
 import { ServerHeader } from '@/components/layout/server-header';
 import { Separator } from '@/components/ui/separator';
 import { Hash } from 'lucide-react';
-import { ChannelType } from '@prisma/client';
+import { ChannelType, Role } from '@prisma/client';
 import { ServerSearch } from '@/components/server-search';
 import { SectionContent } from '@/components/section-content';
 import { DragDropProvider } from '@/contexts/drag-drop-provider';
+import { ServerWithMembersWithUsers } from '@/types/server';
 
 interface ServerSideBarProps {
   serverId: string;
@@ -30,7 +31,7 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
   }
 
   const role = server?.members?.find(
-    member => member.profileId === profile.id
+    member => member.user.id === profile.id
   )?.role;
 
   const channelsWithoutSection = server.channels.filter(
@@ -43,7 +44,7 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
       label: 'Text Channels',
       type: 'channel' as const,
       data: server.channels?.map(channel => ({
-        icon: iconMap[channel.type],
+        icon: iconMap[channel.type as keyof typeof iconMap],
         id: channel.id,
         name: channel.name,
       })),
@@ -63,7 +64,10 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
     <DragDropProvider>
       <div className='flex flex-col h-full text-primary w-full bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-r border-gray-700/30 overflow-visible'>
         <div className='flex-shrink-0 bg-gradient-to-r from-gray-800/50 to-gray-700/50 backdrop-blur-sm border-b border-gray-600/30 relative z-50 overflow-visible'>
-          <ServerHeader server={server} role={role} />
+          <ServerHeader
+            server={server as ServerWithMembersWithUsers}
+            role={role as Role}
+          />
           <div className='px-4 pb-3'>
             <Separator className='h-[1px] bg-gradient-to-r from-transparent via-gray-600/50 to-transparent' />
           </div>
@@ -85,7 +89,7 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
 
             <SectionContent
               server={server}
-              role={role}
+              role={role as Role}
               channelsWithoutSection={channelsWithoutSection}
               sectionsWithChannels={sectionsWithChannels}
             />

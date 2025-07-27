@@ -42,7 +42,7 @@ export class StripeClientService {
     const required = [
       'STRIPE_SECRET_KEY',
       'STRIPE_WEBHOOK_SECRET',
-      'STRIPE_PUBLISHABLE_KEY',
+      // 'STRIPE_PUBLISHABLE_KEY',
     ];
 
     const missing = required.filter(key => !process.env[key]);

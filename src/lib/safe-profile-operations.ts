@@ -1,45 +1,46 @@
-import { db } from '@/lib/db';
+import { UserService } from '@/services/database/user-service';
+import { apiLogger, logger } from '@/lib/enhanced-logger';
+import { maskId } from '@/lib/error-handling';
 
 /**
- * Safely grant admin access, handling potential duplicates
+ * Safely grant admin access using the centralized UserService
  */
 export async function safeGrantAdmin(targetUserId: string): Promise<boolean> {
   try {
-    // Find all profiles for this user
-    const allProfiles = await db.profile.findMany({
-      where: { userId: targetUserId },
-    });
+    const userService = new UserService();
 
-    if (allProfiles.length === 0) {
-      console.error(
-        `❌ [SAFE_ADMIN] No profiles found for user: ${targetUserId}`
-      );
+    // Find the user first
+    const user = await userService.findByUserIdOrEmail(targetUserId);
+
+    if (!user) {
+      apiLogger.databaseOperation('safe_grant_admin_failed', false, {
+        userId: maskId(targetUserId),
+        reason: 'User not found',
+      });
       return false;
     }
 
-    if (allProfiles.length === 1) {
-      // Simple case - update the single profile
-      await db.profile.update({
-        where: { id: allProfiles[0].id },
-        data: { isAdmin: true },
+    // If already admin, return true
+    if (user.isAdmin) {
+      apiLogger.adminAction('grant_admin_already_admin', 'system', user.email, {
+        userId: maskId(targetUserId),
       });
       return true;
     }
 
-    // Multiple profiles - update all of them to ensure consistency
-    for (const profile of allProfiles) {
-      await db.profile.update({
-        where: { id: profile.id },
-        data: { isAdmin: true },
-      });
-    }
+    // Grant admin status
+    await userService.updateUser(user.id, { isAdmin: true });
+
+    apiLogger.adminAction('grant_admin_success', 'system', user.email, {
+      userId: maskId(targetUserId),
+    });
 
     return true;
   } catch (error) {
-    console.error(
-      `❌ [SAFE_ADMIN] Error granting admin to ${targetUserId}:`,
-      error
-    );
+    logger.error('Safe grant admin error', {
+      userId: maskId(targetUserId),
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return false;
   }
 }

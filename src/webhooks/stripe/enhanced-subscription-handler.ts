@@ -58,7 +58,7 @@ export class StripeSubscriptionHandler {
    */
   async handleCustomerSubscriptionUpdated(event: Stripe.Event): Promise<void> {
     const subscription = event.data.object as Stripe.Subscription;
-    const previousAttributes = event.data.previous_attributes;
+    const previousAttributes = event.data.previous_attributes as any;
 
     apiLogger.webhookEvent('stripe', 'subscription.updated', {
       subscriptionId: subscription.id,
@@ -572,7 +572,8 @@ export class StripeSubscriptionHandler {
   private async sendWelcomeNotification(customerId: string): Promise<void> {
     try {
       await createNotification({
-        type: 'SUBSCRIPTION_WELCOME',
+        userId: customerId,
+        type: 'SUBSCRIPTION_RENEWED',
         title: 'Welcome to Premium!',
         message:
           'Your premium subscription is now active. Enjoy exclusive access!',
@@ -594,7 +595,8 @@ export class StripeSubscriptionHandler {
   ): Promise<void> {
     try {
       await createNotification({
-        type: 'SUBSCRIPTION_STATUS_CHANGE',
+        userId: customerId,
+        type: 'SUBSCRIPTION_RENEWED',
         title: 'Subscription Status Updated',
         message: `Your subscription status changed from ${oldStatus} to ${newStatus}`,
         metadata: { customerId, oldStatus, newStatus },
@@ -613,6 +615,7 @@ export class StripeSubscriptionHandler {
   ): Promise<void> {
     try {
       await createNotification({
+        userId: customerId,
         type: 'SUBSCRIPTION_CANCELLED',
         title: 'Subscription Cancelled',
         message:
@@ -633,7 +636,8 @@ export class StripeSubscriptionHandler {
   ): Promise<void> {
     try {
       await createNotification({
-        type: 'SUBSCRIPTION_PAUSED',
+        userId: customerId,
+        type: 'SUBSCRIPTION_RENEWED',
         title: 'Subscription Paused',
         message:
           'Your subscription has been paused. Premium access is temporarily disabled.',
@@ -653,7 +657,8 @@ export class StripeSubscriptionHandler {
   ): Promise<void> {
     try {
       await createNotification({
-        type: 'SUBSCRIPTION_RESUMED',
+        userId: customerId,
+        type: 'SUBSCRIPTION_RENEWED',
         title: 'Subscription Resumed',
         message: 'Your subscription has been resumed. Welcome back to premium!',
         metadata: { customerId },
@@ -674,6 +679,7 @@ export class StripeSubscriptionHandler {
     try {
       const endDate = new Date(trialEnd * 1000);
       await createNotification({
+        userId: customerId,
         type: 'TRIAL_ENDING',
         title: 'Trial Ending Soon',
         message: `Your trial ends on ${endDate.toLocaleDateString()}. Subscribe to continue enjoying premium features!`,
@@ -696,7 +702,8 @@ export class StripeSubscriptionHandler {
     try {
       const formattedAmount = (amount / 100).toFixed(2);
       await createNotification({
-        type: 'PAYMENT_SUCCESS',
+        userId: customerId,
+        type: 'SUBSCRIPTION_RENEWED',
         title: 'Payment Successful',
         message: `Your payment of ${formattedAmount} ${currency.toUpperCase()} was processed successfully.`,
         metadata: { customerId, amount, currency },
@@ -723,6 +730,7 @@ export class StripeSubscriptionHandler {
       }
 
       await createNotification({
+        userId: customerId,
         type: 'PAYMENT_FAILED',
         title: 'Payment Failed',
         message,
@@ -743,7 +751,8 @@ export class StripeSubscriptionHandler {
   ): Promise<void> {
     try {
       await createNotification({
-        type: 'PAYMENT_ACTION_REQUIRED',
+        userId: customerId,
+        type: 'SUBSCRIPTION_RENEWED',
         title: 'Payment Action Required',
         message:
           'Your payment requires additional authentication. Please complete the payment process.',
@@ -769,7 +778,8 @@ export class StripeSubscriptionHandler {
       const formattedAmount = (amount / 100).toFixed(2);
       const endDate = new Date(periodEnd * 1000);
       await createNotification({
-        type: 'UPCOMING_INVOICE',
+        userId: customerId,
+        type: 'SUBSCRIPTION_PAST_DUE',
         title: 'Upcoming Payment',
         message: `Your next payment of ${formattedAmount} ${currency.toUpperCase()} is due on ${endDate.toLocaleDateString()}.`,
         metadata: { customerId, amount, currency, periodEnd },

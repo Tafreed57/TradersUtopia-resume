@@ -73,6 +73,7 @@ export class MessageService extends BaseDatabaseService {
           member: {
             include: {
               user: true,
+              role: true,
             },
           },
           attachments: {
@@ -193,6 +194,7 @@ export class MessageService extends BaseDatabaseService {
           member: {
             include: {
               user: true,
+              role: true,
             },
           },
           attachments: true,
@@ -293,6 +295,7 @@ export class MessageService extends BaseDatabaseService {
           member: {
             include: {
               user: true,
+              role: true,
             },
           },
           attachments: true,
@@ -381,6 +384,7 @@ export class MessageService extends BaseDatabaseService {
           member: {
             include: {
               user: true,
+              role: true,
             },
           },
           attachments: true,
@@ -432,6 +436,7 @@ export class MessageService extends BaseDatabaseService {
           member: {
             include: {
               user: true,
+              role: true,
             },
           },
           attachments: true,
@@ -522,6 +527,7 @@ export class MessageService extends BaseDatabaseService {
           member: {
             include: {
               user: true,
+              role: true,
             },
           },
           attachments: true,

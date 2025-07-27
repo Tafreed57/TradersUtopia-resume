@@ -10,7 +10,11 @@ import {
 } from '@/lib/query';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
-import { ServerWithMembersWithProfiles } from '@/types/server';
+import {
+  MemberWithUserAndRole,
+  ServerWithMembersWithUsers,
+} from '@/types/server';
+import { Role } from '@prisma/client';
 
 interface ChannelIdPageProps {
   params: {
@@ -70,8 +74,8 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
           serverId={channel?.serverId}
           type='channel'
           channelId={channel?.id}
-          server={server as ServerWithMembersWithProfiles}
-          role={member?.roleId}
+          server={server as ServerWithMembersWithUsers}
+          role={member?.role as Role}
           servers={servers?.map(server => ({
             id: server.id,
             name: server.name,
@@ -83,7 +87,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
         <div className='flex-1 relative z-10 overflow-visible'>
           <ChatMessages
             chatId={channel.id}
-            member={member}
+            member={member as MemberWithUserAndRole}
             name={channel.name}
             type='channel'
             apiUrl='/api/messages'
@@ -104,7 +108,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
             channelId: channel.id,
             serverId: channel.serverId,
           }}
-          member={member}
+          member={member as MemberWithUserAndRole}
         />
 
         {/* ✅ REMOVED: Audio and Video channel MediaRoom components */}

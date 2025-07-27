@@ -6,7 +6,7 @@ import { apiLogger } from '@/lib/enhanced-logger';
 import { validateInput, serverCreationSchema } from '@/lib/validation';
 import { ValidationError } from '@/lib/error-handling';
 import { v4 as uuidv4 } from 'uuid';
-import { prisma } from '@/lib/prismadb';
+// Removed prismadb import - using centralized services
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';

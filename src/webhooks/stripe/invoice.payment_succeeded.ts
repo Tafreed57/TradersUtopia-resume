@@ -1,43 +1,60 @@
-import { db } from '@/lib/db';
 import Stripe from 'stripe';
+import { apiLogger } from '@/lib/enhanced-logger';
+import { SubscriptionSyncService } from '@/services/subscription-sync-service';
 
 export const invoicePaymentSucceeded = async (event: any) => {
-  console.log('invoicePaymentSucceeded', event);
   const successfulInvoice = event.data.object as Stripe.Invoice;
-  console.log(`💳 Payment succeeded for invoice: ${successfulInvoice.id}`);
+
+  apiLogger.subscriptionEvent('invoice_payment_succeeded', {
+    invoiceId: successfulInvoice.id,
+    customerId: successfulInvoice.customer,
+    subscriptionId: (successfulInvoice as any).subscription,
+  });
 
   try {
-    // ⚡ OPTIMIZATION: Use invoice data directly instead of API call
+    // ⚡ OPTIMIZATION: Use invoice data directly and sync with centralized service
     if (successfulInvoice.customer) {
       console.log(
-        `⚡ [WEBHOOK-OPTIMIZED] Processing payment success using invoice data only`
+        `⚡ [WEBHOOK-OPTIMIZED] Processing payment success using centralized services`
       );
 
-      // Update subscription status using invoice data - no API call needed
-      const updateResult = await db.profile.updateMany({
-        where: {
-          stripeCustomerId: successfulInvoice.customer as string,
-          stripeSubscriptionId: successfulInvoice.id,
-        },
-        data: {
-          subscriptionStatus: 'ACTIVE',
+      // Initialize subscription sync service
+      const subscriptionSyncService = new SubscriptionSyncService();
 
-          updatedAt: new Date(),
-        },
-      });
+      // Sync subscription from successful invoice payment
+      const subscription =
+        await subscriptionSyncService.syncSubscriptionFromInvoice(
+          successfulInvoice
+        );
+
+      if (subscription) {
+        // Update user access to ensure they have proper permissions
+        await subscriptionSyncService.updateUserAccess(
+          successfulInvoice.customer as string
+        );
+
+        console.log(
+          `✅ [WEBHOOK-OPTIMIZED] Successfully updated subscription after payment`
+        );
+      }
 
       console.log(
-        `✅ [WEBHOOK-OPTIMIZED] Updated ${updateResult.count} profile(s) after successful payment`
+        `💳 [WEBHOOK-OPTIMIZED] Payment succeeded for invoice: ${successfulInvoice.id}`
       );
       console.log(
-        `⚡ [WEBHOOK-OPTIMIZED] Payment success processed with zero API calls`
+        `⚡ [PERFORMANCE] Using centralized services for payment success handling`
       );
     } else {
       console.log(
-        `⚠️ [WEBHOOK] Invoice missing subscription or customer data, skipping update`
+        `⚠️ [WEBHOOK] Invoice missing customer data, skipping update`
       );
     }
   } catch (error) {
     console.error('Error updating subscription after payment:', error);
+    apiLogger.databaseOperation('payment_success_handling', false, {
+      invoiceId: successfulInvoice.id,
+      customerId: successfulInvoice.customer,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 };

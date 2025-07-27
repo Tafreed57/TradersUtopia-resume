@@ -9,7 +9,7 @@ import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store/store';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Member, MemberRole, Profile } from '@prisma/client';
+import { Member, Role, User } from '@prisma/client';
 import { secureAxiosPatch } from '@/lib/csrf-client';
 import { Edit, FileText, ShieldAlert, ShieldCheck, Trash } from 'lucide-react';
 import NextImage from 'next/image';
@@ -22,17 +22,26 @@ import z from 'zod';
 interface ChatItemProps {
   id: string;
   content: string;
-  member: Member & { profile: Profile };
+  member: Member & {
+    user: User;
+    role: Role;
+  };
   timestamp: string;
   fileUrl: string | null;
   deleted: boolean;
-  currentMember: Member;
+  currentMember: Member & {
+    user: User;
+    role: Role;
+  };
   isUpdated: boolean;
   socketUrl: string;
   socketQuery: Record<string, string>;
 }
 
-const roleIconMap = {
+const roleIconMap: Record<string, React.ReactNode> = {
+  free: null,
+  premium: <ShieldCheck className='w-4 ml-2 h-4 text-indigo-500' />,
+  // For backwards compatibility, also support these role names
   GUEST: null,
   ADMIN: <ShieldAlert className='w-4 h-4 ml-2 text-rose-500' />,
   MODERATOR: <ShieldCheck className='w-4 ml-2 h-4 text-indigo-500' />,
@@ -69,8 +78,9 @@ export function ChatItem({
 
   const isLoading2 = form.formState.isSubmitting;
 
-  const isAdmin = currentMember.role === MemberRole.ADMIN;
-  const isModerator = currentMember.role === MemberRole.MODERATOR;
+  // Check if user is admin based on User.isAdmin field
+  const isAdmin = currentMember.user.isAdmin;
+  const isModerator = currentMember.role.name === 'premium'; // Premium users might have moderation rights
   const isOwner = currentMember.id === member.id;
   const canDeleteMessage = !deleted && (isAdmin || isModerator || isOwner);
   const canEditMessage = !deleted && isOwner && !fileUrl;
@@ -114,7 +124,7 @@ export function ChatItem({
       <div className='group flex gap-x-2 sm:gap-x-3 items-start w-full'>
         <div className='flex-shrink-0'>
           <UserAvatar
-            src={member.profile.imageUrl ?? undefined}
+            src={member.user.imageUrl ?? undefined}
             className='h-8 w-8 sm:h-10 sm:w-10'
           />
         </div>
@@ -122,10 +132,11 @@ export function ChatItem({
           <div className='flex items-center gap-x-2 flex-wrap'>
             <div className='flex items-center gap-x-1'>
               <div className='font-semibold text-sm sm:text-base text-white truncate'>
-                {member.profile.name}
+                {member.user.name}
               </div>
-              <ActionTooltip label={member.role}>
-                {roleIconMap[member.role]}
+              <ActionTooltip label={member.role.name}>
+                {roleIconMap[member.role.name] ||
+                  roleIconMap[member.role.name.toUpperCase()]}
               </ActionTooltip>
             </div>
             <span className='text-xs text-gray-400 flex-shrink-0'>

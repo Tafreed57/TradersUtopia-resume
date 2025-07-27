@@ -6,7 +6,7 @@ import { ServerSideBar } from '@/components/layout/server-side-bar';
 import { ProductPaymentGate } from '@/components/product-payment-gate';
 import { getCurrentProfileWithSync, getServer } from '@/lib/query';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
-import { ServerWithMembersWithProfiles } from '@/types/server';
+import { ServerWithMembersWithUsers } from '@/types/server';
 
 const ServerIdLayout = async ({
   children,
@@ -38,7 +38,7 @@ const ServerIdLayout = async ({
           <ServerSideBar serverId={params.serverId} />
         </div>
         <main className='h-full md:pl-60'>
-          <ServerHeader server={server as ServerWithMembersWithProfiles} />
+          <ServerHeader server={server as ServerWithMembersWithUsers} />
           {children}
         </main>
       </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, withOptionalAuth } from '@/middleware/auth-middleware';
+import { withOptionalAuth } from '@/middleware/auth-middleware';
 import { CustomerService } from '@/services/stripe/customer-service';
 import { SubscriptionService } from '@/services/stripe/subscription-service';
 import { UserService } from '@/services/database/user-service';
@@ -120,9 +120,8 @@ export const POST = withOptionalAuth(
 
     try {
       // First check if we have recent valid subscription data
-      const userWithSubscription = await userService.findWithSubscriptionData(
-        user.userId
-      );
+      const userWithSubscription =
+        await userService.findUserWithSubscriptionData(user.userId);
 
       // TODO: Once subscription model is properly set up, check for recent valid data
       // For now, always check Stripe for the most accurate data

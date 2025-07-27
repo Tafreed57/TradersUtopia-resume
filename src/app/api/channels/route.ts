@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, authHelpers } from '@/middleware/auth-middleware';
 import { ChannelService } from '@/services/database/channel-service';
+import { ServerService } from '@/services/database/server-service';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { ValidationError } from '@/lib/error-handling';
-import { prisma } from '@/lib/prismadb';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -50,6 +50,7 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
   }
 
   const channelService = new ChannelService();
+  const serverService = new ServerService();
 
   // Step 1: Create channel using service layer (includes validation, positioning, and access checks)
   const channelData = {
@@ -65,23 +66,11 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     user.id
   );
 
-  // Step 2: Return the updated server structure (maintain API compatibility)
-  const server = await prisma.server.findFirst({
-    where: { id: serverId },
-    include: {
-      channels: {
-        orderBy: { position: 'asc' },
-      },
-      sections: {
-        include: {
-          channels: {
-            orderBy: { position: 'asc' },
-          },
-        },
-        orderBy: { position: 'asc' },
-      },
-    },
-  });
+  // Step 2: Return the updated server structure using ServerService
+  const server = await serverService.findServerWithMemberAccess(
+    serverId,
+    user.id
+  );
 
   apiLogger.databaseOperation('channel_created_via_api', true, {
     channelId: createdChannel.id.substring(0, 8) + '***',

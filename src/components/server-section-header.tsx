@@ -1,8 +1,7 @@
 'use client';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
-import { useStore } from '@/store/store';
-import { ServerWithMembersWithProfiles } from '@/types/server';
-import { ChannelType, MemberRole, Section, Channel } from '@prisma/client';
+import { ServerWithMembersWithUsers } from '@/types/server';
+import { ChannelType, Role, Section, Channel } from '@prisma/client';
 import {
   Plus,
   Settings,
@@ -23,13 +22,14 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
 import { useDragDrop } from '@/contexts/drag-drop-provider';
+import { useStore } from '@/store/store';
 
 interface ServerSectionHeaderProps {
   label: string;
-  role?: MemberRole;
+  role?: Role;
   sectionType: 'channels' | 'section';
   channelType?: ChannelType;
-  server?: ServerWithMembersWithProfiles;
+  server?: ServerWithMembersWithUsers;
   section?: Section & { channels: Channel[] };
   position?: number;
 }
@@ -47,8 +47,8 @@ export function ServerSectionHeader({
   const onOpen = useStore(state => state.onOpen);
   const [isHovered, setIsHovered] = useState(false);
 
-  const isAdmin = role === MemberRole.ADMIN;
-  const isModerator = role === MemberRole.MODERATOR;
+  const isAdmin = role?.name === 'admin';
+  const isModerator = role?.name === 'premium';
   const canModifySection = isAdmin || isModerator;
 
   // Enable drag and drop for both regular sections and the default "channels" section

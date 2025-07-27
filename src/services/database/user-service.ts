@@ -379,4 +379,154 @@ export class UserService extends BaseDatabaseService {
 
     return await this.createUser(data);
   }
+
+  /**
+   * Get user with push subscriptions
+   * Used for push notification targeting
+   */
+  async getUserWithPushSubscriptions(userId: string): Promise<{
+    id: string;
+    userId: string;
+    pushSubscriptions: Array<{
+      endpoint: string;
+      keys: {
+        p256dh: string;
+        auth: string;
+      };
+    }>;
+  } | null> {
+    this.validateRequired(userId, 'userId');
+
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: { userId },
+        select: {
+          id: true,
+          userId: true,
+          pushSubscriptions: {
+            select: {
+              endpoint: true,
+              keys: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        return null;
+      }
+
+      // Transform the data to match expected format
+      return {
+        id: user.id,
+        userId: user.userId,
+        pushSubscriptions: user.pushSubscriptions.map((sub: any) => ({
+          endpoint: sub.endpoint,
+          keys: sub.keys as { p256dh: string; auth: string },
+        })),
+      };
+    } catch (error) {
+      return await this.handleError(error, 'get_user_with_push_subscriptions', {
+        userId: maskId(userId),
+      });
+    }
+  }
+
+  /**
+   * Add or update push subscription for a user
+   */
+  async upsertPushSubscription(
+    userId: string,
+    subscription: {
+      endpoint: string;
+      keys: {
+        p256dh: string;
+        auth: string;
+      };
+    }
+  ): Promise<boolean> {
+    this.validateRequired(userId, 'userId');
+    this.validateRequired(subscription.endpoint, 'subscription.endpoint');
+
+    try {
+      // First, ensure the user exists
+      const user = await this.findByUserIdOrEmail(userId);
+      if (!user) {
+        throw new NotFoundError('User');
+      }
+
+      // Use upsert to create or update the push subscription
+      await this.prisma.pushSubscription.upsert({
+        where: {
+          endpoint: subscription.endpoint,
+        },
+        update: {
+          keys: subscription.keys,
+        },
+        create: {
+          userId: user.id, // Use the internal ID
+          endpoint: subscription.endpoint,
+          keys: subscription.keys,
+        },
+      });
+
+      this.logSuccess('push_subscription_upsert', {
+        userId: maskId(userId),
+        endpoint: subscription.endpoint.substring(0, 50) + '...',
+      });
+
+      return true;
+    } catch (error) {
+      return await this.handleError(error, 'upsert_push_subscription', {
+        userId: maskId(userId),
+        endpoint: subscription.endpoint.substring(0, 50) + '...',
+      });
+    }
+  }
+
+  /**
+   * Remove invalid push subscriptions for a user
+   */
+  async removeInvalidPushSubscriptions(
+    userId: string,
+    invalidEndpoints: string[]
+  ): Promise<void> {
+    this.validateRequired(userId, 'userId');
+
+    if (invalidEndpoints.length === 0) {
+      return;
+    }
+
+    try {
+      // First, ensure the user exists
+      const user = await this.findByUserIdOrEmail(userId);
+      if (!user) {
+        throw new NotFoundError('User');
+      }
+
+      // Remove invalid subscriptions
+      await this.prisma.pushSubscription.deleteMany({
+        where: {
+          userId: user.id,
+          endpoint: {
+            in: invalidEndpoints,
+          },
+        },
+      });
+
+      this.logSuccess('push_subscription_cleanup', {
+        userId: maskId(userId),
+        removedCount: invalidEndpoints.length,
+      });
+    } catch (error) {
+      return await this.handleError(
+        error,
+        'remove_invalid_push_subscriptions',
+        {
+          userId: maskId(userId),
+          invalidCount: invalidEndpoints.length,
+        }
+      );
+    }
+  }
 }

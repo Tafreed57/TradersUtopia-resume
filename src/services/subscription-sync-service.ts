@@ -1,10 +1,8 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-import { db } from '@/lib/db';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { BaseDatabaseService } from './database/base-service';
-import { DatabaseError, ValidationError } from './database/errors';
+import { ValidationError } from '@/lib/error-handling';
 import Stripe from 'stripe';
-
+import { Prisma, SubscriptionStatus } from '@prisma/client';
 // Type alias to handle Stripe API version differences
 type StripeInvoiceWithSubscription = Stripe.Invoice & {
   subscription?: string | Stripe.Subscription;
@@ -24,7 +22,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
    * Create or update a subscription from Stripe data
    */
   async createOrUpdateSubscription(
-    stripeSubscription: Stripe.Subscription
+    stripeSubscription: StripeSubscriptionWithPeriods
   ): Promise<void> {
     try {
       const subscriptionData =
@@ -148,7 +146,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
    * Handle subscription cancellation
    */
   async handleSubscriptionCancellation(
-    stripeSubscription: Stripe.Subscription
+    stripeSubscription: StripeSubscriptionWithPeriods
   ): Promise<void> {
     try {
       await this.executeTransaction(async tx => {
@@ -181,15 +179,16 @@ export class SubscriptionSyncService extends BaseDatabaseService {
   /**
    * Handle payment failure
    */
-  async handlePaymentFailure(invoice: Stripe.Invoice): Promise<void> {
+  async handlePaymentFailure(
+    invoice: StripeInvoiceWithSubscription
+  ): Promise<void> {
     try {
-      const invoiceAny = invoice as any;
-      if (!invoiceAny.subscription) return;
+      if (!invoice.subscription) return;
 
       const subscriptionId =
-        typeof invoiceAny.subscription === 'string'
-          ? invoiceAny.subscription
-          : invoiceAny.subscription.id;
+        typeof invoice.subscription === 'string'
+          ? invoice.subscription
+          : invoice.subscription.id;
 
       await this.executeTransaction(async tx => {
         // Determine status based on attempt count
@@ -226,13 +225,20 @@ export class SubscriptionSyncService extends BaseDatabaseService {
   /**
    * Sync subscription from successful invoice payment
    */
-  async syncSubscriptionFromInvoice(invoice: Stripe.Invoice): Promise<any> {
+  async syncSubscriptionFromInvoice(
+    invoice: StripeInvoiceWithSubscription
+  ): Promise<any> {
     try {
       if (!invoice.subscription) return null;
 
+      const subscriptionId =
+        typeof invoice.subscription === 'string'
+          ? invoice.subscription
+          : invoice.subscription.id;
+
       return await this.executeTransaction(async tx => {
         const subscription = await tx.subscription.findFirst({
-          where: { stripeSubscriptionId: invoice.subscription as string },
+          where: { stripeSubscriptionId: subscriptionId },
         });
 
         if (subscription) {
@@ -247,7 +253,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
 
           apiLogger.databaseOperation('invoice_payment_sync', true, {
             invoiceId: invoice.id,
-            subscriptionId: invoice.subscription,
+            subscriptionId: subscriptionId,
             previousStatus: subscription.status,
             newStatus: 'ACTIVE',
           });
@@ -404,7 +410,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
    * Map Stripe subscription fields to database fields
    */
   private mapStripeSubscriptionToDbFields(
-    stripeSubscription: Stripe.Subscription
+    stripeSubscription: StripeSubscriptionWithPeriods
   ) {
     return {
       stripeSubscriptionId: stripeSubscription.id,
@@ -443,10 +449,10 @@ export class SubscriptionSyncService extends BaseDatabaseService {
       collectionMethod: stripeSubscription.collection_method,
       items: stripeSubscription.items
         ? JSON.stringify(stripeSubscription.items)
-        : null,
+        : Prisma.JsonNull,
       metadata: stripeSubscription.metadata
         ? JSON.stringify(stripeSubscription.metadata)
-        : null,
+        : Prisma.JsonNull,
       updatedAt: new Date(),
     };
   }
@@ -454,18 +460,18 @@ export class SubscriptionSyncService extends BaseDatabaseService {
   /**
    * Map Stripe status to database status enum
    */
-  private mapStripeStatusToDbStatus(stripeStatus: string): string {
-    const statusMap: Record<string, string> = {
-      incomplete: 'INCOMPLETE',
-      incomplete_expired: 'INCOMPLETE_EXPIRED',
-      trialing: 'TRIALING',
-      active: 'ACTIVE',
-      past_due: 'PAST_DUE',
-      canceled: 'CANCELED',
-      unpaid: 'UNPAID',
-      paused: 'PAUSED',
+  private mapStripeStatusToDbStatus(stripeStatus: string): SubscriptionStatus {
+    const statusMap: Record<string, SubscriptionStatus> = {
+      incomplete: SubscriptionStatus.INCOMPLETE,
+      incomplete_expired: SubscriptionStatus.INCOMPLETE_EXPIRED,
+      trialing: SubscriptionStatus.TRIALING,
+      active: SubscriptionStatus.ACTIVE,
+      past_due: SubscriptionStatus.PAST_DUE,
+      canceled: SubscriptionStatus.CANCELED,
+      unpaid: SubscriptionStatus.UNPAID,
+      paused: SubscriptionStatus.PAUSED,
     };
 
-    return statusMap[stripeStatus] || 'FREE';
+    return statusMap[stripeStatus] || SubscriptionStatus.FREE;
   }
 }

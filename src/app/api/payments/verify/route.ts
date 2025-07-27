@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/middleware/auth-middleware';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { UserService } from '@/services/database/user-service';
+import { ServerService } from '@/services/database/server-service';
 import { CustomerService } from '@/services/stripe/customer-service';
 import { SubscriptionService } from '@/services/stripe/subscription-service';
 import { UserWithSubscription } from '@/services/types';
-import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,12 +37,13 @@ export const POST = withAuth(
 
       // Initialize services
       const userService = new UserService();
+      const serverService = new ServerService();
       const customerService = new CustomerService();
       const subscriptionService = new SubscriptionService();
 
       // Step 1: Check webhook-cached database first (FAST) - includes subscription data
       let userProfile: UserWithSubscription | null =
-        await userService.findWithSubscriptionData(user.userId);
+        await userService.findUserWithSubscriptionData(user.userId);
 
       let hasActiveSubscription = false;
       let hasValidAccess = false;
@@ -196,7 +197,7 @@ export const POST = withAuth(
 
         // Create subscription record if we have subscription data
         if (hasActiveSubscription && stripeCustomerId) {
-          await db.subscription.create({
+          await userService.prisma.subscription.create({
             data: {
               userId: userProfile.id,
               stripeCustomerId: stripeCustomerId,
@@ -225,7 +226,7 @@ export const POST = withAuth(
       ) {
         // Update or create subscription record
         if (userProfile.subscription) {
-          await db.subscription.update({
+          await userService.prisma.subscription.update({
             where: { id: userProfile.subscription.id },
             data: {
               status: 'ACTIVE',
@@ -235,7 +236,7 @@ export const POST = withAuth(
             },
           });
         } else if (stripeCustomerId) {
-          await db.subscription.create({
+          await userService.prisma.subscription.create({
             data: {
               userId: userProfile.id,
               stripeCustomerId: stripeCustomerId,
@@ -259,8 +260,8 @@ export const POST = withAuth(
         );
       }
 
-      // Step 6: Server auto-join logic (updated for current schema)
-      const adminServers = await db.server.findMany({
+      // Step 6: Server auto-join logic using ServerService
+      const adminServers = await serverService.prisma.server.findMany({
         where: {
           owner: {
             isAdmin: true,
@@ -280,14 +281,12 @@ export const POST = withAuth(
         },
       });
 
-      let serversJoined = 0;
-      const joinedServerNames = [];
-
+      let serversJoined = [];
       for (const server of adminServers) {
         if (server.members.length === 0 && server.roles.length > 0) {
           const defaultRole = server.roles[0];
 
-          await db.member.create({
+          await serverService.prisma.member.create({
             data: {
               userId: userProfile.id,
               serverId: server.id,
@@ -295,8 +294,7 @@ export const POST = withAuth(
             },
           });
 
-          serversJoined++;
-          joinedServerNames.push(server.name);
+          serversJoined.push(server);
         }
       }
 
@@ -310,20 +308,20 @@ export const POST = withAuth(
         hasActiveSubscription,
         accessReason,
         dataSource,
-        serversJoined,
+        serversJoined: serversJoined.length,
         responseTime: `${Date.now() - startTime}ms`,
       });
 
       // Refresh user profile to get updated subscription data
       const updatedProfile: UserWithSubscription | null =
-        await userService.findWithSubscriptionData(userProfile.id);
+        await userService.findUserWithSubscriptionData(userProfile.id);
 
       return NextResponse.json({
         success: true,
         message: `Payment verified successfully! Access granted. ${accessReason}`,
         hasAccess: true,
-        serversJoined,
-        joinedServerNames,
+        serversJoined: serversJoined.length,
+        joinedServerNames: serversJoined.map((s: any) => s.name),
         stripeData: {
           customerId: stripeCustomerId,
           hasActiveSubscription,

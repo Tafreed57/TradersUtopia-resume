@@ -4,7 +4,6 @@ import { ChannelService } from '@/services/database/channel-service';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { ValidationError } from '@/lib/error-handling';
 import { z } from 'zod';
-import { prisma } from '@/lib/prismadb';
 
 const reorderChannelSchema = z.object({
   serverId: z.string(),
@@ -65,100 +64,10 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError(channelAccess.reason || 'Access denied');
   }
 
-  // Step 3: Complex reordering logic with transaction safety
-  const result = await prisma.$transaction(
-    async (tx: {
-      channel: {
-        findUnique: (arg0: { where: { id: string; serverId: string } }) => any;
-        findMany: (arg0: {
-          where: {
-            serverId: string;
-            sectionId: string | null;
-            NOT: { id: string };
-          };
-          orderBy: { position: 'asc' };
-        }) => any;
-        update: (arg0: {
-          where: { id: string } | { id: string };
-          data:
-            | { position: number }
-            | { position: number; sectionId: string | null };
-        }) => any;
-      };
-      section: {
-        findUnique: (arg0: { where: { id: string; serverId: string } }) => any;
-      };
-    }) => {
-      // Get the channel being moved
-      const channel = await tx.channel.findUnique({
-        where: {
-          id: channelId,
-          serverId: serverId,
-        },
-      });
-
-      if (!channel) {
-        throw new ValidationError('Channel not found');
-      }
-
-      // If moving to a different section, validate the new section exists
-      if (newSectionId && newSectionId !== channel.sectionId) {
-        const targetSection = await tx.section.findUnique({
-          where: {
-            id: newSectionId,
-            serverId: serverId,
-          },
-        });
-
-        if (!targetSection) {
-          throw new ValidationError('Target section not found');
-        }
-      }
-
-      // Get current channels in the target section (or unsectioned)
-      const targetChannels = await tx.channel.findMany({
-        where: {
-          serverId: serverId,
-          sectionId: newSectionId || null,
-          NOT: {
-            id: channelId,
-          },
-        },
-        orderBy: {
-          position: 'asc',
-        },
-      });
-
-      // Update positions of existing channels to make room
-      const updates = [];
-      for (let i = 0; i < targetChannels.length; i++) {
-        const targetChannel = targetChannels[i];
-        const newPos = i >= newPosition ? i + 1 : i;
-
-        if (targetChannel.position !== newPos) {
-          updates.push(
-            tx.channel.update({
-              where: { id: targetChannel.id },
-              data: { position: newPos },
-            })
-          );
-        }
-      }
-
-      // Wait for all position updates
-      await Promise.all(updates);
-
-      // Update the moved channel
-      const updatedChannel = await tx.channel.update({
-        where: { id: channelId },
-        data: {
-          position: newPosition,
-          sectionId: newSectionId || null,
-        },
-      });
-
-      return updatedChannel;
-    }
+  // Step 3: Use ChannelService reorderChannels method for complex reordering logic
+  const result = await channelService.reorderChannels(
+    [{ id: channelId, position: newPosition }],
+    user.id
   );
 
   apiLogger.databaseOperation('channel_reordered_via_api', true, {

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db } from '@/lib/db';
+import { UserService } from '@/services/database/user-service';
+import { ServerService } from '@/services/database/server-service';
+import { ChannelService } from '@/services/database/channel-service';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { rateLimitGeneral, rateLimitAdmin } from '@/lib/rate-limit';
-import { getCurrentProfileWithSync } from '@/lib/query';
+// Remove unavailable import
 import { currentUser } from '@clerk/nextjs/server';
 
 // Query parameter validation
@@ -74,8 +76,10 @@ export async function GET(request: NextRequest) {
     // Basic health check (no authentication required)
     if (level === 'basic') {
       try {
-        // Check database connectivity
-        await db.$queryRaw`SELECT 1`;
+        // Check database connectivity using service layer
+        const userService = new UserService();
+        // Basic connectivity test by checking if we can query users
+        await userService.findByUserIdOrEmail('test');
 
         // Check environment variables without exposing details
         const requiredEnvVars = [
@@ -136,10 +140,19 @@ export async function GET(request: NextRequest) {
     if (level === 'admin' || level === 'system') {
       if (level === 'admin') {
         // Lightweight auth for admin status checks
-        profile = await getCurrentProfileWithSync();
-        if (!profile) {
+        const user = await currentUser();
+        if (!user) {
           return NextResponse.json(
             { error: 'Not authenticated', level },
+            { status: 401 }
+          );
+        }
+
+        const userService = new UserService();
+        profile = await userService.findByUserIdOrEmail(user.id);
+        if (!profile) {
+          return NextResponse.json(
+            { error: 'User profile not found', level },
             { status: 401 }
           );
         }
@@ -154,11 +167,10 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        profile = await db.user.findFirst({
-          where: { userId: user.id, isAdmin: true },
-        });
+        const userService = new UserService();
+        profile = await userService.findByUserIdOrEmail(user.id);
 
-        if (!profile) {
+        if (!profile?.isAdmin) {
           return NextResponse.json(
             { error: 'Admin access required', level },
             { status: 403 }
@@ -189,14 +201,18 @@ export async function GET(request: NextRequest) {
 
     // System level response (comprehensive diagnostics)
     if (level === 'system' && isAdmin) {
-      // Get basic system statistics
-      const [totalUsers, totalAdmins, totalServers, totalChannels] =
-        await Promise.all([
-          db.user.count(),
-          db.user.count({ where: { isAdmin: true } }),
-          db.server.count(),
-          db.channel.count(),
-        ]);
+      // Get basic system statistics using service layer
+      const userService = new UserService();
+      const serverService = new ServerService();
+      const channelService = new ChannelService();
+
+      // Get basic system statistics using direct database queries via service base
+      const totalUsers = await userService.prisma.user.count();
+      const totalAdmins = await userService.prisma.user.count({
+        where: { isAdmin: true },
+      });
+      const totalServers = await serverService.prisma.server.count();
+      const totalChannels = await channelService.prisma.channel.count();
 
       healthResponse.message = 'System health diagnostics completed';
       healthResponse.systemStats = {

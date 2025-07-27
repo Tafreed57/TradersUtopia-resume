@@ -8,14 +8,14 @@ import { Separator } from '@/components/ui/separator';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { UserButton } from '@clerk/nextjs';
 import { LayoutDashboard } from 'lucide-react';
-import { ServerWithMembersWithProfiles } from '@/types/server';
-import { MemberRole } from '@prisma/client';
+import { ServerWithMembersWithUsers } from '@/types/server';
+import { Role } from '@prisma/client';
 import { MobileServerWrapper } from '@/components/mobile-server-wrapper';
 import Link from 'next/link';
 
 interface MobileCompleteSidebarProps {
-  server: ServerWithMembersWithProfiles;
-  role?: MemberRole;
+  server: ServerWithMembersWithUsers;
+  role?: Role;
   servers: Array<{
     id: string;
     name: string;

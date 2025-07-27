@@ -1,7 +1,7 @@
 import { Hash } from 'lucide-react';
 import { MobileToggle } from '@/components/mobile-toggle';
-import { ServerWithMembersWithProfiles } from '@/types/server';
-import { MemberRole } from '@prisma/client';
+import { ServerWithMembersWithUsers } from '@/types/server';
+import { Role } from '@prisma/client';
 import { ChannelNotificationToggle } from '@/components/chat/channel-notification-toggle';
 
 interface ChatHeaderProps {
@@ -9,8 +9,8 @@ interface ChatHeaderProps {
   name: string;
   type: 'channel';
   imageUrl?: string;
-  server?: ServerWithMembersWithProfiles;
-  role?: MemberRole;
+  server?: ServerWithMembersWithUsers;
+  role?: Role;
   servers?: Array<{
     id: string;
     name: string;

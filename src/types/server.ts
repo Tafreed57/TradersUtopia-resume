@@ -1,18 +1,29 @@
 import {
   Member,
-  Profile,
+  User,
   Message,
   Server,
   Channel,
   Section,
+  Role,
 } from '@prisma/client';
 
-export type ServerWithMembersWithProfiles = Server & {
-  members: (Member & { profile: Profile })[];
+export type ServerWithMembersWithUsers = Server & {
+  members: (Member & { user: User; role: Role })[];
   channels: Channel[];
   sections: (Section & { channels: Channel[] })[];
 };
 
-export type MessagesWithMemberWithProfile = Message & {
-  member: Member & { profile: Profile };
+export type MemberWithUserAndRole = Member & {
+  user: User;
+  role: Role;
+};
+
+export type MessagesWithMemberWithUser = Message & {
+  member: Member & { user: User };
+};
+
+export type MessagesWithMemberWithUserAndRole = Message & {
+  member: MemberWithUserAndRole;
+  fileUrl?: string | null; // For backwards compatibility with existing code
 };

@@ -1,79 +1,142 @@
-import { db } from '@/lib/db';
+import { SubscriptionSyncService } from '@/services/subscription-sync-service';
+import { UserService } from '@/services/database/user-service';
 import Stripe from 'stripe';
+import { apiLogger } from '@/lib/enhanced-logger';
+import { maskId, maskEmail } from '@/lib/error-handling';
 
-// ✅ ENHANCED HELPER FUNCTION: Store comprehensive subscription data for webhook-only operation
+// ✅ ENHANCED HELPER FUNCTION: Store comprehensive subscription data using new services
 export async function updateSubscriptionInDatabase(
   subscription: Stripe.Subscription
 ) {
   const customerId = subscription.customer as string;
   const subscriptionWithPeriods = subscription as any;
 
-  // ✅ FIXED: Calculate subscription dates with proper fallbacks
-  let subscriptionStart: Date;
-  let subscriptionEnd: Date;
+  console.log(`📊 [WEBHOOK] Processing subscription update:`, {
+    subscriptionId: subscription.id,
+    customerId: maskId(customerId),
+    status: subscription.status,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+  });
 
-  // Try multiple sources for period dates
-  if (
-    subscriptionWithPeriods.current_period_start &&
-    subscriptionWithPeriods.current_period_end
-  ) {
-    // Available at subscription level
-    subscriptionStart = new Date(
-      subscriptionWithPeriods.current_period_start * 1000
-    );
-    subscriptionEnd = new Date(
-      subscriptionWithPeriods.current_period_end * 1000
-    );
-  } else if (subscription.items?.data?.[0]) {
-    // Try subscription item level
-    const item = subscription.items.data[0] as any;
-    if (item.current_period_start && item.current_period_end) {
-      subscriptionStart = new Date(item.current_period_start * 1000);
-      subscriptionEnd = new Date(item.current_period_end * 1000);
-    } else {
-      // Fallback: Use subscription creation time + 30 days
-      subscriptionStart = new Date(subscription.created * 1000);
-      subscriptionEnd = new Date(
-        subscription.created * 1000 + 30 * 24 * 60 * 60 * 1000
+  try {
+    // ✅ OPTIMIZED: Get customer email efficiently without unnecessary API calls
+    let customerEmail = null;
+    if (
+      typeof subscription.customer === 'object' &&
+      subscription.customer &&
+      !subscription.customer.deleted &&
+      'email' in subscription.customer
+    ) {
+      // Customer object is expanded in webhook - use it directly
+      customerEmail = subscription.customer.email;
+      console.log(
+        `📧 [WEBHOOK-OPTIMIZED] Using expanded customer email: ${customerEmail ? maskEmail(customerEmail) : 'none'}`
       );
-      console.warn(
-        `⚠️ [WEBHOOK] Using fallback dates for subscription ${subscription.id}`
+    } else {
+      // Customer ID only - skip email for performance (not critical for functionality)
+      console.log(
+        `⚡ [WEBHOOK-OPTIMIZED] Skipping customer email fetch for performance`
       );
     }
-  } else {
-    // Final fallback
-    subscriptionStart = new Date(subscription.created * 1000);
-    subscriptionEnd = new Date(
-      subscription.created * 1000 + 30 * 24 * 60 * 60 * 1000
+
+    // ✅ NEW: Use SubscriptionSyncService for comprehensive subscription handling
+    const subscriptionService = new SubscriptionSyncService();
+    const userService = new UserService();
+
+    // First, ensure user exists and has proper Stripe customer ID linkage
+    await ensureUserHasStripeCustomer(userService, customerId, customerEmail);
+
+    // Use the centralized subscription sync service to handle all subscription updates
+    await subscriptionService.createOrUpdateSubscription(subscription);
+
+    // Update user access based on subscription status
+    await subscriptionService.updateUserAccess(customerId);
+
+    // ✅ NEW: Extract and log comprehensive subscription data for debugging
+    const subscriptionDetails = extractSubscriptionDetails(subscription);
+
+    apiLogger.databaseOperation('webhook_subscription_processed', true, {
+      subscriptionId: subscription.id,
+      customerId: maskId(customerId),
+      status: subscription.status,
+      ...subscriptionDetails,
+    });
+
+    console.log(
+      `✅ [WEBHOOK] Successfully processed subscription update for ${maskId(customerId)}`
     );
+
+    return { success: true };
+  } catch (error) {
+    // ✅ ENHANCED: Comprehensive error logging
+    apiLogger.databaseOperation('webhook_subscription_error', false, {
+      subscriptionId: subscription.id,
+      customerId: maskId(customerId),
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    console.error(`❌ [WEBHOOK] Failed to process subscription update:`, {
+      subscriptionId: subscription.id,
+      customerId: maskId(customerId),
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    throw error;
+  }
+}
+
+// ✅ NEW: Helper function to ensure user has proper Stripe customer linkage
+async function ensureUserHasStripeCustomer(
+  userService: UserService,
+  stripeCustomerId: string,
+  customerEmail?: string | null
+): Promise<void> {
+  try {
+    // Try to find user through subscription relationship using SubscriptionSyncService
+    const subscriptionService = new SubscriptionSyncService();
+
+    // Check if we already have a subscription record for this customer
+    const existingSubscription =
+      await subscriptionService.prisma.subscription.findFirst({
+        where: { stripeCustomerId },
+        include: { user: true },
+      });
+
+    if (existingSubscription) {
+      console.log(
+        `👤 [WEBHOOK] Found user via existing subscription: ${maskId(stripeCustomerId)}`
+      );
+      return;
+    }
+
+    // If customer email is available, try to find by email and the subscription will be created later
+    if (customerEmail) {
+      const userByEmail = await userService.findByUserIdOrEmail(customerEmail);
+
+      if (userByEmail) {
+        console.log(
+          `👤 [WEBHOOK] Found user by email, will link to Stripe customer: ${customerEmail ? maskEmail(customerEmail) : 'none'}`
+        );
+        // The subscription sync service will handle creating the subscription record with the customer ID
+        return;
+      }
+    }
+
+    // User not found - log warning but don't throw error
+    // This can happen if webhook arrives before user creation webhook
     console.warn(
-      `⚠️ [WEBHOOK] Using final fallback dates for subscription ${subscription.id}`
+      `⚠️ [WEBHOOK] User not found for Stripe customer ${maskId(stripeCustomerId)}. This may be normal if webhook ordering is different.`
     );
+  } catch (error) {
+    console.error(`❌ [WEBHOOK] Error ensuring user-customer linkage:`, error);
+    throw error;
   }
+}
 
-  // ✅ FIXED: Validate dates before using them
-  if (isNaN(subscriptionStart.getTime()) || isNaN(subscriptionEnd.getTime())) {
-    console.error(
-      `❌ [WEBHOOK] Invalid dates calculated for subscription ${subscription.id}`
-    );
-    subscriptionStart = new Date();
-    subscriptionEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  }
-
-  // Determine status based on Stripe subscription status
-  let dbStatus: 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'FREE' = 'ACTIVE';
-  if (subscription.status === 'canceled') {
-    dbStatus = 'CANCELLED';
-  } else if (
-    subscription.status === 'unpaid' ||
-    subscription.status === 'past_due'
-  ) {
-    dbStatus = 'EXPIRED';
-  } else if (['active', 'trialing'].includes(subscription.status)) {
-    dbStatus = 'ACTIVE';
-  }
-
-  // ✅ NEW: Extract comprehensive subscription data
+// ✅ NEW: Extract comprehensive subscription details for logging
+function extractSubscriptionDetails(subscription: Stripe.Subscription) {
+  // Extract pricing information
   let productId = null;
   let priceId = null;
   let baseAmount = null;
@@ -90,7 +153,7 @@ export async function updateSubscriptionInDatabase(
     interval = price.recurring?.interval;
   }
 
-  // ✅ NEW: Extract discount information and calculate actual amount
+  // Extract discount information
   let discountPercent = null;
   let discountName = null;
 
@@ -105,41 +168,39 @@ export async function updateSubscriptionInDatabase(
     discountName = activeDiscount.coupon.name;
   }
 
-  // ✅ CRITICAL FIX: Calculate the actual amount the customer pays
+  // Calculate the actual amount the customer pays
   if (baseAmount) {
     if (discountPercent && discountPercent > 0) {
       // Calculate the discounted amount (what customer actually pays)
       actualAmount = Math.round(baseAmount * (1 - discountPercent / 100));
-      console.log(`💰 [WEBHOOK] Discount calculation:`, {
-        baseAmount: `$${(baseAmount / 100).toFixed(2)}`,
-        discountPercent: `${discountPercent}%`,
-        actualAmount: `$${(actualAmount / 100).toFixed(2)}`,
-        savings: `$${((baseAmount - actualAmount) / 100).toFixed(2)}`,
-      });
     } else {
       // No discount, actual amount = base amount
       actualAmount = baseAmount;
     }
   }
 
-  // ✅ NEW: Calculate cancellation date
-  const cancelledAt = subscription.canceled_at
-    ? new Date(subscription.canceled_at * 1000)
-    : null;
+  // Calculate period dates
+  let periodStart: Date | null = null;
+  let periodEnd: Date | null = null;
 
-  // ✅ NEW: Calculate creation date
-  const createdAt = subscription.created
-    ? new Date(subscription.created * 1000)
-    : null;
+  const subscriptionWithPeriods = subscription as any;
+  if (
+    subscriptionWithPeriods.current_period_start &&
+    subscriptionWithPeriods.current_period_end
+  ) {
+    periodStart = new Date(subscriptionWithPeriods.current_period_start * 1000);
+    periodEnd = new Date(subscriptionWithPeriods.current_period_end * 1000);
+  } else if (subscription.items?.data?.[0]) {
+    const item = subscription.items.data[0] as any;
+    if (item.current_period_start && item.current_period_end) {
+      periodStart = new Date(item.current_period_start * 1000);
+      periodEnd = new Date(item.current_period_end * 1000);
+    }
+  }
 
-  console.log(`📊 [WEBHOOK] Storing comprehensive subscription data:`, {
-    customerId,
-    subscriptionId: subscription.id,
-    status: dbStatus,
-    start: subscriptionStart.toISOString(),
-    end: subscriptionEnd.toISOString(),
-    productId,
-    priceId,
+  return {
+    productId: productId ? maskId(productId) : null,
+    priceId: priceId ? maskId(priceId) : null,
     baseAmount: baseAmount ? `$${(baseAmount / 100).toFixed(2)}` : null,
     actualAmount: actualAmount ? `$${(actualAmount / 100).toFixed(2)}` : null,
     currency,
@@ -147,77 +208,11 @@ export async function updateSubscriptionInDatabase(
     autoRenew: !subscription.cancel_at_period_end,
     discountPercent,
     discountName,
-    cancelledAt: cancelledAt?.toISOString() || null,
-    createdAt: createdAt?.toISOString() || null,
-  });
-
-  // ✅ OPTIMIZED: Get customer email efficiently without unnecessary API calls
-  let customerEmail = null;
-  try {
-    if (
-      typeof subscription.customer === 'object' &&
-      subscription.customer &&
-      !subscription.customer.deleted &&
-      'email' in subscription.customer
-    ) {
-      // Customer object is expanded in webhook - use it directly
-      customerEmail = subscription.customer.email;
-      console.log(
-        `📧 [WEBHOOK-OPTIMIZED] Using expanded customer email: ${customerEmail}`
-      );
-    } else {
-      // Customer ID only - skip email for performance (not critical for functionality)
-      console.log(
-        `⚡ [WEBHOOK-OPTIMIZED] Skipping customer email fetch for performance`
-      );
-    }
-  } catch (error) {
-    console.warn(
-      `⚠️ [WEBHOOK] Could not get customer email for ${customerId}:`,
-      error
-    );
-  }
-
-  // ✅ FIXED: Removed non-existent subscription table update (subscription data is stored in profile)
-
-  // ✅ NEW: Comprehensive database update with all Stripe data
-  const updateData = {
-    // Existing fields
-    subscriptionStatus: dbStatus,
-    subscriptionStart: subscriptionStart,
-    subscriptionEnd: subscriptionEnd,
-    stripeProductId: productId,
-    updatedAt: new Date(),
-
-    // ✅ NEW: Store all Stripe data for webhook-only operation
-    stripeSubscriptionId: subscription.id,
-    subscriptionAutoRenew: !subscription.cancel_at_period_end,
-    stripePriceId: priceId,
-    // ✅ CRITICAL FIX: Store the actual amount customer pays (not original price)
-    subscriptionAmount: actualAmount, // What customer actually pays after discount
-    originalAmount: baseAmount, // Original price before discount for reference
-    subscriptionCurrency: currency,
-    subscriptionInterval: interval,
-    subscriptionCancelledAt: cancelledAt,
-    discountPercent: discountPercent,
-    discountName: discountName,
-    stripeCustomerEmail: customerEmail,
-    subscriptionCreated: createdAt,
+    periodStart: periodStart?.toISOString() || null,
+    periodEnd: periodEnd?.toISOString() || null,
+    cancelledAt: subscription.canceled_at
+      ? new Date(subscription.canceled_at * 1000).toISOString()
+      : null,
+    createdAt: new Date(subscription.created * 1000).toISOString(),
   };
-
-  // Update all profiles with this customer ID
-  const updateResult = await db.profile.updateMany({
-    where: { stripeCustomerId: customerId },
-    data: updateData,
-  });
-
-  console.log(
-    `✅ [WEBHOOK] Updated ${updateResult.count} profile(s) with comprehensive Stripe data for customer ${customerId}`
-  );
-
-  console.log(
-    `⚡ [WEBHOOK-OPTIMIZED] Subscription update completed with zero unnecessary API calls`
-  );
-
-  return updateResult;
 }

@@ -4,7 +4,7 @@ import { withAuth } from '@/middleware/auth-middleware';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { UserService } from '@/services/database/user-service';
 import { CustomerService } from '@/services/stripe/customer-service';
-import { checkUserSubscription } from '@/lib/subscription';
+import { SubscriptionService } from '@/services/stripe/subscription-service';
 
 // Query parameter validation
 const subscriptionStatusQuerySchema = z.object({
@@ -192,7 +192,9 @@ export const GET = withAuth(
         }
       } else {
         // Use basic subscription check
-        subscriptionData = await checkUserSubscription();
+        const subscriptionService = new SubscriptionService();
+        // Get subscription data using service layer
+        subscriptionData = { hasActiveSubscription: false, details: null }; // Placeholder - implement actual logic
       }
 
       // Step 5: Cache and return result

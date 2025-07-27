@@ -8,24 +8,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useStore } from '@/store/store';
-import { ServerWithMembersWithProfiles } from '@/types/server';
-import { MemberRole } from '@prisma/client';
+import { ServerWithMembersWithUsers } from '@/types/server';
+import { Role } from '@prisma/client';
 import { ChevronDown, PlusCircle, Settings } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
+import { useStore } from '@/store/store';
 
 interface ServerHeaderProps {
-  server: ServerWithMembersWithProfiles;
-  role?: MemberRole;
+  server: ServerWithMembersWithUsers;
+  role?: Role;
 }
 
 export function ServerHeader({ server, role }: ServerHeaderProps) {
   const onOpen = useStore(state => state.onOpen);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const isAdmin = role === MemberRole.ADMIN;
-  const isModerator = isAdmin || role === MemberRole.MODERATOR;
+  const isAdmin = role?.name === 'admin';
+  const isModerator = isAdmin || role?.name === 'premium';
 
   const handleServerSettingsClick = () => {
     setIsDropdownOpen(false);
@@ -80,7 +80,9 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                 <span className='text-white font-bold truncate text-left text-sm md:text-base'>
                   {server?.name}
                 </span>
-                <span className='text-xs text-gray-400'>Role: {role}</span>
+                <span className='text-xs text-gray-400'>
+                  Role: {role?.name}
+                </span>
               </div>
             </div>
             {/* ✅ REMOVED: No chevron icon for non-admin users */}
@@ -133,7 +135,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                     {server?.name}
                   </span>
                   <span className='text-xs text-gray-400 font-medium'>
-                    {server?.members?.length || 0} members | Role: {role}
+                    {server?.members?.length || 0} members | Role: {role?.name}
                   </span>
                 </div>
               </div>
