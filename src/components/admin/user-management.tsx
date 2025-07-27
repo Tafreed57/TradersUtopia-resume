@@ -305,47 +305,47 @@ function UserManagement({
     }
   };
 
-  const handleFixAllAdminServerRoles = async () => {
-    if (
-      !confirm(
-        "Fix ALL admin server roles? This will update ALL global admins to have ADMIN role in ALL servers and join them to any admin-created servers they're not already in."
-      )
-    ) {
-      return;
-    }
+  // const handleFixAllAdminServerRoles = async () => {
+  //   if (
+  //     !confirm(
+  //       "Fix ALL admin server roles? This will update ALL global admins to have ADMIN role in ALL servers and join them to any admin-created servers they're not already in."
+  //     )
+  //   ) {
+  //     return;
+  //   }
 
-    setActionLoading('fix-admin-roles');
-    try {
-      const response = await makeSecureRequest(
-        '/api/admin/update-all-server-roles',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+  //   setActionLoading('fix-admin-roles');
+  //   try {
+  //     const response = await makeSecureRequest(
+  //       '/api/admin/update-all-server-roles',
+  //       {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //         },
+  //       }
+  //     );
 
-      if (response.ok) {
-        const data = await response.json();
-        showToast.success(
-          'Admin Server Roles Fixed!',
-          `Updated ${data.summary.totalRolesUpdated} roles and joined ${data.summary.totalServersJoined} servers for ${data.summary.totalAdmins} admins`
-        );
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       showToast.success(
+  //         'Admin Server Roles Fixed!',
+  //         `Updated ${data.summary.totalRolesUpdated} roles and joined ${data.summary.totalServersJoined} servers for ${data.summary.totalAdmins} admins`
+  //       );
 
-        // Refresh user data to reflect changes
-        await fetchUsers();
-      } else {
-        const error = await response.json();
-        showToast.error('Fix Failed', error.message);
-      }
-    } catch (error) {
-      console.error('Error fixing admin server roles:', error);
-      showToast.error('Error', 'Failed to fix admin server roles');
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  //       // Refresh user data to reflect changes
+  //       await fetchUsers();
+  //     } else {
+  //       const error = await response.json();
+  //       showToast.error('Fix Failed', error.message);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fixing admin server roles:', error);
+  //     showToast.error('Error', 'Failed to fix admin server roles');
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
 
   const formatDate = (date: string | number) => {
     return (
@@ -413,7 +413,7 @@ function UserManagement({
             )}
             {loading ? 'Loading...' : 'Load Users'}
           </Button>
-          <Button
+          {/* <Button
             onClick={handleFixAllAdminServerRoles}
             disabled={actionLoading === 'fix-admin-roles'}
             size='sm'
@@ -427,7 +427,7 @@ function UserManagement({
             {actionLoading === 'fix-admin-roles'
               ? 'Fixing...'
               : 'Fix Admin Server Roles'}
-          </Button>
+          </Button> */}
         </div>
       </div>
 

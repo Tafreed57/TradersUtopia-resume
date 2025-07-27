@@ -1,20 +1,30 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { updateSubscriptionInDatabase } from '../utils';
+import { apiLogger } from '@/lib/enhanced-logger';
 
 export const customerSubscriptionUpdated = async (event: any) => {
-  console.log('customerSubscriptionUpdated', event);
   const updatedSubscription = event.data.object as Stripe.Subscription;
-  console.log(`🔄 Subscription updated: ${updatedSubscription.id}`);
+
+  apiLogger.subscriptionEvent('subscription_updated', {
+    subscriptionId: updatedSubscription.id,
+    customerId: updatedSubscription.customer as string,
+    status: updatedSubscription.status,
+  });
 
   try {
     await updateSubscriptionInDatabase(updatedSubscription);
-    console.log(
-      `⚡ [WEBHOOK-OPTIMIZED] Subscription update processed efficiently`
-    );
+    apiLogger.databaseOperation('subscription_update', true, {
+      subscriptionId: updatedSubscription.id,
+      customerId: updatedSubscription.customer as string,
+    });
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error handling subscription update:', error);
+    apiLogger.databaseOperation('subscription_update', false, {
+      subscriptionId: updatedSubscription.id,
+      customerId: updatedSubscription.customer as string,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return NextResponse.json(
       { error: 'Subscription update failed' },
       { status: 500 }

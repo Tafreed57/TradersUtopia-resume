@@ -141,10 +141,20 @@ if (!subscription?.isActive) {
 - **Validation**: Client-side validation + server-side validation
 - **Performance**: Optimize with React.memo, useMemo, useCallback when needed
 
+### Architecture Communication Patterns
+
+- **API Routes**: Must use the centralized database and stripe services from `src/services/` for all server communication
+- **UI Components**: Must communicate with the server exclusively through API routes (no direct service calls)
+- **Service Layer**: Database and Stripe services act as the single source of truth for server operations
+- **Data Flow**: UI → API Routes → Services → Database/Stripe → Services → API Routes → UI
+
 ### API Route Standards
 
 ```typescript
-// Standard API route structure
+// Standard API route structure using centralized services
+import { DatabaseService } from '@/services/database';
+import { StripeService } from '@/services/stripe';
+
 export async function POST(req: Request) {
   try {
     // 1. Rate limiting
@@ -163,8 +173,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const validatedData = schema.parse(body);
 
-    // 4. Business logic
-    const result = await performOperation(validatedData);
+    // 4. Business logic using centralized services
+    const dbService = new DatabaseService();
+    const stripeService = new StripeService();
+
+    const result = await dbService.performDatabaseOperation(validatedData);
+    // or const result = await stripeService.performStripeOperation(validatedData);
 
     return NextResponse.json(result);
   } catch (error) {
@@ -176,10 +190,21 @@ export async function POST(req: Request) {
 
 ### Database Operations
 
-- Use Prisma transactions for multi-table operations
-- Implement proper error handling
+- **MANDATORY**: Use centralized database services from `src/services/database/`
+- API routes must instantiate and use DatabaseService classes
+- Use Prisma transactions for multi-table operations through service methods
+- Implement proper error handling in service layer
 - Use select statements to limit returned fields
 - Include proper indexes for performance
+
+### Stripe Operations
+
+- **MANDATORY**: Use centralized stripe services from `src/services/stripe/`
+- API routes must instantiate and use StripeService classes
+- All payment processing must go through service layer
+- Subscription management through SubscriptionService
+- Customer operations through CustomerService
+- Invoice handling through InvoiceService
 
 ## 🔄 STATE MANAGEMENT
 

@@ -1,14 +1,16 @@
 import { db } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { apiLogger } from '@/lib/enhanced-logger';
 
 export const customerSubscriptionDeleted = async (event: any) => {
-  console.log('customerSubscriptionDeleted', event);
-  // Handle subscription deletion
   const cancelledSubscription = event.data.object as Stripe.Subscription;
   const cancelledCustomerId = cancelledSubscription.customer as string;
 
-  console.log(`❌ Subscription cancelled: ${cancelledSubscription.id}`);
+  apiLogger.subscriptionEvent('subscription_cancelled', {
+    subscriptionId: cancelledSubscription.id,
+    customerId: cancelledCustomerId,
+  });
 
   try {
     const cancelledSubscriptionWithPeriods = cancelledSubscription as any;
@@ -22,12 +24,16 @@ export const customerSubscriptionDeleted = async (event: any) => {
       },
     });
 
-    console.log(
-      `✅ Successfully cancelled subscription for customer: ${cancelledCustomerId}`
-    );
-    console.log(`⚡ [WEBHOOK-OPTIMIZED] Cancellation processed efficiently`);
+    apiLogger.databaseOperation('subscription_cancellation', true, {
+      subscriptionId: cancelledSubscription.id,
+      customerId: cancelledCustomerId,
+    });
   } catch (error) {
-    console.error('Error cancelling subscription:', error);
+    apiLogger.databaseOperation('subscription_cancellation', false, {
+      subscriptionId: cancelledSubscription.id,
+      customerId: cancelledCustomerId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return NextResponse.json({ error: 'Cancellation failed' }, { status: 500 });
   }
 };

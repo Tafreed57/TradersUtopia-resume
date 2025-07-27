@@ -1,4 +1,4 @@
-import { ourFileRouter } from '@/app/api/uploadthing/core';
+// import { ourFileRouter } from '@/app/api/uploadthing/core';
 import '@/app/globals.css';
 import { ModalProvider } from '@/contexts/modal-provider';
 import { QueryProvider } from '@/contexts/query-provider';
@@ -9,10 +9,10 @@ import { AuthWrapper } from '@/components/auth-wrapper';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
 import { ClerkProvider } from '@clerk/nextjs';
-import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin';
+// import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin';
 import type { Metadata, Viewport } from 'next';
 import { Open_Sans } from 'next/font/google';
-import { extractRouterConfig } from 'uploadthing/server';
+// import { extractRouterConfig } from 'uploadthing/server';
 import { Toaster } from 'sonner';
 import { ServiceWorkerHandler } from '@/components/service-worker-handler';
 import { PushNotificationPrompt } from '@/components/notifications/push-notification-prompt';
@@ -154,7 +154,7 @@ export default function RootLayout({
             storageKey='traders-utopia-theme'
             disableTransitionOnChange
           >
-            <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
+            {/* <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} /> */}
             <ErrorBoundary>
               <LoadingProvider>
                 <QueryProvider>

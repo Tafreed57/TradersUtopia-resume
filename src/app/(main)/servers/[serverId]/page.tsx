@@ -1,4 +1,5 @@
 import { getCurrentProfileForAuth, getGeneralServer } from '@/lib/query';
+import { ServerService } from '@/services/database/server-service';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
@@ -15,14 +16,18 @@ export default async function ServerIdPage({ params }: ServerIdPageProps) {
     const { redirectToSignIn } = await auth();
     return redirectToSignIn();
   }
-  const generalServer = await getGeneralServer(params.serverId, profile.id);
 
-  if (generalServer) {
+  const server = await new ServerService().findServerWithMemberAccess(
+    params.serverId,
+    profile.id
+  );
+
+  if (server) {
     redirect(
-      `/servers/${params.serverId}/channels/${generalServer?.channels?.[0]?.id}`
+      `/servers/${params.serverId}/channels/${server?.channels?.[0]?.id}`
     );
   }
-  if (!generalServer) {
+  if (!server) {
     const { redirectToSignIn } = await auth();
     return redirectToSignIn();
   }

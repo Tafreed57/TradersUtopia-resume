@@ -11,7 +11,7 @@ import { MessageFileModal } from '@/components/modals/message-file-modal';
 import { DeleteMessageModal } from '@/components/modals/delete-message-modal';
 import { CreateSectionModal } from '@/components/modals/create-section-modal';
 import { EditSectionModal } from '@/components/modals/edit-section-modal';
-import { EditDefaultSectionModal } from '@/components/modals/edit-default-section-modal';
+// import { EditDefaultSectionModal } from '@/components/modals/edit-default-section-modal';
 import { DeleteSectionModal } from '@/components/modals/delete-section-modal';
 import { TrackRecordFileModal } from '@/components/modals/track-record-file-modal';
 import { EditTrackRecordMessageModal } from '@/components/modals/edit-track-record-message-modal';
@@ -43,7 +43,7 @@ export function ModalProvider() {
       <DeleteMessageModal />
       <CreateSectionModal />
       <EditSectionModal />
-      <EditDefaultSectionModal />
+      {/* <EditDefaultSectionModal /> */}
       <DeleteSectionModal />
       <TrackRecordFileModal />
       <EditTrackRecordMessageModal />

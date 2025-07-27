@@ -1,52 +1,6 @@
 import { db } from '@/lib/db';
 
 /**
- * Check for and fix any duplicate profiles in the system
- */
-export async function detectAndLogDuplicates() {
-  try {
-    const allProfiles = await db.profile.findMany({
-      select: { id: true, email: true, userId: true },
-    });
-
-    const profilesByEmail = allProfiles.reduce(
-      (acc, profile) => {
-        if (!acc[profile.email]) {
-          acc[profile.email] = [];
-        }
-        acc[profile.email].push(profile);
-        return acc;
-      },
-      {} as Record<string, typeof allProfiles>
-    );
-
-    const duplicates = Object.entries(profilesByEmail).filter(
-      ([email, profiles]) => profiles.length > 1
-    );
-
-    if (duplicates.length > 0) {
-      console.warn(
-        `⚠️ [DUPLICATE_DETECTION] Found ${duplicates.length} emails with duplicate profiles:`
-      );
-      duplicates.forEach(([email, profiles]) => {
-        console.warn(
-          `   📧 ${email}: ${profiles.length} profiles (${profiles.map(p => p.id).join(', ')})`
-        );
-      });
-      return duplicates;
-    } else {
-      return [];
-    }
-  } catch (error) {
-    console.error(
-      `❌ [DUPLICATE_DETECTION] Error checking for duplicates:`,
-      error
-    );
-    return [];
-  }
-}
-
-/**
  * Safely grant admin access, handling potential duplicates
  */
 export async function safeGrantAdmin(targetUserId: string): Promise<boolean> {

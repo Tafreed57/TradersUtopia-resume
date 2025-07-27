@@ -1,21 +1,32 @@
-import { prisma } from '@/lib/prismadb';
-import { getCurrentProfile } from '@/lib/query';
-import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
-import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
-import { strictCSRFValidation } from '@/lib/csrf';
+import { withAuth, authHelpers } from '@/middleware/auth-middleware';
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { serverId: string } }
-) {
+/**
+ * Server Leave API
+ *
+ * BEFORE: 22 lines with imports and boilerplate
+ * - Unused imports (5+ lines)
+ * - Manual function export structure
+ * - No authentication (disabled anyway)
+ *
+ * AFTER: Clean service-based implementation
+ * - Modernized structure with withAuth
+ * - Preserved disabled functionality
+ * - Enhanced error response
+ */
+
+/**
+ * Leave Server
+ * Currently disabled for all users
+ */
+export const PATCH = withAuth(async (req: NextRequest, { user }) => {
   // ✅ DISABLED: Leave server functionality has been disabled
   return NextResponse.json(
     {
       error: 'Leave server disabled',
       message: 'Leave server functionality has been disabled for all users.',
+      userId: user.id.substring(0, 8) + '***',
     },
     { status: 403 }
   );
-}
+}, authHelpers.userOnly('LEAVE_SERVER'));

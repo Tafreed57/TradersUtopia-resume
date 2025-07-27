@@ -2,8 +2,6 @@
 // 🔧 CONDITIONAL LOGGING UTILITY
 // ============================================
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
 interface LogConfig {
   enableDebug: boolean;
   enableInfo: boolean;

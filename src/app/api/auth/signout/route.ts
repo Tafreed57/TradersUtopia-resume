@@ -1,42 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { rateLimitAuth, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { apiLogger } from '@/lib/enhanced-logger';
 
-// Force dynamic rendering due to cookies and request.headers usage
 export const dynamic = 'force-dynamic';
 
+/**
+ * Authentication Signout Endpoint
+ * Optimized signout endpoint with enhanced audit logging
+ *
+ * @route POST /api/auth/signout
+ * @description Handles user signout with comprehensive monitoring
+ * @security Enhanced audit logging and security event tracking
+ */
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
-    // ✅ SECURITY: Rate limiting for authentication operations
-    const rateLimitResult = await rateLimitAuth()(request);
-    if (!rateLimitResult.success) {
-      trackSuspiciousActivity(request, 'AUTH_SIGNOUT_RATE_LIMIT_EXCEEDED');
-      return rateLimitResult.error;
-    }
+    // Get user agent and IP for security logging
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    const ipAddress = request.headers.get('x-forwarded-for') || 'unknown';
 
-    // ✅ SECURITY: Force clear the 2FA verification cookie with explicit settings
-    const cookieStore = cookies();
-
-    // Delete the cookie with all possible paths and settings
-    cookieStore.delete('2fa-verified');
-
-    // Set an expired cookie to force deletion across all browsers
-    cookieStore.set('2fa-verified', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 0, // Expire immediately
-      expires: new Date(0), // Set expiry to past date
-      path: '/',
+    apiLogger.databaseOperation('user_signout_initiated', true, {
+      userAgent: userAgent.substring(0, 50) + '***',
+      ipAddress: ipAddress.substring(0, 10) + '***',
+      timestamp: new Date().toISOString(),
     });
 
-    return NextResponse.json({
-      success: true,
-      message: '2FA session cleared',
+    // Enhanced signout response with security headers
+    const response = NextResponse.json(
+      {
+        success: true,
+        message: 'Successfully signed out',
+        metadata: {
+          signedOutAt: new Date().toISOString(),
+          responseTime: `${Date.now() - startTime}ms`,
+          version: '2.0-service-based',
+        },
+      },
+      {
+        status: 200,
+        headers: {
+          'Clear-Site-Data':
+            '"cache", "cookies", "storage", "executionContexts"',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
+
+    apiLogger.databaseOperation('user_signout_completed', true, {
+      responseTime: `${Date.now() - startTime}ms`,
+      securityHeadersApplied: true,
     });
+
+    return response;
   } catch (error) {
+    console.error('❌ [AUTH-SIGNOUT] Signout error:', error);
+
+    apiLogger.databaseOperation('user_signout_error', false, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      responseTime: `${Date.now() - startTime}ms`,
+    });
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        success: false,
+        error: 'Signout failed',
+        message: 'An error occurred during signout process.',
+        responseTime: `${Date.now() - startTime}ms`,
+      },
       { status: 500 }
     );
   }

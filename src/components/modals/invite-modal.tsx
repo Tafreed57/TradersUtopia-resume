@@ -1,12 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useOrigin } from '@/hooks/use-origin';
@@ -14,19 +8,17 @@ import { useStore } from '@/store/store';
 import { secureAxiosPatch } from '@/lib/csrf-client';
 import { Check, Copy, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { BaseModal } from './base';
 
 export function InviteModal() {
-  const type = useStore(state => state.type);
-  const isOpen = useStore(state => state.isOpen);
   const onOpen = useStore(state => state.onOpen);
-  const onClose = useStore(state => state.onClose);
   const data = useStore(state => state.data);
-
-  const isModelOpen = isOpen && type === 'invite';
   const origin = useOrigin();
 
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const inviteUrl = `${origin}/invite/${data?.server?.inviteCode}`;
 
   const onCopy = () => {
     navigator.clipboard.writeText(inviteUrl);
@@ -50,51 +42,39 @@ export function InviteModal() {
     }
   };
 
-  const inviteUrl = `${origin}/invite/${data?.server?.inviteCode}`;
-
   return (
-    <Dialog open={isModelOpen} onOpenChange={onClose}>
-      <DialogContent
-        aria-describedby={undefined}
-        className='bg-white text-black p-0 overflow-hidden'
-      >
-        <DialogHeader className='pt-8 px-6'>
-          <DialogTitle className='text-2xl text-center font-bold'>
-            Invite Friends
-          </DialogTitle>
-        </DialogHeader>
-        <div className='p-6'>
-          <Label className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
-            Server invite link
-          </Label>
-          <div className='flex items-center mt-2 gap-x-2'>
-            <Input
-              aria-readonly
-              readOnly
-              disabled={isLoading}
-              className='bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0'
-              value={inviteUrl}
-            />
-            <Button disabled={isLoading} onClick={onCopy} size='icon'>
-              {copied ? (
-                <Check className='w-4 h-4' />
-              ) : (
-                <Copy className='w-4 h-4' />
-              )}
-            </Button>
-          </div>
-          <Button
-            onClick={onGenerate}
+    <BaseModal type='invite' title='Invite Friends' loading={isLoading}>
+      <div className='space-y-4'>
+        <Label className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
+          Server invite link
+        </Label>
+        <div className='flex items-center gap-x-2'>
+          <Input
+            aria-readonly
+            readOnly
             disabled={isLoading}
-            variant='link'
-            size='sm'
-            className='text-sm text-zinc-500 mt-4'
-          >
-            Generate a new link
-            <RefreshCw className='w-4 h-4 ml-2' />
+            className='bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0'
+            value={inviteUrl}
+          />
+          <Button disabled={isLoading} onClick={onCopy} size='icon'>
+            {copied ? (
+              <Check className='w-4 h-4' />
+            ) : (
+              <Copy className='w-4 h-4' />
+            )}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+        <Button
+          onClick={onGenerate}
+          disabled={isLoading}
+          variant='link'
+          size='sm'
+          className='text-sm text-zinc-500'
+        >
+          Generate a new link
+          <RefreshCw className='w-4 h-4 ml-2' />
+        </Button>
+      </div>
+    </BaseModal>
   );
 }

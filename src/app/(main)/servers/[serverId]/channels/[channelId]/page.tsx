@@ -10,6 +10,7 @@ import {
 } from '@/lib/query';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import { ServerWithMembersWithProfiles } from '@/types/server';
 
 interface ChannelIdPageProps {
   params: {
@@ -69,8 +70,8 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
           serverId={channel?.serverId}
           type='channel'
           channelId={channel?.id}
-          server={server || undefined}
-          role={member?.role}
+          server={server as ServerWithMembersWithProfiles}
+          role={member?.roleId}
           servers={servers?.map(server => ({
             id: server.id,
             name: server.name,

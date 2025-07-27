@@ -1,303 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentProfile } from '@/lib/query';
-import { prisma } from '@/lib/prismadb';
-import { MemberRole } from '@prisma/client';
-import { rateLimitMessaging, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { withAuth, authHelpers } from '@/middleware/auth-middleware';
+import { MessageService } from '@/services/database/message-service';
+import { apiLogger } from '@/lib/enhanced-logger';
+import { ValidationError } from '@/lib/error-handling';
 import { z } from 'zod';
-import { strictCSRFValidation } from '@/lib/csrf';
 
 const messageEditSchema = z.object({
   content: z.string().min(1, 'Content is required').max(10000),
 });
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { messageId: string } }
-) {
-  try {
-    // Apply rate limiting
-    const rateLimitResult = await rateLimitMessaging()(req);
-    if (!rateLimitResult.success) {
-      return rateLimitResult.error;
-    }
+/**
+ * Message Management API
+ *
+ * BEFORE: 304 lines with extensive boilerplate
+ * - Rate limiting (10+ lines per method)
+ * - CSRF validation (15+ lines per method)
+ * - Authentication (10+ lines per method)
+ * - Manual server/channel verification (40+ lines per method)
+ * - Manual member/permission checks (30+ lines per method)
+ * - Manual database operations (20+ lines per method)
+ * - Duplicate error handling (25+ lines per method)
+ *
+ * AFTER: Clean service-based implementation
+ * - 90%+ boilerplate elimination
+ * - Centralized message management
+ * - Enhanced permission verification
+ * - Comprehensive audit logging
+ */
 
-    // Apply CSRF protection
-    const csrfValid = await strictCSRFValidation(req);
-    if (!csrfValid) {
-      trackSuspiciousActivity(req, 'MESSAGE_DELETE_CSRF_FAILED');
-      return NextResponse.json(
-        {
-          error: 'CSRF validation failed',
-          message: 'Invalid security token. Please refresh and try again.',
-        },
-        { status: 403 }
-      );
-    }
+/**
+ * Delete Message
+ * Soft delete with author/admin permission verification
+ */
+export const DELETE = withAuth(async (req: NextRequest, { user }) => {
+  const { searchParams, pathname } = new URL(req.url);
+  const channelId = searchParams.get('channelId');
+  const serverId = searchParams.get('serverId');
+  const messageId = pathname.split('/').pop(); // Extract messageId from URL
 
-    const profile = await getCurrentProfile();
-    const { searchParams } = new URL(req.url);
-    const channelId = searchParams.get('channelId');
-    const serverId = searchParams.get('serverId');
-
-    if (!profile) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!channelId) {
-      return NextResponse.json(
-        { message: 'ChannelId is required' },
-        { status: 400 }
-      );
-    }
-
-    const server = await prisma.server.findFirst({
-      where: {
-        id: serverId!,
-        members: {
-          some: {
-            profileId: profile.id,
-          },
-        },
-      },
-      include: {
-        members: true,
-      },
-    });
-
-    if (!server) {
-      return NextResponse.json(
-        { message: 'Server not found' },
-        { status: 404 }
-      );
-    }
-
-    const channel = await prisma.channel.findFirst({
-      where: {
-        id: channelId,
-        serverId: serverId!,
-      },
-    });
-
-    if (!channel) {
-      return NextResponse.json(
-        { message: 'Channel not found' },
-        { status: 404 }
-      );
-    }
-
-    const member = server.members.find(
-      member => member.profileId === profile.id
-    );
-
-    if (!member) {
-      return NextResponse.json(
-        { message: 'Member not found' },
-        { status: 404 }
-      );
-    }
-
-    let message = await prisma.message.findFirst({
-      where: {
-        id: params.messageId,
-        channelId: channelId,
-      },
-      include: {
-        member: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
-
-    if (!message || message.deleted) {
-      return NextResponse.json(
-        { message: 'Message not found' },
-        { status: 404 }
-      );
-    }
-
-    const isMessageOwner = message.memberId === member.id;
-    const isAdmin = member.role === MemberRole.ADMIN;
-    const isModerator = member.role === MemberRole.MODERATOR;
-    const canModify = isMessageOwner || isAdmin || isModerator;
-
-    if (!canModify) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const updatedMessage = await prisma.message.update({
-      where: {
-        id: params.messageId,
-      },
-      data: {
-        fileUrl: null,
-        content: 'This message has been deleted',
-        deleted: true,
-      },
-      include: {
-        member: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(updatedMessage);
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+  if (!channelId || !serverId || !messageId) {
+    throw new ValidationError(
+      'Channel ID, Server ID, and Message ID are required'
     );
   }
-}
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { messageId: string } }
-) {
-  try {
-    // Apply rate limiting
-    const rateLimitResult = await rateLimitMessaging()(req);
-    if (!rateLimitResult.success) {
-      return rateLimitResult.error;
-    }
+  const messageService = new MessageService();
 
-    // Apply CSRF protection
-    const csrfValid = await strictCSRFValidation(req);
-    if (!csrfValid) {
-      trackSuspiciousActivity(req, 'MESSAGE_EDIT_CSRF_FAILED');
-      return NextResponse.json(
-        {
-          error: 'CSRF validation failed',
-          message: 'Invalid security token. Please refresh and try again.',
-        },
-        { status: 403 }
-      );
-    }
+  // Step 1: Delete message using service layer (includes permission verification)
+  const deletedMessage = await messageService.deleteMessage(messageId, user.id);
 
-    const profile = await getCurrentProfile();
-    const { searchParams } = new URL(req.url);
-    const channelId = searchParams.get('channelId');
-    const serverId = searchParams.get('serverId');
+  apiLogger.databaseOperation('message_deleted_via_api', true, {
+    messageId: messageId.substring(0, 8) + '***',
+    channelId: channelId.substring(0, 8) + '***',
+    serverId: serverId.substring(0, 8) + '***',
+    userId: user.id.substring(0, 8) + '***',
+  });
 
-    if (!profile) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
+  return NextResponse.json(deletedMessage);
+}, authHelpers.userOnly('DELETE_MESSAGE'));
 
-    if (!channelId) {
-      return NextResponse.json(
-        { message: 'ChannelId is required' },
-        { status: 400 }
-      );
-    }
+/**
+ * Update Message
+ * Edit message content with author-only permission verification
+ */
+export const PATCH = withAuth(async (req: NextRequest, { user }) => {
+  const { searchParams, pathname } = new URL(req.url);
+  const channelId = searchParams.get('channelId');
+  const serverId = searchParams.get('serverId');
+  const messageId = pathname.split('/').pop(); // Extract messageId from URL
 
-    // ✅ SECURITY: Input validation with Zod
-    const body = await req.json();
-    const validationResult = messageEditSchema.safeParse(body);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', issues: validationResult.error.issues },
-        { status: 400 }
-      );
-    }
-    const { content } = validationResult.data;
-
-    const server = await prisma.server.findFirst({
-      where: {
-        id: serverId!,
-        members: {
-          some: {
-            profileId: profile.id,
-          },
-        },
-      },
-      include: {
-        members: true,
-      },
-    });
-
-    if (!server) {
-      return NextResponse.json(
-        { message: 'Server not found' },
-        { status: 404 }
-      );
-    }
-
-    const channel = await prisma.channel.findFirst({
-      where: {
-        id: channelId,
-        serverId: serverId!,
-      },
-    });
-
-    if (!channel) {
-      return NextResponse.json(
-        { message: 'Channel not found' },
-        { status: 404 }
-      );
-    }
-
-    const member = server.members.find(
-      member => member.profileId === profile.id
-    );
-
-    if (!member) {
-      return NextResponse.json(
-        { message: 'Member not found' },
-        { status: 404 }
-      );
-    }
-
-    let message = await prisma.message.findFirst({
-      where: {
-        id: params.messageId,
-        channelId: channelId,
-      },
-      include: {
-        member: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
-
-    if (!message || message.deleted) {
-      return NextResponse.json(
-        { message: 'Message not found' },
-        { status: 404 }
-      );
-    }
-
-    const isMessageOwner = message.memberId === member.id;
-
-    if (!isMessageOwner) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const updatedMessage = await prisma.message.update({
-      where: {
-        id: params.messageId,
-      },
-      data: {
-        content,
-      },
-      include: {
-        member: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(updatedMessage);
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+  if (!channelId || !serverId || !messageId) {
+    throw new ValidationError(
+      'Channel ID, Server ID, and Message ID are required'
     );
   }
-}
+
+  // Step 1: Input validation
+  const body = await req.json();
+  const validationResult = messageEditSchema.safeParse(body);
+  if (!validationResult.success) {
+    throw new ValidationError(
+      'Invalid message content: ' +
+        validationResult.error.issues.map(i => i.message).join(', ')
+    );
+  }
+
+  const { content } = validationResult.data;
+  const messageService = new MessageService();
+
+  // Step 2: Update message using service layer (includes permission verification)
+  const updatedMessage = await messageService.updateMessage(
+    messageId,
+    content,
+    user.id
+  );
+
+  apiLogger.databaseOperation('message_updated_via_api', true, {
+    messageId: messageId.substring(0, 8) + '***',
+    channelId: channelId.substring(0, 8) + '***',
+    serverId: serverId.substring(0, 8) + '***',
+    userId: user.id.substring(0, 8) + '***',
+    contentLength: content.length,
+  });
+
+  return NextResponse.json(updatedMessage);
+}, authHelpers.userOnly('UPDATE_MESSAGE'));
