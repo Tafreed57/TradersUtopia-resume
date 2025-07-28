@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, authHelpers } from '@/middleware/auth-middleware';
 import { TimerService } from '@/services/database/timer-service';
 import { apiLogger } from '@/lib/enhanced-logger';
-import { ValidationError } from '@/lib/error-handling';
+import { ValidationError, withErrorHandling } from '@/lib/error-handling';
 import { z } from 'zod';
 
 // Timer settings schema
@@ -13,50 +13,31 @@ const timerSettingsSchema = z.object({
 });
 
 /**
- * Timer Settings API
- *
- * BEFORE: 194 lines with extensive boilerplate
- * - Rate limiting (10+ lines per method)
- * - CSRF validation (15+ lines)
- * - Authentication (10+ lines per method)
- * - Manual admin verification (15+ lines)
- * - Manual timer operations (40+ lines)
- * - Complex timer calculations (30+ lines)
- * - Helper functions (30+ lines)
- * - Error handling (20+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 90% boilerplate elimination
- * - Centralized timer management
- * - Automated expiry handling
- * - Enhanced audit logging
- */
-
-/**
  * Get Timer Settings
  * Returns current timer configuration and remaining time
+ * Public route - no authentication required
  */
-export const GET = withAuth(async (req: NextRequest, { user }) => {
+export const GET = withErrorHandling(async (req: NextRequest) => {
   const timerService = new TimerService();
 
   try {
     // Get timer settings using service layer (auto-handles expiry)
-    const settings = await timerService.getTimerSettings();
+    const timer = await timerService.getTimer();
 
     apiLogger.databaseOperation('timer_settings_retrieved', true, {
-      userId: user.id.substring(0, 8) + '***',
-      remainingHours: settings.remainingHours,
-      isExpired: settings.isExpired,
+      remainingHours: timer.remainingHours,
+      isExpired: timer.isExpired,
+      public: true,
     });
 
     return NextResponse.json({
       success: true,
-      settings,
+      timer,
     });
   } catch (error) {
     apiLogger.databaseOperation('timer_settings_retrieval_failed', false, {
-      userId: user.id.substring(0, 8) + '***',
       error: error instanceof Error ? error.message : 'Unknown error',
+      public: true,
     });
 
     throw new ValidationError(
@@ -64,7 +45,7 @@ export const GET = withAuth(async (req: NextRequest, { user }) => {
         (error instanceof Error ? error.message : 'Unknown error')
     );
   }
-}, authHelpers.userOnly('VIEW_TIMER_SETTINGS'));
+}, 'get_timer_public');
 
 /**
  * Update Timer Settings

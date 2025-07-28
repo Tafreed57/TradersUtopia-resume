@@ -329,7 +329,6 @@ model ChannelNotificationPreference {
   @@map("channel_notification_preferences")
 }
 
-// Timer Model (keeping as-is since it seems app-specific)
 model Timer {
   id           String   @id @default(cuid())
   startTime    DateTime 

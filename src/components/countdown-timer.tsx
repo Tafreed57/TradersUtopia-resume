@@ -23,26 +23,25 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<TimerSettings | null>(null);
+  const [timer, setTimer] = useState<TimerSettings | null>(null);
 
   // Fetch timer settings from API
   const fetchTimerSettings = useCallback(async () => {
     try {
-      const response = await fetch('/api/timer/settings', {
+      const response = await fetch('/api/timer', {
         method: 'GET',
-        cache: 'no-store',
       });
-
       if (!response.ok) {
         throw new Error(`Failed to fetch timer settings: ${response.status}`);
       }
-
       const data = await response.json();
-      if (data.success && data.settings) {
-        setSettings(data.settings);
+      console.log(data);
+
+      if (data.success && data.timer) {
+        setTimer(data.timer);
 
         // Convert remaining hours to hours, minutes, seconds
-        const totalSeconds = Math.floor(data.settings.remainingHours * 3600);
+        const totalSeconds = Math.floor(data.timer.remainingHours * 3600);
         const hours = Math.floor(totalSeconds / 3600);
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
