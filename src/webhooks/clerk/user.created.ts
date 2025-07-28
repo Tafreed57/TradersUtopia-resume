@@ -4,11 +4,11 @@ import { UserService } from '@/services/database/user-service';
 import { CustomerService } from '@/services/stripe/customer-service';
 import { SubscriptionService } from '@/services/stripe/subscription-service';
 import { CreateUserData } from '@/services/types';
+import { UserJSON } from '@clerk/nextjs/server';
 
-export async function handleUserCreated(userData: any) {
+export async function handleUserCreated(userData: UserJSON) {
   const userService = new UserService();
   const customerService = new CustomerService();
-  const subscriptionService = new SubscriptionService();
 
   try {
     const {
@@ -27,13 +27,13 @@ export async function handleUserCreated(userData: any) {
       return NextResponse.json({ error: 'No primary email' }, { status: 400 });
     }
 
-    apiLogger.webhookEvent('Clerk', 'user_created', {
+    apiLogger.webhookEvent('Clerk', 'user.created', {
       userEmail: primaryEmail,
       userId,
     });
 
     // Check if user already exists in our database
-    const existingUser = await userService.findByUserIdOrEmail(userId);
+    const existingUser = await userService.findByUserIdOrEmail(primaryEmail);
 
     if (existingUser) {
       apiLogger.databaseOperation('user_exists_update_userid', true, {
@@ -42,7 +42,7 @@ export async function handleUserCreated(userData: any) {
       });
 
       // Update existing user with Clerk user ID
-      const updatedUser = await userService.updateUser(existingUser.id, {
+      await userService.updateUser(existingUser.id, {
         name:
           `${first_name || ''} ${last_name || ''}`.trim() || existingUser.name,
         imageUrl: image_url || existingUser.imageUrl,
@@ -62,7 +62,6 @@ export async function handleUserCreated(userData: any) {
     });
 
     let hasActiveSubscription = false;
-    let subscriptionDetails = null;
 
     try {
       // Check if user exists as a Stripe customer with subscriptions
@@ -75,20 +74,18 @@ export async function handleUserCreated(userData: any) {
           customerId: customer.id,
         });
 
-        // Check for active subscriptions using the subscription service
+        // Check for active subscriptions directly from customer data
         const activeSubscriptions =
-          await subscriptionService.listSubscriptionsByCustomer(customer.id, {
-            status: 'active',
-            limit: 1,
-          });
+          customer.subscriptions?.data?.filter(
+            sub => sub.status === 'active' || sub.status === 'trialing'
+          ) || [];
 
         if (activeSubscriptions.length > 0) {
           hasActiveSubscription = true;
-          subscriptionDetails = activeSubscriptions[0];
 
           apiLogger.subscriptionEvent('active_subscription_found_new_user', {
             userEmail: primaryEmail,
-            subscriptionId: subscriptionDetails.id,
+            subscriptionId: activeSubscriptions[0].id,
             customerId: customer.id,
           });
         }
@@ -130,23 +127,7 @@ export async function handleUserCreated(userData: any) {
       });
     }
 
-    return NextResponse.json({
-      message: 'User created successfully',
-      userId: newUser.id,
-      hasSubscription: hasActiveSubscription,
-      subscriptionDetails:
-        hasActiveSubscription && subscriptionDetails
-          ? {
-              subscriptionId: subscriptionDetails.id,
-              status: subscriptionDetails.status,
-              currentPeriodEnd: (subscriptionDetails as any).current_period_end
-                ? new Date(
-                    (subscriptionDetails as any).current_period_end * 1000
-                  ).toISOString()
-                : null,
-            }
-          : null,
-    });
+    return new NextResponse(null, { status: 200 });
   } catch (error) {
     apiLogger.databaseOperation('user_creation_error', false, {
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -18,10 +18,12 @@ import { NavigationButton } from '@/components/navigation-button';
 import { useLoading } from '@/contexts/loading-provider';
 import { EmailWarningModal } from '@/components/modals/email-warning-modal';
 import { CheckCircle, CreditCard, Loader2, Users } from 'lucide-react';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 export default function PaymentVerificationPage() {
   const router = useRouter();
   const { startLoading } = useLoading();
+  const { user } = useExtendedUser();
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<
     'idle' | 'success' | 'error'
@@ -29,8 +31,27 @@ export default function PaymentVerificationPage() {
   const [verificationResult, setVerificationResult] = useState<any>(null);
   const [showEmailWarning, setShowEmailWarning] = useState(false);
 
-  const stripeUrl = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_URL!;
-  console.log('stripeUrl', stripeUrl);
+  // Construct Stripe URL with user email for auto-population
+  const getStripeUrl = (): string => {
+    const baseUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL!;
+
+    // If user is logged in, add available prefill parameters
+    if (user?.emailAddresses[0]?.emailAddress) {
+      const url = new URL(baseUrl);
+
+      // Always add email
+      url.searchParams.set(
+        'prefilled_email',
+        user.emailAddresses[0].emailAddress
+      );
+
+      return url.toString();
+    }
+
+    return baseUrl;
+  };
+
+  const stripeUrl = getStripeUrl();
 
   const handlePaymentClick = () => {
     setShowEmailWarning(true);

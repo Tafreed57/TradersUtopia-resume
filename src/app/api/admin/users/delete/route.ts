@@ -7,25 +7,6 @@ import { ValidationError, NotFoundError } from '@/lib/error-handling';
 import { clerkClient } from '@clerk/nextjs/server';
 
 /**
- * Admin User Deletion API
- *
- * BEFORE: 134 lines with extensive boilerplate
- * - CSRF validation (15+ lines)
- * - Rate limiting (5+ lines)
- * - Authentication (10+ lines)
- * - Manual admin verification (10+ lines)
- * - Complex Clerk/Stripe cleanup (30+ lines)
- * - Manual database operations (20+ lines)
- * - Error handling (15+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 85%+ boilerplate elimination
- * - Centralized user management
- * - Enhanced cleanup process
- * - Comprehensive audit logging
- */
-
-/**
  * Delete User Account (Admin Only)
  * Performs complete cleanup: Database, Clerk, and Stripe
  */
@@ -102,9 +83,17 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     // Continue with database deletion even if Clerk cleanup fails
   }
 
-  // Step 4: Delete from database - simplified for current service layer
-  // TODO: Implement proper deleteUser method in UserService
-  const databaseCleanupResult = true;
+  // Step 4: Delete from database using UserService
+  let databaseCleanupResult = false;
+  try {
+    databaseCleanupResult = await userService.deleteUser(targetUserId);
+  } catch (error) {
+    apiLogger.databaseOperation('database_user_deletion_failed', false, {
+      userId: targetUserId.substring(0, 8) + '***',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    // Continue with response even if database cleanup fails
+  }
 
   apiLogger.databaseOperation('admin_user_deleted', true, {
     adminId: user.id.substring(0, 8) + '***',

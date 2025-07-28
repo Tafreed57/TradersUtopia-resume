@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { UserService } from '@/services/database/user-service';
+import { UserJSON } from '@clerk/nextjs/server';
 
-export async function handleUserUpdated(userData: any) {
+export async function handleUserUpdated(userData: UserJSON) {
   const userService = new UserService();
 
   try {

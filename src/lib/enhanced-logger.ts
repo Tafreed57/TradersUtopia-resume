@@ -64,8 +64,17 @@ export const apiLogger = {
     logger.webhook(`${getTimestamp()} ${message}`);
   },
 
-  databaseOperation: (operation: string, success: boolean, details?: any) => {
-    const status = success ? 'SUCCESS' : 'FAILED';
+  databaseOperation: (
+    operation: string,
+    success: boolean,
+    details?: any,
+    responseCode?: number
+  ) => {
+    const status = responseCode
+      ? responseCode.toString()
+      : success
+        ? 'SUCCESS'
+        : 'FAILED';
     const message = formatEventMessage('Database', operation, status);
     const logLevel = success ? 'info' : 'error';
     logger[logLevel](`${getTimestamp()} ${message}`);
@@ -154,8 +163,9 @@ export const testColorCodedLogs = () => {
   });
 
   apiLogger.authEvent('User login', 'test@example.com');
-  apiLogger.databaseOperation('user_create', true);
-  apiLogger.databaseOperation('user_update', false);
+  apiLogger.databaseOperation('user_create', true, null, 201);
+  apiLogger.databaseOperation('user_update', false, null, 404);
+  apiLogger.databaseOperation('user_delete', true); // No response code
   apiLogger.subscriptionEvent('subscription_created');
   apiLogger.webhookEvent('stripe', 'customer.subscription.created');
   apiLogger.securityViolation('Invalid token', mockRequest);

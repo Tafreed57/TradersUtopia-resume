@@ -1,29 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+import { verifyWebhook } from '@clerk/nextjs/webhooks';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { handleUserCreated, handleUserUpdated } from '@/webhooks/clerk';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.text();
-    const headersList = headers();
+    const evt = await verifyWebhook(request);
+    const { type, data } = evt;
 
     apiLogger.webhookEvent('Clerk', 'received_webhook', {
-      bodyLength: body.length,
+      eventType: type,
     });
-
-    let event;
-    try {
-      event = JSON.parse(body);
-    } catch (err) {
-      apiLogger.securityViolation('CLERK_WEBHOOK_INVALID_JSON', request, {
-        error: err,
-      });
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-    }
-
-    const { type, data } = event;
-    apiLogger.webhookEvent('Clerk', type, { eventType: type });
 
     switch (type) {
       case 'user.created':
@@ -32,7 +20,7 @@ export async function POST(request: NextRequest) {
         return await handleUserUpdated(data);
       default:
         apiLogger.webhookEvent('Clerk', 'unhandled_event', { eventType: type });
-        return NextResponse.json({ received: true });
+        return NextResponse.json({ received: true, status: 200 });
     }
   } catch (error) {
     apiLogger.webhookEvent('Clerk', 'processing_error', {

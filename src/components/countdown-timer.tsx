@@ -35,7 +35,6 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
         throw new Error(`Failed to fetch timer settings: ${response.status}`);
       }
       const data = await response.json();
-      console.log(data);
 
       if (data.success && data.timer) {
         setTimer(data.timer);
