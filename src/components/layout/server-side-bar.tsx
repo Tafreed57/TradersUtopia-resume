@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getCurrentProfile } from '@/lib/query';
+import { getCurrentProfileForAuth } from '@/lib/query';
 import { getServer } from '@/lib/query';
 import { ServerHeader } from '@/components/layout/server-header';
 import { Separator } from '@/components/ui/separator';
@@ -19,7 +19,7 @@ const iconMap = {
 };
 
 export async function ServerSideBar({ serverId }: ServerSideBarProps) {
-  const profile = await getCurrentProfile();
+  const profile = await getCurrentProfileForAuth();
   if (!profile) {
     return redirect('/');
   }

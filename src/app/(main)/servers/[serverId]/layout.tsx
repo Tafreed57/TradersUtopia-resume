@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { ServerHeader } from '@/components/layout/server-header';
 import { ServerSideBar } from '@/components/layout/server-side-bar';
 import { ProductPaymentGate } from '@/components/product-payment-gate';
-import { getCurrentProfileWithSync, getServer } from '@/lib/query';
+import { getCurrentProfileForAuth, getServer } from '@/lib/query';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
 import { ServerWithMembersWithUsers } from '@/types/server';
 
@@ -15,7 +15,7 @@ const ServerIdLayout = async ({
   children: React.ReactNode;
   params: { serverId: string };
 }) => {
-  const profile = await getCurrentProfileWithSync();
+  const profile = await getCurrentProfileForAuth();
 
   if (!profile) {
     return <RedirectToSignIn />;

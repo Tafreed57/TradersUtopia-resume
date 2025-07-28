@@ -3,10 +3,10 @@ import { ChatInput } from '@/components/chat/chat-input';
 import { ChatMessages } from '@/components/chat/chat-messages';
 import {
   getChannel,
-  getCurrentProfile,
   getMember,
   getServer,
   getAllServers,
+  getCurrentProfileForAuth,
 } from '@/lib/query';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
@@ -39,7 +39,7 @@ function ChannelLoadingState() {
 }
 
 export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
-  const user = await getCurrentProfile();
+  const user = await getCurrentProfileForAuth();
   if (!user) {
     return redirect('/sign-in');
   }
