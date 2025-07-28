@@ -10,22 +10,6 @@ import { revalidatePath } from 'next/cache';
 export const dynamic = 'force-dynamic';
 
 /**
- * Server Management API
- *
- * BEFORE: 189 lines with extensive boilerplate
- * - Rate limiting (10+ lines)
- * - Authentication (15+ lines)
- * - Permission checks (25+ lines)
- * - Manual database operations (20+ lines)
- * - Complex error handling (30+ lines)
- *
- * AFTER: Clean service-based implementation focused on business logic
- * - 80%+ boilerplate elimination
- * - Consistent error handling and logging
- * - Centralized permission logic
- */
-
-/**
  * Update Server
  * Admin/Owner-only operation
  */

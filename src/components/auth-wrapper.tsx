@@ -7,7 +7,7 @@ interface AuthWrapperProps {
 }
 
 export function AuthWrapper({ children }: AuthWrapperProps) {
-  useAuthCleanup();
+  // useAuthCleanup();
 
   return <>{children}</>;
 }

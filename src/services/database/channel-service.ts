@@ -73,7 +73,7 @@ export class ChannelService extends BaseDatabaseService {
 
       return channel as ChannelWithAccess | null;
     } catch (error) {
-      return await this.handleError(error, 'find_channel_with_access', {
+      return this.handleError(error, 'find_channel_with_access', {
         channelId: maskId(channelId),
         userId: maskId(userId),
       });
@@ -527,6 +527,53 @@ export class ChannelService extends BaseDatabaseService {
           serverId: criteria.serverId ? maskId(criteria.serverId) : undefined,
           type: criteria.type,
         },
+      });
+    }
+  }
+
+  /**
+   * Find channel by name (public access for specific use cases)
+   * Used for track record channel which is publicly accessible
+   */
+  async findChannelByName(channelName: string): Promise<Channel | null> {
+    try {
+      this.validateRequired(channelName, 'channel name');
+
+      const channel = await this.prisma.channel.findFirst({
+        where: {
+          name: {
+            equals: channelName,
+            mode: 'insensitive',
+          },
+          // Only return non-deleted channels
+          server: {
+            // Could add additional server filtering here if needed
+          },
+        },
+        orderBy: {
+          createdAt: 'asc', // Get the oldest channel with this name
+        },
+      });
+
+      if (channel) {
+        this.logSuccess('channel_found_by_name_public', {
+          channelId: maskId(channel.id),
+          channelName,
+          serverId: maskId(channel.serverId),
+        });
+      }
+
+      // Convert null to undefined for TypeScript compatibility
+      return channel
+        ? ({
+            ...channel,
+            topic: channel.topic ?? undefined,
+            sectionId: channel.sectionId ?? undefined,
+          } as Channel)
+        : null;
+    } catch (error) {
+      return await this.handleError(error, 'find_channel_by_name_public', {
+        channelName,
       });
     }
   }

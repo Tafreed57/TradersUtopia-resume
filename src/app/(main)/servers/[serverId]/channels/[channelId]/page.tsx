@@ -1,5 +1,5 @@
 import { ChatHeader } from '@/components/chat/chat-header';
-import { ConditionalChatInput } from '@/components/chat/conditional-chat-input';
+import { ChatInput } from '@/components/chat/chat-input';
 import { ChatMessages } from '@/components/chat/chat-messages';
 import {
   getChannel,
@@ -39,21 +39,21 @@ function ChannelLoadingState() {
 }
 
 export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
-  const profile = await getCurrentProfile();
-  if (!profile) {
+  const user = await getCurrentProfile();
+  if (!user) {
     return redirect('/sign-in');
   }
 
-  const channel = await getChannel(params.channelId);
-  const member = await getMember(params.serverId, profile.id);
+  const channel = await getChannel(params.channelId, user.id);
+  const member = await getMember(params.serverId, user.id);
 
   if (!channel || !member) {
     return redirect('/');
   }
 
   // Fetch server data for mobile navigation
-  const server = await getServer(params.serverId, profile.id);
-  const servers = await getAllServers(profile.id);
+  const server = await getServer(params.serverId, user.id);
+  const servers = await getAllServers(user.id);
 
   return (
     <Suspense fallback={<ChannelLoadingState />}>
@@ -100,7 +100,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
             paramValue={channel.id}
           />
         </div>
-        <ConditionalChatInput
+        <ChatInput
           name={channel.name}
           type='channel'
           apiUrl='/api/messages'
@@ -110,8 +110,6 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
           }}
           member={member as MemberWithUserAndRole}
         />
-
-        {/* ✅ REMOVED: Audio and Video channel MediaRoom components */}
       </div>
     </Suspense>
   );

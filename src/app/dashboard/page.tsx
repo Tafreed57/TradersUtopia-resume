@@ -161,7 +161,10 @@ export default function Dashboard() {
         bgColor: 'bg-green-500/10',
         borderColor: 'border-green-400/30',
         icon: CheckCircle,
-        description: `Valid until ${new Date(subscriptionData.subscriptionEnd || '').toLocaleDateString()}`,
+        description:
+          subscriptionData.subscriptionStatus === 'ADMIN'
+            ? 'Administrative access'
+            : 'Active subscription access',
       };
     }
 
@@ -391,6 +394,8 @@ export default function Dashboard() {
                       connect with our trading community.
                     </p>
                     <SmartEntryButton
+                      hasAccess={hasAccess}
+                      isAdmin={profile.isAdmin}
                       className='w-full'
                       customProductIds={allowedProductIds}
                     />

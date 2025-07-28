@@ -17,16 +17,11 @@ interface ExtendedUserState {
   isLoading: boolean;
   error: string | null;
 
-  // Subscription data from services
+  // Simplified subscription data
   subscriptionData: {
     hasAccess: boolean;
     hasActiveSubscription: boolean;
     subscriptionStatus: string;
-    subscriptionStart?: Date;
-    subscriptionEnd?: Date;
-    stripeCustomerId?: string;
-    stripeProductId?: string;
-    accessReason?: string;
   } | null;
 
   // Enhanced profile data
@@ -57,13 +52,13 @@ interface UseExtendedUserOptions {
 }
 
 /**
- * Extended useUser hook that combines Clerk's useUser() with service calls
+ * Extended useUser hook that combines Clerk's useUser() with session-check service
  * Provides complete user state including subscription, access, and admin status
  *
  * Features:
- * - Extends Clerk's useUser() with service data
+ * - Extends Clerk's useUser() with database service data
  * - Intelligent caching and performance optimization
- * - Automatic payment/subscription verification
+ * - Database-only subscription verification (no external API calls)
  * - Admin status checking
  * - Comprehensive error handling
  *
@@ -119,7 +114,7 @@ export function useExtendedUser(
   const checkInProgressRef = useRef(false);
 
   /**
-   * Performs comprehensive auth check using service APIs
+   * Performs simplified auth check using session-check API only
    */
   const performExtendedCheck = useCallback(
     async (forceRefresh = false) => {
@@ -147,11 +142,11 @@ export function useExtendedUser(
       try {
         if (enableLogging) {
           console.log(
-            `🚀 [EXTENDED-USER] Starting enhanced user check for: ${clerkUser.user.id}`
+            `🚀 [EXTENDED-USER] Starting simplified auth check for: ${clerkUser.user.id}`
           );
         }
 
-        // Call session check API (includes profile + subscription data)
+        // Call simplified session check API (includes profile + subscription data from database)
         const sessionResponse = await fetch('/api/auth/session-check', {
           method: 'POST',
           headers: {
@@ -165,82 +160,40 @@ export function useExtendedUser(
 
         const sessionData: any = await sessionResponse.json();
 
-        // Call payment verification API (includes access data)
-        const paymentResponse = await fetch('/api/payments/verify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        // Extract data from simplified response
+        const hasAccess = sessionData.hasAccess || false;
+        const isAdmin = sessionData.isAdmin || false;
+        const isAuthenticated = sessionData.isAuthenticated || false;
 
-        let paymentData: any = {
-          hasAccess: false,
-          stripeData: null,
-          performanceInfo: null,
-        };
-        if (paymentResponse.ok) {
-          paymentData = await paymentResponse.json();
-        }
-
-        // Combine all the data
-        const hasAccess =
-          paymentData.hasAccess || sessionData.hasAccess || false;
-        const isAdmin =
-          sessionData.isAdmin || sessionData.profile?.isAdmin || false;
-
-        // Build comprehensive subscription data
+        // Build simplified subscription data
         const subscriptionData = {
           hasAccess,
-          hasActiveSubscription:
-            paymentData.stripeData?.hasActiveSubscription || false,
-          subscriptionStatus: sessionData.subscriptionStatus || 'FREE',
-          subscriptionStart: sessionData.subscriptionStart
-            ? new Date(sessionData.subscriptionStart)
-            : undefined,
-          subscriptionEnd: sessionData.subscriptionEnd
-            ? new Date(sessionData.subscriptionEnd)
-            : paymentData.stripeData?.subscriptionEnd
-              ? new Date(paymentData.stripeData.subscriptionEnd)
-              : undefined,
-          stripeCustomerId:
-            sessionData.stripeCustomerId || paymentData.stripeData?.customerId,
-          stripeProductId:
-            sessionData.stripeProductId || paymentData.stripeData?.productId,
-          accessReason:
-            paymentData.stripeData?.accessReason ||
-            (hasAccess ? 'Verified access' : 'No access'),
+          hasActiveSubscription: hasAccess && !isAdmin, // Active subscription if has access but not admin
+          subscriptionStatus: isAdmin ? 'ADMIN' : hasAccess ? 'ACTIVE' : 'FREE',
         };
 
-        // Enhanced profile data
+        // Enhanced profile data from response
         const profile = sessionData.profile
           ? {
               id: sessionData.profile.id,
               email: sessionData.profile.email,
               name: sessionData.profile.name,
-              isAdmin,
+              isAdmin: sessionData.profile.isAdmin || false,
               createdAt: new Date(sessionData.profile.createdAt || new Date()),
             }
           : null;
 
-        // Performance optimization data
-        const dataSource =
-          paymentData.performanceInfo?.dataSource ||
-          sessionData.dataSource ||
-          'api-combined';
-        const cached =
-          paymentData.performanceInfo?.cacheHit || sessionData.cached || false;
-
         if (enableLogging) {
-          console.log(`✅ [EXTENDED-USER] Enhanced check completed:`, {
+          console.log(`✅ [EXTENDED-USER] Simplified check completed:`, {
             hasAccess,
             isAdmin,
+            isAuthenticated,
             subscriptionStatus: subscriptionData.subscriptionStatus,
-            dataSource,
-            cached,
+            dataSource: 'database',
           });
         }
 
-        // Update state with all combined data
+        // Update state with simplified data
         setExtendedState({
           // Clerk passthrough
           isLoaded: clerkUser.isLoaded,
@@ -248,21 +201,21 @@ export function useExtendedUser(
           user: clerkUser.user,
 
           // Enhanced data
-          isAuthenticated: clerkUser.isSignedIn,
+          isAuthenticated,
           hasAccess,
           isAdmin,
           isLoading: false,
           error: null,
           subscriptionData,
           profile,
-          dataSource,
-          cached,
+          dataSource: 'database',
+          cached: false,
           lastCheck: new Date(),
         });
 
         hasCheckedRef.current = true;
       } catch (error) {
-        console.error('❌ [EXTENDED-USER] Enhanced check failed:', error);
+        console.error('❌ [EXTENDED-USER] Simplified check failed:', error);
 
         setExtendedState(prev => ({
           ...prev,
@@ -277,10 +230,10 @@ export function useExtendedUser(
     [
       clerkUser.isLoaded,
       clerkUser.isSignedIn,
-      clerkUser.user?.id,
       cacheTimeout,
       enableLogging,
       extendedState.lastCheck,
+      clerkUser.user,
     ]
   );
 

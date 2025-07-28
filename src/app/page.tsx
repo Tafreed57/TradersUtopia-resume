@@ -21,8 +21,10 @@ import {
   Target,
   Zap,
 } from 'lucide-react';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 export default function HomePage() {
+  // const { user, hasAccess, isAdmin } = useExtendedUser();
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden pwa-layout safe-min-height'>
       {/* Animated Background Effects */}

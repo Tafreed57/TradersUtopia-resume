@@ -39,7 +39,7 @@ export class UserService extends BaseDatabaseService {
           } as User)
         : null;
     } catch (error) {
-      return await this.handleError(error, 'find_user_by_id_or_email', {
+      return this.handleError(error, 'find_user_by_id_or_email', {
         identifier: userIdOrEmail.includes('@')
           ? maskEmail(userIdOrEmail)
           : maskId(userIdOrEmail),

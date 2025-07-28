@@ -154,8 +154,8 @@ export async function getMember(serverId: string, profileId: string) {
   return await memberService.findMemberByUserAndServer(profileId, serverId);
 }
 
-export async function getChannel(channelId: string) {
-  return await channelService.findChannelWithAccess(channelId, 'system');
+export async function getChannel(channelId: string, userId: string) {
+  return await channelService.findChannelWithAccess(channelId, userId);
 }
 
 export async function getAdminProfile(userId: string) {

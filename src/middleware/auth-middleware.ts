@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { UserService } from '@/services/database/user-service';
+import { SubscriptionService } from '@/services/stripe/subscription-service';
 import { apiLogger } from '@/lib/enhanced-logger';
 import {
   AuthenticationError,
   AuthorizationError,
   RateLimitError,
   ValidationError,
-  createErrorResponse,
   withErrorHandling,
 } from '@/lib/error-handling';
 import { strictCSRFValidation } from '@/lib/csrf';
@@ -31,6 +31,7 @@ export interface AuthContext {
 export interface AuthOptions {
   action: string;
   requireAdmin?: boolean;
+  requireActiveSubscription?: boolean;
   requireCSRF?: boolean;
   requireRateLimit?: boolean;
   allowedMethods?: string[];
@@ -118,7 +119,67 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       throw new AuthorizationError('Admin privileges required');
     }
 
-    // 6. Build Authentication Context
+    // 6. Active Subscription Check (with admin bypass)
+    if (options.requireActiveSubscription && !user.isAdmin) {
+      try {
+        const subscriptionService = new SubscriptionService();
+        const hasActiveSubscription =
+          await subscriptionService.hasActiveSubscription(user.userId);
+
+        if (!hasActiveSubscription) {
+          apiLogger.databaseOperation(
+            `${options.action}_subscription_required`,
+            false,
+            {
+              userId: user.id.substring(0, 8) + '***',
+              action: options.action,
+              hasActiveSubscription: false,
+              isAdmin: user.isAdmin,
+            }
+          );
+          throw new AuthorizationError('Active subscription required');
+        }
+
+        apiLogger.databaseOperation(
+          `${options.action}_subscription_verified`,
+          true,
+          {
+            userId: user.id.substring(0, 8) + '***',
+            action: options.action,
+            isAdmin: user.isAdmin,
+          }
+        );
+      } catch (error) {
+        if (error instanceof AuthorizationError) {
+          throw error; // Re-throw authorization errors
+        }
+
+        // Log subscription service errors but treat as authorization failure for security
+        apiLogger.databaseOperation(
+          `${options.action}_subscription_check_failed`,
+          false,
+          {
+            userId: user.id.substring(0, 8) + '***',
+            action: options.action,
+            error: error instanceof Error ? error.message : String(error),
+          }
+        );
+        throw new AuthorizationError('Unable to verify subscription status');
+      }
+    } else if (options.requireActiveSubscription && user.isAdmin) {
+      // Admin bypass - log for audit purposes
+      apiLogger.databaseOperation(
+        `${options.action}_admin_subscription_bypass`,
+        true,
+        {
+          userId: user.id.substring(0, 8) + '***',
+          action: options.action,
+          isAdmin: user.isAdmin,
+        }
+      );
+    }
+
+    // 7. Build Authentication Context
     const authContext: AuthContext = {
       user,
       userId: user.userId, // Clerk user ID
@@ -127,7 +188,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       timestamp: new Date(),
     };
 
-    // 7. Log Successful Authentication
+    // 8. Log Successful Authentication
     const duration = Date.now() - startTime;
     apiLogger.databaseOperation(`${options.action}_auth_success`, true, {
       userId: user.id.substring(0, 8) + '***',
@@ -136,7 +197,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       action: options.action,
     });
 
-    // 8. Execute the actual route handler
+    // 9. Execute the actual route handler
     try {
       const result = await handler(req, authContext);
 
@@ -309,5 +370,28 @@ export const authHelpers = {
     requireCSRF: true,
     requireRateLimit: true,
     allowedMethods: ['GET', 'POST', 'PATCH'],
+  }),
+
+  /**
+   * For routes requiring active subscription
+   */
+  subscriberOnly: (action: string) => ({
+    action,
+    requireAdmin: false,
+    requireActiveSubscription: true,
+    requireCSRF: true,
+    requireRateLimit: true,
+  }),
+
+  /**
+   * For premium content/features
+   */
+  premiumContent: (action: string) => ({
+    action,
+    requireAdmin: false,
+    requireActiveSubscription: true,
+    requireCSRF: false,
+    requireRateLimit: true,
+    allowedMethods: ['GET'],
   }),
 };

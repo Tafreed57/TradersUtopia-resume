@@ -47,84 +47,84 @@ export function useAuthCleanup(options: UseAuthCleanupOptions = {}) {
     }
 
     // Check if we need to sync (force sync or enough time has passed)
-    const now = new Date();
-    const timeSinceLastSync = lastSyncRef.current
-      ? now.getTime() - lastSyncRef.current.getTime()
-      : Infinity;
+    // const now = new Date();
+    // const timeSinceLastSync = lastSyncRef.current
+    //   ? now.getTime() - lastSyncRef.current.getTime()
+    //   : Infinity;
 
-    if (!forceSync && timeSinceLastSync < syncInterval) {
-      return;
-    }
+    // if (!forceSync && timeSinceLastSync < syncInterval) {
+    //   return;
+    // }
 
-    isSyncingRef.current = true;
-    setAuthStatus(prev => ({ ...prev, isLoading: true, error: undefined }));
+    // isSyncingRef.current = true;
+    // setAuthStatus(prev => ({ ...prev, isLoading: true, error: undefined }));
 
-    try {
-      if (enableLogging) {
-      }
+    // try {
+    //   if (enableLogging) {
+    //   }
 
-      // Step 1: Verify product subscription with enhanced endpoint
-      const productResponse = await fetch('/api/check-product-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          allowedProductIds: customProductIds, // ✅ UPDATED: Use configurable product IDs
-        }),
-      });
+    //   // Step 1: Verify product subscription with enhanced endpoint
+    //   const productResponse = await fetch('/api/check-product-subscription', {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({
+    //       allowedProductIds: customProductIds, // ✅ UPDATED: Use configurable product IDs
+    //     }),
+    //   });
 
-      let hasValidSubscription = false;
-      let subscriptionData: any = null;
+    //   let hasValidSubscription = false;
+    //   let subscriptionData: any = null;
 
-      if (productResponse.ok) {
-        subscriptionData = await productResponse.json();
-        hasValidSubscription = subscriptionData.hasAccess;
+    //   if (productResponse.ok) {
+    //     subscriptionData = await productResponse.json();
+    //     hasValidSubscription = subscriptionData.hasAccess;
 
-        if (enableLogging) {
-        }
-      } else {
-        const errorData = await productResponse.json().catch(() => ({}));
-        if (enableLogging) {
-        }
-      }
+    //     if (enableLogging) {
+    //     }
+    //   } else {
+    //     const errorData = await productResponse.json().catch(() => ({}));
+    //     if (enableLogging) {
+    //     }
+    //   }
 
-      // ✅ REMOVED: Payment verification step to reduce API calls
+    //   // ✅ REMOVED: Payment verification step to reduce API calls
 
-      // Step 2: Update auth status
-      setAuthStatus({
-        isAuthenticated: true,
-        hasValidSubscription,
-        subscriptionProductId: subscriptionData?.productId,
-        subscriptionEnd: subscriptionData?.subscriptionEnd,
-        lastSyncTime: now,
-        isLoading: false,
-        error: undefined,
-      });
+    //   // Step 2: Update auth status
+    //   setAuthStatus({
+    //     isAuthenticated: true,
+    //     hasValidSubscription,
+    //     subscriptionProductId: subscriptionData?.productId,
+    //     subscriptionEnd: subscriptionData?.subscriptionEnd,
+    //     lastSyncTime: now,
+    //     isLoading: false,
+    //     error: undefined,
+    //   });
 
-      lastSyncRef.current = now;
+    //   lastSyncRef.current = now;
 
-      if (enableLogging) {
-        console.log(
-          '✅ [AUTH-SYNC] Authentication sync completed successfully'
-        );
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+    //   if (enableLogging) {
+    //     console.log(
+    //       '✅ [AUTH-SYNC] Authentication sync completed successfully'
+    //     );
+    //   }
+    // } catch (error) {
+    //   const errorMessage =
+    //     error instanceof Error ? error.message : 'Unknown error';
 
-      if (enableLogging) {
-        console.error('❌ [AUTH-SYNC] Authentication sync failed:', error);
-      }
+    //   if (enableLogging) {
+    //     console.error('❌ [AUTH-SYNC] Authentication sync failed:', error);
+    //   }
 
-      setAuthStatus(prev => ({
-        ...prev,
-        isLoading: false,
-        error: errorMessage,
-      }));
-    } finally {
-      isSyncingRef.current = false;
-    }
+    //   setAuthStatus(prev => ({
+    //     ...prev,
+    //     isLoading: false,
+    //     error: errorMessage,
+    //   }));
+    // } finally {
+    //   isSyncingRef.current = false;
+    // }
   };
 
   // ✅ SIMPLIFIED: Only perform initial sync when user loads, no automatic intervals

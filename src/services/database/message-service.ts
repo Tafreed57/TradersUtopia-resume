@@ -732,6 +732,86 @@ export class MessageService extends BaseDatabaseService {
   }
 
   /**
+   * Get messages from track record channel (public access)
+   * Special case for track record messages that don't require authentication
+   */
+  async getTrackRecordMessages(
+    channelId: string,
+    options: {
+      cursor?: string;
+      limit?: number;
+    } = {}
+  ): Promise<{
+    messages: Message[];
+    nextCursor: string | null;
+    hasMore: boolean;
+  }> {
+    try {
+      this.validateId(channelId, 'channelId');
+
+      const { cursor, limit = 10 } = options;
+
+      // Build query options for pagination
+      const queryOptions: any = {
+        take: Math.min(limit, 50), // Max 50 messages per request
+        where: {
+          channelId,
+          deleted: false,
+        },
+        include: {
+          member: {
+            include: {
+              user: true,
+              role: true,
+            },
+          },
+          attachments: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      };
+
+      // Add cursor pagination if provided
+      if (cursor) {
+        queryOptions.skip = 1;
+        queryOptions.cursor = { id: cursor };
+      }
+
+      // Fetch messages
+      const messages = await this.prisma.message.findMany(queryOptions);
+
+      // Determine next cursor and pagination info
+      const nextCursor =
+        messages.length === limit
+          ? messages[messages.length - 1]?.id || null
+          : null;
+      const hasMore = messages.length === limit;
+
+      this.logSuccess('track_record_messages_retrieved_public', {
+        channelId: maskId(channelId),
+        messageCount: messages.length,
+        hasCursor: !!cursor,
+        hasMore,
+      });
+
+      return {
+        messages: messages as Message[],
+        nextCursor,
+        hasMore,
+      };
+    } catch (error) {
+      return await this.handleError(error, 'get_track_record_messages', {
+        channelId: maskId(channelId),
+      });
+    }
+  }
+
+  /**
    * Get source messages from external trading database
    * Specialized endpoint for trading data integration
    */

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { Lock, Star, CheckCircle, Shield } from 'lucide-react';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 interface ProductPaymentGateProps {
   children: React.ReactNode;
@@ -32,26 +33,6 @@ interface ProductAccessStatus {
   subscriptionEnd?: string;
 }
 
-// ✅ PERFORMANCE: Simple in-memory cache to avoid redundant API calls
-const accessCache = new Map<
-  string,
-  { status: ProductAccessStatus; timestamp: number }
->();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-function getCacheKey(userId: string, productIds: string[]): string {
-  return `${userId}:${productIds.sort().join(',')}`;
-}
-
-function setCachedAccess(
-  userId: string,
-  productIds: string[],
-  status: ProductAccessStatus
-): void {
-  const key = getCacheKey(userId, productIds);
-  accessCache.set(key, { status, timestamp: Date.now() });
-}
-
 export function ProductPaymentGate({
   children,
   allowedProductIds,
@@ -64,7 +45,7 @@ export function ProductPaymentGate({
   ],
   adminBypass = true, // ✅ UPDATED: Default to true so admins automatically get premium access
 }: ProductPaymentGateProps) {
-  const { isLoaded, user } = useUser();
+  const { isLoaded, user, isAdmin } = useExtendedUser();
   const { navigate } = useNavigationLoading();
   const apiLoading = useComprehensiveLoading('api');
   const verifyLoading = useComprehensiveLoading('api');
@@ -145,12 +126,6 @@ export function ProductPaymentGate({
 
   const verifyStripePayment = async () => {
     try {
-      // ✅ PERFORMANCE: Clear cache on manual verification
-      if (user) {
-        const key = getCacheKey(user.id, allowedProductIds);
-        accessCache.delete(key);
-      }
-
       const result = await verifyLoading.withLoading(
         async () => {
           const response = await fetch('/api/verify-stripe-payment', {
@@ -197,7 +172,7 @@ export function ProductPaymentGate({
   }, [isLoaded, user]);
 
   // ✅ ADMIN BYPASS: Skip all checks for admin users
-  if (isLoaded && user && profile?.isAdmin && adminBypass) {
+  if (isLoaded && user && isAdmin && adminBypass) {
     console.log(
       '🚀 [ProductPaymentGate] Admin bypass active - rendering content directly'
     );
@@ -413,11 +388,6 @@ export function ProductPaymentGate({
                     size='lg'
                     className='flex-1 border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-300'
                     onClick={() => {
-                      // Clear cache and retry instead of going to homepage
-                      if (user) {
-                        const key = `${user.id}:${allowedProductIds.sort().join(',')}`;
-                        accessCache.delete(key);
-                      }
                       checkProductAccess();
                     }}
                     disabled={loading}

@@ -2,46 +2,18 @@
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { useStore } from '@/store/store';
 import { Plus } from 'lucide-react';
-import { useUser } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 export function SideBarActions() {
   const onOpen = useStore(state => state.onOpen);
-  const { user } = useUser();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingPermissions, setCheckingPermissions] = useState(true);
-
-  // Check if user has admin permissions
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) return;
-
-      try {
-        const response = await fetch('/api/admin/check-status', {
-          method: 'GET',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setIsAdmin(data.isAdmin);
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-      } finally {
-        setCheckingPermissions(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, [user]);
+  const { user, isAdmin, isLoading } = useExtendedUser({ enableLogging: true });
 
   const handleServerCreation = () => {
     onOpen('createServer');
   };
 
   // Show loading state while checking permissions
-  if (checkingPermissions) {
+  if (isLoading) {
     return (
       <ActionTooltip align='center' side='right' label='Loading...'>
         <button
@@ -56,7 +28,7 @@ export function SideBarActions() {
     );
   }
 
-  // ✅ UPDATED: Only show the button if user is admin
+  // Only show the button if user is admin
   if (!isAdmin) {
     return null;
   }

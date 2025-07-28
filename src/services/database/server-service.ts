@@ -1,11 +1,8 @@
 import { BaseDatabaseService } from './base-service';
 import {
-  Server,
   CreateServerData,
   UpdateServerData,
   ServerWithMember,
-  ServerWithDetails,
-  AccessControlCheck,
   ServerAccessResult,
 } from '../types';
 import { apiLogger } from '@/lib/enhanced-logger';
@@ -15,6 +12,7 @@ import {
   maskId,
 } from '@/lib/error-handling';
 import { nanoid } from 'nanoid';
+import { Server } from '@prisma/client';
 
 /**
  * ServerService
@@ -22,7 +20,33 @@ import { nanoid } from 'nanoid';
  * Consolidates server permission checks (20+ instances) and CRUD operations
  * with comprehensive audit logging for security compliance.
  */
+
+const DEFAULT_SERVER_NAME = 'TradersUtopia HQ';
 export class ServerService extends BaseDatabaseService {
+  /**
+   * fetch the default traders utopia server
+   */
+  async getDefaultServer(): Promise<any> {
+    try {
+      const server = await this.prisma.server.findFirst({
+        where: { name: DEFAULT_SERVER_NAME },
+        include: {
+          channels: true,
+        },
+      });
+
+      if (!server) {
+        throw new NotFoundError('Default server not found');
+      }
+
+      return server;
+    } catch (error) {
+      return this.handleError(error, 'get_default_server', {
+        serverName: DEFAULT_SERVER_NAME,
+      });
+    }
+  }
+
   /**
    * Find server with member access verification
    * Used in 15+ routes for permission checking

@@ -159,34 +159,34 @@ export default function RootLayout({
               <LoadingProvider>
                 <QueryProvider>
                   <UnifiedAuthProvider>
-                    <AuthWrapper>
-                      <ModalProvider />
-                      <ServiceWorkerHandler />
-                      <PushNotificationPrompt />
-                      <Toaster
-                        position='top-right'
-                        expand={true}
-                        richColors
-                        closeButton
-                        className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
-                        style={
-                          {
-                            '--toaster-top': `calc(1rem + env(safe-area-inset-top))`,
-                            '--toaster-right': `calc(1rem + env(safe-area-inset-right))`,
-                          } as React.CSSProperties
-                        }
-                        toastOptions={{
-                          className:
-                            'text-sm p-4 min-h-[48px] touch-manipulation',
-                          style: {
-                            minHeight: '48px',
-                            fontSize: '14px',
-                            padding: '16px',
-                          },
-                        }}
-                      />
-                      {children}
-                    </AuthWrapper>
+                    {/* <AuthWrapper> */}
+                    <ModalProvider />
+                    <ServiceWorkerHandler />
+                    <PushNotificationPrompt />
+                    <Toaster
+                      position='top-right'
+                      expand={true}
+                      richColors
+                      closeButton
+                      className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
+                      style={
+                        {
+                          '--toaster-top': `calc(1rem + env(safe-area-inset-top))`,
+                          '--toaster-right': `calc(1rem + env(safe-area-inset-right))`,
+                        } as React.CSSProperties
+                      }
+                      toastOptions={{
+                        className:
+                          'text-sm p-4 min-h-[48px] touch-manipulation',
+                        style: {
+                          minHeight: '48px',
+                          fontSize: '14px',
+                          padding: '16px',
+                        },
+                      }}
+                    />
+                    {children}
+                    {/* </AuthWrapper> */}
                   </UnifiedAuthProvider>
                 </QueryProvider>
               </LoadingProvider>
