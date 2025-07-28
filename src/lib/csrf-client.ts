@@ -15,7 +15,7 @@ let csrfTokenCache: { token: string; expires: number } | null = null;
  */
 async function fetchCSRFToken(): Promise<string> {
   try {
-    const response = await fetch('/api/csrf-token', {
+    const response = await fetch('/api/tokens/security?type=csrf', {
       method: 'GET',
       credentials: 'include',
       cache: 'no-store',
@@ -225,4 +225,3 @@ const secureAxiosGet = (
 ): Promise<AxiosResponse> => secureAxios.get(url, config);
 
 // Export the secure axios instance for direct use
-;

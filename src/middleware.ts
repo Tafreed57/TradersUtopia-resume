@@ -27,9 +27,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/2fa/verify-login',
   '/api/2fa/status',
   '/api/auth/signout',
-  '/api/csrf-token',
   '/api/user/validate-email',
-  '/api/auth/signout',
   '/api/get-participant-token',
 ]);
 
