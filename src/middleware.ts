@@ -21,6 +21,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/debug-runtime-env', // TEMPORARY: For debugging production environment issues
   '/api/user/validate-email', // Email validation for forgot password flow
   '/api/timer', // Public timer endpoint for countdown display
+  '/api/track-record', // Public track record endpoint for displaying trading results
 
   '/api/webhooks(.*)',
   '/api/sync-profiles',

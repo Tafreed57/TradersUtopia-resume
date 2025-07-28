@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MessageService } from '@/services/database/message-service';
 import { ChannelService } from '@/services/database/channel-service';
 import { apiLogger } from '@/lib/enhanced-logger';
-import { ValidationError } from '@/lib/error-handling';
+import { ValidationError, withErrorHandling } from '@/lib/error-handling';
 
 const MESSAGES_BATCH = 10;
 const TRACK_RECORD_CHANNEL_NAME = 'Track Record & Results';
@@ -11,7 +11,7 @@ const TRACK_RECORD_CHANNEL_NAME = 'Track Record & Results';
  * Get Track Record Messages
  * Public access for fetching track record messages with pagination
  */
-export async function GET(req: NextRequest) {
+export const GET = withErrorHandling(async (req: NextRequest) => {
   const messageService = new MessageService();
   const channelService = new ChannelService();
 
@@ -86,4 +86,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, 'get_track_record_messages_public');
