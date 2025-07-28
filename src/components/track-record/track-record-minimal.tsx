@@ -14,7 +14,7 @@ export function TrackRecordMinimal() {
   // Load messages only
   const loadMessages = async () => {
     try {
-      const messagesResponse = await fetch('/api/track-record/messages');
+      const messagesResponse = await fetch('/api/track-record');
       const messagesData = await messagesResponse.json();
       console.log(messagesData);
       setMessages(messagesData.items || []);

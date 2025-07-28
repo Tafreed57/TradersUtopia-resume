@@ -393,12 +393,7 @@ export default function Dashboard() {
                       Access real-time trading signals, market analysis, and
                       connect with our trading community.
                     </p>
-                    <SmartEntryButton
-                      hasAccess={hasAccess}
-                      isAdmin={profile.isAdmin}
-                      className='w-full'
-                      customProductIds={allowedProductIds}
-                    />
+                    <SmartEntryButton />
                   </div>
                 </div>
 
