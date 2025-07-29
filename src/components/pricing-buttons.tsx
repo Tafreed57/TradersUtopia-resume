@@ -43,11 +43,13 @@ export function PricingButtons(
           router.push('/payment-verification');
         }
       } else {
-        router.push('/sign-up');
+        // Redirect to sign-up with pricing page as the redirect destination
+        router.push('/sign-up?redirect_url=' + encodeURIComponent('/pricing'));
       }
     } catch (error) {
       console.error('Error in premium click:', error);
-      router.push('/sign-up');
+      // Fallback to sign-up with pricing page as redirect destination
+      router.push('/sign-up?redirect_url=' + encodeURIComponent('/pricing'));
     } finally {
       setLoading(false);
     }
