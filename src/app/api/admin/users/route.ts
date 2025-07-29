@@ -180,7 +180,7 @@ export const GET = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     }
 
     return {
-      id: profile.userId,
+      id: profile.id,
       name: profile.name,
       email: profile.email,
       imageUrl: profile.imageUrl,

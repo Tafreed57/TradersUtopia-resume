@@ -1,34 +1,31 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
+import { UserJSON } from '@clerk/nextjs/server';
+import {
+  ClerkWebhookEvent,
+  handleUserCreated,
+} from '@/webhooks/clerk/user.created';
+import { handleUserUpdated } from '@/webhooks/clerk/user.updated';
+import { handleUserDeleted } from '@/webhooks/clerk/user.deleted';
 import { verifyWebhook } from '@clerk/nextjs/webhooks';
-import { apiLogger } from '@/lib/enhanced-logger';
-import { handleUserCreated, handleUserUpdated } from '@/webhooks/clerk';
+import { NextRequest } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
+  const evt = await verifyWebhook(req);
+
+  // Handle the webhook
+  const { type } = evt;
+
   try {
-    const evt = await verifyWebhook(request);
-    const { type, data } = evt;
-
-    apiLogger.webhookEvent('Clerk', 'received_webhook', {
-      eventType: type,
-    });
-
     switch (type) {
       case 'user.created':
-        return await handleUserCreated(data);
+        return await handleUserCreated(evt.data);
       case 'user.updated':
-        return await handleUserUpdated(data);
+        return await handleUserUpdated(evt.data as UserJSON);
+      case 'user.deleted':
+        return await handleUserDeleted(evt.data as any);
       default:
-        apiLogger.webhookEvent('Clerk', 'unhandled_event', { eventType: type });
-        return NextResponse.json({ received: true, status: 200 });
+        return new Response('Unhandled event type', { status: 200 });
     }
   } catch (error) {
-    apiLogger.webhookEvent('Clerk', 'processing_error', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
-    );
+    return new Response('Internal server error', { status: 500 });
   }
 }

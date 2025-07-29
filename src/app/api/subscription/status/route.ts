@@ -55,11 +55,11 @@ export const GET = withAuth(
       const shouldCheckProduct = checkProduct === 'true';
       const shouldForceRefresh = forceRefresh === 'true';
 
-      const sessionKey = `subscription_${user.userId}`;
+      const sessionKey = `subscription_${user.id}`;
       const now = Date.now();
 
       apiLogger.databaseOperation('subscription_status_check_started', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         checkProduct: shouldCheckProduct,
         forceRefresh: shouldForceRefresh,
       });
@@ -69,7 +69,7 @@ export const GET = withAuth(
         const cached = statusCache.get(sessionKey)!;
         if (now < cached.expiresAt) {
           apiLogger.databaseOperation('subscription_status_cache_hit', true, {
-            userId: user.userId.substring(0, 8) + '***',
+            userId: user.id.substring(0, 8) + '***',
             cacheAge: Math.round((now - cached.timestamp) / 1000),
           });
 
@@ -86,7 +86,7 @@ export const GET = withAuth(
 
       // Step 2: Get user data
       const userService = new UserService();
-      const userProfile = await userService.findByClerkId(user.userId);
+      const userProfile = await userService.findByClerkId(user.id);
 
       if (!userProfile) {
         return NextResponse.json(
@@ -130,7 +130,7 @@ export const GET = withAuth(
         });
 
         apiLogger.databaseOperation('subscription_status_admin_access', true, {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
         });
 
         return NextResponse.json({
@@ -205,7 +205,7 @@ export const GET = withAuth(
       });
 
       apiLogger.databaseOperation('subscription_status_check_completed', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         hasAccess: subscriptionData.hasAccess,
         status: subscriptionData.status,
         checkProduct: shouldCheckProduct,
@@ -222,7 +222,7 @@ export const GET = withAuth(
 
       apiLogger.databaseOperation('subscription_status_check_error', false, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         responseTime: `${Date.now() - startTime}ms`,
       });
 

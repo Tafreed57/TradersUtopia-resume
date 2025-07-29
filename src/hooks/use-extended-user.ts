@@ -159,7 +159,7 @@ export function useExtendedUser(
         }
 
         const sessionData: any = await sessionResponse.json();
-
+        console.log('🚀 [EXTENDED-USER] sessionData:', sessionData);
         // Extract data from simplified response
         const hasAccess = sessionData.hasAccess || false;
         const isAdmin = sessionData.isAdmin || false;

@@ -121,7 +121,7 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
       success: true,
       message: 'User subscription has been cancelled',
       cancelledSubscription: {
-        userId: targetProfile.userId,
+        userId: targetProfile.id,
         email: targetProfile.email,
         name: targetProfile.name,
         customerId: stripeCustomer.id,

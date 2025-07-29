@@ -5,8 +5,7 @@ import Stripe from 'stripe';
 // =============================================================================
 
 export interface User {
-  id: string;
-  userId: string; // Clerk user ID
+  id: string; // Clerk user ID (primary key)
   email: string;
   name: string;
   imageUrl?: string;
@@ -21,9 +20,6 @@ export interface Subscription {
   stripeSubscriptionId: string;
   stripeCustomerId: string;
   status: string;
-  currency: string;
-  created: Date;
-  currentPeriodStart?: Date;
   currentPeriodEnd?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -182,7 +178,7 @@ export interface ListSubscriptionOptions {
 
 // User Service Types
 export interface CreateUserData {
-  userId: string; // Clerk user ID
+  userId: string; // Clerk user ID (will be used as primary key)
   email: string;
   name: string;
   imageUrl?: string;

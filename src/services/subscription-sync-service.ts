@@ -2,16 +2,36 @@ import { apiLogger } from '@/lib/enhanced-logger';
 import { BaseDatabaseService } from './database/base-service';
 import { ValidationError } from '@/lib/error-handling';
 import Stripe from 'stripe';
-import { Prisma, SubscriptionStatus } from '@prisma/client';
+import { SubscriptionStatus } from '@prisma/client';
 // Type alias to handle Stripe API version differences
 type StripeInvoiceWithSubscription = Stripe.Invoice & {
   subscription?: string | Stripe.Subscription;
 };
 
-type StripeSubscriptionWithPeriods = Stripe.Subscription & {
+// Webhook payloads include additional fields not in the standard Stripe.Subscription type
+type StripeSubscriptionWebhookPayload = Stripe.Subscription & {
   current_period_start?: number;
   current_period_end?: number;
+  items?: {
+    data: Array<
+      Stripe.SubscriptionItem & {
+        current_period_start?: number;
+        current_period_end?: number;
+      }
+    >;
+  };
+  discount?: Stripe.Discount; // Legacy single discount field
 };
+
+// Interface for database subscription records that include JSON fields
+interface DatabaseSubscription {
+  id?: string;
+  stripeSubscriptionId: string;
+  stripeCustomerId: string;
+  currentPeriodEnd?: Date | null;
+  items?: string; // JSON string containing subscription items
+  [key: string]: any;
+}
 
 /**
  * Service for synchronizing Stripe subscription data with the local database
@@ -19,36 +39,161 @@ type StripeSubscriptionWithPeriods = Stripe.Subscription & {
  */
 export class SubscriptionSyncService extends BaseDatabaseService {
   /**
+   * Extract period information from subscription items JSON
+   */
+  private extractPeriodFromItems(
+    subscription: DatabaseSubscription | StripeSubscriptionWebhookPayload
+  ): {
+    currentPeriodEnd: Date | null;
+  } {
+    console.dir(subscription, { depth: null });
+    try {
+      // First try direct properties (for Stripe API responses)
+      if (
+        'current_period_start' in subscription &&
+        subscription.current_period_start
+      ) {
+        return {
+          currentPeriodEnd: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000)
+            : null,
+        };
+      }
+
+      // Then try items field
+      if ('items' in subscription && subscription.items) {
+        let itemsData;
+
+        // Handle both string (database records) and object (Stripe API responses)
+        if (typeof subscription.items === 'string') {
+          // Database record - items stored as JSON string
+          itemsData = JSON.parse(subscription.items);
+        } else if (typeof subscription.items === 'object') {
+          // Direct Stripe API response - items is already an object
+          itemsData = subscription.items;
+        }
+
+        // Extract period from items data
+        if (itemsData && itemsData.data && itemsData.data.length > 0) {
+          const firstItem = itemsData.data[0];
+          return {
+            currentPeriodEnd: firstItem.current_period_end
+              ? new Date(firstItem.current_period_end * 1000)
+              : null,
+          };
+        }
+      }
+
+      // Fallback to existing properties if available
+      if (
+        'currentPeriodStart' in subscription &&
+        subscription.currentPeriodStart
+      ) {
+        return {
+          currentPeriodEnd:
+            subscription.currentPeriodEnd instanceof Date
+              ? subscription.currentPeriodEnd
+              : subscription.currentPeriodEnd
+                ? new Date(subscription.currentPeriodEnd)
+                : null,
+        };
+      }
+
+      return {
+        currentPeriodEnd: null,
+      };
+    } catch (error) {
+      // Get subscription ID based on type - database records have stripeSubscriptionId, Stripe objects have id
+      const subscriptionId =
+        'stripeSubscriptionId' in subscription
+          ? subscription.stripeSubscriptionId
+          : 'id' in subscription
+            ? subscription.id
+            : 'unknown';
+
+      apiLogger.databaseOperation('extract_period_from_items', false, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        subscriptionId,
+      });
+      return {
+        currentPeriodEnd: null,
+      };
+    }
+  }
+
+  /**
    * Create or update a subscription from Stripe data
+   * @param stripeSubscription - The subscription data from Stripe
+   * @param userId - Optional user ID for new users who don't have a subscription record yet
    */
   async createOrUpdateSubscription(
-    stripeSubscription: StripeSubscriptionWithPeriods
+    stripeSubscription: StripeSubscriptionWebhookPayload,
+    userId?: string
   ): Promise<void> {
     try {
-      const subscriptionData =
-        this.mapStripeSubscriptionToDbFields(stripeSubscription);
+      // Extract period information using the helper function
+      const { currentPeriodEnd } =
+        this.extractPeriodFromItems(stripeSubscription);
+
+      console.log('currentPeriodEnd', currentPeriodEnd);
+      const subscriptionData = {
+        stripeSubscriptionId: stripeSubscription.id,
+        stripeCustomerId: stripeSubscription.customer as string,
+        status: this.mapStripeStatusToDbStatus(stripeSubscription.status),
+        createdAt: new Date(stripeSubscription.created * 1000),
+        currentPeriodEnd,
+        updatedAt: new Date(),
+      };
 
       await this.executeTransaction(async tx => {
-        // Find user by Stripe customer ID
-        const user = await tx.user.findFirst({
-          where: {
-            subscription: {
-              stripeCustomerId: stripeSubscription.customer as string,
-            },
-          },
-        });
+        let targetUserId: string;
 
-        if (!user) {
-          throw new ValidationError(
-            `User not found for Stripe customer: ${stripeSubscription.customer}`
-          );
+        if (userId) {
+          // Use provided userId (for new users)
+          targetUserId = userId;
+        } else {
+          // Find user by Stripe customer ID (for existing users)
+          const user = await tx.user.findFirst({
+            where: {
+              subscription: {
+                stripeCustomerId: stripeSubscription.customer as string,
+              },
+            },
+          });
+
+          if (!user) {
+            // Try to find user by email if customer is expanded
+            if (
+              typeof stripeSubscription.customer === 'object' &&
+              'email' in stripeSubscription.customer &&
+              stripeSubscription.customer.email
+            ) {
+              const userByEmail = await tx.user.findFirst({
+                where: { email: stripeSubscription.customer.email },
+              });
+
+              if (userByEmail) {
+                targetUserId = userByEmail.id;
+              } else {
+                throw new ValidationError(
+                  `User not found for Stripe customer: ${stripeSubscription.customer.id || stripeSubscription.customer}`
+                );
+              }
+            } else {
+              throw new ValidationError(
+                `User not found for Stripe customer: ${stripeSubscription.customer}`
+              );
+            }
+          } else {
+            targetUserId = user.id;
+          }
         }
 
         // Upsert subscription
         await tx.subscription.upsert({
           where: { stripeSubscriptionId: stripeSubscription.id },
           create: {
-            userId: user.id,
+            userId: targetUserId,
             ...subscriptionData,
           },
           update: subscriptionData,
@@ -58,7 +203,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
           subscriptionId: stripeSubscription.id,
           status: stripeSubscription.status,
           operation: 'upsert',
-          userId: user.id,
+          userId: targetUserId,
         });
       });
     } catch (error) {
@@ -146,7 +291,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
    * Handle subscription cancellation
    */
   async handleSubscriptionCancellation(
-    stripeSubscription: StripeSubscriptionWithPeriods
+    stripeSubscription: StripeSubscriptionWebhookPayload
   ): Promise<void> {
     try {
       await this.executeTransaction(async tx => {
@@ -154,12 +299,6 @@ export class SubscriptionSyncService extends BaseDatabaseService {
           where: { stripeSubscriptionId: stripeSubscription.id },
           data: {
             status: 'CANCELED',
-            canceledAt: stripeSubscription.canceled_at
-              ? new Date(stripeSubscription.canceled_at * 1000)
-              : new Date(),
-            endedAt: stripeSubscription.ended_at
-              ? new Date(stripeSubscription.ended_at * 1000)
-              : new Date(),
             updatedAt: new Date(),
           },
         });
@@ -202,7 +341,6 @@ export class SubscriptionSyncService extends BaseDatabaseService {
           where: { stripeSubscriptionId: subscriptionId },
           data: {
             status,
-            latestInvoice: invoice.id,
             updatedAt: new Date(),
           },
         });
@@ -246,7 +384,6 @@ export class SubscriptionSyncService extends BaseDatabaseService {
             where: { id: subscription.id },
             data: {
               status: 'ACTIVE', // Payment succeeded
-              latestInvoice: invoice.id,
               updatedAt: new Date(),
             },
           });
@@ -304,9 +441,10 @@ export class SubscriptionSyncService extends BaseDatabaseService {
    */
   private isWithinGracePeriod(subscription: any): boolean {
     // Allow 7-day grace period for past due subscriptions
-    if (!subscription.currentPeriodEnd) return false;
+    const { currentPeriodEnd } = this.extractPeriodFromItems(subscription);
+    if (!currentPeriodEnd) return false;
 
-    const gracePeriodEnd = new Date(subscription.currentPeriodEnd);
+    const gracePeriodEnd = new Date(currentPeriodEnd);
     gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 7);
 
     return new Date() <= gracePeriodEnd;
@@ -404,57 +542,6 @@ export class SubscriptionSyncService extends BaseDatabaseService {
       serverId,
       newRoleId: freeRole.id,
     });
-  }
-
-  /**
-   * Map Stripe subscription fields to database fields
-   */
-  private mapStripeSubscriptionToDbFields(
-    stripeSubscription: StripeSubscriptionWithPeriods
-  ) {
-    return {
-      stripeSubscriptionId: stripeSubscription.id,
-      stripeCustomerId: stripeSubscription.customer as string,
-      status: this.mapStripeStatusToDbStatus(stripeSubscription.status),
-      currency: stripeSubscription.currency,
-      created: new Date(stripeSubscription.created * 1000),
-      currentPeriodStart: stripeSubscription.current_period_start
-        ? new Date(stripeSubscription.current_period_start * 1000)
-        : null,
-      currentPeriodEnd: stripeSubscription.current_period_end
-        ? new Date(stripeSubscription.current_period_end * 1000)
-        : null,
-      cancelAt: stripeSubscription.cancel_at
-        ? new Date(stripeSubscription.cancel_at * 1000)
-        : null,
-      cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
-      canceledAt: stripeSubscription.canceled_at
-        ? new Date(stripeSubscription.canceled_at * 1000)
-        : null,
-      endedAt: stripeSubscription.ended_at
-        ? new Date(stripeSubscription.ended_at * 1000)
-        : null,
-      startDate: stripeSubscription.start_date
-        ? new Date(stripeSubscription.start_date * 1000)
-        : null,
-      trialStart: stripeSubscription.trial_start
-        ? new Date(stripeSubscription.trial_start * 1000)
-        : null,
-      trialEnd: stripeSubscription.trial_end
-        ? new Date(stripeSubscription.trial_end * 1000)
-        : null,
-      defaultPaymentMethod:
-        (stripeSubscription.default_payment_method as string) || null,
-      latestInvoice: (stripeSubscription.latest_invoice as string) || null,
-      collectionMethod: stripeSubscription.collection_method,
-      items: stripeSubscription.items
-        ? JSON.stringify(stripeSubscription.items)
-        : Prisma.JsonNull,
-      metadata: stripeSubscription.metadata
-        ? JSON.stringify(stripeSubscription.metadata)
-        : Prisma.JsonNull,
-      updatedAt: new Date(),
-    };
   }
 
   /**

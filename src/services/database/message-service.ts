@@ -569,7 +569,7 @@ export class MessageService extends BaseDatabaseService {
 
       // Check if user is admin
       const userProfile = await this.prisma.user.findUnique({
-        where: { userId },
+        where: { id: userId },
         select: { id: true, isAdmin: true },
       });
 
@@ -667,7 +667,7 @@ export class MessageService extends BaseDatabaseService {
 
       // Check if user is admin
       const userProfile = await this.prisma.user.findUnique({
-        where: { userId },
+        where: { id: userId },
         select: { id: true, isAdmin: true },
       });
 

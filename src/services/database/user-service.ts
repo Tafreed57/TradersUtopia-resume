@@ -1,11 +1,18 @@
 import { BaseDatabaseService } from './base-service';
-import { User, CreateUserData, UpdateUserData, UpsertUserData } from '../types';
+import {
+  User,
+  CreateUserData,
+  UpdateUserData,
+  UpsertUserData,
+  Subscription,
+} from '../types';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { NotFoundError, maskEmail, maskId } from '@/lib/error-handling';
 
 /**
  * UserService - Handles all user/profile database operations
  * Eliminates 35+ duplicate profile lookup and admin check implementations
+ * Updated for simplified subscription schema
  */
 export class UserService extends BaseDatabaseService {
   /**
@@ -18,7 +25,7 @@ export class UserService extends BaseDatabaseService {
     try {
       const user = await this.prisma.user.findFirst({
         where: {
-          OR: [{ userId: userIdOrEmail }, { email: userIdOrEmail }],
+          OR: [{ id: userIdOrEmail }, { email: userIdOrEmail }],
         },
       });
 
@@ -97,14 +104,17 @@ export class UserService extends BaseDatabaseService {
   }
 
   /**
-   * Find user with subscription data - eliminates 8+ subscription lookup patterns
+   * Find user with subscription data - updated for simplified subscription schema
+   * Eliminates 8+ subscription lookup patterns
    */
-  async findUserWithSubscriptionData(userId: string): Promise<User | null> {
+  async findUserWithSubscriptionData(
+    userId: string
+  ): Promise<(User & { subscription?: Subscription | null }) | null> {
     this.validateRequired(userId, 'userId');
 
     try {
       const user = await this.prisma.user.findFirst({
-        where: { userId },
+        where: { id: userId },
         include: {
           subscription: true,
         },
@@ -114,23 +124,24 @@ export class UserService extends BaseDatabaseService {
         userId: maskId(userId),
         found: !!user,
         hasSubscription: !!user?.subscription,
+        subscriptionStatus: user?.subscription?.status || 'NO_SUBSCRIPTION',
       });
 
       // Convert and clean up the data
       return user
         ? ({
             id: user.id,
-            userId: user.userId,
             email: user.email,
             name: user.name,
             imageUrl: user.imageUrl ?? undefined,
             isAdmin: user.isAdmin,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
-          } as User)
+            subscription: user.subscription,
+          } as User & { subscription?: Subscription | null })
         : null;
     } catch (error) {
-      return await this.handleError(error, 'find_user_with_subscription_data', {
+      return this.handleError(error, 'find_user_with_subscription_data', {
         userId: maskId(userId),
       });
     }
@@ -145,7 +156,7 @@ export class UserService extends BaseDatabaseService {
     this.validateRequired(data.name, 'name');
 
     return await this.createRecord<User>('user', {
-      userId: data.userId,
+      id: data.userId, // Use Clerk ID as primary key
       email: data.email,
       name: data.name,
       imageUrl: data.imageUrl,
@@ -177,9 +188,9 @@ export class UserService extends BaseDatabaseService {
 
     return await this.upsertRecord<User>(
       'user',
-      { userId: data.userId },
+      { id: data.userId },
       {
-        userId: data.userId,
+        id: data.userId,
         email: data.email,
         name: data.name,
         imageUrl: data.imageUrl,
@@ -217,7 +228,7 @@ export class UserService extends BaseDatabaseService {
   async clerkIdExists(clerkUserId: string): Promise<boolean> {
     this.validateRequired(clerkUserId, 'clerkUserId');
 
-    return await this.recordExists('user', { userId: clerkUserId });
+    return await this.recordExists('user', { id: clerkUserId });
   }
 
   /**
@@ -259,7 +270,7 @@ export class UserService extends BaseDatabaseService {
   async checkUserExistsByClerkId(clerkUserId: string): Promise<boolean> {
     this.validateRequired(clerkUserId, 'clerkUserId');
 
-    return await this.recordExists('user', { userId: clerkUserId });
+    return await this.recordExists('user', { id: clerkUserId });
   }
 
   /**
@@ -386,7 +397,6 @@ export class UserService extends BaseDatabaseService {
    */
   async getUserWithPushSubscriptions(userId: string): Promise<{
     id: string;
-    userId: string;
     pushSubscriptions: Array<{
       endpoint: string;
       keys: {
@@ -399,10 +409,9 @@ export class UserService extends BaseDatabaseService {
 
     try {
       const user = await this.prisma.user.findFirst({
-        where: { userId },
+        where: { id: userId },
         select: {
           id: true,
-          userId: true,
           pushSubscriptions: {
             select: {
               endpoint: true,
@@ -419,7 +428,6 @@ export class UserService extends BaseDatabaseService {
       // Transform the data to match expected format
       return {
         id: user.id,
-        userId: user.userId,
         pushSubscriptions: user.pushSubscriptions.map((sub: any) => ({
           endpoint: sub.endpoint,
           keys: sub.keys as { p256dh: string; auth: string },
@@ -531,6 +539,194 @@ export class UserService extends BaseDatabaseService {
   }
 
   /**
+   * Check user's subscription status
+   * Returns the current subscription status or FREE for users without subscriptions
+   */
+  async getUserSubscriptionStatus(userId: string): Promise<{
+    status: string;
+    hasActiveSubscription: boolean;
+    currentPeriodEnd?: Date;
+    stripeSubscriptionId?: string;
+  }> {
+    this.validateRequired(userId, 'userId');
+
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: { id: userId },
+        include: {
+          subscription: true,
+        },
+      });
+
+      const subscription = user?.subscription;
+      const status = subscription?.status || 'FREE';
+      const hasActiveSubscription =
+        status === 'ACTIVE' || status === 'TRIALING';
+
+      this.logSuccess('subscription_status_check', {
+        userId: maskId(userId),
+        status,
+        hasActiveSubscription,
+        hasSubscription: !!subscription,
+      });
+
+      return {
+        status,
+        hasActiveSubscription,
+        currentPeriodEnd: subscription?.currentPeriodEnd ?? undefined,
+        stripeSubscriptionId: subscription?.stripeSubscriptionId,
+      };
+    } catch (error) {
+      return await this.handleError(error, 'get_user_subscription_status', {
+        userId: maskId(userId),
+      });
+    }
+  }
+
+  /**
+   * Find users by subscription status
+   * Useful for admin operations and subscription management
+   */
+  async findUsersBySubscriptionStatus(
+    status: string,
+    options: {
+      limit?: number;
+      offset?: number;
+      includeUserDetails?: boolean;
+    } = {}
+  ): Promise<{
+    users: Array<User & { subscription?: Subscription }>;
+    total: number;
+  }> {
+    const { limit = 50, offset = 0, includeUserDetails = true } = options;
+
+    try {
+      const where =
+        status === 'FREE'
+          ? { subscription: { is: null } }
+          : { subscription: { is: { status: status as any } } };
+
+      const include = includeUserDetails ? { subscription: true } : undefined;
+
+      const [users, total] = await Promise.all([
+        this.prisma.user.findMany({
+          where,
+          include,
+          take: limit,
+          skip: offset,
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.user.count({ where }),
+      ]);
+
+      this.logSuccess('users_by_subscription_status', {
+        status,
+        count: users.length,
+        total,
+        limit,
+        offset,
+      });
+
+      // Convert to proper types
+      const cleanUsers = users.map(user => ({
+        ...user,
+        imageUrl: user.imageUrl ?? undefined,
+        subscription: (user as any).subscription || undefined,
+      })) as Array<User & { subscription?: Subscription }>;
+
+      return {
+        users: cleanUsers,
+        total,
+      };
+    } catch (error) {
+      return await this.handleError(
+        error,
+        'find_users_by_subscription_status',
+        {
+          status,
+          limit,
+          offset,
+        }
+      );
+    }
+  }
+
+  /**
+   * Check if user has active subscription (ACTIVE or TRIALING)
+   * Quick boolean check for access control
+   */
+  async hasActiveSubscription(userId: string): Promise<boolean> {
+    const statusCheck = await this.getUserSubscriptionStatus(userId);
+    return statusCheck.hasActiveSubscription;
+  }
+
+  /**
+   * Get subscription expiry information for a user
+   * Returns details about when subscription expires and grace period status
+   */
+  async getSubscriptionExpiryInfo(userId: string): Promise<{
+    hasSubscription: boolean;
+    currentPeriodEnd?: Date;
+    isExpired: boolean;
+    isInGracePeriod: boolean;
+    daysUntilExpiry?: number;
+  }> {
+    this.validateRequired(userId, 'userId');
+
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: { id: userId },
+        include: { subscription: true },
+      });
+
+      const subscription = user?.subscription;
+      const now = new Date();
+
+      if (!subscription || !subscription.currentPeriodEnd) {
+        return {
+          hasSubscription: false,
+          isExpired: false,
+          isInGracePeriod: false,
+        };
+      }
+
+      const currentPeriodEnd = subscription.currentPeriodEnd;
+      const isExpired = currentPeriodEnd < now;
+      const daysUntilExpiry = Math.ceil(
+        (currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // Grace period: 3 days after expiry for PAST_DUE status
+      const gracePeriodEnd = new Date(
+        currentPeriodEnd.getTime() + 3 * 24 * 60 * 60 * 1000
+      );
+      const isInGracePeriod =
+        isExpired && now < gracePeriodEnd && subscription.status === 'PAST_DUE';
+
+      this.logSuccess('subscription_expiry_check', {
+        userId: maskId(userId),
+        hasSubscription: true,
+        isExpired,
+        isInGracePeriod,
+        daysUntilExpiry,
+        status: subscription.status,
+      });
+
+      return {
+        hasSubscription: true,
+        currentPeriodEnd,
+        isExpired,
+        isInGracePeriod,
+        daysUntilExpiry,
+      };
+    } catch (error) {
+      return await this.handleError(error, 'get_subscription_expiry_info', {
+        userId: maskId(userId),
+      });
+    }
+  }
+
+  /**
    * Delete user and all related data (database only)
    * Handles cascade deletion of all user-related records in proper order
    * Used by Clerk webhooks and admin deletion operations
@@ -591,26 +787,6 @@ export class UserService extends BaseDatabaseService {
           where: { userId: user.id },
         });
 
-        // 6. Delete roles created by user (admin only)
-        await tx.role.deleteMany({
-          where: { creatorId: user.id },
-        });
-
-        // 7. Delete sections created by user
-        await tx.section.deleteMany({
-          where: { creatorId: user.id },
-        });
-
-        // 8. Delete channels created by user
-        await tx.channel.deleteMany({
-          where: { creatorId: user.id },
-        });
-
-        // 9. Delete servers created by user
-        await tx.server.deleteMany({
-          where: { ownerId: user.id },
-        });
-
         // 10. Delete subscription (if exists)
         const subscription = await tx.subscription.findUnique({
           where: { userId: user.id },
@@ -637,7 +813,7 @@ export class UserService extends BaseDatabaseService {
 
       return true;
     } catch (error) {
-      return await this.handleError(error, 'delete_user', {
+      this.handleError(error, 'delete_user', {
         userId: maskId(userId),
       });
     }

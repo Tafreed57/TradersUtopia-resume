@@ -1,137 +1,223 @@
 import { NextResponse } from 'next/server';
-import { apiLogger } from '@/lib/enhanced-logger';
 import { UserService } from '@/services/database/user-service';
+import { MemberService } from '@/services/database/member-service';
 import { CustomerService } from '@/services/stripe/customer-service';
-import { SubscriptionService } from '@/services/stripe/subscription-service';
+import { SubscriptionSyncService } from '@/services/subscription-sync-service';
 import { CreateUserData } from '@/services/types';
-import { UserJSON } from '@clerk/nextjs/server';
 
-export async function handleUserCreated(userData: UserJSON) {
-  const userService = new UserService();
-  const customerService = new CustomerService();
+export interface ClerkWebhookEvent {
+  data: {
+    id: string;
+    email_addresses: Array<{
+      id: string;
+      email_address: string;
+      verification?: {
+        status: string;
+      };
+    }>;
+    first_name: string | null;
+    last_name: string | null;
+    image_url: string;
+    primary_email_address_id: string;
+    object: string;
+    created_at: number;
+    updated_at: number;
+  };
+  object: string;
+  type: string;
+  timestamp: number;
+}
+
+/**
+ * Extract primary email from Clerk webhook event data
+ */
+function extractPrimaryEmail(webhookData: any): string | null {
+  const { email_addresses, primary_email_address_id } = webhookData;
+
+  const primaryEmail = email_addresses?.find(
+    (email: { id: any }) => email.id === primary_email_address_id
+  )?.email_address;
+
+  return primaryEmail || null;
+}
+
+/**
+ * Handle updating an existing user's profile with Clerk data
+ */
+async function handleExistingUser(
+  userService: UserService,
+  existingUser: any,
+  webhookData: any
+): Promise<NextResponse> {
+  const { first_name, last_name, image_url } = webhookData;
+
+  await userService.updateUser(existingUser.id, {
+    name: `${first_name || ''} ${last_name || ''}`.trim() || existingUser.name,
+    imageUrl: image_url || existingUser.imageUrl,
+  });
+
+  return NextResponse.json({ message: 'User profile updated' });
+}
+
+/**
+ * Check for existing Stripe subscriptions for the user
+ */
+async function checkStripeSubscriptions(
+  customerService: CustomerService,
+  email: string
+): Promise<{ hasActiveSubscription: boolean; activeSubscriptions: any[] }> {
+  let hasActiveSubscription = false;
+  let activeSubscriptions: any[] = [];
 
   try {
-    const {
-      id: userId,
-      email_addresses,
-      first_name,
-      last_name,
-      image_url,
-    } = userData;
-    const primaryEmail = email_addresses?.find(
-      (email: any) => email.id === userData.primary_email_address_id
-    )?.email_address;
+    const customerResult =
+      await customerService.findCustomerWithSubscriptions(email);
 
-    if (!primaryEmail) {
-      apiLogger.webhookEvent('Clerk', 'user_creation_no_email', { userId });
-      return NextResponse.json({ error: 'No primary email' }, { status: 400 });
-    }
+    if (customerResult) {
+      let customer: any = null;
 
-    apiLogger.webhookEvent('Clerk', 'user.created', {
-      userEmail: primaryEmail,
-      userId,
-    });
-
-    // Check if user already exists in our database
-    const existingUser = await userService.findByUserIdOrEmail(primaryEmail);
-
-    if (existingUser) {
-      apiLogger.databaseOperation('user_exists_update_userid', true, {
-        userEmail: primaryEmail,
-        existingUserId: existingUser.id,
-      });
-
-      // Update existing user with Clerk user ID
-      await userService.updateUser(existingUser.id, {
-        name:
-          `${first_name || ''} ${last_name || ''}`.trim() || existingUser.name,
-        imageUrl: image_url || existingUser.imageUrl,
-      });
-
-      apiLogger.databaseOperation('user_update_success', true, {
-        userEmail: primaryEmail,
-        userId: existingUser.id,
-      });
-      return NextResponse.json({ message: 'User profile updated' });
-    }
-
-    // ⚡ NEW USER: Check Stripe for existing subscription immediately
-    apiLogger.subscriptionEvent('checking_stripe_for_new_user', {
-      userEmail: primaryEmail,
-      userId,
-    });
-
-    let hasActiveSubscription = false;
-
-    try {
-      // Check if user exists as a Stripe customer with subscriptions
-      const customer =
-        await customerService.findCustomerWithSubscriptions(primaryEmail);
+      // Handle both possible return formats: single customer or list response
+      if (
+        (customerResult as any).object === 'list' &&
+        Array.isArray((customerResult as any).data)
+      ) {
+        customer = (customerResult as any).data[0] || null;
+      } else {
+        customer = customerResult;
+      }
 
       if (customer) {
-        apiLogger.subscriptionEvent('existing_stripe_customer_found', {
-          userEmail: primaryEmail,
-          customerId: customer.id,
-        });
-
         // Check for active subscriptions directly from customer data
-        const activeSubscriptions =
+        activeSubscriptions =
           customer.subscriptions?.data?.filter(
-            sub => sub.status === 'active' || sub.status === 'trialing'
+            (sub: any) => sub.status === 'active' || sub.status === 'trialing'
           ) || [];
 
         if (activeSubscriptions.length > 0) {
           hasActiveSubscription = true;
-
-          apiLogger.subscriptionEvent('active_subscription_found_new_user', {
-            userEmail: primaryEmail,
-            subscriptionId: activeSubscriptions[0].id,
-            customerId: customer.id,
-          });
         }
-      } else {
-        apiLogger.subscriptionEvent('no_stripe_customer_found', {
-          userEmail: primaryEmail,
-        });
       }
-    } catch (stripeError) {
-      apiLogger.subscriptionEvent('stripe_check_failed_new_user', {
-        userEmail: primaryEmail,
-        error:
-          stripeError instanceof Error ? stripeError.message : 'Unknown error',
-      });
-      // Continue with user creation even if Stripe fails
     }
+  } catch (stripeError) {
+    // Continue with user creation even if Stripe fails
+    console.error('Stripe subscription check failed:', stripeError);
+  }
+
+  return { hasActiveSubscription, activeSubscriptions };
+}
+
+/**
+ * Create a new user in the database
+ */
+async function createNewUser(
+  userService: UserService,
+  webhookData: any
+): Promise<any> {
+  const { id: userId, first_name, last_name, image_url, email } = webhookData;
+
+  const createUserData: CreateUserData = {
+    userId,
+    name: `${first_name || ''} ${last_name || ''}`.trim() || 'Unknown User',
+    email,
+    imageUrl: image_url || '',
+    isAdmin: false,
+  };
+
+  return await userService.createUser(createUserData);
+}
+
+/**
+ * Add user to default server with appropriate role
+ */
+async function addToDefaultServerWithRole(
+  memberService: MemberService,
+  subscriptionSyncService: SubscriptionSyncService,
+  userId: string,
+  hasActiveSubscription: boolean,
+  activeSubscriptions: any[]
+): Promise<void> {
+  // Add user to default server
+  const member = await memberService.addToDefaultServer(
+    userId,
+    hasActiveSubscription
+  );
+
+  if (!member) {
+    console.error('Failed to add user to default server:', userId);
+    return;
+  }
+
+  // If user has active subscriptions, ensure they are properly synced
+  if (hasActiveSubscription && activeSubscriptions.length > 0) {
+    try {
+      // Sync each active subscription to the database
+      for (const subscription of activeSubscriptions) {
+        await subscriptionSyncService.createOrUpdateSubscription(
+          subscription,
+          userId
+        );
+      }
+
+      // Update user access based on synced subscriptions
+      await subscriptionSyncService.updateUserAccess(
+        activeSubscriptions[0].customer as string
+      );
+    } catch (syncError) {
+      console.error('Failed to sync subscriptions for new user:', syncError);
+    }
+  }
+}
+
+export async function handleUserCreated(eventData: any) {
+  const userService = new UserService();
+  const memberService = new MemberService();
+  const customerService = new CustomerService();
+  const subscriptionSyncService = new SubscriptionSyncService();
+
+  try {
+    // Extract primary email from webhook data
+    const primaryEmail = extractPrimaryEmail(eventData);
+    if (!primaryEmail) {
+      return NextResponse.json(
+        { error: 'No primary email', eventData },
+        { status: 400 }
+      );
+    }
+
+    // Check if user already exists in our database
+    const existingUser = await userService.findByUserIdOrEmail(primaryEmail);
+    if (existingUser) {
+      return await handleExistingUser(userService, existingUser, eventData);
+    }
+
+    // Check for existing Stripe subscriptions
+    const { hasActiveSubscription, activeSubscriptions } =
+      await checkStripeSubscriptions(customerService, primaryEmail);
 
     // Create new user profile
-    const createUserData: CreateUserData = {
-      userId,
-      name: `${first_name || ''} ${last_name || ''}`.trim() || 'Unknown User',
+    const newUser = await createNewUser(userService, {
+      ...eventData,
       email: primaryEmail,
-      imageUrl: image_url || '',
-      isAdmin: false,
-    };
-
-    const newUser = await userService.createUser(createUserData);
-
-    apiLogger.databaseOperation('user_creation_success', true, {
-      userEmail: primaryEmail,
-      userId: newUser.id,
-      hasSubscription: hasActiveSubscription,
     });
 
-    if (hasActiveSubscription) {
-      apiLogger.subscriptionEvent('new_user_immediate_access', {
-        userEmail: primaryEmail,
-        userId: newUser.id,
-      });
-    }
+    // Add user to default server with appropriate role and sync subscriptions
+    await addToDefaultServerWithRole(
+      memberService,
+      subscriptionSyncService,
+      newUser.id,
+      hasActiveSubscription,
+      activeSubscriptions
+    );
 
-    return new NextResponse(null, { status: 200 });
+    return NextResponse.json({
+      message: 'User created and added to default server',
+      hasActiveSubscription,
+      subscriptionCount: activeSubscriptions.length,
+      primaryEmail,
+      defaultServerMembership: true,
+    });
   } catch (error) {
-    apiLogger.databaseOperation('user_creation_error', false, {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    console.error('Failed to create user profile:', error);
     return NextResponse.json(
       { error: 'Failed to create user profile' },
       { status: 500 }

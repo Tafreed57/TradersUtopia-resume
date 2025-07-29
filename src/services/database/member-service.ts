@@ -423,7 +423,7 @@ export class MemberService extends BaseDatabaseService {
   }
 
   /**
-   * Get member statistics for a server
+   * Get server member statistics
    */
   async getServerMemberStats(serverId: string): Promise<{
     total: number;
@@ -438,14 +438,9 @@ export class MemberService extends BaseDatabaseService {
 
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-      const [total, byRole, recentJoins] = await Promise.all([
+      const [total, recentJoins] = await Promise.all([
         this.prisma.member.count({
           where: { serverId },
-        }),
-        this.prisma.member.groupBy({
-          by: ['roleId'],
-          where: { serverId },
-          _count: { roleId: true },
         }),
         this.prisma.member.count({
           where: {
@@ -477,6 +472,100 @@ export class MemberService extends BaseDatabaseService {
     } catch (error) {
       return await this.handleError(error, 'get_server_member_stats', {
         serverId: maskId(serverId),
+      });
+    }
+  }
+
+  /**
+   * Add user to default server with appropriate role based on subscription status
+   */
+  async addToDefaultServer(
+    userId: string,
+    hasActiveSubscription: boolean = false
+  ): Promise<Member | null> {
+    try {
+      this.validateId(userId, 'userId');
+
+      return await this.executeTransaction(async tx => {
+        // Step 1: Get the default server
+        const defaultServer = await tx.server.findFirst({
+          where: { name: 'TradersUtopia HQ' },
+        });
+
+        if (!defaultServer) {
+          throw new NotFoundError('Default server not found');
+        }
+
+        // Step 2: Check if user is already a member
+        const existingMember = await tx.member.findFirst({
+          where: {
+            userId,
+            serverId: defaultServer.id,
+          },
+        });
+
+        if (existingMember) {
+          this.logSuccess('user_already_member_of_default_server', {
+            userId: maskId(userId),
+            serverId: maskId(defaultServer.id),
+            memberId: maskId(existingMember.id),
+          });
+          return existingMember as Member;
+        }
+
+        // Step 3: Determine appropriate role
+        const roleName = hasActiveSubscription ? 'premium' : 'free';
+
+        // Step 4: Find or create the appropriate role
+        let targetRole = await tx.role.findFirst({
+          where: {
+            serverId: defaultServer.id,
+            name: roleName,
+          },
+        });
+
+        if (!targetRole) {
+          // Create the role if it doesn't exist
+          const roleColor = hasActiveSubscription ? '#FFD700' : '#6B7280';
+
+          targetRole = await tx.role.create({
+            data: {
+              name: roleName,
+              color: roleColor,
+              serverId: defaultServer.id,
+              creatorId: defaultServer.ownerId,
+              isDefault: !hasActiveSubscription, // free role is default
+            },
+          });
+        }
+
+        // Step 5: Create member with appropriate role
+        const newMember = await tx.member.create({
+          data: {
+            userId,
+            serverId: defaultServer.id,
+            roleId: targetRole.id,
+          },
+          include: {
+            user: true,
+            role: true,
+          },
+        });
+
+        this.logSuccess('user_added_to_default_server', {
+          userId: maskId(userId),
+          serverId: maskId(defaultServer.id),
+          memberId: maskId(newMember.id),
+          roleName,
+          hasActiveSubscription,
+        });
+
+        return newMember as Member;
+      });
+    } catch (error) {
+      return await this.handleError(error, 'add_to_default_server', {
+        userId: maskId(userId),
+        hasActiveSubscription,
       });
     }
   }

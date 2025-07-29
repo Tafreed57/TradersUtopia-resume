@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { apiLogger } from '@/lib/enhanced-logger';
 import { UserService } from '@/services/database/user-service';
 import { UserJSON } from '@clerk/nextjs/server';
 
@@ -19,48 +18,27 @@ export async function handleUserUpdated(userData: UserJSON) {
     )?.email_address;
 
     if (!primaryEmail) {
-      apiLogger.webhookEvent('Clerk', 'user_update_no_email', { userId });
       return NextResponse.json({ error: 'No primary email' }, { status: 400 });
     }
 
-    apiLogger.webhookEvent('Clerk', 'user_updated', {
-      userEmail: primaryEmail,
-      userId,
-    });
-
-    // Find the existing user
-    const existingUser = await userService.findByUserIdOrEmail(userId);
+    // Find user in our database
+    const existingUser = await userService.findByUserIdOrEmail(primaryEmail);
 
     if (!existingUser) {
-      apiLogger.databaseOperation('user_update_not_found', false, {
-        userEmail: primaryEmail,
-        userId,
-      });
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Update the user profile
-    const updatedUser = await userService.updateUser(existingUser.id, {
-      name: `${first_name || ''} ${last_name || ''}`.trim(),
-      email: primaryEmail,
-      imageUrl: image_url || '',
+    // Update user profile
+    await userService.updateUser(existingUser.id, {
+      name:
+        `${first_name || ''} ${last_name || ''}`.trim() || existingUser.name,
+      imageUrl: image_url || existingUser.imageUrl,
     });
 
-    apiLogger.databaseOperation('user_update_success', true, {
-      userEmail: primaryEmail,
-      userId: updatedUser.id,
-    });
-
-    return NextResponse.json({
-      message: 'User updated successfully',
-      userId: updatedUser.id,
-    });
+    return NextResponse.json({ message: 'User updated successfully' });
   } catch (error) {
-    apiLogger.databaseOperation('user_update_error', false, {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
     return NextResponse.json(
-      { error: 'Failed to update user profile' },
+      { error: 'Failed to update user' },
       { status: 500 }
     );
   }

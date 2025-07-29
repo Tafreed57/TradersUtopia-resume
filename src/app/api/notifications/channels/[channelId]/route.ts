@@ -45,7 +45,7 @@ export const GET = withAuth(
       }
 
       apiLogger.databaseOperation('channel_notification_get_started', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         channelId: channelId.substring(0, 8) + '***',
       });
 
@@ -55,7 +55,7 @@ export const GET = withAuth(
       // Get notification preference using service layer
       const preference =
         await notificationService.getChannelNotificationPreference(
-          user.userId,
+          user.id,
           channelId
         );
 
@@ -63,7 +63,7 @@ export const GET = withAuth(
         'channel_notification_preference_retrieved',
         true,
         {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
           channelId: channelId.substring(0, 8) + '***',
           enabled: preference.enabled,
           responseTime: `${Date.now() - startTime}ms`,
@@ -84,7 +84,7 @@ export const GET = withAuth(
 
       apiLogger.databaseOperation('channel_notification_get_error', false, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         responseTime: `${Date.now() - startTime}ms`,
       });
 
@@ -149,7 +149,7 @@ export const PATCH = withAuth(
           'channel_notification_patch_validation_failed',
           false,
           {
-            userId: user.userId.substring(0, 8) + '***',
+            userId: user.id.substring(0, 8) + '***',
             channelId: channelId.substring(0, 8) + '***',
             errors: validationResult.error.issues.map(i => i.message),
           }
@@ -167,7 +167,7 @@ export const PATCH = withAuth(
       const { enabled } = validationResult.data;
 
       apiLogger.databaseOperation('channel_notification_patch_started', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         channelId: channelId.substring(0, 8) + '***',
         enabled,
       });
@@ -178,7 +178,7 @@ export const PATCH = withAuth(
       // Update notification preference using service layer
       const result =
         await notificationService.updateChannelNotificationPreference(
-          user.userId,
+          user.id,
           channelId,
           enabled
         );
@@ -187,7 +187,7 @@ export const PATCH = withAuth(
         'channel_notification_preference_updated',
         true,
         {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
           channelId: channelId.substring(0, 8) + '***',
           enabled: result.enabled,
           action: enabled ? 'enabled' : 'disabled',
@@ -214,7 +214,7 @@ export const PATCH = withAuth(
 
       apiLogger.databaseOperation('channel_notification_patch_error', false, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         responseTime: `${Date.now() - startTime}ms`,
       });
 

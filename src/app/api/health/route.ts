@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
       apiLogger.databaseOperation('health_check_admin', true, {
         status: 'healthy',
         isAdmin,
-        userId: profile?.userId?.substring(0, 8) + '***',
+        userId: profile?.id?.substring(0, 8) + '***',
       });
 
       return NextResponse.json(healthResponse);
@@ -232,7 +232,7 @@ export async function GET(request: NextRequest) {
         status: 'healthy',
         totalUsers,
         totalAdmins,
-        adminId: profile?.userId?.substring(0, 8) + '***',
+        adminId: profile?.id?.substring(0, 8) + '***',
       });
 
       return NextResponse.json(healthResponse);

@@ -43,7 +43,7 @@ export const GET = withAuth(
       const validationResult = paramsSchema.safeParse({ serverId });
       if (!validationResult.success) {
         apiLogger.databaseOperation('mobile_data_validation_failed', false, {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
           serverId: serverId.substring(0, 8) + '***',
           errors: validationResult.error.issues.map(i => i.message),
         });
@@ -61,7 +61,7 @@ export const GET = withAuth(
       const ifModifiedSince = req.headers.get('if-modified-since');
 
       apiLogger.databaseOperation('mobile_data_request_started', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         serverId: serverId.substring(0, 8) + '***',
         hasIfModifiedSince: !!ifModifiedSince,
       });
@@ -72,14 +72,14 @@ export const GET = withAuth(
       // Get mobile data using service layer
       const result = await serverService.getMobileData(
         serverId,
-        user.userId,
+        user.id,
         ifModifiedSince || undefined
       );
 
       // Handle not modified response (304)
       if (result.notModified) {
         apiLogger.databaseOperation('mobile_data_not_modified', true, {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
           serverId: serverId.substring(0, 8) + '***',
           lastModified: result.lastModified,
           responseTime: `${Date.now() - startTime}ms`,
@@ -95,7 +95,7 @@ export const GET = withAuth(
 
       // Return fresh data
       apiLogger.databaseOperation('mobile_data_retrieved_successfully', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         serverId: serverId.substring(0, 8) + '***',
         sectionCount: result.data?.sections?.length || 0,
         channelCount: result.data?.channels?.length || 0,
@@ -127,7 +127,7 @@ export const GET = withAuth(
 
       apiLogger.databaseOperation('mobile_data_retrieval_error', false, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         responseTime: `${Date.now() - startTime}ms`,
       });
 

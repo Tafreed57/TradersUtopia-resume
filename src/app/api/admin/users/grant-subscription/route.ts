@@ -118,7 +118,7 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
       success: true,
       message: 'User has been granted subscription access',
       grantedSubscription: {
-        userId: targetProfile.userId,
+        userId: targetProfile.id,
         email: targetProfile.email,
         name: targetProfile.name,
         customerId: stripeCustomer.id,

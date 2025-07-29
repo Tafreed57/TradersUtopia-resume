@@ -87,11 +87,6 @@ export abstract class BaseDatabaseService {
     if (!id || typeof id !== 'string') {
       throw new ValidationError(`Invalid ${fieldName}: ${id}`);
     }
-
-    // CUID validation
-    if (!/^c[a-z0-9]{24}$/.test(id)) {
-      throw new ValidationError(`Invalid ${fieldName} format: ${id}`);
-    }
   }
 
   /**

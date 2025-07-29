@@ -45,7 +45,7 @@ export const GET = withAuth(async (req: NextRequest, { user }) => {
   // Return profile with selected fields
   return NextResponse.json({
     id: profile.id,
-    userId: profile.userId,
+    userId: profile.id,
     name: profile.name,
     email: profile.email,
     imageUrl: profile.imageUrl,

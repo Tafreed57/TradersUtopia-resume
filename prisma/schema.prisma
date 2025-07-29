@@ -9,8 +9,7 @@ datasource db {
 
 // Core User Model - Clean separation from subscription data
 model User {
-  id                             String                          @id @default(cuid())
-  userId                        String                          @unique // Clerk user ID
+  id                             String                          @id @default(cuid()) // Clerk user ID (no default, manually set)
   email                          String                          @unique
   name                           String
   imageUrl                       String?
@@ -32,57 +31,24 @@ model User {
   @@map("users")
 }
 
-// Stripe Subscription Management - Single source of truth
+// Simplified Subscription Model - Essential fields for access control
 model Subscription {
-  id                      String             @id @default(cuid())
-  userId                  String             @unique
+  id                   String             @id @default(cuid())
+  userId               String             @unique
   
-  // Core Stripe fields
-  stripeSubscriptionId    String             @unique
-  stripeCustomerId        String
-  status                  SubscriptionStatus @default(FREE)
-  currency                String             @default("usd")
-  created                 DateTime           // Stripe creation timestamp
-  currentPeriodStart      DateTime?
-  currentPeriodEnd        DateTime?
-  startDate               DateTime?
+  // Core Stripe integration
+  stripeSubscriptionId String             @unique
+  stripeCustomerId     String
   
-  // Cancellation fields
-  cancelAt                DateTime?
-  cancelAtPeriodEnd       Boolean            @default(false)
-  canceledAt              DateTime?
-  endedAt                 DateTime?
-  
-  // Trial fields
-  trialStart              DateTime?
-  trialEnd                DateTime?
-  
-  // Payment and billing
-  defaultPaymentMethod    String?
-  latestInvoice           String?
-  collectionMethod        String?            @default("charge_automatically")
-  
-  // Subscription items and pricing
-  items                   Json?              // Stripe subscription items
-  
-  // Additional Stripe fields
-  automaticTax            Json?              // Stripe automatic tax settings
-  billingCycleAnchor      DateTime?
-  description             String?
-  metadata                Json?              // Stripe metadata
-  pendingSetupIntent      String?
-  pendingUpdate           Json?              // Stripe pending update object
-  
-  // Our custom fields for business logic
-  discountPercent         Int?
-  discountName            String?
-  lastInvoiceUrl          String?
+  // Access control fields
+  status               SubscriptionStatus @default(FREE)
+  currentPeriodEnd     DateTime?          // For grace period calculations
   
   // Timestamps
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
   
-  user                    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
 }

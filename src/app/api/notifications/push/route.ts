@@ -47,7 +47,7 @@ export const GET = withAuth(
       const action = searchParams.get('action') || 'status';
 
       apiLogger.databaseOperation('push_notification_get_started', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         action,
       });
 
@@ -75,7 +75,7 @@ export const GET = withAuth(
 
       apiLogger.databaseOperation('push_notification_get_error', false, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         responseTime: `${Date.now() - startTime}ms`,
       });
 
@@ -109,7 +109,7 @@ export const POST = withAuth(
       const action = searchParams.get('action') || 'subscribe';
 
       apiLogger.databaseOperation('push_notification_post_started', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         action,
       });
 
@@ -123,7 +123,7 @@ export const POST = withAuth(
             'push_subscription_validation_failed',
             false,
             {
-              userId: user.userId.substring(0, 8) + '***',
+              userId: user.id.substring(0, 8) + '***',
               errors: validationResult.error.issues.map(i => i.message),
             }
           );
@@ -141,13 +141,13 @@ export const POST = withAuth(
 
         // Save subscription using existing push notification library
         const success = await subscribeToPushNotifications(
-          user.userId,
+          user.id,
           subscription
         );
 
         if (success) {
           apiLogger.databaseOperation('push_subscription_saved', true, {
-            userId: user.userId.substring(0, 8) + '***',
+            userId: user.id.substring(0, 8) + '***',
             endpoint: subscription.endpoint.substring(0, 20) + '***',
             responseTime: `${Date.now() - startTime}ms`,
           });
@@ -174,7 +174,7 @@ export const POST = withAuth(
       } else if (action === 'reset') {
         // Reset push notifications (placeholder implementation)
         apiLogger.databaseOperation('push_notification_reset', true, {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
           responseTime: `${Date.now() - startTime}ms`,
         });
 
@@ -201,7 +201,7 @@ export const POST = withAuth(
 
       apiLogger.databaseOperation('push_notification_post_error', false, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         responseTime: `${Date.now() - startTime}ms`,
       });
 

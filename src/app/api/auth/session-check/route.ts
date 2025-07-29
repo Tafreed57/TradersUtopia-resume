@@ -37,13 +37,11 @@ export const POST = withOptionalAuth(
       // Get user with subscription data from database
       const userService = new UserService();
       const userWithSubscription =
-        (await userService.findUserWithSubscriptionData(
-          user.userId
-        )) as UserWithSubscription | null;
+        await userService.findUserWithSubscriptionData(user.id);
 
       if (!userWithSubscription) {
         apiLogger.databaseOperation('session_check_user_not_found', false, {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
         });
 
         return NextResponse.json({
@@ -57,7 +55,7 @@ export const POST = withOptionalAuth(
       // Admin users get access automatically
       if (userWithSubscription.isAdmin === true) {
         apiLogger.databaseOperation('session_check_admin_access', true, {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
         });
 
         return NextResponse.json({
@@ -75,6 +73,10 @@ export const POST = withOptionalAuth(
       }
 
       // Check subscription status from database
+      // console.log(
+      //   '🚀 [SESSION-CHECK] userWithSubscription:',
+      //   userWithSubscription
+      // );
       let hasActiveSubscription = false;
       if (userWithSubscription.subscription) {
         const subscription = userWithSubscription.subscription;
@@ -86,7 +88,7 @@ export const POST = withOptionalAuth(
       }
 
       apiLogger.databaseOperation('session_check_completed', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         hasAccess: hasActiveSubscription,
         isAdmin: false,
       });
@@ -105,7 +107,7 @@ export const POST = withOptionalAuth(
       });
     } catch (error) {
       apiLogger.databaseOperation('session_check_error', false, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         error: error instanceof Error ? error.message : String(error),
       });
 

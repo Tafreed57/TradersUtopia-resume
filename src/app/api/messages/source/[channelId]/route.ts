@@ -45,7 +45,7 @@ export const GET = withAuth(
       }
 
       apiLogger.databaseOperation('source_messages_request_started', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         channelId: channelId.substring(0, 8) + '***',
         cursor: cursor ? cursor.substring(0, 8) + '***' : null,
         limit,
@@ -57,7 +57,7 @@ export const GET = withAuth(
       // Get source messages using service layer
       const result = await messageService.getSourceMessages(
         channelId,
-        user.userId,
+        user.id,
         {
           cursor: cursor || undefined,
           limit,
@@ -68,7 +68,7 @@ export const GET = withAuth(
         'source_messages_retrieved_successfully',
         true,
         {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
           channelId: channelId.substring(0, 8) + '***',
           messageCount: result.items.length,
           hasNextCursor: !!result.nextCursor,
@@ -93,7 +93,7 @@ export const GET = withAuth(
 
       apiLogger.databaseOperation('source_messages_retrieval_error', false, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         responseTime: `${Date.now() - startTime}ms`,
       });
 

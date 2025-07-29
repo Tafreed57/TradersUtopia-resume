@@ -103,7 +103,7 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     success: true,
     message: `Admin privileges ${actionPast} successfully`,
     updatedUser: {
-      userId: targetProfile.userId,
+      userId: targetProfile.id,
       email: targetProfile.email,
       name: targetProfile.name,
       isAdmin: grantAdmin,

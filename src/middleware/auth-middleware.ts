@@ -124,7 +124,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       try {
         const subscriptionService = new SubscriptionService();
         const hasActiveSubscription =
-          await subscriptionService.hasActiveSubscription(user.userId);
+          await subscriptionService.hasActiveSubscription(user.id);
 
         if (!hasActiveSubscription) {
           apiLogger.databaseOperation(
@@ -182,7 +182,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
     // 7. Build Authentication Context
     const authContext: AuthContext = {
       user,
-      userId: user.userId, // Clerk user ID
+      userId: user.id, // Clerk user ID
       userEmail: user.email,
       isAdmin: user.isAdmin,
       timestamp: new Date(),
@@ -274,7 +274,7 @@ export function withOptionalAuth(
         if (user) {
           authContext = {
             user,
-            userId: user.userId,
+            userId: user.id,
             userEmail: user.email,
             isAdmin: user.isAdmin,
             timestamp: new Date(),
@@ -313,7 +313,7 @@ export async function getCurrentUserContext(): Promise<AuthContext | null> {
 
     return {
       user,
-      userId: user.userId,
+      userId: user.id,
       userEmail: user.email,
       isAdmin: user.isAdmin,
       timestamp: new Date(),

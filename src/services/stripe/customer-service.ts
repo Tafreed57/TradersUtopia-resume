@@ -47,7 +47,7 @@ export class CustomerService extends BaseStripeService {
           expand: this.buildExpandParams([
             'data.subscriptions',
             'data.subscriptions.data.latest_invoice',
-            'data.subscriptions.data.items.data.price',
+            'data.subscriptions.data.items',
           ]),
         });
 

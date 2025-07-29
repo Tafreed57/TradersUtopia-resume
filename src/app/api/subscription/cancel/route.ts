@@ -11,20 +11,6 @@ import {
 import { ValidationError } from '@/lib/error-handling';
 import { createNotification } from '@/lib/notifications';
 
-/**
- * Subscription Cancellation API
- *
- * BEFORE: 231 lines with mixed Stripe API calls, profile lookups, validation boilerplate
- * AFTER: Clean service-based implementation focused on business logic
- *
- * Eliminated duplicate:
- * - Rate limiting (10+ lines) -> withAuth middleware
- * - CSRF validation (8+ lines) -> withAuth middleware
- * - User authentication (15+ lines) -> withAuth middleware
- * - Profile lookup boilerplate (20+ lines) -> UserService
- * - Direct Stripe API calls (30+ lines) -> SubscriptionService
- * - Manual error handling (25+ lines) -> service layer + withErrorHandling
- */
 export const POST = withAuth(async (req: NextRequest, { user, userEmail }) => {
   const subscriptionService = new SubscriptionService();
   const userService = new UserService();

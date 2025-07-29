@@ -8,24 +8,6 @@ import { ValidationError } from '@/lib/error-handling';
 export const dynamic = 'force-dynamic';
 
 /**
- * Subscription Activation API
- *
- * BEFORE: 118 lines with extensive boilerplate
- * - CSRF validation (10+ lines)
- * - Rate limiting (5+ lines)
- * - Authentication (5+ lines)
- * - Manual profile lookup/creation (15+ lines)
- * - Direct database operations (10+ lines)
- * - Complex error handling (10+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 85%+ boilerplate elimination
- * - Centralized user management
- * - Enhanced subscription logic
- * - Comprehensive audit logging
- */
-
-/**
  * Activate User Subscription
  * Sets user subscription status to ACTIVE with 30-day duration
  */

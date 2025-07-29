@@ -33,7 +33,7 @@ export const GET = withAuth(
 
       if (!queryResult.success) {
         apiLogger.databaseOperation('security_token_validation_failed', false, {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
           errors: queryResult.error.issues.map(i => i.message),
         });
 
@@ -52,16 +52,16 @@ export const GET = withAuth(
       const tokenService = new TokenService();
 
       apiLogger.databaseOperation('security_token_generation_started', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         tokenType: type,
       });
 
       if (type === 'csrf') {
         // Generate CSRF token
-        const tokenResponse = await tokenService.generateCSRFToken(user.userId);
+        const tokenResponse = await tokenService.generateCSRFToken(user.id);
 
         apiLogger.databaseOperation('csrf_token_generated_successfully', true, {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
           tokenLength: tokenResponse.token.length,
           expiresAt: tokenResponse.expiresAt.toISOString(),
           responseTime: `${Date.now() - startTime}ms`,
@@ -75,7 +75,7 @@ export const GET = withAuth(
             usage: tokenResponse.usage,
             metadata: {
               generatedAt: new Date().toISOString(),
-              userId: user.userId,
+              userId: user.id,
               tokenType: 'csrf',
               responseTime: `${Date.now() - startTime}ms`,
               version: '2.0-service-based',
@@ -92,13 +92,13 @@ export const GET = withAuth(
       } else if (type === 'csrf-stats') {
         // Get CSRF statistics (development only)
         try {
-          const statsResponse = await tokenService.getCSRFStats(user.userId);
+          const statsResponse = await tokenService.getCSRFStats(user.id);
 
           apiLogger.databaseOperation(
             'csrf_stats_retrieved_successfully',
             true,
             {
-              userId: user.userId.substring(0, 8) + '***',
+              userId: user.id.substring(0, 8) + '***',
               environment: statsResponse.environment,
               responseTime: `${Date.now() - startTime}ms`,
             }
@@ -109,7 +109,7 @@ export const GET = withAuth(
               ...statsResponse,
               metadata: {
                 generatedAt: new Date().toISOString(),
-                userId: user.userId,
+                userId: user.id,
                 responseTime: `${Date.now() - startTime}ms`,
                 version: '2.0-service-based',
               },
@@ -150,7 +150,7 @@ export const GET = withAuth(
 
       apiLogger.databaseOperation('security_token_generation_error', false, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         responseTime: `${Date.now() - startTime}ms`,
       });
 

@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { BaseStripeService } from './base/base-stripe-service';
 import { CustomerService } from './customer-service';
+import { UserService } from '../database/user-service';
 import {
   CreateSubscriptionData,
   UpdateSubscriptionData,
@@ -14,17 +15,64 @@ import { maskId } from '@/lib/error-handling';
  */
 export class SubscriptionService extends BaseStripeService {
   private customerService: CustomerService;
+  private userService: UserService;
 
   constructor() {
     super();
     this.customerService = new CustomerService();
+    this.userService = new UserService();
   }
 
   /**
-   * List subscriptions by customer ID - Used 10+ times
+   * List subscriptions by user ID - checks database first
    * Replaces scattered subscription lookup implementations
+   * Use this for access control and status checks
    */
   async listSubscriptionsByCustomer(
+    userIdOrCustomerId: string,
+    options: ListSubscriptionOptions = {}
+  ): Promise<Stripe.Subscription[]> {
+    // Check if this is a userId (starts with 'user_') or customerId (starts with 'cus_')
+    const isUserId = userIdOrCustomerId.startsWith('user_');
+
+    if (isUserId) {
+      // Check database first for user subscription
+      const userWithSubscription =
+        await this.userService.findUserWithSubscriptionData(userIdOrCustomerId);
+
+      if (!userWithSubscription?.subscription) {
+        // No subscription in database
+        return [];
+      }
+
+      // If options require fresh Stripe data or specific filtering, fetch from Stripe
+      if (options.expand || options.startingAfter || options.endingBefore) {
+        return await this.getStripeSubscriptionsByCustomerId(
+          userWithSubscription.subscription.stripeCustomerId,
+          options
+        );
+      }
+
+      // Return database subscription as Stripe format (for backward compatibility)
+      // Note: This is a simplified response based on database data
+      return await this.getStripeSubscriptionsByCustomerId(
+        userWithSubscription.subscription.stripeCustomerId,
+        { ...options, limit: 1 }
+      );
+    } else {
+      // Legacy: Direct customer ID passed - use Stripe directly
+      return await this.getStripeSubscriptionsByCustomerId(
+        userIdOrCustomerId,
+        options
+      );
+    }
+  }
+
+  /**
+   * Get subscriptions directly from Stripe by customer ID
+   * Use only when you need fresh Stripe data or specific Stripe operations
+   */
+  async getStripeSubscriptionsByCustomerId(
     customerId: string,
     options: ListSubscriptionOptions = {}
   ): Promise<Stripe.Subscription[]> {
@@ -49,7 +97,7 @@ export class SubscriptionService extends BaseStripeService {
 
         return subscriptions.data;
       },
-      'list_customer_subscriptions',
+      'list_stripe_customer_subscriptions',
       {
         customerId: maskId(customerId),
         options: {
@@ -194,42 +242,84 @@ export class SubscriptionService extends BaseStripeService {
   }
 
   /**
-   * Get subscription by customer email - Common pattern
+   * Get subscription by customer email - Database first approach
    * Combines customer lookup with subscription retrieval
    */
   async getSubscriptionByCustomerEmail(
     email: string
   ): Promise<Stripe.Subscription | null> {
+    // First try to find user by email in database
+    const user = await this.userService.findByUserIdOrEmail(email);
+
+    if (user) {
+      const userWithSubscription =
+        await this.userService.findUserWithSubscriptionData(user.id);
+      if (userWithSubscription?.subscription) {
+        // Get fresh Stripe data for the subscription
+        return await this.getSubscription(
+          userWithSubscription.subscription.stripeSubscriptionId
+        );
+      }
+    }
+
+    // Fallback: check Stripe directly (for customers not in our DB)
     const customer = await this.customerService.findCustomerByEmail(email);
     if (!customer) {
       return null;
     }
 
-    const subscriptions = await this.listSubscriptionsByCustomer(customer.id, {
-      limit: 1,
-      status: 'active',
-    });
+    const subscriptions = await this.getStripeSubscriptionsByCustomerId(
+      customer.id,
+      {
+        limit: 1,
+        status: 'active',
+      }
+    );
 
     return subscriptions[0] || null;
   }
 
   /**
-   * Check if customer has active subscription
+   * Check if user has active subscription - Database first approach
    * Used for access control decisions
    */
-  async hasActiveSubscription(customerId: string): Promise<boolean> {
-    this.validateCustomerId(customerId);
+  async hasActiveSubscription(userIdOrCustomerId: string): Promise<boolean> {
+    const isUserId = userIdOrCustomerId.startsWith('user_');
 
-    try {
-      const subscriptions = await this.listSubscriptionsByCustomer(customerId, {
-        limit: 1,
-        status: 'active',
-      });
+    if (isUserId) {
+      // Use database service for user ID checks
+      return await this.userService.hasActiveSubscription(userIdOrCustomerId);
+    } else {
+      // Legacy: customer ID - check Stripe directly
+      this.validateCustomerId(userIdOrCustomerId);
 
-      return subscriptions.length > 0;
-    } catch (error) {
-      return false;
+      try {
+        const subscriptions = await this.getStripeSubscriptionsByCustomerId(
+          userIdOrCustomerId,
+          {
+            limit: 1,
+            status: 'active',
+          }
+        );
+
+        return subscriptions.length > 0;
+      } catch (error) {
+        return false;
+      }
     }
+  }
+
+  /**
+   * Get user subscription status from database
+   * Fast database-only check for subscription status
+   */
+  async getUserSubscriptionStatusFromDB(userId: string): Promise<{
+    status: string;
+    hasActiveSubscription: boolean;
+    currentPeriodEnd?: Date;
+    stripeSubscriptionId?: string;
+  }> {
+    return await this.userService.getUserSubscriptionStatus(userId);
   }
 
   /**

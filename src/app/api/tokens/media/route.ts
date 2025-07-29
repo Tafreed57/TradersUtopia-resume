@@ -39,7 +39,7 @@ export const GET = withAuth(
 
       if (!queryResult.success) {
         apiLogger.databaseOperation('media_token_validation_failed', false, {
-          userId: user.userId.substring(0, 8) + '***',
+          userId: user.id.substring(0, 8) + '***',
           errors: queryResult.error.issues.map(i => i.message),
         });
 
@@ -69,7 +69,7 @@ export const GET = withAuth(
       };
 
       apiLogger.databaseOperation('media_token_generation_started', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         room,
         username: username.substring(0, 3) + '***',
         permissions: tokenRequest.permissions,
@@ -80,7 +80,7 @@ export const GET = withAuth(
 
       // Log successful token generation
       apiLogger.databaseOperation('media_token_generated_successfully', true, {
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         room,
         username: username.substring(0, 3) + '***',
         tokenLength: tokenResponse.token.length,
@@ -97,7 +97,7 @@ export const GET = withAuth(
         permissions: tokenResponse.permissions,
         metadata: {
           generatedAt: new Date().toISOString(),
-          userId: user.userId,
+          userId: user.id,
           responseTime: `${Date.now() - startTime}ms`,
           version: '2.0-service-based',
         },
@@ -107,7 +107,7 @@ export const GET = withAuth(
 
       apiLogger.databaseOperation('media_token_generation_error', false, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        userId: user.userId.substring(0, 8) + '***',
+        userId: user.id.substring(0, 8) + '***',
         responseTime: `${Date.now() - startTime}ms`,
       });
 
