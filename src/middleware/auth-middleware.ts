@@ -17,7 +17,7 @@ import { User } from '@/services/types';
 /**
  * Authentication context provided to route handlers
  */
-export interface AuthContext {
+interface AuthContext {
   user: User;
   userId: string;
   userEmail: string;
@@ -40,7 +40,7 @@ export interface AuthOptions {
 /**
  * Type for authenticated route handlers
  */
-export type AuthenticatedHandler = (
+type AuthenticatedHandler = (
   req: NextRequest,
   context: AuthContext
 ) => Promise<NextResponse | Response | any>;
