@@ -88,8 +88,8 @@ export class SubscriptionService extends BaseStripeService {
               'data.latest_invoice',
               'data.items.data.price',
               'data.customer',
-              'data.discount',
-              'data.discount.coupon',
+              'data.discounts',
+              'data.discounts.coupon',
             ]
           ),
           status: options.status === 'all' ? undefined : options.status,

@@ -169,6 +169,7 @@ export function SubscriptionManager() {
       }
 
       const data = await response.json();
+      console.log('data', data);
       setSubscription(data);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch subscription data');
@@ -289,7 +290,7 @@ export function SubscriptionManager() {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency.toUpperCase(),
-    }).format(amount / 100);
+    }).format(amount);
   };
 
   // Render discount details
@@ -454,12 +455,15 @@ export function SubscriptionManager() {
                   </td>
                   <td className='py-4 px-2'>
                     <div className='font-semibold text-gray-900 dark:text-white'>
-                      {formatCurrency(invoice.total, invoice.currency)}
+                      {formatCurrency(invoice.total / 100, invoice.currency)}
                     </div>
                     {invoice.amount_due > 0 && (
                       <div className='text-xs text-orange-600 dark:text-orange-400'>
                         Due:{' '}
-                        {formatCurrency(invoice.amount_due, invoice.currency)}
+                        {formatCurrency(
+                          invoice.amount_due / 100,
+                          invoice.currency
+                        )}
                       </div>
                     )}
                   </td>
