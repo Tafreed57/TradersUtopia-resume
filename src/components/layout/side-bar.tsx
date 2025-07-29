@@ -1,8 +1,6 @@
 import { getCurrentProfileForAuth, getAllServers } from '@/lib/query';
-import { SideBarActions } from '@/components/layout/side-bar-actions';
 import { SideBarItem } from '@/components/layout/side-bar-item';
 import { NotificationBell } from '@/components/notifications/notification-bell';
-import { Separator } from '@/components/ui/separator';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { UserButton } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
@@ -40,11 +38,7 @@ export async function SideBar() {
         </ActionTooltip>
       </div>
 
-      <div className='mb-5 overflow-visible'>
-        <SideBarActions />
-      </div>
-
-      <Separator className='h-[2px] bg-zinc-300 dark:bg-zinc-700 rounded-md w-12 mx-auto mb-5' />
+      {/* <Separator className='h-[2px] bg-zinc-300 dark:bg-zinc-700 rounded-md w-12 mx-auto mb-5' /> */}
 
       <div className='flex-1 w-full overflow-y-auto overflow-x-visible'>
         <div className='flex flex-col items-center space-y-4 pb-5 overflow-visible'>

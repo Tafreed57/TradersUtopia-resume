@@ -25,8 +25,7 @@
     "migrate:status": "npx prisma migrate status",
     "seed": "ts-node scripts/seed.js",
     "find:unused": "next-unused",
-    "knip": "knip",
-    "test:stripe": "tsx scripts/testStripe.ts"
+    "knip": "knip"
   },
   "next-unused": {
     "alias": {},

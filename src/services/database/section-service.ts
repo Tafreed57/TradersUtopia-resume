@@ -177,7 +177,7 @@ export class SectionService extends BaseDatabaseService {
 
   /**
    * Delete a section
-   * Channels within section will be moved to default section
+   * All channels within section will be deleted along with their messages
    */
   async deleteSection(sectionId: string, userId: string): Promise<boolean> {
     try {
@@ -214,13 +214,20 @@ export class SectionService extends BaseDatabaseService {
         );
       }
 
-      // Step 2: Use transaction to handle channel reassignment and section deletion
+      // Step 2: Use transaction to handle channel deletion and section deletion
       await this.prisma.$transaction(async tx => {
-        // Move all channels in this section to null section (default)
+        // Delete all channels in this section (and their messages)
         if (section.channels.length > 0) {
-          await tx.channel.updateMany({
+          // First delete all messages in all channels of this section
+          for (const channel of section.channels) {
+            await tx.message.deleteMany({
+              where: { channelId: channel.id },
+            });
+          }
+
+          // Then delete all channels in this section
+          await tx.channel.deleteMany({
             where: { sectionId },
-            data: { sectionId: null },
           });
         }
 
@@ -247,7 +254,7 @@ export class SectionService extends BaseDatabaseService {
         sectionId: maskId(sectionId),
         serverId: maskId(section.serverId),
         userId: maskId(userId),
-        channelsReassigned: section.channels.length,
+        channelsDeleted: section.channels.length,
       });
 
       return true;

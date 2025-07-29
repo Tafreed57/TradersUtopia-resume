@@ -38,7 +38,6 @@ export function ProductPaymentGate({
 }: ProductPaymentGateProps) {
   const { isLoaded, user, isAdmin, hasAccess, isLoading, refetch } =
     useExtendedUser();
-  console.log('🚀 [ProductPaymentGate] user:', hasAccess);
   const { navigate } = useNavigationLoading();
   const verifyLoading = useComprehensiveLoading('api');
 
@@ -83,9 +82,6 @@ export function ProductPaymentGate({
 
   // ✅ ADMIN BYPASS: Skip all checks for admin users
   if (isLoaded && user && isAdmin && adminBypass) {
-    console.log(
-      '🚀 [ProductPaymentGate] Admin bypass active - rendering content directly'
-    );
     return <>{children}</>;
   }
 

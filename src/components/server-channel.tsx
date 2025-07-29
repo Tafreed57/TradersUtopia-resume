@@ -37,7 +37,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const params = useParams();
   const router = useRouter();
   const onOpen = useStore(state => state.onOpen);
-  const { insertionIndicator } = useDragDrop();
+  const { insertionIndicator, canDragDrop } = useDragDrop();
   const [isPending, startTransition] = useTransition();
   const [optimisticActive, setOptimisticActive] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -59,7 +59,8 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const canModifyChannel = isAdmin || isModerator;
 
   // Enable drag and drop for channels when user can manage them
-  const isDraggable = canModifyChannel;
+  // Use centralized permission check from context
+  const isDraggable = canDragDrop && canModifyChannel;
 
   // Check if insertion indicator should be shown for this channel
   const showInsertionBefore =

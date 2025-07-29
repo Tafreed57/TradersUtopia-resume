@@ -4,8 +4,8 @@ import { ModalProvider } from '@/contexts/modal-provider';
 import { QueryProvider } from '@/contexts/query-provider';
 import { ThemeProvider } from '@/contexts/theme-provider';
 import { LoadingProvider } from '@/contexts/loading-provider';
-import { UnifiedAuthProvider } from '@/contexts/unified-auth-provider';
-import { AuthWrapper } from '@/components/auth-wrapper';
+// import { UnifiedAuthProvider } from '@/contexts/unified-auth-provider';
+// import { AuthWrapper } from '@/components/auth-wrapper';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
 import { ClerkProvider } from '@clerk/nextjs';
@@ -158,36 +158,35 @@ export default function RootLayout({
             <ErrorBoundary>
               <LoadingProvider>
                 <QueryProvider>
-                  <UnifiedAuthProvider>
-                    {/* <AuthWrapper> */}
-                    <ModalProvider />
-                    <ServiceWorkerHandler />
-                    <PushNotificationPrompt />
-                    <Toaster
-                      position='top-right'
-                      expand={true}
-                      richColors
-                      closeButton
-                      className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
-                      style={
-                        {
-                          '--toaster-top': `calc(1rem + env(safe-area-inset-top))`,
-                          '--toaster-right': `calc(1rem + env(safe-area-inset-right))`,
-                        } as React.CSSProperties
-                      }
-                      toastOptions={{
-                        className:
-                          'text-sm p-4 min-h-[48px] touch-manipulation',
-                        style: {
-                          minHeight: '48px',
-                          fontSize: '14px',
-                          padding: '16px',
-                        },
-                      }}
-                    />
-                    {children}
-                    {/* </AuthWrapper> */}
-                  </UnifiedAuthProvider>
+                  {/* <UnifiedAuthProvider> */}
+                  {/* <AuthWrapper> */}
+                  <ModalProvider />
+                  <ServiceWorkerHandler />
+                  <PushNotificationPrompt />
+                  <Toaster
+                    position='top-right'
+                    expand={true}
+                    richColors
+                    closeButton
+                    className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
+                    style={
+                      {
+                        '--toaster-top': `calc(1rem + env(safe-area-inset-top))`,
+                        '--toaster-right': `calc(1rem + env(safe-area-inset-right))`,
+                      } as React.CSSProperties
+                    }
+                    toastOptions={{
+                      className: 'text-sm p-4 min-h-[48px] touch-manipulation',
+                      style: {
+                        minHeight: '48px',
+                        fontSize: '14px',
+                        padding: '16px',
+                      },
+                    }}
+                  />
+                  {children}
+                  {/* </AuthWrapper> */}
+                  {/* </UnifiedAuthProvider> */}
                 </QueryProvider>
               </LoadingProvider>
             </ErrorBoundary>

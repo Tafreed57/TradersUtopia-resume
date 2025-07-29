@@ -9,23 +9,34 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ServerWithMembersWithUsers } from '@/types/server';
-import { Role } from '@prisma/client';
 import { ChevronDown, PlusCircle, Settings } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
 import { useStore } from '@/store/store';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 interface ServerHeaderProps {
   server: ServerWithMembersWithUsers;
-  role?: Role;
+  role?: any; // Keep for backwards compatibility but not used
 }
 
-export function ServerHeader({ server, role }: ServerHeaderProps) {
+export function ServerHeader({ server }: ServerHeaderProps) {
   const onOpen = useStore(state => state.onOpen);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const isAdmin = role?.name === 'admin';
-  const isModerator = isAdmin || role?.name === 'premium';
+  // ✅ UPDATED: Use extended user hook for admin checks and user data
+  const {
+    isAdmin,
+    hasAccess,
+    isLoading: authLoading,
+    profile,
+  } = useExtendedUser({
+    enableLogging: false,
+    checkOnMount: true,
+  });
+
+  // Determine if user has moderator privileges (admin or has access)
+  const isModerator = isAdmin || hasAccess;
 
   const handleServerSettingsClick = () => {
     setIsDropdownOpen(false);
@@ -81,7 +92,14 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                   {server?.name}
                 </span>
                 <span className='text-xs text-gray-400'>
-                  Role: {role?.name}
+                  {/* ✅ UPDATED: Show access status instead of role name */}
+                  {authLoading
+                    ? 'Checking access...'
+                    : isAdmin
+                      ? 'Admin'
+                      : hasAccess
+                        ? 'Premium Member'
+                        : 'Free Member'}
                 </span>
               </div>
             </div>
@@ -135,7 +153,8 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                     {server?.name}
                   </span>
                   <span className='text-xs text-gray-400 font-medium'>
-                    {server?.members?.length || 0} members | Role: {role?.name}
+                    {/* ✅ UPDATED: Show member count and admin status */}
+                    {server?.members?.length || 0} members | Admin
                   </span>
                 </div>
               </div>
@@ -165,11 +184,11 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
               </DropdownMenuItem>
             )}
 
-            {isAdmin && (isModerator || isAdmin) && (
+            {isAdmin && isModerator && (
               <DropdownMenuSeparator className='bg-gray-700/50 my-2' />
             )}
 
-            {(isModerator || isAdmin) && (
+            {isModerator && (
               <DropdownMenuItem
                 onClick={handleCreateChannelClick}
                 className='text-purple-400 hover:text-purple-300 text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-purple-600/20 transition-all duration-200 flex items-center gap-3'
@@ -179,7 +198,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
               </DropdownMenuItem>
             )}
 
-            {(isModerator || isAdmin) && (
+            {isModerator && (
               <DropdownMenuItem
                 onClick={handleCreateSectionClick}
                 className='text-green-400 hover:text-green-300 text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-green-600/20 transition-all duration-200 flex items-center gap-3'

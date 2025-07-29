@@ -43,7 +43,7 @@ export function ServerSectionHeader({
   section,
   position,
 }: ServerSectionHeaderProps) {
-  const { insertionIndicator } = useDragDrop();
+  const { insertionIndicator, canDragDrop } = useDragDrop();
   const onOpen = useStore(state => state.onOpen);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -52,7 +52,9 @@ export function ServerSectionHeader({
   const canModifySection = isAdmin || isModerator;
 
   // Enable drag and drop for both regular sections and the default "channels" section
+  // Use centralized permission check from context
   const isDraggable =
+    canDragDrop &&
     canModifySection &&
     ((sectionType === 'section' && section) || sectionType === 'channels');
 

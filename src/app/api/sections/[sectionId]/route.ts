@@ -5,26 +5,6 @@ import { apiLogger } from '@/lib/enhanced-logger';
 import { ValidationError } from '@/lib/error-handling';
 
 /**
- * Section Management API
- *
- * BEFORE: 155 lines with extensive boilerplate
- * - Rate limiting (10+ lines per method)
- * - Authentication (10+ lines per method)
- * - Manual admin verification (10+ lines per method)
- * - Parameter validation (15+ lines per method)
- * - Manual database operations (20+ lines per method)
- * - Duplicate permission checks (20+ lines)
- * - Error handling (15+ lines per method)
- *
- * AFTER: Clean service-based implementation
- * - 90%+ boilerplate elimination
- * - Centralized section management
- * - Enhanced validation and error handling
- * - Comprehensive audit logging
- * - Transaction-safe operations
- */
-
-/**
  * Update Section
  * Admin-only operation with comprehensive validation
  */
