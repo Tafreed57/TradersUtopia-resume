@@ -88,13 +88,14 @@ export class SubscriptionService extends BaseStripeService {
               'data.latest_invoice',
               'data.items.data.price',
               'data.customer',
+              'data.discount',
+              'data.discount.coupon',
             ]
           ),
           status: options.status === 'all' ? undefined : options.status,
           starting_after: options.startingAfter,
           ending_before: options.endingBefore,
         });
-
         return subscriptions.data;
       },
       'list_stripe_customer_subscriptions',

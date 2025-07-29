@@ -4,13 +4,6 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import {
   CreditCard,
@@ -32,22 +25,43 @@ import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
 import { CancellationFlowModal } from '@/components/modals/cancellation-flow-modal';
 
-interface DiscountDetails {
+interface DiscountInfo {
   id: string;
-  couponId?: string;
   name: string;
-  percentOff?: number;
   amountOff?: number | null;
+  percentOff?: number | null;
+  currency?: string;
   duration: string;
   durationInMonths?: number;
-  valid: boolean;
-  start?: string;
-  end?: string;
-  currency?: string;
   maxRedemptions?: number;
-  redeemBy?: string;
   timesRedeemed?: number;
-  created?: string;
+  valid: boolean;
+  created: string;
+}
+
+interface SubscriptionData {
+  isActive: boolean;
+  total: number;
+  currency: string;
+  discounts: DiscountInfo[];
+}
+
+interface DetailedSubscription {
+  hasAccess: boolean;
+  subscriptionStatus: string;
+  isActive: boolean;
+  subscription: any;
+  customer: any;
+  dataSource: string;
+  metadata: {
+    lastDatabaseUpdate: string;
+    hasStripeConnection: boolean;
+    isActive: boolean;
+    daysUntilExpiry?: number | null;
+    dataFreshness: string;
+    adminNote?: string;
+    error?: string;
+  };
 }
 
 interface InvoiceData {
@@ -67,569 +81,106 @@ interface InvoiceData {
   period_end?: string;
 }
 
-interface SubscriptionDetails {
-  status: string;
-  productId: string;
-  customerId: string;
-  subscriptionStart: string;
-  subscriptionEnd: string;
-  // Additional fields from database
-  stripeSubscriptionId?: string;
-  subscriptionAmount?: number;
-  originalAmount?: number;
-  subscriptionCurrency?: string;
-  subscriptionInterval?: string;
-  stripePriceId?: string;
-  discountPercent?: number;
-  discountName?: string;
-  discountDetails?: DiscountDetails;
-  product?: {
-    id: string;
-    name: string;
-    description: string;
-    images: string[];
-  };
-  stripe?: {
-    id: string;
-    status: string;
-    currentPeriodStart: string;
-    currentPeriodEnd: string;
-    cancelAtPeriodEnd: boolean;
-    autoRenew: boolean;
-    amount: number;
-    originalAmount?: number;
-    currency: string;
-    interval: string;
-    hasDiscount?: boolean;
-    discountPercent?: number;
-    discountAmount?: number;
-    discountDetails?: DiscountDetails;
-  };
-  customer?: {
-    id: string;
-    email: string;
-    created: string;
-  };
-  isAdminAccess?: boolean;
-}
-
 export function SubscriptionManager() {
   const { user } = useUser();
   const { userId, isLoaded } = useAuth();
   const apiLoading = useComprehensiveLoading('api');
+
+  // Subscription state
   const [isLoading, setIsLoading] = useState(true);
-  const [subscription, setSubscription] = useState<SubscriptionDetails | null>(
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(
     null
   );
-  const [isUpdatingAutoRenew, setIsUpdatingAutoRenew] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [cancelPassword, setCancelPassword] = useState('');
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
+
+  // UI state
+  const [showCancellationFlow, setShowCancellationFlow] = useState(false);
   const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
-  const [showCancellationFlow, setShowCancellationFlow] = useState(false);
 
-  // ✅ NEW: Invoice-related state
+  // Invoice state
   const [invoices, setInvoices] = useState<InvoiceData[]>([]);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [hasLoadedInvoices, setHasLoadedInvoices] = useState(false);
 
-  // Multi-step cancellation flow (legacy - keeping for backwards compatibility)
-  const [cancelStep, setCancelStep] = useState<
-    'reason' | 'confirmation' | 'intermediate' | 'auth'
-  >('reason');
-  const [selectedReason, setSelectedReason] = useState<string>('');
-
-  // Price negotiation flow (legacy - keeping for backwards compatibility)
-  const [priceInput, setPriceInput] = useState<string>('');
-  const [showOfferModal, setShowOfferModal] = useState(false);
-  const [currentOffer, setCurrentOffer] = useState<number | null>(null);
-  const [showFinalOffer, setShowFinalOffer] = useState(false);
-  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-
-  const handlePriceSubmit = () => {
-    const inputPrice = parseFloat(priceInput);
-
-    if (isNaN(inputPrice) || inputPrice <= 0) {
-      showToast.error('Please enter a valid price');
-      return;
-    }
-
-    // Calculate offer: $5 cheaper than what they typed
-    let offerPrice = inputPrice - 5;
-
-    // Minimum offer is $19.99, but if they typed less than $24.99, offer $15
-    if (inputPrice < 24.99) {
-      offerPrice = 15;
-    } else if (offerPrice < 19.99) {
-      offerPrice = 19.99;
-    }
-
-    setCurrentOffer(offerPrice);
-    setShowOfferModal(true);
-  };
-
-  const handleFinalOffer = () => {
-    setShowFinalOffer(true);
-  };
-
-  const createAndApplyCoupon = async (newPrice: number) => {
-    setIsApplyingCoupon(true);
-    try {
-      // ✅ ENHANCED: First check if we have sufficient subscription data
-      if (!subscription || subscription.status !== 'ACTIVE') {
-        showToast.error('Error', 'No active subscription found');
-        return false;
-      }
-
-      // ✅ ENHANCED: Check for required subscription identifiers
-      const customerId = subscription?.customer?.id || subscription?.customerId;
-      const subscriptionId =
-        subscription?.stripe?.id || subscription?.stripeSubscriptionId;
-
-      if (!customerId && !subscriptionId) {
-        // Try to sync data automatically first
-        showToast.info('🔄 Syncing', 'Refreshing subscription data...');
-
-        try {
-          await refreshAndSync();
-          showToast.success(
-            '✅ Synced',
-            'Please try applying the discount again.'
-          );
-        } catch (syncError) {
-          showToast.error(
-            'Error',
-            'Subscription data incomplete. Please refresh the page and try again.'
-          );
-        }
-
-        return false;
-      }
-
-      // ✅ NEW: Fetch fresh subscription data directly from Stripe API
-      let stripeData = null;
-
-      try {
-        const response = await makeSecureRequest(
-          '/api/subscription/stripe-direct',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'get_subscription_data' }),
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.subscription) {
-            stripeData = {
-              amount: data.subscription.amount,
-              originalAmount: data.subscription.originalAmount,
-              id: data.subscription.id,
-              customerId: data.subscription.customerId,
-            };
-          } else {
-            throw new Error(data.error || 'No subscription data returned');
-          }
-        } else {
-          throw new Error(`API response not ok: ${response.status}`);
-        }
-      } catch (apiError) {
-        // Fallback to existing subscription data if API fails
-        if (subscription?.stripe?.amount) {
-          stripeData = subscription.stripe;
-        } else {
-          showToast.error(
-            'Error',
-            'Unable to retrieve current subscription pricing. Please refresh and try again.'
-          );
-          return false;
-        }
-      }
-
-      if (!stripeData || !stripeData.amount) {
-        showToast.error(
-          'Error',
-          'Unable to retrieve subscription pricing data'
-        );
-        return false;
-      }
-
-      // Get the actual current discounted price the user is paying
-      const currentDiscountedPrice = stripeData.amount / 100;
-
-      // Get the original price (before any discounts)
-      const originalPrice = stripeData.originalAmount
-        ? stripeData.originalAmount / 100
-        : currentDiscountedPrice;
-
-      // ✅ ENHANCED: Better price validation
-      if (originalPrice <= 0 || currentDiscountedPrice <= 0) {
-        showToast.error('Error', 'Invalid pricing data detected');
-        return false;
-      }
-
-      if (newPrice >= currentDiscountedPrice) {
-        showToast.error(
-          'Error',
-          'New price must be lower than your current price'
-        );
-        return false;
-      }
-
-      if (newPrice <= 0) {
-        showToast.error('Error', 'Price must be greater than $0');
-        return false;
-      }
-
-      // Calculate the percentage discount needed to go from ORIGINAL price to TARGET price
-      const totalDiscountAmount = originalPrice - newPrice;
-      const percentOff = Math.round(
-        (totalDiscountAmount / originalPrice) * 100
-      );
-
-      const response = await makeSecureRequest(
-        '/api/subscription/create-coupon',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            percentOff,
-            newMonthlyPrice: newPrice,
-            currentPrice: currentDiscountedPrice,
-            originalPrice: originalPrice,
-            customerId: (stripeData as any).customerId || customerId,
-            subscriptionId: stripeData.id || subscriptionId,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        showToast.success(
-          '🎉 Discount Applied!',
-          `Your new rate of $${newPrice}/month has been locked in permanently!`
-        );
-        await refreshAndSync(); // Refresh to show new pricing
-        return true;
-      } else {
-        showToast.error('Failed to Apply Discount', data.error);
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Error creating coupon:', error);
-      showToast.error('Error', 'Failed to apply discount');
-      return false;
-    } finally {
-      setIsApplyingCoupon(false);
-    }
-  };
-
   const statusConfig = useMemo(() => {
-    if (!subscription || !subscription.status) {
+    if (!subscription) {
       return {
         bgColor: 'bg-gray-100 dark:bg-gray-700/30',
         textColor: 'text-gray-600',
         textColorCls: 'text-gray-600 dark:text-gray-400',
-        title: 'No Subscription',
-        description: () => 'You do not have an active subscription',
+        title: 'Loading...',
+        description: () => 'Checking subscription status',
         Icon: () => (
           <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-500 flex items-center justify-center'>
-            <svg
-              className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-              fill='none'
-              stroke='currentColor'
-              viewBox='0 0 24 24'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636'
-              />
-            </svg>
+            <Loader2 className='w-4 h-4 sm:w-5 sm:h-5 text-white animate-spin' />
           </div>
         ),
       };
     }
 
-    // Check for admin access first
-    if (
-      subscription.isAdminAccess ||
-      subscription.productId === 'admin_access'
-    ) {
+    // Active subscription
+    if (subscription.isActive) {
       return {
-        bgColor:
-          'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30',
-        textColor: 'text-purple-600',
-        textColorCls: 'text-purple-600 dark:text-purple-400',
-        title: 'Admin Access',
-        description: () => 'Full premium access as an administrator',
+        bgColor: 'bg-green-100 dark:bg-green-900/30',
+        textColor: 'text-green-600',
+        textColorCls: 'text-green-600 dark:text-green-400',
+        title: 'Active',
+        description: (date: string) =>
+          `Your subscription is active until ${date}`,
         Icon: () => (
-          <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center'>
-            <svg
-              className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-              fill='none'
-              stroke='currentColor'
-              viewBox='0 0 24 24'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'
-              />
-            </svg>
+          <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
+            <CheckCircle className='w-4 h-4 sm:w-5 sm:h-5 text-white' />
           </div>
         ),
       };
     }
 
-    switch (subscription.status.toLowerCase()) {
-      case 'active':
-        return {
-          bgColor: 'bg-green-100 dark:bg-green-900/30',
-          textColor: 'text-green-600',
-          textColorCls: 'text-green-600 dark:text-green-400',
-          title: 'Active',
-          description: (date: string) =>
-            `Your subscription is active until ${date}`,
-          Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
-              <svg
-                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M5 13l4 4L19 7'
-                />
-              </svg>
-            </div>
-          ),
-        };
-      case 'cancelled':
-        return {
-          bgColor:
-            'bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30',
-          textColor: 'text-orange-600',
-          textColorCls: 'text-orange-600 dark:text-orange-400',
-          title: 'Subscription Cancelled',
-          description: (date: string) => {
-            const endDate = stripeData?.currentPeriodEnd;
-            if (endDate) {
-              try {
-                const expiryDate = new Date(endDate);
-                const now = new Date();
-                const isExpired = expiryDate < now;
-
-                if (isExpired) {
-                  return `Your subscription expired on ${expiryDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Premium access has ended.`;
-                } else {
-                  const daysLeft = Math.ceil(
-                    (expiryDate.getTime() - now.getTime()) /
-                      (1000 * 60 * 60 * 24)
-                  );
-                  return `Access continues until ${expiryDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} (${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} remaining)`;
-                }
-              } catch (error) {
-                return 'Your subscription has been cancelled and will not renew';
-              }
-            }
-            return 'Your subscription has been cancelled and will not renew';
-          },
-          Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center'>
-              <svg
-                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z'
-                />
-              </svg>
-            </div>
-          ),
-        };
-      case 'free':
-        return {
-          bgColor: 'bg-blue-100 dark:bg-blue-900/30',
-          textColor: 'text-blue-600',
-          textColorCls: 'text-blue-600 dark:text-blue-400',
-          title: 'Free Account',
-          description: () => 'You have access to free content only',
-          Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-500 flex items-center justify-center'>
-              <svg
-                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'
-                />
-              </svg>
-            </div>
-          ),
-        };
-      default:
-        return {
-          bgColor: 'bg-gray-100 dark:bg-gray-700/30',
-          textColor: 'text-gray-600',
-          textColorCls: 'text-gray-600 dark:text-gray-400',
-          title: 'Unknown Status',
-          description: () => 'Unable to determine subscription status',
-          Icon: () => (
-            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-500 flex items-center justify-center'>
-              <svg
-                className='w-4 h-4 sm:w-5 sm:h-5 text-white'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-                />
-              </svg>
-            </div>
-          ),
-        };
-    }
+    // Free user
+    return {
+      bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+      textColor: 'text-blue-600',
+      textColorCls: 'text-blue-600 dark:text-blue-400',
+      title: 'Free Account',
+      description: () => 'You have access to free content only',
+      Icon: () => (
+        <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-500 flex items-center justify-center'>
+          <Crown className='w-4 h-4 sm:w-5 sm:h-5 text-white' />
+        </div>
+      ),
+    };
   }, [subscription]);
 
   const cardClasses =
     'bg-white dark:bg-gray-800/50 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700/60 p-4 sm:p-8 transition-all duration-300 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 backdrop-blur-sm';
 
-  // ✅ FIXED: Handle both new webhook data and legacy subscription data
-  const stripeData = useMemo(() => {
-    if (subscription?.stripe) {
-      return subscription.stripe;
-    }
+  // Fetch subscription data
+  const fetchSubscription = useCallback(async () => {
+    if (!userId) return;
 
-    // Create fallback stripe data from subscription details if active
-    if (
-      subscription?.status === 'ACTIVE' ||
-      subscription?.status === 'active'
-    ) {
-      return {
-        id:
-          subscription.stripeSubscriptionId ||
-          subscription.customerId ||
-          'legacy',
-        status: subscription.status?.toLowerCase() || 'active',
-        currentPeriodStart: subscription.subscriptionStart,
-        currentPeriodEnd: subscription.subscriptionEnd,
-        cancelAtPeriodEnd: false,
-        canceledAt: null,
-        autoRenew: true,
-        priceId: subscription.stripePriceId || 'legacy_price',
-        amount: subscription.subscriptionAmount
-          ? // ✅ FIXED: Database stores cents, use directly
-            subscription.subscriptionAmount
-          : 14999,
-        originalAmount: subscription.originalAmount
-          ? // ✅ FIXED: Database stores cents, use directly
-            subscription.originalAmount
-          : subscription.subscriptionAmount
-            ? subscription.subscriptionAmount
-            : 14999,
-        currency: subscription.subscriptionCurrency || 'usd',
-        interval: subscription.subscriptionInterval || 'month',
-        trialStart: null,
-        trialEnd: null,
-        created: subscription.subscriptionStart,
-        pauseStartDate: null,
-        discountPercent: subscription.discountPercent || null,
-        discountAmount: null,
-        hasDiscount: !!(
-          subscription.discountPercent && subscription.discountPercent > 0
-        ),
-        discountDetails:
-          subscription.discountPercent && subscription.discountPercent > 0
-            ? subscription.discountDetails || {
-                id: 'legacy_discount',
-                name: subscription.discountName || 'Applied Discount',
-                percentOff: subscription.discountPercent,
-                amountOff: null,
-                duration: 'unknown',
-                valid: true,
-              }
-            : null,
-      };
-    }
+    setIsLoading(true);
+    setError(null);
 
-    return null;
-  }, [subscription]);
-
-  // ✅ ENHANCED: Check if subscription data is incomplete (exclude admin users)
-  const isSubscriptionDataIncomplete =
-    subscription?.status === 'ACTIVE' &&
-    subscription?.stripeSubscriptionId === undefined &&
-    subscription?.subscriptionAmount === undefined &&
-    !subscription?.isAdminAccess; // Don't show warning for admin users
-
-  // ✅ NEW: Add backfill subscription data function
-  const backfillSubscriptionData = async () => {
     try {
-      setIsLoading(true);
-      const response = await fetch(
-        '/api/subscription/backfill-subscription-ids',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch('/api/subscription');
+      if (!response.ok) {
+        throw new Error('Failed to fetch subscription');
+      }
 
       const data = await response.json();
-
-      if (data.success) {
-        showToast.success(
-          data.alreadyPopulated
-            ? 'Subscription data is already up to date'
-            : 'Subscription data updated successfully'
-        );
-
-        // Refresh subscription data
-        await fetchSubscriptionDetails();
-      } else {
-        showToast.error(data.error || 'Failed to update subscription data');
-      }
-    } catch (error) {
-      console.error('Failed to backfill subscription data:', error);
-      showToast.error('Failed to update subscription data');
+      setSubscription(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch subscription data');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
 
-  // ✅ NEW: Function to fetch invoices from Stripe
+  // Fetch invoices from Stripe
   const fetchInvoices = async () => {
-    if (hasLoadedInvoices || isLoadingInvoices) return; // Don't fetch if already loaded or loading
+    if (hasLoadedInvoices || isLoadingInvoices || !subscription?.isActive)
+      return;
 
     setIsLoadingInvoices(true);
     setInvoiceError(null);
@@ -637,9 +188,7 @@ export function SubscriptionManager() {
     try {
       const response = await makeSecureRequest('/api/invoices', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
@@ -655,7 +204,7 @@ export function SubscriptionManager() {
         throw new Error(data.error || 'Failed to load invoices');
       }
     } catch (error) {
-      console.error('❌ Error fetching invoices:', error);
+      console.error('Error fetching invoices:', error);
       setInvoiceError(
         error instanceof Error ? error.message : 'Failed to load invoices'
       );
@@ -665,23 +214,131 @@ export function SubscriptionManager() {
     }
   };
 
-  // ✅ UPDATED: Handle invoice history toggle with fetching
+  // Handle invoice history toggle
   const handleInvoiceHistoryToggle = () => {
     const newShowState = !showInvoiceHistory;
     setShowInvoiceHistory(newShowState);
 
-    // If showing and we have an active subscription, fetch invoices
-    if (
-      newShowState &&
-      subscription?.status === 'ACTIVE' &&
-      !hasLoadedInvoices
-    ) {
+    if (newShowState && subscription?.isActive && !hasLoadedInvoices) {
       fetchInvoices();
     }
   };
 
+  // Handle cancellation flow
+  const handleCancellationFlowComplete = async (
+    action: 'cancelled' | 'retained' | 'discounted'
+  ) => {
+    setShowCancellationFlow(false);
+
+    if (action === 'cancelled' || action === 'discounted') {
+      // Refresh subscription data to show updated state
+      await fetchSubscription();
+    }
+  };
+
+  // Handle auto-renewal toggle - simplified since we don't have detailed subscription data
+  const handleToggleAutoRenew = async () => {
+    try {
+      const response = await makeSecureRequest(
+        '/api/subscription/toggle-autorenew',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ autoRenew: true }), // For now, we'll show cancellation flow for disable
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast.success('🎉 Auto-Renewal Updated', data.message);
+        await fetchSubscription();
+      } else {
+        showToast.error(
+          'Error',
+          data.error || 'Failed to update auto-renewal setting'
+        );
+      }
+    } catch (error) {
+      console.error('Auto-renewal toggle error:', error);
+      showToast.error('Error', 'Failed to toggle auto-renewal');
+    }
+  };
+
+  // Refresh subscription data
+  const refreshSubscription = async () => {
+    if (isLoading) return;
+
+    setIsLoading(true);
+    try {
+      await fetchSubscription();
+      showToast.success('✅ Refreshed', 'Subscription data updated!');
+    } catch (error) {
+      console.error('Error refreshing subscription:', error);
+      showToast.error(
+        '❌ Refresh Error',
+        'Failed to refresh subscription data'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(amount / 100);
+  };
+
+  // Render discount details
+  const renderDiscountDetails = (discount: DiscountInfo) => {
+    const isExpiring = false; // We can add expiration logic if needed
+    const hasExpired = false;
+
+    return (
+      <div className='space-y-3'>
+        <div className='flex items-center gap-2 flex-wrap'>
+          <div className='inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md'>
+            <Tag className='w-4 h-4' />
+            <span>{discount.name}</span>
+          </div>
+          {hasExpired && (
+            <div className='inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded-full text-xs font-medium'>
+              <AlertTriangle className='w-3 h-3' />
+              Expired
+            </div>
+          )}
+          {isExpiring && !hasExpired && (
+            <div className='inline-flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full text-xs font-medium'>
+              <Clock className='w-3 h-3' />
+              Expiring Soon
+            </div>
+          )}
+        </div>
+
+        <div className='text-center'>
+          <div className='text-2xl font-bold text-emerald-600 dark:text-emerald-400'>
+            {discount.percentOff && `${discount.percentOff}% OFF`}
+            {discount.amountOff &&
+              !discount.percentOff &&
+              `$${discount.amountOff.toFixed(2)} OFF`}
+          </div>
+          {discount.duration && (
+            <div className='text-sm text-gray-600 dark:text-gray-400'>
+              Duration: {discount.duration}
+              {discount.durationInMonths &&
+                ` (${discount.durationInMonths} months)`}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render invoices
   const renderInvoices = () => {
-    // Loading state
     if (isLoadingInvoices) {
       return (
         <div className='text-center py-6 sm:py-8'>
@@ -698,7 +355,6 @@ export function SubscriptionManager() {
       );
     }
 
-    // Error state
     if (invoiceError) {
       return (
         <div className='text-center py-6 sm:py-8'>
@@ -727,7 +383,6 @@ export function SubscriptionManager() {
       );
     }
 
-    // No invoices state
     if (invoices.length === 0) {
       return (
         <div className='text-center py-6 sm:py-8'>
@@ -744,12 +399,10 @@ export function SubscriptionManager() {
       );
     }
 
-    // Display invoices in a table
     const displayedInvoices = showFullHistory ? invoices : invoices.slice(0, 5);
 
     return (
       <div className='space-y-4'>
-        {/* Invoice Table */}
         <div className='overflow-x-auto'>
           <table className='w-full text-sm'>
             <thead>
@@ -787,7 +440,6 @@ export function SubscriptionManager() {
                           {invoice.description}
                         </div>
                       )}
-                      {/* Show date on mobile */}
                       <div className='text-xs text-gray-500 dark:text-gray-400 mt-1 sm:hidden'>
                         {new Date(invoice.created).toLocaleDateString()}
                       </div>
@@ -863,7 +515,6 @@ export function SubscriptionManager() {
           </table>
         </div>
 
-        {/* Show More/Less Button */}
         {invoices.length > 5 && (
           <div className='text-center pt-4 border-t border-gray-200 dark:border-gray-700'>
             <Button
@@ -887,7 +538,6 @@ export function SubscriptionManager() {
           </div>
         )}
 
-        {/* Summary */}
         <div className='bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mt-4'>
           <div className='text-center text-sm text-gray-600 dark:text-gray-400'>
             Showing {displayedInvoices.length} of {invoices.length} invoice
@@ -898,404 +548,44 @@ export function SubscriptionManager() {
     );
   };
 
-  const handleCancellationFlowComplete = async (
-    action: 'cancelled' | 'retained' | 'discounted'
-  ) => {
-    setShowCancellationFlow(false);
-
-    if (action === 'cancelled') {
-      // Refresh subscription details to show updated state
-      await fetchSubscriptionDetails();
-    } else if (action === 'discounted') {
-      // Refresh subscription details to show new pricing
-      await fetchSubscriptionDetails();
-    }
-    // If retained, just close the modal (no changes needed)
-  };
-
-  const handleToggleAutoRenew = async () => {
-    // ✅ FIXED: Use stripeData instead of subscription?.stripe for legacy data compatibility
-    const newAutoRenewValue = !stripeData?.autoRenew;
-
-    // If user is trying to disable auto-renewal, show cancellation flow
-    if (!newAutoRenewValue && stripeData?.autoRenew) {
-      setShowCancellationFlow(true);
-      return;
-    }
-
-    // If user is enabling auto-renewal, proceed directly
-    try {
-      setIsLoading(true);
-      await toggleAutoRenew(newAutoRenewValue);
-    } catch (err: any) {
-      setError(err.message || 'Failed to toggle auto-renewal');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchSubscriptionDetails = useCallback(async () => {
-    if (!userId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/subscription/details');
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscription details');
-      }
-      const result = await response.json();
-      if (result.success) {
-        setSubscription(result.subscription);
-      } else {
-        throw new Error(result.message || 'Failed to get subscription data');
-      }
-    } catch (err: any) {
-      setError(
-        err.message || 'An error occurred while fetching subscription details.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  // ✅ FIXED: Fetch subscription details on component mount
+  // Fetch data on component mount
   useEffect(() => {
     if (isLoaded && userId) {
-      fetchSubscriptionDetails();
+      fetchSubscription();
     }
-  }, [isLoaded, userId, fetchSubscriptionDetails]);
+  }, [isLoaded, userId, fetchSubscription]);
 
-  // ✅ AUTO-REFRESH: Automatically refresh when subscription data is incomplete
-  useEffect(() => {
-    if (
-      subscription &&
-      subscription.status === 'ACTIVE' &&
-      !subscription.subscriptionAmount &&
-      !isLoading
-    ) {
-      // Small delay to avoid rapid-fire requests
-      const timer = setTimeout(() => {
-        fetchSubscriptionDetails();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [subscription, isLoading, fetchSubscriptionDetails]);
-
-  const refreshAndSync = async () => {
-    if (isLoading) return; // Prevent multiple simultaneous refreshes
-
-    setIsLoading(true);
-    try {
-      // First, try to sync with Stripe to get the latest data
-      try {
-        const syncResponse = await makeSecureRequest('/api/subscription/sync', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (syncResponse.ok) {
-          showToast.success('🔄 Synced', 'Subscription data synchronized!');
-        } else {
-          showToast.warning(
-            '⚠️ Partial Sync',
-            'Refreshing with available data...'
-          );
-        }
-      } catch (syncError) {
-        showToast.warning('⚠️ Sync Issue', 'Refreshing with available data...');
-      }
-
-      // Always fetch subscription details (even if sync failed)
-      const response = await fetch('/api/subscription/details');
-      if (!response.ok) {
-        throw new Error(
-          `Failed to refresh subscription details: ${response.status}`
-        );
-      }
-
-      const data = await response.json();
-
-      setSubscription(data.subscription);
-
-      showToast.success('✅ Refreshed', 'Subscription data updated!');
-    } catch (error) {
-      console.error('❌ Error refreshing subscription:', error);
-      showToast.error(
-        '❌ Refresh Error',
-        'Failed to refresh subscription data'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleAutoRenew = async (autoRenew: boolean) => {
-    setIsUpdatingAutoRenew(true);
-    try {
-      const response = await makeSecureRequest(
-        '/api/subscription/toggle-autorenew',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ autoRenew }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        showToast.success(
-          autoRenew ? '🎉 Auto-Renewal Re-enabled' : '⚠️ Auto-Renewal Disabled',
-          data.message
-        );
-        // Update local state
-        if (subscription?.stripe) {
-          setSubscription({
-            ...subscription,
-            stripe: {
-              ...subscription.stripe,
-              autoRenew: data.autoRenew,
-              cancelAtPeriodEnd: !data.autoRenew,
-            },
-          });
-        }
-      } else {
-        showToast.error(
-          'Error',
-          data.error || 'Failed to update auto-renewal setting'
-        );
-        // Reset local state to prevent UI inconsistency and refresh current state
-        if (subscription?.stripe) {
-          setSubscription({
-            ...subscription,
-            stripe: {
-              ...subscription.stripe,
-              autoRenew: !autoRenew, // Reset to opposite of what user tried to set
-              cancelAtPeriodEnd: autoRenew, // Reset cancel flag too
-            },
-          });
-        }
-        await fetchSubscriptionDetails();
-      }
-    } catch (error) {
-      console.error('❌ Frontend: Auto-renewal toggle error:', error);
-      showToast.error('Error', 'Failed to toggle auto-renewal');
-      // Reset local state on error
-      if (subscription?.stripe) {
-        setSubscription({
-          ...subscription,
-          stripe: {
-            ...subscription.stripe,
-            autoRenew: !autoRenew, // Reset to opposite of what user tried to set
-            cancelAtPeriodEnd: autoRenew, // Reset cancel flag too
-          },
-        });
-      }
-      await fetchSubscriptionDetails();
-    } finally {
-      setIsUpdatingAutoRenew(false);
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    if (!cancelPassword.trim()) {
-      showToast.error('Error', 'Password is required to cancel subscription');
-      return;
-    }
-
-    setIsCancelling(true);
-    try {
-      const response = await makeSecureRequest('/api/subscription/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          password: cancelPassword,
-          confirmCancel: true,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        showToast.success('✅ Auto-Renewal Disabled', data.message);
-        setShowCancelDialog(false);
-        setCancelPassword('');
-        // Refresh subscription details
-        await fetchSubscriptionDetails();
-      } else {
-        showToast.error('Unable to Disable Auto-Renewal', data.error);
-      }
-    } catch (error) {
-      showToast.error('Error', 'Failed to disable auto-renewal');
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency.toUpperCase(),
-    }).format(amount / 100);
-  };
-
-  const handleSync = async () => {
-    try {
-      setIsSyncing(true);
-      await refreshAndSync();
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while updating settings.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleForceSync = async () => {
-    try {
-      setIsSyncing(true);
-
-      const response = await makeSecureRequest('/api/subscription/force-sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        showToast.success(
-          '🎉 Sync Complete!',
-          'Your subscription data has been forcefully synced from Stripe!'
-        );
-
-        // Refresh the subscription details to show updated data
-        await fetchSubscriptionDetails();
-      } else {
-        showToast.error(
-          'Sync Failed',
-          data.message || 'Failed to sync subscription data'
-        );
-      }
-    } catch (err: any) {
-      showToast.error(
-        'Sync Error',
-        'Network error while syncing. Please try again.'
-      );
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // ✅ NEW: Enhanced discount rendering function
-  const renderDiscountDetails = (discountDetails: DiscountDetails) => {
-    const isExpiring =
-      discountDetails.end &&
-      new Date(discountDetails.end) <
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Expires within 30 days
-    const hasExpired =
-      discountDetails.end && new Date(discountDetails.end) < new Date();
-
+  if (!isLoaded || isLoading) {
     return (
-      <div className='space-y-3'>
-        {/* Discount Header */}
-        <div className='flex items-center gap-2 flex-wrap'>
-          <div className='inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md'>
-            <Tag className='w-4 h-4' />
-            <span>{discountDetails.name}</span>
+      <div className='max-w-5xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8'>
+        <div className={cardClasses}>
+          <div className='flex items-center justify-center py-12'>
+            <Loader2 className='w-8 h-8 text-blue-500 animate-spin' />
           </div>
-          {hasExpired && (
-            <div className='inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded-full text-xs font-medium'>
-              <AlertTriangle className='w-3 h-3' />
-              Expired
-            </div>
-          )}
-          {isExpiring && !hasExpired && (
-            <div className='inline-flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full text-xs font-medium'>
-              <Clock className='w-3 h-3' />
-              Expiring Soon
-            </div>
-          )}
         </div>
-
-        {/* Discount Amount */}
-        <div className='text-center'>
-          <div className='text-2xl font-bold text-emerald-600 dark:text-emerald-400'>
-            {discountDetails.percentOff && `${discountDetails.percentOff}% OFF`}
-            {discountDetails.amountOff &&
-              !discountDetails.percentOff &&
-              `$${(discountDetails.amountOff / 100).toFixed(2)} OFF`}
-          </div>
-          {discountDetails.duration && (
-            <div className='text-sm text-gray-600 dark:text-gray-400'>
-              Duration: {discountDetails.duration}
-              {discountDetails.durationInMonths &&
-                ` (${discountDetails.durationInMonths} months)`}
-            </div>
-          )}
-        </div>
-
-        {/* Discount Timeline */}
-        {(discountDetails.start || discountDetails.end) && (
-          <div className='bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-2'>
-            <div className='text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide'>
-              Discount Timeline
-            </div>
-            {discountDetails.start && (
-              <div className='flex justify-between text-sm'>
-                <span className='text-gray-600 dark:text-gray-400'>
-                  Started:
-                </span>
-                <span className='font-medium'>
-                  {new Date(discountDetails.start).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-            {discountDetails.end && (
-              <div className='flex justify-between text-sm'>
-                <span className='text-gray-600 dark:text-gray-400'>
-                  {hasExpired ? 'Expired:' : 'Expires:'}
-                </span>
-                <span
-                  className={`font-medium ${hasExpired ? 'text-red-600 dark:text-red-400' : isExpiring ? 'text-amber-600 dark:text-amber-400' : ''}`}
-                >
-                  {new Date(discountDetails.end).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Additional Details */}
-        {(discountDetails.maxRedemptions ||
-          discountDetails.timesRedeemed !== undefined) && (
-          <div className='bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 space-y-2'>
-            <div className='text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide'>
-              Usage Statistics
-            </div>
-            {discountDetails.timesRedeemed !== undefined && (
-              <div className='flex justify-between text-sm'>
-                <span className='text-blue-600 dark:text-blue-400'>
-                  Times Used:
-                </span>
-                <span className='font-medium text-blue-700 dark:text-blue-300'>
-                  {discountDetails.timesRedeemed}
-                  {discountDetails.maxRedemptions &&
-                    ` / ${discountDetails.maxRedemptions}`}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <div className='max-w-5xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8'>
+        <div className={cardClasses}>
+          <div className='text-center py-12'>
+            <AlertTriangle className='w-12 h-12 text-red-500 mx-auto mb-4' />
+            <h3 className='text-lg font-semibold text-red-600 mb-2'>
+              Failed to Load Subscription
+            </h3>
+            <p className='text-gray-600 dark:text-gray-400 mb-4'>{error}</p>
+            <Button onClick={refreshSubscription} variant='outline'>
+              <RefreshCw className='w-4 h-4 mr-2' />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='max-w-5xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-8'>
@@ -1322,51 +612,19 @@ export function SubscriptionManager() {
               </div>
               <div className='flex items-center gap-3 w-full sm:w-auto'>
                 <Button
-                  onClick={handleSync}
+                  onClick={refreshSubscription}
                   variant='outline'
                   size='default'
-                  disabled={isSyncing}
+                  disabled={isLoading}
                   className='bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border-gray-300 dark:border-gray-600 hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 shadow-md w-full sm:w-auto min-h-[44px]'
                 >
-                  {isSyncing ? (
+                  {isLoading ? (
                     <Loader2 className='w-4 h-4 mr-2 animate-spin' />
                   ) : (
                     <RefreshCw className='w-4 h-4 mr-2' />
                   )}
                   Refresh
                 </Button>
-
-                {/* Health Check for Incomplete Subscription Data */}
-                {isSubscriptionDataIncomplete && (
-                  <div className='mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg'>
-                    <div className='flex items-start gap-3'>
-                      <AlertTriangle className='w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0' />
-                      <div>
-                        <h4 className='font-semibold text-amber-800 dark:text-amber-200 mb-1'>
-                          Subscription Data Incomplete
-                        </h4>
-                        <p className='text-sm text-amber-700 dark:text-amber-300 mb-3'>
-                          Some subscription details are missing. This can be
-                          fixed automatically.
-                        </p>
-                        <Button
-                          onClick={backfillSubscriptionData}
-                          variant='outline'
-                          size='sm'
-                          disabled={isLoading}
-                          className='bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700 hover:bg-amber-200 dark:hover:bg-amber-800/60 text-amber-800 dark:text-amber-200'
-                        >
-                          {isLoading ? (
-                            <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                          ) : (
-                            <RefreshCw className='w-4 h-4 mr-2' />
-                          )}
-                          Sync Subscription Data
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -1396,37 +654,13 @@ export function SubscriptionManager() {
                   {statusConfig.title}
                 </p>
                 <p className='text-sm sm:text-lg text-gray-600 dark:text-gray-400'>
-                  {subscription?.isAdminAccess ||
-                  subscription?.productId === 'admin_access'
-                    ? 'Admin Access'
-                    : subscription?.product?.name || 'Premium Plan'}
+                  {subscription?.isActive ? 'Premium Plan' : 'Free Account'}
                 </p>
               </div>
             </div>
             <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
               <p className='text-sm sm:text-base text-gray-700 dark:text-gray-300 font-medium leading-relaxed'>
-                {statusConfig.description(
-                  stripeData?.currentPeriodEnd
-                    ? (() => {
-                        try {
-                          const date = new Date(stripeData.currentPeriodEnd);
-                          if (
-                            isNaN(date.getTime()) ||
-                            date.getFullYear() < 2020
-                          ) {
-                            return 'your next billing period';
-                          }
-                          return date.toLocaleDateString('en-US', {
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric',
-                          });
-                        } catch (error) {
-                          return 'your next billing period';
-                        }
-                      })()
-                    : 'your next billing period'
-                )}
+                {statusConfig.description('your next billing period')}
               </p>
             </div>
           </div>
@@ -1443,137 +677,19 @@ export function SubscriptionManager() {
               </h3>
             </div>
 
-            {/* ✅ NEW: Special Cancelled Subscription Section */}
-            {subscription?.status?.toLowerCase() === 'cancelled' && (
-              <div className='mb-6'>
-                <div className='bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-2 border-orange-200 dark:border-orange-700/50 rounded-2xl p-6 space-y-4'>
-                  {/* Header */}
-                  <div className='text-center'>
-                    <div className='inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full shadow-lg mb-3'>
-                      <AlertTriangle className='w-5 h-5' />
-                      <span className='font-bold text-lg'>
-                        Subscription Cancelled
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Status Message */}
-                  <div className='text-center space-y-3'>
-                    {stripeData?.currentPeriodEnd ? (
-                      (() => {
-                        const endDate = new Date(stripeData.currentPeriodEnd);
-                        const now = new Date();
-                        const isExpired = endDate < now;
-                        const daysLeft = Math.ceil(
-                          (endDate.getTime() - now.getTime()) /
-                            (1000 * 60 * 60 * 24)
-                        );
-
-                        return (
-                          <div className='space-y-3'>
-                            <div className='text-lg sm:text-xl font-semibold text-orange-700 dark:text-orange-300'>
-                              {isExpired
-                                ? 'Your Premium Access Has Ended'
-                                : `${daysLeft} ${daysLeft === 1 ? 'Day' : 'Days'} of Premium Access Remaining`}
-                            </div>
-                            <div className='text-sm sm:text-base text-orange-600 dark:text-orange-400'>
-                              {isExpired ? (
-                                <>
-                                  Your subscription expired on{' '}
-                                  <strong>
-                                    {endDate.toLocaleDateString('en-US', {
-                                      month: 'long',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                    })}
-                                  </strong>
-                                </>
-                              ) : (
-                                <>
-                                  Access continues until{' '}
-                                  <strong>
-                                    {endDate.toLocaleDateString('en-US', {
-                                      month: 'long',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                    })}
-                                  </strong>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <div className='text-lg font-semibold text-orange-700 dark:text-orange-300'>
-                        Your subscription has been cancelled and will not renew
-                      </div>
-                    )}
-                  </div>
-
-                  {/* What This Means Section */}
-                  <div className='bg-white/80 dark:bg-gray-800/80 rounded-xl p-4 space-y-3'>
-                    <h4 className='font-semibold text-orange-800 dark:text-orange-200 flex items-center gap-2'>
-                      <Clock className='w-4 h-4' />
-                      What This Means
-                    </h4>
-                    <ul className='text-sm text-orange-700 dark:text-orange-300 space-y-2'>
-                      <li className='flex items-start gap-2'>
-                        <span className='text-orange-500 mt-0.5'>•</span>
-                        <span>
-                          Your subscription will not automatically renew
-                        </span>
-                      </li>
-                      <li className='flex items-start gap-2'>
-                        <span className='text-orange-500 mt-0.5'>•</span>
-                        <span>
-                          {stripeData?.currentPeriodEnd &&
-                          new Date(stripeData.currentPeriodEnd) > new Date()
-                            ? 'You retain full access until your current billing period ends'
-                            : 'Your premium access has ended - you now have free access only'}
-                        </span>
-                      </li>
-                      <li className='flex items-start gap-2'>
-                        <span className='text-orange-500 mt-0.5'>•</span>
-                        <span>
-                          You can reactivate anytime to restore full premium
-                          features
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Reactivation CTA */}
-                  <div className='text-center pt-2'>
-                    <Button
-                      onClick={() => (window.location.href = '/pricing')}
-                      className='bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105'
-                    >
-                      <Crown className='w-4 h-4 mr-2' />
-                      Reactivate Subscription
-                    </Button>
-                    <p className='text-xs text-orange-600 dark:text-orange-400 mt-2'>
-                      Restore full access to premium trading alerts and content
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {stripeData ? (
+            {subscription?.isActive ? (
               <div className='space-y-4 sm:space-y-6'>
                 {/* Price Section */}
                 <div
                   className={`rounded-2xl p-4 sm:p-6 ${
-                    stripeData.hasDiscount
+                    subscription.discounts.length > 0
                       ? 'bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-200 dark:border-emerald-700/50'
                       : 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20'
                   }`}
                 >
-                  {stripeData.hasDiscount ? (
+                  {subscription.discounts.length > 0 ? (
                     // Enhanced Discount Active Display
                     <div className='space-y-4'>
-                      {/* Discount Header */}
                       <div className='text-center pb-2'>
                         <div className='inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-2 rounded-full shadow-lg'>
                           <Sparkles className='w-4 h-4 animate-pulse' />
@@ -1584,7 +700,6 @@ export function SubscriptionManager() {
                         </div>
                       </div>
 
-                      {/* Current Discounted Price - Made More Prominent */}
                       <div className='bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-2xl p-6 border-2 border-emerald-200 dark:border-emerald-700/50 shadow-lg'>
                         <div className='text-center space-y-3'>
                           <div className='flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold'>
@@ -1596,62 +711,32 @@ export function SubscriptionManager() {
 
                           <div className='space-y-2'>
                             <div className='text-4xl sm:text-5xl font-black text-emerald-600 dark:text-emerald-400'>
-                              ${(stripeData.amount / 100).toFixed(2)}
+                              {formatCurrency(
+                                subscription.total,
+                                subscription.currency
+                              )}
                             </div>
                             <div className='text-emerald-600 dark:text-emerald-400 text-lg font-medium'>
-                              per {stripeData.interval} • locked forever
+                              per month • locked forever
                             </div>
                           </div>
 
-                          {/* Discount Badge */}
-                          <div className='inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg'>
-                            <TrendingDown className='w-4 h-4' />
-                            <span>{stripeData.discountPercent}% OFF</span>
-                          </div>
+                          {subscription.discounts[0].percentOff && (
+                            <div className='inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg'>
+                              <TrendingDown className='w-4 h-4' />
+                              <span>
+                                {subscription.discounts[0].percentOff}% OFF
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Price Comparison - Enhanced */}
-                      <div className='bg-white/60 dark:bg-gray-800/60 rounded-2xl p-4 border border-emerald-200/50 dark:border-emerald-700/50'>
-                        <div className='grid grid-cols-2 gap-4 text-center'>
-                          <div className='space-y-2'>
-                            <div className='text-gray-500 dark:text-gray-400 text-sm font-medium'>
-                              Original Price
-                            </div>
-                            <div className='text-2xl font-bold text-gray-500 dark:text-gray-400 line-through opacity-75'>
-                              $
-                              {stripeData.originalAmount
-                                ? (stripeData.originalAmount / 100).toFixed(2)
-                                : '150.00'}
-                            </div>
-                          </div>
-                          <div className='space-y-2'>
-                            <div className='text-emerald-600 dark:text-emerald-400 text-sm font-medium'>
-                              You Save
-                            </div>
-                            <div className='text-2xl font-bold text-emerald-600 dark:text-emerald-400'>
-                              $
-                              {(
-                                ((stripeData.originalAmount || 15000) -
-                                  stripeData.amount) /
-                                100
-                              ).toFixed(2)}
-                            </div>
-                            <div className='text-emerald-600 dark:text-emerald-400 text-xs font-medium'>
-                              every month
-                            </div>
-                          </div>
-                        </div>
+                      {/* Discount Details */}
+                      <div className='bg-gradient-to-r from-emerald-100/80 to-green-100/80 dark:from-emerald-800/20 dark:to-green-800/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-700/50'>
+                        {renderDiscountDetails(subscription.discounts[0])}
                       </div>
 
-                      {/* ✅ NEW: Enhanced Discount Details */}
-                      {stripeData.discountDetails && (
-                        <div className='bg-gradient-to-r from-emerald-100/80 to-green-100/80 dark:from-emerald-800/20 dark:to-green-800/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-700/50'>
-                          {renderDiscountDetails(stripeData.discountDetails)}
-                        </div>
-                      )}
-
-                      {/* Success Message */}
                       <div className='bg-gradient-to-r from-emerald-100/80 to-green-100/80 dark:from-emerald-800/20 dark:to-green-800/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-700/50'>
                         <div className='flex items-center gap-3'>
                           <div className='w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0'>
@@ -1677,86 +762,39 @@ export function SubscriptionManager() {
                       </span>
                       <div className='text-left sm:text-right'>
                         <span className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white'>
-                          ${(stripeData.amount / 100).toFixed(2)}
+                          {formatCurrency(
+                            subscription.total,
+                            subscription.currency
+                          )}
                         </span>
                         <span className='text-gray-500 dark:text-gray-400 text-base sm:text-lg'>
-                          /{stripeData.interval}
+                          /month
                         </span>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Billing Date Section */}
+                {/* Subscription Management Actions */}
                 <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
-                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0'>
-                    <span className='text-gray-600 dark:text-gray-400 font-medium text-sm sm:text-base'>
-                      Next Billing Date
-                    </span>
-                    <span className='font-bold text-gray-900 dark:text-white text-base sm:text-lg'>
-                      {(() => {
-                        if (!stripeData.currentPeriodEnd) {
-                          return 'Not available';
-                        }
-                        try {
-                          const date = new Date(stripeData.currentPeriodEnd);
-                          if (isNaN(date.getTime())) {
-                            return 'Invalid date';
-                          }
-                          if (date.getFullYear() < 2020) {
-                            return 'Date error';
-                          }
-                          return date.toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          });
-                        } catch (error) {
-                          return 'Parse error';
-                        }
-                      })()}
-                    </span>
+                  <div className='text-center space-y-3'>
+                    <h4 className='font-semibold text-gray-800 dark:text-gray-200'>
+                      Subscription Management
+                    </h4>
+                    <p className='text-sm text-gray-600 dark:text-gray-400'>
+                      Need to make changes to your subscription? Use the
+                      cancellation flow to adjust your settings.
+                    </p>
+                    <Button
+                      onClick={() => setShowCancellationFlow(true)}
+                      variant='outline'
+                      size='sm'
+                      className='text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20'
+                    >
+                      Manage Subscription
+                    </Button>
                   </div>
                 </div>
-
-                {/* Auto-renewal Section - Hide for cancelled subscriptions */}
-                {subscription?.status?.toLowerCase() !== 'cancelled' && (
-                  <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
-                    <div className='flex items-center justify-between gap-4'>
-                      <div className='flex-1'>
-                        <span className='text-gray-600 dark:text-gray-400 font-medium block text-sm sm:text-base'>
-                          Auto-renewal
-                        </span>
-                        <span className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
-                          {stripeData.autoRenew
-                            ? 'Subscription will auto-renew'
-                            : 'Will expire at period end'}
-                        </span>
-                      </div>
-                      <Switch
-                        checked={stripeData.autoRenew}
-                        onCheckedChange={checked => {
-                          handleToggleAutoRenew();
-                        }}
-                        className='data-[state=checked]:bg-green-500 scale-110 sm:scale-125'
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* ✅ NEW: Cancelled Subscription Message */}
-                {subscription?.status?.toLowerCase() === 'cancelled' && (
-                  <div className='bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700/50 rounded-xl p-3 sm:p-4'>
-                    <div className='text-center'>
-                      <div className='text-orange-700 dark:text-orange-300 font-medium text-sm sm:text-base mb-1'>
-                        Subscription Status: Cancelled
-                      </div>
-                      <div className='text-xs sm:text-sm text-orange-600 dark:text-orange-400'>
-                        This subscription will not renew and billing has stopped
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className='text-center py-6 sm:py-8'>
@@ -1784,48 +822,59 @@ export function SubscriptionManager() {
       </div>
 
       {/* Invoice History */}
-      <div className={`${cardClasses} relative overflow-hidden`}>
-        <div className='absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/10 to-gray-600/10 rounded-full blur-2xl'></div>
-        <div className='relative z-10'>
-          <div
-            className='flex items-center justify-between cursor-pointer group'
-            onClick={handleInvoiceHistoryToggle}
-          >
-            <div className='flex items-center gap-3'>
-              <div className='w-3 h-3 bg-gray-500 rounded-full'></div>
-              <h3 className='font-bold text-lg sm:text-xl text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors'>
-                Invoice History
-              </h3>
-              {isLoadingInvoices && (
-                <Loader2 className='w-4 h-4 text-blue-500 animate-spin' />
-              )}
+      {subscription?.isActive && (
+        <div className={`${cardClasses} relative overflow-hidden`}>
+          <div className='absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-400/10 to-gray-600/10 rounded-full blur-2xl'></div>
+          <div className='relative z-10'>
+            <div
+              className='flex items-center justify-between cursor-pointer group'
+              onClick={handleInvoiceHistoryToggle}
+            >
+              <div className='flex items-center gap-3'>
+                <div className='w-3 h-3 bg-gray-500 rounded-full'></div>
+                <h3 className='font-bold text-lg sm:text-xl text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors'>
+                  Invoice History
+                </h3>
+                {isLoadingInvoices && (
+                  <Loader2 className='w-4 h-4 text-blue-500 animate-spin' />
+                )}
+              </div>
+              <div className='flex items-center gap-2'>
+                <span className='text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:block'>
+                  {showInvoiceHistory ? 'Hide' : 'Show'} History
+                </span>
+                {showInvoiceHistory ? (
+                  <ChevronUp className='w-5 h-5 text-gray-500 group-hover:text-blue-500 transition-colors' />
+                ) : (
+                  <ChevronDown className='w-5 h-5 text-gray-500 group-hover:text-blue-500 transition-colors' />
+                )}
+              </div>
             </div>
-            <div className='flex items-center gap-2'>
-              <span className='text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:block'>
-                {showInvoiceHistory ? 'Hide' : 'Show'} History
-              </span>
-              {showInvoiceHistory ? (
-                <ChevronUp className='w-5 h-5 text-gray-500 group-hover:text-blue-500 transition-colors' />
-              ) : (
-                <ChevronDown className='w-5 h-5 text-gray-500 group-hover:text-blue-500 transition-colors' />
-              )}
-            </div>
+            {showInvoiceHistory && (
+              <div className='mt-4 sm:mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6'>
+                {renderInvoices()}
+              </div>
+            )}
           </div>
-          {showInvoiceHistory && (
-            <div className='mt-4 sm:mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 sm:pt-6'>
-              {renderInvoices()}
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
-      {/* Cancellation Flow Modal */}
+      {/* Cancellation Flow Modal - Create a simplified version since we don't have detailed subscription */}
       {subscription && (
         <CancellationFlowModal
           isOpen={showCancellationFlow}
           onClose={() => setShowCancellationFlow(false)}
           onComplete={handleCancellationFlowComplete}
-          subscription={subscription as any}
+          subscription={
+            {
+              // Provide minimal data needed for the modal
+              status: subscription.isActive ? 'active' : 'inactive',
+              isActive: subscription.isActive,
+              total: subscription.total,
+              currency: subscription.currency,
+              discounts: subscription.discounts,
+            } as any
+          }
         />
       )}
     </div>
