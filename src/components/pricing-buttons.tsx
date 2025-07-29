@@ -28,12 +28,7 @@ export function PricingButtons(
 
   const handleFreeClick = async () => {
     setLoading(true);
-
-    if (isSignedIn) {
-      router.push('/dashboard');
-    } else {
-      router.push('/sign-up');
-    }
+    router.push('/dashboard');
   };
 
   const handlePremiumClick = async () => {

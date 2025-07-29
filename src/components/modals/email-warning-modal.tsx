@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,16 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+
+// Declare global Rewardful types
+declare global {
+  interface Window {
+    rewardful: (event: string, callback: () => void) => void;
+    Rewardful: {
+      referral: any;
+    };
+  }
+}
 
 interface EmailWarningModalProps {
   isOpen: boolean;
@@ -28,6 +38,7 @@ export function EmailWarningModal({
 }: EmailWarningModalProps) {
   const { user } = useUser();
   const [hasConfirmed, setHasConfirmed] = useState(false);
+  const [referral, setReferral] = useState(null);
 
   const userEmail = user?.emailAddresses[0]?.emailAddress;
 
@@ -35,6 +46,18 @@ export function EmailWarningModal({
     onConfirmProceed();
     onClose();
   };
+
+  useEffect(() => {
+    // Check if Rewardful is available before using it
+    if (typeof window !== 'undefined' && window.rewardful) {
+      window.rewardful('ready', function () {
+        if (window.Rewardful) {
+          setReferral(window.Rewardful.referral);
+        }
+        console.log('Referral:', window.Rewardful.referral);
+      });
+    }
+  }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -161,9 +184,13 @@ export function EmailWarningModal({
             >
               Cancel
             </Button>
+            {referral ? (
+              <input type='hidden' name='referral' value={referral} />
+            ) : null}
             <Button
               onClick={handleProceed}
               disabled={!hasConfirmed}
+              data-rewardful
               className='w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none touch-manipulation min-h-[48px] active:scale-95'
             >
               <div className='flex items-center justify-center gap-2 px-2'>

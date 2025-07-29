@@ -15,17 +15,21 @@ export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useUser();
   const loading = useComprehensiveLoading('api');
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleEntryClick = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || isNavigating) return;
 
     if (!isSignedIn) {
+      setIsNavigating(true);
       const returnUrl = `${window.location.origin}?auto_route=true`;
       router.push(`/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`);
+      // Keep loading state active during navigation
       return;
     }
 
     try {
+      setIsNavigating(true);
       await loading.withLoading(
         async () => {
           // Fetch server data
@@ -41,6 +45,7 @@ export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
               router.push(
                 `/servers/${serverData.serverId}/channels/${serverData.landingChannelId}`
               );
+              // Keep isNavigating true - it will be reset by page unload or user interaction
               return;
             }
           }
@@ -48,6 +53,7 @@ export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
           // If we get here, either the response was not ok or the data is invalid
           // Redirect to pricing page as fallback
           router.push('/pricing');
+          // Keep isNavigating true - it will be reset by page unload or user interaction
         },
         {
           loadingMessage: '✨ Entering Traders Utopia...',
@@ -57,10 +63,11 @@ export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
     } catch (error) {
       console.error('❌ Error in smart entry:', error);
       router.push('/pricing');
+      // Keep isNavigating true - it will be reset by page unload or user interaction
     }
   };
 
-  const isLoadingState = !isLoaded || loading.isLoading;
+  const isLoadingState = !isLoaded || loading.isLoading || isNavigating;
 
   return (
     <Button

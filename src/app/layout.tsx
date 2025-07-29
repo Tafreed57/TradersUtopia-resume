@@ -14,6 +14,7 @@ import type { Metadata, Viewport } from 'next';
 import { Open_Sans } from 'next/font/google';
 // import { extractRouterConfig } from 'uploadthing/server';
 import { Toaster } from 'sonner';
+import Script from 'next/script';
 import { ServiceWorkerHandler } from '@/components/service-worker-handler';
 import { PushNotificationPrompt } from '@/components/notifications/push-notification-prompt';
 
@@ -130,6 +131,12 @@ export default function RootLayout({
           'bg-white dark:bg-gradient-to-br dark:from-gray-900/95 dark:via-gray-800/90 dark:to-gray-900/95 overflow-visible min-h-screen safe-area-full'
         )}
       >
+        {/* Rewardful Affiliate Tracking */}
+        <Script src='https://r.wdfl.co/rw.js' data-rewardful='3d3b7a'></Script>
+        <Script id='rewardful-queue' strategy='beforeInteractive'>
+          {`(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,'rewardful');`}
+        </Script>
+
         <ClerkProvider
           appearance={{
             variables: { colorPrimary: '#000000' },
