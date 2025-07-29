@@ -89,6 +89,14 @@ export class ChannelService extends BaseDatabaseService {
     userId: string
   ): Promise<ChannelAccessResult> {
     try {
+      // Step 1: Check global admin status
+      const user = await this.prisma.user.findFirst({
+        where: { id: userId },
+      });
+
+      const isGlobalAdmin = user?.isAdmin || false;
+
+      // Step 2: Check channel access and server membership
       const channelAccess = await this.findChannelWithAccess(channelId, userId);
 
       if (!channelAccess) {
@@ -99,15 +107,21 @@ export class ChannelService extends BaseDatabaseService {
         };
       }
 
+      // Step 3: Check server-level admin privileges
       const member = channelAccess.server.members[0];
-      const isAdmin =
+      const isServerAdmin =
         member?.role?.name === 'ADMIN' || member?.role?.name === 'MODERATOR';
 
-      if (!isAdmin) {
+      // Step 4: Grant access if global admin OR server admin
+      const hasAccess = isGlobalAdmin || isServerAdmin;
+
+      if (!hasAccess) {
         apiLogger.databaseOperation('channel_admin_access_denied', false, {
           channelId: maskId(channelId),
           userId: maskId(userId),
           memberRole: member?.role?.name || 'GUEST',
+          isGlobalAdmin,
+          isServerAdmin,
         });
 
         return {
@@ -120,12 +134,17 @@ export class ChannelService extends BaseDatabaseService {
       apiLogger.databaseOperation('channel_admin_access_granted', true, {
         channelId: maskId(channelId),
         userId: maskId(userId),
-        memberRole: member.role.name,
+        memberRole: member?.role?.name || 'GUEST',
+        isGlobalAdmin,
+        isServerAdmin,
+        accessType: isGlobalAdmin ? 'global_admin' : 'server_admin',
       });
 
       return {
         hasAccess: true,
-        reason: 'Admin access verified',
+        reason: isGlobalAdmin
+          ? 'Global admin access verified'
+          : 'Server admin access verified',
         channel: channelAccess,
       };
     } catch (error) {
@@ -149,27 +168,35 @@ export class ChannelService extends BaseDatabaseService {
       this.validateRequired(data.serverId, 'server ID');
       this.validateRequired(data.sectionId, 'section ID');
 
-      // Verify user has admin access to the server
-      const server = await this.prisma.server.findFirst({
-        where: {
-          id: data.serverId,
-          members: {
-            some: {
-              userId,
-              role: {
-                name: {
-                  in: ['ADMIN', 'MODERATOR'],
-                },
-              },
-            },
-          },
-        },
+      // Check if user is global admin or has server admin access
+      const user = await this.prisma.user.findFirst({
+        where: { id: userId },
       });
 
+      const isGlobalAdmin = user?.isAdmin || false;
+
+      // If not global admin, check server-level permissions
+      let server = null;
+      if (isGlobalAdmin) {
+        // Global admins can access any server, just verify server exists
+        server = await this.prisma.server.findFirst({
+          where: { id: data.serverId },
+        });
+      }
+
       if (!server) {
-        throw new AuthorizationError(
-          'Admin access required to create channels'
-        );
+        const errorMessage = isGlobalAdmin
+          ? 'Server not found'
+          : 'Admin access required to create channels';
+
+        this.logSuccess('channel_creation_access_denied', {
+          userId: maskId(userId),
+          serverId: maskId(data.serverId),
+          isGlobalAdmin,
+          reason: errorMessage,
+        });
+
+        throw new AuthorizationError(errorMessage);
       }
 
       // Get the next position for ordering
@@ -201,6 +228,8 @@ export class ChannelService extends BaseDatabaseService {
         userId: maskId(userId),
         channelName: data.name,
         channelType: data.type || 'TEXT',
+        isGlobalAdmin,
+        accessType: isGlobalAdmin ? 'global_admin' : 'server_admin',
       });
 
       // Convert null to undefined for TypeScript compatibility
@@ -210,7 +239,7 @@ export class ChannelService extends BaseDatabaseService {
         sectionId: channel.sectionId ?? undefined,
       } as Channel;
     } catch (error) {
-      return await this.handleError(error, 'create_channel', {
+      return this.handleError(error, 'create_channel', {
         serverId: maskId(data.serverId),
         userId: maskId(userId),
         channelName: data.name,

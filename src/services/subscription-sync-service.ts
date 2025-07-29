@@ -3,6 +3,12 @@ import { BaseDatabaseService } from './database/base-service';
 import { ValidationError } from '@/lib/error-handling';
 import Stripe from 'stripe';
 import { SubscriptionStatus } from '@prisma/client';
+import {
+  StripeDataExtractionService,
+  ExtractedSubscriptionData,
+  StripeObjectWithSubscriptionData,
+} from './stripe/data-extraction-service';
+
 // Type alias to handle Stripe API version differences
 type StripeInvoiceWithSubscription = Stripe.Invoice & {
   subscription?: string | Stripe.Subscription;
@@ -36,17 +42,45 @@ interface DatabaseSubscription {
 /**
  * Service for synchronizing Stripe subscription data with the local database
  * and managing user access control based on subscription status.
+ *
+ * This service has been refactored to use StripeDataExtractionService for:
+ * - Unified data extraction from subscriptions, invoices, and checkout sessions
+ * - Consistent status mapping and field extraction
+ * - Better type safety and error handling
+ *
+ * @example
+ * ```typescript
+ * const syncService = new SubscriptionSyncService();
+ *
+ * // Sync from any Stripe object type
+ * await syncService.syncFromStripeObject(stripeSubscription);
+ * await syncService.syncFromStripeObject(stripeInvoice);
+ * await syncService.syncFromStripeObject(checkoutSession);
+ *
+ * // Complete sync from checkout session (fetches actual subscription)
+ * await syncService.syncFromCheckoutSessionComplete(checkoutSession);
+ *
+ * // Legacy method (still supported)
+ * await syncService.createOrUpdateSubscription(stripeSubscription);
+ * ```
  */
 export class SubscriptionSyncService extends BaseDatabaseService {
+  private dataExtractor: StripeDataExtractionService;
+
+  constructor() {
+    super();
+    this.dataExtractor = new StripeDataExtractionService();
+  }
+
   /**
    * Extract period information from subscription items JSON
+   * @deprecated Use StripeDataExtractionService.extractSubscriptionData() instead
    */
   private extractPeriodFromItems(
     subscription: DatabaseSubscription | StripeSubscriptionWebhookPayload
   ): {
     currentPeriodEnd: Date | null;
   } {
-    console.dir(subscription, { depth: null });
     try {
       // First try direct properties (for Stripe API responses)
       if (
@@ -131,17 +165,25 @@ export class SubscriptionSyncService extends BaseDatabaseService {
     userId?: string
   ): Promise<void> {
     try {
-      // Extract period information using the helper function
-      const { currentPeriodEnd } =
-        this.extractPeriodFromItems(stripeSubscription);
+      // Extract subscription data using the dedicated service
+      const extractedData =
+        await this.dataExtractor.extractSubscriptionData(stripeSubscription);
 
-      console.log('currentPeriodEnd', currentPeriodEnd);
+      console.log(
+        'Extracted subscription data:',
+        extractedData,
+        'userId:',
+        userId
+      );
+
       const subscriptionData = {
-        stripeSubscriptionId: stripeSubscription.id,
-        stripeCustomerId: stripeSubscription.customer as string,
-        status: this.mapStripeStatusToDbStatus(stripeSubscription.status),
-        createdAt: new Date(stripeSubscription.created * 1000),
-        currentPeriodEnd,
+        stripeSubscriptionId: extractedData.stripeSubscriptionId,
+        stripeCustomerId: extractedData.stripeCustomerId,
+        status: extractedData.status,
+        createdAt:
+          extractedData.createdAt ||
+          new Date(stripeSubscription.created * 1000),
+        currentPeriodEnd: extractedData.currentPeriodEnd,
         updatedAt: new Date(),
       };
 
@@ -156,14 +198,27 @@ export class SubscriptionSyncService extends BaseDatabaseService {
           const user = await tx.user.findFirst({
             where: {
               subscription: {
-                stripeCustomerId: stripeSubscription.customer as string,
+                stripeCustomerId: extractedData.stripeCustomerId,
               },
             },
           });
 
           if (!user) {
-            // Try to find user by email if customer is expanded
-            if (
+            // Try to find user by email if customer is expanded or we have email in metadata
+            const customerEmail = extractedData.metadata?.customerEmail;
+            if (customerEmail) {
+              const userByEmail = await tx.user.findFirst({
+                where: { email: customerEmail },
+              });
+
+              if (userByEmail) {
+                targetUserId = userByEmail.id;
+              } else {
+                throw new ValidationError(
+                  `User not found for Stripe customer: ${extractedData.stripeCustomerId} (email: ${customerEmail})`
+                );
+              }
+            } else if (
               typeof stripeSubscription.customer === 'object' &&
               'email' in stripeSubscription.customer &&
               stripeSubscription.customer.email
@@ -181,7 +236,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
               }
             } else {
               throw new ValidationError(
-                `User not found for Stripe customer: ${stripeSubscription.customer}`
+                `User not found for Stripe customer: ${extractedData.stripeCustomerId}`
               );
             }
           } else {
@@ -189,19 +244,30 @@ export class SubscriptionSyncService extends BaseDatabaseService {
           }
         }
 
-        // Upsert subscription
-        await tx.subscription.upsert({
-          where: { stripeSubscriptionId: stripeSubscription.id },
-          create: {
-            userId: targetUserId,
-            ...subscriptionData,
-          },
-          update: subscriptionData,
+        // Check if user already has a subscription
+        const existingSubscription = await tx.subscription.findUnique({
+          where: { userId: targetUserId },
         });
 
+        if (existingSubscription) {
+          // Update existing subscription for this user
+          await tx.subscription.update({
+            where: { userId: targetUserId },
+            data: subscriptionData,
+          });
+        } else {
+          // Create new subscription
+          await tx.subscription.create({
+            data: {
+              userId: targetUserId,
+              ...subscriptionData,
+            },
+          });
+        }
+
         apiLogger.databaseOperation('subscription_sync', true, {
-          subscriptionId: stripeSubscription.id,
-          status: stripeSubscription.status,
+          subscriptionId: extractedData.stripeSubscriptionId,
+          status: extractedData.status,
           operation: 'upsert',
           userId: targetUserId,
         });
@@ -294,9 +360,13 @@ export class SubscriptionSyncService extends BaseDatabaseService {
     stripeSubscription: StripeSubscriptionWebhookPayload
   ): Promise<void> {
     try {
+      // Extract subscription data to get the proper IDs and status
+      const extractedData =
+        await this.dataExtractor.extractSubscriptionData(stripeSubscription);
+
       await this.executeTransaction(async tx => {
         await tx.subscription.update({
-          where: { stripeSubscriptionId: stripeSubscription.id },
+          where: { stripeSubscriptionId: extractedData.stripeSubscriptionId },
           data: {
             status: 'CANCELED',
             updatedAt: new Date(),
@@ -304,8 +374,8 @@ export class SubscriptionSyncService extends BaseDatabaseService {
         });
 
         apiLogger.databaseOperation('subscription_cancellation', true, {
-          subscriptionId: stripeSubscription.id,
-          customerId: stripeSubscription.customer,
+          subscriptionId: extractedData.stripeSubscriptionId,
+          customerId: extractedData.stripeCustomerId,
         });
       });
     } catch (error) {
@@ -324,10 +394,9 @@ export class SubscriptionSyncService extends BaseDatabaseService {
     try {
       if (!invoice.subscription) return;
 
-      const subscriptionId =
-        typeof invoice.subscription === 'string'
-          ? invoice.subscription
-          : invoice.subscription.id;
+      // Extract subscription data from the invoice
+      const extractedData =
+        await this.dataExtractor.extractSubscriptionData(invoice);
 
       await this.executeTransaction(async tx => {
         // Determine status based on attempt count
@@ -338,7 +407,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
 
         // Update subscription status based on invoice
         await tx.subscription.updateMany({
-          where: { stripeSubscriptionId: subscriptionId },
+          where: { stripeSubscriptionId: extractedData.stripeSubscriptionId },
           data: {
             status,
             updatedAt: new Date(),
@@ -347,7 +416,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
 
         apiLogger.databaseOperation('payment_failure_sync', true, {
           invoiceId: invoice.id,
-          subscriptionId,
+          subscriptionId: extractedData.stripeSubscriptionId,
           attemptCount: invoice.attempt_count,
           newStatus: status,
         });
@@ -369,14 +438,13 @@ export class SubscriptionSyncService extends BaseDatabaseService {
     try {
       if (!invoice.subscription) return null;
 
-      const subscriptionId =
-        typeof invoice.subscription === 'string'
-          ? invoice.subscription
-          : invoice.subscription.id;
+      // Extract subscription data from the invoice
+      const extractedData =
+        await this.dataExtractor.extractSubscriptionData(invoice);
 
       return await this.executeTransaction(async tx => {
         const subscription = await tx.subscription.findFirst({
-          where: { stripeSubscriptionId: subscriptionId },
+          where: { stripeSubscriptionId: extractedData.stripeSubscriptionId },
         });
 
         if (subscription) {
@@ -390,7 +458,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
 
           apiLogger.databaseOperation('invoice_payment_sync', true, {
             invoiceId: invoice.id,
-            subscriptionId: subscriptionId,
+            subscriptionId: extractedData.stripeSubscriptionId,
             previousStatus: subscription.status,
             newStatus: 'ACTIVE',
           });
@@ -424,6 +492,196 @@ export class SubscriptionSyncService extends BaseDatabaseService {
   }
 
   /**
+   * Sync subscription data from any Stripe object (subscription, invoice, or checkout session)
+   * This is a more flexible alternative to createOrUpdateSubscription that handles multiple object types
+   */
+  async syncFromStripeObject(
+    stripeObject: StripeObjectWithSubscriptionData,
+    userId?: string
+  ): Promise<void> {
+    try {
+      const extractedData =
+        await this.dataExtractor.extractSubscriptionData(stripeObject);
+
+      const subscriptionData = {
+        stripeSubscriptionId: extractedData.stripeSubscriptionId,
+        stripeCustomerId: extractedData.stripeCustomerId,
+        status: extractedData.status,
+        createdAt: extractedData.createdAt || new Date(),
+        currentPeriodEnd: extractedData.currentPeriodEnd,
+        updatedAt: new Date(),
+      };
+
+      await this.executeTransaction(async tx => {
+        let targetUserId: string;
+
+        if (userId) {
+          targetUserId = userId;
+        } else {
+          // Find user by customer ID or email
+          const user = await this.findUserByCustomerOrEmail(
+            tx,
+            extractedData.stripeCustomerId,
+            extractedData.metadata?.customerEmail
+          );
+
+          if (!user) {
+            throw new ValidationError(
+              `User not found for Stripe customer: ${extractedData.stripeCustomerId}`
+            );
+          }
+
+          targetUserId = user.id;
+        }
+
+        // Check if user already has a subscription
+        const existingSubscription = await tx.subscription.findUnique({
+          where: { userId: targetUserId },
+        });
+
+        if (existingSubscription) {
+          // Update existing subscription for this user
+          await tx.subscription.update({
+            where: { userId: targetUserId },
+            data: subscriptionData,
+          });
+        } else {
+          // Create new subscription
+          await tx.subscription.create({
+            data: {
+              userId: targetUserId,
+              ...subscriptionData,
+            },
+          });
+        }
+
+        apiLogger.databaseOperation('subscription_sync_from_object', true, {
+          subscriptionId: extractedData.stripeSubscriptionId,
+          status: extractedData.status,
+          operation: 'upsert',
+          userId: targetUserId,
+          objectType: (stripeObject as any).object,
+        });
+      });
+    } catch (error) {
+      this.handleError(error, 'sync from stripe object', {
+        objectType: (stripeObject as any).object,
+      });
+    }
+  }
+
+  /**
+   * Extract and update subscription with complete data from a checkout session
+   * This method fetches the actual subscription for more accurate data
+   */
+  async syncFromCheckoutSessionComplete(
+    checkoutSession: Stripe.Checkout.Session,
+    userId?: string
+  ): Promise<void> {
+    try {
+      const extractedData =
+        await this.dataExtractor.extractCompleteSubscriptionDataFromCheckoutSession(
+          checkoutSession as any
+        );
+
+      const subscriptionData = {
+        stripeSubscriptionId: extractedData.stripeSubscriptionId,
+        stripeCustomerId: extractedData.stripeCustomerId,
+        status: extractedData.status,
+        createdAt: extractedData.createdAt || new Date(),
+        currentPeriodEnd: extractedData.currentPeriodEnd,
+        updatedAt: new Date(),
+      };
+
+      await this.executeTransaction(async tx => {
+        let targetUserId: string;
+
+        if (userId) {
+          targetUserId = userId;
+        } else {
+          const user = await this.findUserByCustomerOrEmail(
+            tx,
+            extractedData.stripeCustomerId,
+            extractedData.metadata?.customerEmail
+          );
+
+          if (!user) {
+            throw new ValidationError(
+              `User not found for Stripe customer: ${extractedData.stripeCustomerId}`
+            );
+          }
+
+          targetUserId = user.id;
+        }
+
+        // Check if user already has a subscription
+        const existingSubscription = await tx.subscription.findUnique({
+          where: { userId: targetUserId },
+        });
+
+        if (existingSubscription) {
+          // Update existing subscription for this user
+          await tx.subscription.update({
+            where: { userId: targetUserId },
+            data: subscriptionData,
+          });
+        } else {
+          // Create new subscription
+          await tx.subscription.create({
+            data: {
+              userId: targetUserId,
+              ...subscriptionData,
+            },
+          });
+        }
+
+        apiLogger.databaseOperation(
+          'subscription_sync_from_checkout_complete',
+          true,
+          {
+            subscriptionId: extractedData.stripeSubscriptionId,
+            status: extractedData.status,
+            operation: 'upsert',
+            userId: targetUserId,
+            checkoutSessionId: checkoutSession.id,
+          }
+        );
+      });
+    } catch (error) {
+      this.handleError(error, 'sync from checkout session complete', {
+        checkoutSessionId: checkoutSession.id,
+      });
+    }
+  }
+
+  /**
+   * Helper method to find user by customer ID or email
+   */
+  private async findUserByCustomerOrEmail(
+    tx: any,
+    customerId: string,
+    email?: string
+  ): Promise<{ id: string } | null> {
+    // First try to find by customer ID
+    let user = await tx.user.findFirst({
+      where: {
+        subscription: {
+          stripeCustomerId: customerId,
+        },
+      },
+    });
+
+    // If not found and email is available, try by email
+    if (!user && email) {
+      user = await tx.user.findFirst({
+        where: { email },
+      });
+    }
+
+    return user;
+  }
+
+  /**
    * Determine if user should have premium access based on subscription
    */
   private shouldGrantPremiumAccess(subscription: any): boolean {
@@ -441,6 +699,7 @@ export class SubscriptionSyncService extends BaseDatabaseService {
    */
   private isWithinGracePeriod(subscription: any): boolean {
     // Allow 7-day grace period for past due subscriptions
+    // TODO: Refactor to use data extraction service when subscription object is available
     const { currentPeriodEnd } = this.extractPeriodFromItems(subscription);
     if (!currentPeriodEnd) return false;
 
@@ -542,23 +801,5 @@ export class SubscriptionSyncService extends BaseDatabaseService {
       serverId,
       newRoleId: freeRole.id,
     });
-  }
-
-  /**
-   * Map Stripe status to database status enum
-   */
-  private mapStripeStatusToDbStatus(stripeStatus: string): SubscriptionStatus {
-    const statusMap: Record<string, SubscriptionStatus> = {
-      incomplete: SubscriptionStatus.INCOMPLETE,
-      incomplete_expired: SubscriptionStatus.INCOMPLETE_EXPIRED,
-      trialing: SubscriptionStatus.TRIALING,
-      active: SubscriptionStatus.ACTIVE,
-      past_due: SubscriptionStatus.PAST_DUE,
-      canceled: SubscriptionStatus.CANCELED,
-      unpaid: SubscriptionStatus.UNPAID,
-      paused: SubscriptionStatus.PAUSED,
-    };
-
-    return statusMap[stripeStatus] || SubscriptionStatus.FREE;
   }
 }

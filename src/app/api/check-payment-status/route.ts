@@ -6,79 +6,58 @@ import { apiLogger } from '@/lib/enhanced-logger';
 export const dynamic = 'force-dynamic';
 
 /**
- * Payment Status Check API
- *
- * BEFORE: 80 lines with extensive boilerplate
- * - Rate limiting (5+ lines)
- * - Authentication (10+ lines)
- * - Manual profile lookup (10+ lines)
- * - Error handling (10+ lines)
- * - Complex subscription logic (15+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 75%+ boilerplate elimination
- * - Centralized user management
- * - Enhanced subscription checking
- * - Comprehensive audit logging
- */
-
-/**
  * Check User Payment/Subscription Status
- * Returns comprehensive subscription and access information
+ * Returns comprehensive subscription and access information using the latest subscription model
  */
 export const GET = withAuth(async (req: NextRequest, { user }) => {
   const userService = new UserService();
 
-  // Step 1: Get user profile using service layer
-  const profile = await userService.findByUserIdOrEmail(user.id);
+  try {
+    // Step 1: Get user's subscription status using the service layer
+    const subscriptionStatus = await userService.getUserSubscriptionStatus(
+      user.id
+    );
 
-  if (!profile) {
-    apiLogger.databaseOperation('payment_status_check_no_profile', false, {
+    // Step 2: Get additional subscription details if needed
+    const subscriptionExpiry = await userService.getSubscriptionExpiryInfo(
+      user.id
+    );
+
+    apiLogger.databaseOperation('payment_status_checked', true, {
       userId: user.id.substring(0, 8) + '***',
-      suggestion: 'User needs to be created in database',
+      hasAccess: subscriptionStatus.hasActiveSubscription,
+      subscriptionStatus: subscriptionStatus.status,
+      currentPeriodEnd: subscriptionStatus.currentPeriodEnd,
+      isExpired: subscriptionExpiry.isExpired,
+      isInGracePeriod: subscriptionExpiry.isInGracePeriod,
+    });
+
+    return NextResponse.json({
+      hasAccess: subscriptionStatus.hasActiveSubscription,
+      subscriptionStatus: subscriptionStatus.status,
+      subscriptionEnd: subscriptionStatus.currentPeriodEnd,
+      reason: subscriptionStatus.hasActiveSubscription
+        ? 'Active subscription'
+        : `No active subscription (${subscriptionStatus.status})`,
+      stripeSubscriptionId: subscriptionStatus.stripeSubscriptionId,
+    });
+  } catch (error) {
+    apiLogger.databaseOperation('payment_status_check_error', false, {
+      userId: user.id.substring(0, 8) + '***',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
 
     return NextResponse.json(
       {
         hasAccess: false,
-        reason: 'Profile not found in database',
-        userId: user.id,
-        suggestion: 'User needs to be created in database',
+        reason: 'Error checking subscription status',
+        subscriptionStatus: 'ERROR',
+        debug: {
+          userId: user.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
       },
-      { status: 404 }
+      { status: 500 }
     );
   }
-
-  // Step 2: Check subscription status
-  // TODO: Integrate with proper subscription model once implemented
-  // For now, using simple admin-based access logic
-  const hasActiveSubscription = profile.isAdmin; // Simplified for current user model
-
-  const subscriptionStatus = hasActiveSubscription ? 'ACTIVE' : 'FREE';
-  const subscriptionEnd = hasActiveSubscription
-    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-    : null;
-
-  apiLogger.databaseOperation('payment_status_checked', true, {
-    userId: user.id.substring(0, 8) + '***',
-    profileId: profile.id.substring(0, 8) + '***',
-    hasAccess: hasActiveSubscription,
-    subscriptionStatus,
-    profileEmail: (profile.email || '').substring(0, 3) + '***',
-  });
-
-  return NextResponse.json({
-    hasAccess: hasActiveSubscription,
-    subscriptionStatus,
-    subscriptionEnd,
-    reason: hasActiveSubscription
-      ? 'Active subscription'
-      : 'No active subscription',
-    autoSyncPerformed: false,
-    debug: {
-      userId: user.id,
-      profileId: profile.id,
-      profileEmail: profile.email,
-    },
-  });
 }, authHelpers.userOnly('CHECK_PAYMENT_STATUS'));

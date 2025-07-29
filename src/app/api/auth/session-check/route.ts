@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withOptionalAuth } from '@/middleware/auth-middleware';
 import { UserService } from '@/services/database/user-service';
-import { UserWithSubscription } from '@/services/types';
 import { apiLogger } from '@/lib/enhanced-logger';
 
 export const dynamic = 'force-dynamic';
@@ -73,10 +72,6 @@ export const POST = withOptionalAuth(
       }
 
       // Check subscription status from database
-      // console.log(
-      //   '🚀 [SESSION-CHECK] userWithSubscription:',
-      //   userWithSubscription
-      // );
       let hasActiveSubscription = false;
       if (userWithSubscription.subscription) {
         const subscription = userWithSubscription.subscription;

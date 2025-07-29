@@ -7,7 +7,8 @@ export async function processSubscriptionChange(
   const subscriptionSyncService = new SubscriptionSyncService();
 
   try {
-    await subscriptionSyncService.createOrUpdateSubscription(subscription);
+    // Use the new unified sync method that leverages the data extraction service
+    await subscriptionSyncService.syncFromStripeObject(subscription);
     await subscriptionSyncService.updateUserAccess(
       subscription.customer as string
     );

@@ -9,24 +9,6 @@ import { ValidationError } from '@/lib/error-handling';
 export const dynamic = 'force-dynamic';
 
 /**
- * Channel Creation API
- *
- * BEFORE: 98 lines with extensive boilerplate
- * - Rate limiting (5+ lines)
- * - Authentication (10+ lines)
- * - Manual validation (10+ lines)
- * - Position calculation (15+ lines)
- * - Server membership verification (10+ lines)
- * - Complex database operations (15+ lines)
- * - Error handling (10+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 85%+ boilerplate elimination
- * - Centralized channel management logic
- * - Automatic positioning and validation
- */
-
-/**
  * Create Channel
  * Admin-only operation with automatic positioning and validation
  */

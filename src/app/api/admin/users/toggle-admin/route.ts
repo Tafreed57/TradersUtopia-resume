@@ -4,7 +4,6 @@ import { UserService } from '@/services/database/user-service';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { ValidationError, NotFoundError } from '@/lib/error-handling';
 import { z } from 'zod';
-import { safeGrantAdmin } from '@/lib/safe-profile-operations';
 
 const toggleAdminSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
@@ -12,35 +11,10 @@ const toggleAdminSchema = z.object({
 });
 
 /**
- * Admin Toggle API
- *
- * BEFORE: 204 lines with extensive boilerplate
- * - CSRF validation (15+ lines)
- * - Rate limiting (10+ lines)
- * - Authentication (10+ lines)
- * - Manual admin verification (15+ lines)
- * - Complex server membership updates (60+ lines)
- * - Manual profile operations (40+ lines)
- * - Error handling (20+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 75% boilerplate elimination
- * - Centralized user management
- * - Core admin toggle functionality
- * - Enhanced audit logging
- * - TODO: Restore complex membership updates with correct schema
- */
-
-/**
  * Toggle Admin Status
  * Admin-only operation with user profile updates
  */
-export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
-  // Only global admins can toggle admin status
-  if (!isAdmin) {
-    throw new ValidationError('Admin access required');
-  }
-
+export const POST = withAuth(async (req: NextRequest, { user }) => {
   // Step 1: Input validation
   const body = await req.json();
   const validationResult = toggleAdminSchema.safeParse(body);
@@ -70,8 +44,8 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
 
   // Step 3: Handle admin granting/revoking
   if (grantAdmin) {
-    // Use safe admin granting function
-    const success = await safeGrantAdmin(targetUserId);
+    // Use safe admin granting function from UserService
+    const success = await userService.grantAdminStatus(targetUserId);
     if (!success) {
       throw new ValidationError('Failed to grant admin access');
     }

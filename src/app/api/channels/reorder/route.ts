@@ -13,23 +13,6 @@ const reorderChannelSchema = z.object({
 });
 
 /**
- * Channel Reorder API
- *
- * BEFORE: 156 lines with complex boilerplate
- * - CSRF protection (10+ lines)
- * - Rate limiting (5+ lines)
- * - Authentication and admin checks (15+ lines)
- * - Manual validation logic (20+ lines)
- * - Complex transaction-based reordering (40+ lines)
- * - Error handling (10+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 85%+ boilerplate elimination
- * - Preserved complex business logic
- * - Enhanced error handling and logging
- */
-
-/**
  * Reorder Channel
  * Admin-only operation with complex position management
  */

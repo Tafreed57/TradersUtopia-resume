@@ -15,6 +15,11 @@ export type {
 export { StripeClientService } from './stripe/base/stripe-client';
 export { BaseStripeService } from './stripe/base/base-stripe-service';
 export { StripeServiceError, StripeConfigError } from './stripe/base/errors';
+export { StripeDataExtractionService } from './stripe/data-extraction-service';
+export type {
+  ExtractedSubscriptionData,
+  StripeObjectWithSubscriptionData,
+} from './stripe/data-extraction-service';
 
 // Notification services
 export { NotificationTriggerService } from '../lib/notifications/trigger-integration';

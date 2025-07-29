@@ -150,9 +150,9 @@ async function addToDefaultServerWithRole(
   // If user has active subscriptions, ensure they are properly synced
   if (hasActiveSubscription && activeSubscriptions.length > 0) {
     try {
-      // Sync each active subscription to the database
+      // Sync each active subscription to the database using the refactored method
       for (const subscription of activeSubscriptions) {
-        await subscriptionSyncService.createOrUpdateSubscription(
+        await subscriptionSyncService.syncFromStripeObject(
           subscription,
           userId
         );

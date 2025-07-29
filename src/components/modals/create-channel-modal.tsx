@@ -30,7 +30,7 @@ export function CreateChannelModal() {
 
   const schema = z.object({
     name: z.string().min(1, { message: 'Channel name is required' }),
-    sectionId: z.string().optional(),
+    sectionId: z.string().min(1, { message: 'Section is required' }),
   });
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
@@ -44,7 +44,7 @@ export function CreateChannelModal() {
     const payload = {
       ...values,
       type: ChannelType.TEXT,
-      sectionId: values.sectionId === 'none' ? null : values.sectionId,
+      sectionId: values.sectionId,
     };
 
     await secureAxiosPost(url, payload);
@@ -62,7 +62,9 @@ export function CreateChannelModal() {
   const getDefaultValues = () => {
     return {
       name: '',
-      sectionId: data?.section?.id || 'none',
+      sectionId:
+        data?.section?.id ||
+        (availableSections.length > 0 ? availableSections[0].id : ''),
     };
   };
 
@@ -98,35 +100,32 @@ export function CreateChannelModal() {
             )}
           />
 
-          {availableSections.length > 0 && (
-            <FormField
-              control={form.control}
-              name='sectionId'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
-                    Section (Optional)
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className='bg-zinc-300/50 border-0 focus:ring-0 text-black ring-offset-0 focus:ring-offset-0 outline-none'>
-                        <SelectValue placeholder='Select a section (optional)' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value='none'>No Section</SelectItem>
-                      {availableSections.map((section: any) => (
-                        <SelectItem key={section.id} value={section.id}>
-                          {section.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+          <FormField
+            control={form.control}
+            name='sectionId'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
+                  Section
+                </FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger className='bg-zinc-300/50 border-0 focus:ring-0 text-black ring-offset-0 focus:ring-offset-0 outline-none'>
+                      <SelectValue placeholder='Select a section' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {availableSections.map((section: any) => (
+                      <SelectItem key={section.id} value={section.id}>
+                        {section.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </>
       )}
     </FormModal>

@@ -343,6 +343,53 @@ export class UserService extends BaseDatabaseService {
   }
 
   /**
+   * Safely grant admin access to a user
+   * Returns boolean indicating success/failure
+   * Used by admin operations and system processes
+   */
+  async grantAdminStatus(targetUserId: string): Promise<boolean> {
+    try {
+      // Find the user first
+      const user = await this.findByUserIdOrEmail(targetUserId);
+
+      if (!user) {
+        apiLogger.databaseOperation('grant_admin_failed', false, {
+          userId: maskId(targetUserId),
+          reason: 'User not found',
+        });
+        return false;
+      }
+
+      // If already admin, return true
+      if (user.isAdmin) {
+        apiLogger.adminAction(
+          'grant_admin_already_admin',
+          'system',
+          user.email,
+          {
+            userId: maskId(targetUserId),
+          }
+        );
+        return true;
+      }
+
+      // Grant admin status
+      await this.updateUser(user.id, { isAdmin: true });
+
+      apiLogger.adminAction('grant_admin_success', 'system', user.email, {
+        userId: maskId(targetUserId),
+      });
+
+      return true;
+    } catch (error) {
+      this.handleError(error, 'grant_admin_status', {
+        userId: maskId(targetUserId),
+      });
+      return false;
+    }
+  }
+
+  /**
    * Validate user exists and has required permissions
    * Used in middleware and API route protection
    */
