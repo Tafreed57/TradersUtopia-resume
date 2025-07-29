@@ -33,12 +33,34 @@ const isPublicRoute = createRouteMatcher([
   '/api/get-participant-token',
 ]);
 
+// Helper function to get the current domain based on environment
+function getCurrentDomain() {
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://tradersutopia.com';
+  }
+
+  // For AWS Amplify environments, check for site URL first
+  // if (process.env.NEXT_PUBLIC_SITE_URL) {
+  //   return process.env.NEXT_PUBLIC_SITE_URL;
+  // }
+
+  // AWS Amplify automatically sets these environment variables
+  if (process.env.AWS_APP_ID && process.env.AWS_BRANCH) {
+    // Amplify URLs follow the pattern: https://branch.appid.amplifyapp.com
+    return `https://${process.env.AWS_BRANCH}.${process.env.AWS_APP_ID}.amplifyapp.com`;
+  }
+
+  // Alternative AWS Amplify URL pattern check
+  if (process.env.AMPLIFY_DIFF_DEPLOY_ROOT) {
+    return process.env.AMPLIFY_DIFF_DEPLOY_ROOT;
+  }
+
+  // Fallback to localhost for development
+  return 'http://localhost:3000';
+}
+
 const middlewareOptions: ClerkMiddlewareOptions = {
-  authorizedParties: [
-    process.env.NODE_ENV === 'production'
-      ? 'https://tradersutopia.com'
-      : 'http://localhost:3000',
-  ],
+  authorizedParties: [getCurrentDomain()],
   contentSecurityPolicy: {
     directives: {
       'frame-src': [
@@ -62,8 +84,13 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   }
   const { userId } = await auth();
   if (!userId) {
-    const signInUrl = new URL('/sign-in', req.url);
-    signInUrl.searchParams.set('redirect_url', req.url);
+    const currentDomain = getCurrentDomain();
+    const signInUrl = new URL('/sign-in', currentDomain);
+
+    // Use only the pathname and search params, not the full URL with host
+    const redirectPath = req.nextUrl.pathname + req.nextUrl.search;
+    signInUrl.searchParams.set('redirect_url', redirectPath);
+
     return NextResponse.redirect(signInUrl);
   }
 
