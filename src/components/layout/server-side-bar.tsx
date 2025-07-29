@@ -68,9 +68,6 @@ export async function ServerSideBar({ serverId }: ServerSideBarProps) {
             server={server as ServerWithMembersWithUsers}
             role={role as Role}
           />
-          {/* <div className='px-4 pb-3'>
-            <Separator className='h-[1px] bg-gradient-to-r from-transparent via-gray-600/50 to-transparent' />
-          </div> */}
         </div>
 
         <div className='flex-1 overflow-y-auto overflow-x-visible'>
