@@ -51,9 +51,9 @@ function getCurrentDomain() {
   }
 
   // Alternative AWS Amplify URL pattern check
-  if (process.env.AMPLIFY_DIFF_DEPLOY_ROOT) {
-    return process.env.AMPLIFY_DIFF_DEPLOY_ROOT;
-  }
+  // if (process.env.AMPLIFY_DIFF_DEPLOY_ROOT) {
+  //   return process.env.AMPLIFY_DIFF_DEPLOY_ROOT;
+  // }
 
   // Fallback to localhost for development
   return 'http://localhost:3000';
