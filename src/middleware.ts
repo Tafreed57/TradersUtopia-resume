@@ -1,3 +1,4 @@
+import { useUser } from '@clerk/nextjs';
 import {
   clerkMiddleware,
   ClerkMiddlewareOptions,
@@ -78,24 +79,30 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   if (isPublicRoute(req)) {
     return NextResponse.next();
   }
-  const { userId } = await auth();
-  if (!userId) {
-    const currentDomain = getCurrentDomain();
-    const signInUrl = new URL('/sign-in', currentDomain);
-    console.log('signInUrl', signInUrl);
-    console.log('req.nextUrl', req.nextUrl);
-    console.log('currentDomain', currentDomain);
+  const { userId, redirectToSignIn } = await auth();
+  if (!userId || !isPublicRoute) {
+    redirectToSignIn();
+    // const currentDomain = getCurrentDomain();
+    // const signInUrl = new URL('/sign-in', currentDomain);
+    // console.log('signInUrl', signInUrl);
+    // console.log('req.nextUrl', req.nextUrl);
+    // console.log('currentDomain', currentDomain);
 
-    // Use only the pathname and search params, not the full URL with host
-    const redirectPath = req.nextUrl.pathname + req.nextUrl.search;
-    signInUrl.searchParams.set('redirect_url', redirectPath);
+    // // Use only the pathname and search params, not the full URL with host
+    // const redirectPath = req.nextUrl.pathname + req.nextUrl.search;
+    // signInUrl.searchParams.set('redirect_url', redirectPath);
 
-    return NextResponse.redirect(signInUrl);
+    // return NextResponse.redirect(signInUrl);
   }
 
   return NextResponse.next();
 }, middlewareOptions);
 
 export const config = {
-  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
 };
