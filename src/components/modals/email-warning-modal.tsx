@@ -37,7 +37,7 @@ export function EmailWarningModal() {
 
         // Add client_reference_id based on referral status
         if (referral) {
-          url.searchParams.set('client_reference_id', referral.id);
+          url.searchParams.set('client_reference_id', referral);
         }
 
         // open in new tab with prefilled email and client reference
