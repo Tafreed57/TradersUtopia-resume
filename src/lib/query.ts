@@ -30,12 +30,6 @@ export async function getServer(serverId: string, profileId: string) {
   return await serverService.findServerWithMemberAccess(serverId, profileId);
 }
 
-export async function getGeneralServer(id: string, profileId: string) {
-  // This function would need to be implemented as a proper service method
-  // For now, we'll return null as a placeholder
-  return null;
-}
-
 export async function getAllServers(id: string) {
   return await serverService.listServersForUser(id);
 }

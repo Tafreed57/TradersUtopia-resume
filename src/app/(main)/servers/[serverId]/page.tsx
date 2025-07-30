@@ -1,4 +1,4 @@
-import { getCurrentProfileForAuth, getGeneralServer } from '@/lib/query';
+import { getCurrentProfileForAuth } from '@/lib/query';
 import { ServerService } from '@/services/database/server-service';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
