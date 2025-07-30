@@ -5,7 +5,6 @@ import { apiLogger } from '@/lib/enhanced-logger';
 import { ValidationError, withErrorHandling } from '@/lib/error-handling';
 
 const MESSAGES_BATCH = 10;
-const TRACK_RECORD_CHANNEL_NAME = 'Track Record & Results';
 
 /**
  * Get Track Record Messages
@@ -19,20 +18,16 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const cursor = searchParams.get('cursor');
 
-    // Step 1: Find the track record channel by name
-    const trackRecordChannel = await channelService.findChannelByName(
-      TRACK_RECORD_CHANNEL_NAME
-    );
+    // Step 1: Find the track record channel by isTrackRecord flag
+    const trackRecordChannel = await channelService.findTrackRecordChannel();
 
     if (!trackRecordChannel) {
-      apiLogger.databaseOperation('track_record_channel_not_found', false, {
-        channelName: TRACK_RECORD_CHANNEL_NAME,
-      });
+      apiLogger.databaseOperation('track_record_channel_not_found', false, {});
 
       return NextResponse.json({
         items: [],
         nextCursor: null,
-        error: 'Track Record & Results channel not found',
+        error: 'Track record channel not found',
       });
     }
 
@@ -47,7 +42,7 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
 
     apiLogger.databaseOperation('track_record_messages_retrieved', true, {
       channelId: trackRecordChannel.id.substring(0, 8) + '***',
-      channelName: TRACK_RECORD_CHANNEL_NAME,
+      channelName: trackRecordChannel.name,
       messageCount: result.messages.length,
       cursor: cursor ? cursor.substring(0, 8) + '***' : null,
       nextCursor: result.nextCursor
@@ -72,7 +67,6 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
       'track_record_messages_retrieval_failed',
       false,
       {
-        channelName: TRACK_RECORD_CHANNEL_NAME,
         error: error instanceof Error ? error.message : 'Unknown error',
       }
     );

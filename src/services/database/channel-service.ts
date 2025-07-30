@@ -564,30 +564,21 @@ export class ChannelService extends BaseDatabaseService {
    * Find channel by name (public access for specific use cases)
    * Used for track record channel which is publicly accessible
    */
-  async findChannelByName(channelName: string): Promise<Channel | null> {
+  async findTrackRecordChannel(): Promise<Channel | null> {
     try {
-      this.validateRequired(channelName, 'channel name');
-
       const channel = await this.prisma.channel.findFirst({
         where: {
-          name: {
-            equals: channelName,
-            mode: 'insensitive',
-          },
-          // Only return non-deleted channels
-          server: {
-            // Could add additional server filtering here if needed
-          },
+          isTrackRecord: true,
         },
         orderBy: {
-          createdAt: 'asc', // Get the oldest channel with this name
+          createdAt: 'asc', // Get the oldest track record channel if multiple exist
         },
       });
 
       if (channel) {
-        this.logSuccess('channel_found_by_name_public', {
+        this.logSuccess('track_record_channel_found', {
           channelId: maskId(channel.id),
-          channelName,
+          channelName: channel.name,
           serverId: maskId(channel.serverId),
         });
       }
@@ -601,9 +592,7 @@ export class ChannelService extends BaseDatabaseService {
           } as Channel)
         : null;
     } catch (error) {
-      return await this.handleError(error, 'find_channel_by_name_public', {
-        channelName,
-      });
+      return this.handleError(error, 'find_track_record_channel', {});
     }
   }
 
