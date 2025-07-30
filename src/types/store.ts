@@ -18,7 +18,8 @@ export type ModalType =
   | 'trackRecordFile'
   | 'editTrackRecordMessage'
   | 'deleteTrackRecordMessage'
-  | 'timerSettings';
+  | 'timerSettings'
+  | 'emailWarning';
 
 type ModalData = {
   server?: Server;
@@ -37,6 +38,7 @@ type ModalData = {
   channelId?: string;
   serverId?: string;
   userId?: string;
+  stripeUrl?: string;
 };
 
 interface ModalState {

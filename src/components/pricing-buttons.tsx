@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useExtendedUser } from '@/hooks/use-extended-user';
+import { useStore } from '@/store/store';
 
 interface PricingButtonsProps {
   // ... existing code ...
@@ -13,6 +14,7 @@ export function PricingButtons({}: // ... existing code ...
 PricingButtonsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const onOpen = useStore(state => state.onOpen);
 
   // ✅ ENHANCED: Use extended user hook with comprehensive service data
   const {
@@ -35,6 +37,9 @@ PricingButtonsProps) {
         // ✅ OPTIMIZED: Use cached auth data to determine redirect
         if (hasAccess) {
           router.push('/dashboard');
+        } else {
+          // Show email warning modal before proceeding to payment
+          showEmailWarningModal();
         }
       } else {
         // Redirect to sign-up with pricing page as the redirect destination
@@ -47,6 +52,21 @@ PricingButtonsProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const showEmailWarningModal = () => {
+    const checkoutUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL;
+
+    if (!checkoutUrl) {
+      console.error(
+        'NEXT_PUBLIC_STRIPE_CHECKOUT_URL environment variable not found'
+      );
+      // Fallback: redirect to pricing page
+      router.push('/pricing');
+      return;
+    }
+
+    onOpen('emailWarning', { stripeUrl: checkoutUrl });
   };
 
   // ✅ PERFORMANCE: Show loading state while auth data loads
@@ -76,13 +96,6 @@ PricingButtonsProps) {
           ? 'Access Dashboard'
           : 'Get Premium Access'}
       </Button>
-
-      {/* ✅ PERFORMANCE: Show optimization indicator */}
-      {!isLoadingState && (
-        <div className='text-xs text-gray-500 mt-2 text-center'>
-          ⚡ Optimized loading
-        </div>
-      )}
     </div>
   );
 }

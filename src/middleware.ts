@@ -56,7 +56,6 @@ function getCurrentDomain() {
 }
 
 const middlewareOptions: ClerkMiddlewareOptions = {
-  debug: true,
   authorizedParties: [getCurrentDomain()],
   contentSecurityPolicy: {
     directives: {

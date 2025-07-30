@@ -13,6 +13,7 @@ import { EditSectionModal } from '@/components/modals/edit-section-modal';
 import { DeleteSectionModal } from '@/components/modals/delete-section-modal';
 import { TrackRecordFileModal } from '@/components/modals/track-record-file-modal';
 import { TimerSettingsModal } from '@/components/modals/timer-settings-modal';
+import { EmailWarningModal } from '@/components/modals/email-warning-modal';
 import { useEffect, useState } from 'react';
 
 export function ModalProvider() {
@@ -42,6 +43,7 @@ export function ModalProvider() {
       <DeleteSectionModal />
       <TrackRecordFileModal />
       <TimerSettingsModal />
+      <EmailWarningModal />
     </>
   );
 }
