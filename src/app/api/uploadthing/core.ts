@@ -179,11 +179,9 @@ export const ourFileRouter = {
       const auth = await handleAuth();
 
       // ✅ SECURITY: Check if user is admin for track record uploads
-      const { prisma } = await import('@/lib/prismadb');
-      const profile = await prisma.profile.findUnique({
-        where: { userId: auth.userId },
-        select: { isAdmin: true },
-      });
+      const { UserService } = await import('@/services/database/user-service');
+      const userService = new UserService();
+      const profile = await userService.findByUserIdOrEmail(auth.userId);
 
       if (!profile?.isAdmin) {
         console.error(

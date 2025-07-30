@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser, useAuth, UserButton } from '@clerk/nextjs';
+import { UserButton } from '@clerk/nextjs';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 import {
   Loader2,
   Crown,
@@ -12,7 +13,6 @@ import {
   BarChart3,
   User,
   CreditCard,
-  ArrowRight,
   Shield,
   CheckCircle,
   Clock,
@@ -27,16 +27,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SmartEntryButton } from '@/components/smart-entry-button';
-import { PricingButtons } from '@/components/pricing-buttons';
 import { SubscriptionManager } from '@/components/subscription/subscription-manager';
 import { NotificationSettings } from '@/components/notifications/notification-settings';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import UserManagement from '@/components/admin/user-management';
-import { useUnifiedAuth } from '@/contexts/unified-auth-provider';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
 
 // Allowed product IDs for access control
@@ -60,20 +57,20 @@ const statCardClasses = `
 `;
 
 export default function Dashboard() {
-  const { user } = useUser();
-  const { isLoaded } = useAuth();
+  // ✅ EXTENDED: Use new extended user hook that includes all service data
+  const {
+    user,
+    isLoaded,
+    hasAccess,
+    subscriptionData,
+    profile,
+    dataSource,
+    isLoading: authLoading,
+  } = useExtendedUser({ enableLogging: true });
+
   const [servers, setServers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('account');
-
-  // ✅ OPTIMIZED: Use unified auth instead of making separate API calls
-  const {
-    hasAccess,
-    isLoading: authLoading,
-    profile,
-    subscriptionData,
-    dataSource,
-  } = useUnifiedAuth();
 
   // Check for tab parameter in URL
   useEffect(() => {
@@ -91,14 +88,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchServersData = async () => {
       try {
-        const response = await fetch('/api/verify-stripe-payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const result = await response.json();
+        // ✅ SIMPLIFIED: Payment verification now handled by useExtendedUser hook
         const serversResponse = await fetch('/api/servers');
         if (serversResponse.ok) {
           const serversData = await serversResponse.json();
@@ -127,13 +117,6 @@ export default function Dashboard() {
             Loading dashboard...
           </h3>
           <p className='text-gray-400'>Preparing your trading workspace</p>
-          {dataSource && (
-            <div className='mt-4 px-4 py-2 bg-blue-500/10 border border-blue-400/30 rounded-lg'>
-              <p className='text-xs text-blue-400'>
-                ⚡ Using {dataSource} optimization
-              </p>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -178,7 +161,10 @@ export default function Dashboard() {
         bgColor: 'bg-green-500/10',
         borderColor: 'border-green-400/30',
         icon: CheckCircle,
-        description: `Valid until ${new Date(subscriptionData.subscriptionEnd || '').toLocaleDateString()}`,
+        description:
+          subscriptionData.subscriptionStatus === 'ADMIN'
+            ? 'Administrative access'
+            : 'Active subscription access',
       };
     }
 
@@ -407,10 +393,7 @@ export default function Dashboard() {
                       Access real-time trading signals, market analysis, and
                       connect with our trading community.
                     </p>
-                    <SmartEntryButton
-                      className='w-full'
-                      customProductIds={allowedProductIds}
-                    />
+                    <SmartEntryButton />
                   </div>
                 </div>
 

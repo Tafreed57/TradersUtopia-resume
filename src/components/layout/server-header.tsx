@@ -8,24 +8,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useStore } from '@/store/store';
-import { ServerWithMembersWithProfiles } from '@/types/server';
-import { MemberRole } from '@prisma/client';
+import { ServerWithMembersWithUsers } from '@/types/server';
 import { ChevronDown, PlusCircle, Settings } from 'lucide-react';
 import { useState } from 'react';
 import Image from 'next/image';
+import { useStore } from '@/store/store';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 interface ServerHeaderProps {
-  server: ServerWithMembersWithProfiles;
-  role?: MemberRole;
+  server: ServerWithMembersWithUsers;
+  role?: any; // Keep for backwards compatibility but not used
 }
 
-export function ServerHeader({ server, role }: ServerHeaderProps) {
+export function ServerHeader({ server }: ServerHeaderProps) {
   const onOpen = useStore(state => state.onOpen);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const isAdmin = role === MemberRole.ADMIN;
-  const isModerator = isAdmin || role === MemberRole.MODERATOR;
+  // ✅ UPDATED: Use extended user hook for admin checks and user data
+  const {
+    isAdmin,
+    hasAccess,
+    isLoading: authLoading,
+    profile,
+  } = useExtendedUser({
+    enableLogging: false,
+    checkOnMount: true,
+  });
+
+  // Determine if user has moderator privileges (admin or has access)
+  const isModerator = isAdmin || hasAccess;
 
   const handleServerSettingsClick = () => {
     setIsDropdownOpen(false);
@@ -80,7 +91,16 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                 <span className='text-white font-bold truncate text-left text-sm md:text-base'>
                   {server?.name}
                 </span>
-                <span className='text-xs text-gray-400'>Role: {role}</span>
+                <span className='text-xs text-gray-400'>
+                  {/* ✅ UPDATED: Show access status instead of role name */}
+                  {authLoading
+                    ? 'Checking access...'
+                    : isAdmin
+                      ? 'Admin'
+                      : hasAccess
+                        ? 'Premium Member'
+                        : 'Free Member'}
+                </span>
               </div>
             </div>
             {/* ✅ REMOVED: No chevron icon for non-admin users */}
@@ -133,7 +153,8 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
                     {server?.name}
                   </span>
                   <span className='text-xs text-gray-400 font-medium'>
-                    {server?.members?.length || 0} members | Role: {role}
+                    {/* ✅ UPDATED: Show member count and admin status */}
+                    {server?.members?.length || 0} members | Admin
                   </span>
                 </div>
               </div>
@@ -163,11 +184,11 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
               </DropdownMenuItem>
             )}
 
-            {isAdmin && (isModerator || isAdmin) && (
+            {isAdmin && isModerator && (
               <DropdownMenuSeparator className='bg-gray-700/50 my-2' />
             )}
 
-            {(isModerator || isAdmin) && (
+            {isModerator && (
               <DropdownMenuItem
                 onClick={handleCreateChannelClick}
                 className='text-purple-400 hover:text-purple-300 text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-purple-600/20 transition-all duration-200 flex items-center gap-3'
@@ -177,7 +198,7 @@ export function ServerHeader({ server, role }: ServerHeaderProps) {
               </DropdownMenuItem>
             )}
 
-            {(isModerator || isAdmin) && (
+            {isModerator && (
               <DropdownMenuItem
                 onClick={handleCreateSectionClick}
                 className='text-green-400 hover:text-green-300 text-sm px-3 py-2.5 cursor-pointer rounded-lg hover:bg-green-600/20 transition-all duration-200 flex items-center gap-3'

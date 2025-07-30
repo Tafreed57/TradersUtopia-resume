@@ -2,6 +2,7 @@
 
 import { NextRequest } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
+import { apiLogger } from '@/lib/enhanced-logger';
 import crypto from 'crypto';
 
 // ==============================================
@@ -43,7 +44,7 @@ const validateCSRFToken = async (request: NextRequest): Promise<boolean> => {
       request.nextUrl.searchParams.get('csrf_token');
 
     if (!csrfToken) {
-      console.warn('🚨 [CSRF] Missing CSRF token in request');
+      apiLogger.csrfViolation(request, 'missing_csrf_token');
       return false;
     }
 
@@ -69,7 +70,9 @@ const validateCSRFToken = async (request: NextRequest): Promise<boolean> => {
     // Token is valid
     return true;
   } catch (error) {
-    console.error('❌ [CSRF] Error validating CSRF token:', error);
+    apiLogger.csrfViolation(request, 'validation_error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     return false;
   }
 };

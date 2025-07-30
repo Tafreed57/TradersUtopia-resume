@@ -1,17 +1,17 @@
 'use client';
 
 import { Hash } from 'lucide-react';
-import { ChannelType, MemberRole } from '@prisma/client';
+import { ChannelType, Role } from '@prisma/client';
 import { Separator } from '@/components/ui/separator';
 import { ServerHeader } from '@/components/layout/server-header';
 import { ServerSearch } from '@/components/server-search';
 import { SectionContent } from '@/components/section-content';
 import { DragDropProvider } from '@/contexts/drag-drop-provider';
-import { ServerWithMembersWithProfiles } from '@/types/server';
+import { ServerWithMembersWithUsers } from '@/types/server';
 
 interface MobileServerWrapperProps {
-  server: ServerWithMembersWithProfiles;
-  role?: MemberRole;
+  server: ServerWithMembersWithUsers;
+  role?: Role;
 }
 
 export function MobileServerWrapper({
@@ -33,7 +33,9 @@ export function MobileServerWrapper({
       label: 'Text Channels',
       type: 'channel' as const,
       data: server.channels?.map(channel => ({
-        icon: iconMap[channel.type as ChannelType] || iconMap[ChannelType.TEXT],
+        icon:
+          iconMap[channel.type as keyof typeof iconMap] ||
+          iconMap[ChannelType.TEXT],
         id: channel.id,
         name: channel.name,
       })),

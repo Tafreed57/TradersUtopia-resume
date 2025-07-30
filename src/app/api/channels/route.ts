@@ -1,97 +1,67 @@
-import { prisma } from '@/lib/prismadb';
-import { getCurrentProfile } from '@/lib/query';
-import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { withAuth, authHelpers } from '@/middleware/auth-middleware';
+import { ChannelService } from '@/services/database/channel-service';
+import { ServerService } from '@/services/database/server-service';
+import { apiLogger } from '@/lib/enhanced-logger';
+import { ValidationError } from '@/lib/error-handling';
 
-// Force dynamic rendering due to rate limiting using request.headers
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: NextRequest) {
-  try {
-    // ✅ SECURITY: Rate limiting for channel operations
-    const rateLimitResult = await rateLimitServer()(req);
-    if (!rateLimitResult.success) {
-      trackSuspiciousActivity(req, 'CHANNEL_CREATION_RATE_LIMIT_EXCEEDED');
-      return rateLimitResult.error;
-    }
-
-    const profile = await getCurrentProfile();
-    const { searchParams } = new URL(req.url);
-    const { name, type, sectionId } = await req.json();
-    const serverId = searchParams.get('serverId');
-
-    if (!profile) {
-      trackSuspiciousActivity(req, 'UNAUTHENTICATED_CHANNEL_CREATION');
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-    if (!serverId) {
-      trackSuspiciousActivity(req, 'CHANNEL_CREATION_NO_SERVER_ID');
-      return new NextResponse('Server not found', { status: 404 });
-    }
-
-    // ✅ NEW: Validate section if provided
-    if (sectionId) {
-      const section = await prisma.section.findFirst({
-        where: {
-          id: sectionId,
-          serverId,
-        },
-      });
-
-      if (!section) {
-        return new NextResponse('Section not found', { status: 400 });
-      }
-    }
-
-    // ✅ NEW: Get position for ordering within section or server
-    let position = 0;
-    if (sectionId) {
-      const lastChannelInSection = await prisma.channel.findFirst({
-        where: { sectionId },
-        orderBy: { position: 'desc' },
-      });
-      position = (lastChannelInSection?.position || 0) + 1;
-    } else {
-      const lastChannel = await prisma.channel.findFirst({
-        where: { serverId, sectionId: null },
-        orderBy: { position: 'desc' },
-      });
-      position = (lastChannel?.position || 0) + 1;
-    }
-
-    // ✅ GLOBAL ADMIN ONLY: Only global admins can create channels
-    if (!profile.isAdmin) {
-      trackSuspiciousActivity(req, 'NON_ADMIN_CHANNEL_CREATION_ATTEMPT');
-      return new NextResponse('Only administrators can create channels', {
-        status: 403,
-      });
-    }
-
-    const server = await prisma.server.update({
-      where: {
-        id: serverId,
-        members: {
-          some: {
-            profileId: profile.id,
-          },
-        },
-      },
-      data: {
-        channels: {
-          create: {
-            profileId: profile.id,
-            name,
-            type,
-            sectionId: sectionId || null,
-            position,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(server);
-  } catch (error: any) {
-    return new NextResponse('Internal Error', { status: 500 });
+/**
+ * Create Channel
+ * Admin-only operation with automatic positioning and validation
+ */
+export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
+  // Only global admins can create channels
+  if (!isAdmin) {
+    throw new ValidationError('Only administrators can create channels');
   }
-}
+
+  const { searchParams } = new URL(req.url);
+  const serverId = searchParams.get('serverId');
+
+  if (!serverId) {
+    throw new ValidationError('Server ID is required');
+  }
+
+  const { name, type, sectionId } = await req.json();
+
+  if (!name) {
+    throw new ValidationError('Channel name is required');
+  }
+
+  const channelService = new ChannelService();
+  const serverService = new ServerService();
+
+  // Step 1: Create channel using service layer (includes validation, positioning, and access checks)
+  const channelData = {
+    name,
+    type: type || 'TEXT',
+    serverId,
+    sectionId: sectionId || null,
+    topic: undefined, // Can be added later via update
+  };
+
+  const createdChannel = await channelService.createChannel(
+    channelData,
+    user.id
+  );
+
+  // Step 2: Return the updated server structure using ServerService
+  const server = await serverService.findServerWithMemberAccess(
+    serverId,
+    user.id
+  );
+
+  apiLogger.databaseOperation('channel_created_via_api', true, {
+    channelId: createdChannel.id.substring(0, 8) + '***',
+    serverId: serverId.substring(0, 8) + '***',
+    userId: user.id.substring(0, 8) + '***',
+    channelName: name,
+    channelType: type || 'TEXT',
+    sectionId: sectionId ? sectionId.substring(0, 8) + '***' : null,
+  });
+
+  return NextResponse.json(server);
+}, authHelpers.adminOnly('CREATE_CHANNEL'));

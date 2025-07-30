@@ -1,223 +1,116 @@
-import { prisma } from '@/lib/prismadb';
-import { getCurrentProfileForAuth } from '@/lib/query';
-import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
+import { withAuth, authHelpers } from '@/middleware/auth-middleware';
+import { ChannelService } from '@/services/database/channel-service';
+import { ServerService } from '@/services/database/server-service';
+import { apiLogger } from '@/lib/enhanced-logger';
+import { validateInput, channelSchema } from '@/lib/validation';
+import { ValidationError } from '@/lib/error-handling';
 import { revalidatePath } from 'next/cache';
-import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
-import { validateInput, channelSchema, cuidSchema } from '@/lib/validation';
 
-// Force dynamic rendering due to rate limiting using request.headers
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { channelId: string } }
-) {
-  try {
-    // ✅ SECURITY: Rate limiting for channel operations
-    const rateLimitResult = await rateLimitServer()(req);
-    if (!rateLimitResult.success) {
-      trackSuspiciousActivity(req, 'CHANNEL_UPDATE_RATE_LIMIT_EXCEEDED');
-      return rateLimitResult.error;
-    }
-
-    // ✅ SECURITY: Validate channel ID parameter
-    try {
-      cuidSchema.parse(params.channelId);
-    } catch (error) {
-      trackSuspiciousActivity(req, 'INVALID_CHANNEL_ID_FORMAT');
-      return NextResponse.json(
-        { error: 'Invalid channel ID format' },
-        { status: 400 }
-      );
-    }
-
-    const profile = await getCurrentProfileForAuth();
-    const { searchParams } = new URL(req.url);
-    const serverId = searchParams.get('serverId');
-
-    // ✅ SECURITY: Validate server ID from query params
-    if (!serverId) {
-      trackSuspiciousActivity(req, 'MISSING_SERVER_ID_CHANNEL_UPDATE');
-      return NextResponse.json(
-        { error: 'Server ID is required' },
-        { status: 400 }
-      );
-    }
-
-    try {
-      cuidSchema.parse(serverId);
-    } catch (error) {
-      trackSuspiciousActivity(req, 'INVALID_SERVER_ID_FORMAT_CHANNEL');
-      return NextResponse.json(
-        { error: 'Invalid server ID format' },
-        { status: 400 }
-      );
-    }
-
-    // ✅ SECURITY: Input validation for channel update
-    const validationResult = await validateInput(channelSchema)(req);
-    if (!validationResult.success) {
-      trackSuspiciousActivity(req, 'INVALID_CHANNEL_UPDATE_INPUT');
-      return validationResult.error;
-    }
-
-    const { name, type } = validationResult.data;
-
-    if (!profile) {
-      trackSuspiciousActivity(req, 'UNAUTHENTICATED_CHANNEL_UPDATE');
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-    if (!params.channelId) {
-      trackSuspiciousActivity(req, 'MISSING_CHANNEL_ID');
-      return new NextResponse('Channel not found', { status: 404 });
-    }
-
-    // ✅ ENHANCEMENT: Check if channel exists and get current name
-    const existingChannel = await prisma.channel.findUnique({
-      where: { id: params.channelId },
-      select: { id: true, name: true, serverId: true },
-    });
-
-    if (!existingChannel) {
-      return NextResponse.json({ error: 'Channel not found' }, { status: 404 });
-    }
-
-    // ✅ GLOBAL ADMIN ONLY: Only global admins can edit channels
-    if (!profile.isAdmin) {
-      trackSuspiciousActivity(req, 'NON_ADMIN_CHANNEL_EDIT_ATTEMPT');
-      return NextResponse.json(
-        { error: 'Only administrators can edit channels' },
-        { status: 403 }
-      );
-    }
-
-    // ✅ UPDATED: Allow renaming the general channel now
-    // Note: Removed the restriction that prevented renaming general channel
-
-    // ✅ UPDATED: Allow editing of any channel including general
-    const server = await prisma.server.update({
-      where: { id: serverId },
-      data: {
-        channels: {
-          update: {
-            where: {
-              id: params.channelId,
-            },
-            data: {
-              name,
-              type,
-            },
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(server);
-  } catch (error: any) {
-    trackSuspiciousActivity(req, 'CHANNEL_UPDATE_ERROR');
-
-    // ✅ SECURITY: Generic error response - no internal details exposed
-    return NextResponse.json(
-      {
-        error: 'Channel update failed',
-        message: 'Unable to update channel. Please try again later.',
-      },
-      { status: 500 }
-    );
+/**
+ * Update Channel
+ * Admin-only operation
+ */
+export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
+  // Only global admins can edit channels
+  if (!isAdmin) {
+    throw new ValidationError('Only administrators can edit channels');
   }
-}
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { channelId: string } }
-) {
-  try {
-    // ✅ SECURITY: Rate limiting for channel operations
-    const rateLimitResult = await rateLimitServer()(req);
-    if (!rateLimitResult.success) {
-      trackSuspiciousActivity(req, 'CHANNEL_DELETE_RATE_LIMIT_EXCEEDED');
-      return rateLimitResult.error;
-    }
+  const channelId = new URL(req.url).pathname.split('/').pop();
+  const { searchParams } = new URL(req.url);
+  const serverId = searchParams.get('serverId');
 
-    // ✅ SECURITY: Validate channel ID parameter
-    try {
-      cuidSchema.parse(params.channelId);
-    } catch (error) {
-      trackSuspiciousActivity(req, 'INVALID_CHANNEL_ID_FORMAT_DELETE');
-      return NextResponse.json(
-        { error: 'Invalid channel ID format' },
-        { status: 400 }
-      );
-    }
-
-    const profile = await getCurrentProfileForAuth();
-    const { searchParams } = new URL(req.url);
-    const serverId = searchParams.get('serverId');
-
-    // ✅ SECURITY: Validate server ID from query params
-    if (!serverId) {
-      trackSuspiciousActivity(req, 'MISSING_SERVER_ID_CHANNEL_DELETE');
-      return NextResponse.json(
-        { error: 'Server ID is required' },
-        { status: 400 }
-      );
-    }
-
-    try {
-      cuidSchema.parse(serverId);
-    } catch (error) {
-      trackSuspiciousActivity(req, 'INVALID_SERVER_ID_FORMAT_CHANNEL_DELETE');
-      return NextResponse.json(
-        { error: 'Invalid server ID format' },
-        { status: 400 }
-      );
-    }
-
-    if (!profile) {
-      trackSuspiciousActivity(req, 'UNAUTHENTICATED_CHANNEL_DELETE');
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-    if (!params.channelId) {
-      trackSuspiciousActivity(req, 'MISSING_CHANNEL_ID_DELETE');
-      return new NextResponse('Channel not found', { status: 404 });
-    }
-
-    // ✅ GLOBAL ADMIN ONLY: Only global admins can delete channels
-    if (!profile.isAdmin) {
-      trackSuspiciousActivity(req, 'NON_ADMIN_CHANNEL_DELETE_ATTEMPT');
-      return NextResponse.json(
-        { error: 'Only administrators can delete channels' },
-        { status: 403 }
-      );
-    }
-
-    // ✅ UPDATED: Allow deletion of ANY channel including general
-    const server = await prisma.server.update({
-      where: { id: serverId },
-      data: {
-        channels: {
-          delete: {
-            id: params.channelId,
-            // ✅ REMOVED: name restriction - can now delete general channel
-          },
-        },
-      },
-    });
-
-    revalidatePath('/(main)', 'layout');
-
-    return NextResponse.json(server);
-  } catch (error: any) {
-    trackSuspiciousActivity(req, 'CHANNEL_DELETE_ERROR');
-
-    // ✅ SECURITY: Generic error response - no internal details exposed
-    return NextResponse.json(
-      {
-        error: 'Channel deletion failed',
-        message: 'Unable to delete channel. Please try again later.',
-      },
-      { status: 500 }
-    );
+  if (!channelId) {
+    throw new ValidationError('Channel ID is required');
   }
-}
+
+  if (!serverId) {
+    throw new ValidationError('Server ID is required');
+  }
+
+  const channelService = new ChannelService();
+  const serverService = new ServerService();
+
+  // Step 1: Input validation
+  const validationResult = await validateInput(channelSchema)(req);
+  if (!validationResult.success) {
+    throw new ValidationError('Invalid channel update data');
+  }
+
+  const { name, type } = validationResult.data;
+
+  // Step 2: Update channel using service layer (includes access verification)
+  const updatedChannel = await channelService.updateChannel(
+    channelId,
+    { name },
+    user.id
+  );
+
+  // Step 3: Return the updated server structure using ServerService
+  const server = await serverService.findServerWithMemberAccess(
+    serverId,
+    user.id
+  );
+
+  apiLogger.databaseOperation('channel_updated_via_api', true, {
+    channelId: channelId.substring(0, 8) + '***',
+    serverId: serverId.substring(0, 8) + '***',
+    userId: user.id.substring(0, 8) + '***',
+    updatedFields: Object.keys({ name, type }).filter(
+      key => (key === 'name' && name) || (key === 'type' && type)
+    ),
+  });
+
+  return NextResponse.json(server);
+}, authHelpers.adminOnly('UPDATE_CHANNEL'));
+
+/**
+ * Delete Channel
+ * Admin-only operation with safety checks
+ */
+export const DELETE = withAuth(async (req: NextRequest, { user, isAdmin }) => {
+  // Only global admins can delete channels
+  if (!isAdmin) {
+    throw new ValidationError('Only administrators can delete channels');
+  }
+
+  const channelId = new URL(req.url).pathname.split('/').pop();
+  const { searchParams } = new URL(req.url);
+  const serverId = searchParams.get('serverId');
+
+  if (!channelId) {
+    throw new ValidationError('Channel ID is required');
+  }
+
+  if (!serverId) {
+    throw new ValidationError('Server ID is required');
+  }
+
+  const channelService = new ChannelService();
+  const serverService = new ServerService();
+
+  // Step 1: Delete channel using service layer (includes safety checks)
+  const deletedChannel = await channelService.deleteChannel(channelId, user.id);
+
+  // Step 2: Get updated server structure using ServerService
+  const server = await serverService.findServerWithMemberAccess(
+    serverId,
+    user.id
+  );
+
+  // Step 3: Revalidate cache
+  revalidatePath('/(main)', 'layout');
+
+  apiLogger.databaseOperation('channel_deleted_via_api', true, {
+    channelId: channelId.substring(0, 8) + '***',
+    serverId: serverId.substring(0, 8) + '***',
+    userId: user.id.substring(0, 8) + '***',
+    channelName: deletedChannel.name,
+  });
+
+  return NextResponse.json(server);
+}, authHelpers.adminOnly('DELETE_CHANNEL'));

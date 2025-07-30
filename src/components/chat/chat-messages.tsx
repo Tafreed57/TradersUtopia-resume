@@ -3,9 +3,11 @@
 import { ChatItem } from '@/components/chat/chat-item';
 import { ChatWelcome } from '@/components/chat/chat-welcome';
 import { useChatScroll } from '@/hooks/use-chat-scroll';
-import { MessagesWithMemberWithProfile } from '@/types/server';
+import {
+  MessagesWithMemberWithUserAndRole,
+  MemberWithUserAndRole,
+} from '@/types/server';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Member } from '@prisma/client';
 import { format } from 'date-fns';
 import { Loader2, ServerCrash } from 'lucide-react';
 import { ElementRef, Fragment, useRef } from 'react';
@@ -16,7 +18,7 @@ const DATE_FORMAT = 'd MMM yyyy, HH:mm';
 
 interface ChatMessagesProps {
   name: string;
-  member: Member;
+  member: MemberWithUserAndRole;
   chatId: string;
   apiUrl: string;
   socketUrl: string;
@@ -149,7 +151,7 @@ export function ChatMessages({
       <div className='flex flex-col-reverse mt-auto px-2'>
         {data?.pages?.map((group, index) => (
           <Fragment key={index}>
-            {group.items.map((message: MessagesWithMemberWithProfile) => (
+            {group.items.map((message: MessagesWithMemberWithUserAndRole) => (
               <ChatItem
                 key={message.id}
                 id={message.id}
@@ -157,7 +159,7 @@ export function ChatMessages({
                 member={message.member}
                 isUpdated={message.updatedAt !== message.createdAt}
                 content={message.content}
-                fileUrl={message.fileUrl}
+                fileUrl={message.fileUrl ?? null}
                 deleted={message.deleted}
                 timestamp={format(new Date(message.createdAt), DATE_FORMAT)}
                 socketUrl={socketUrl}

@@ -20,6 +20,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/health', // Health check endpoint for monitoring
   '/api/debug-runtime-env', // TEMPORARY: For debugging production environment issues
   '/api/user/validate-email', // Email validation for forgot password flow
+  '/api/timer', // Public timer endpoint for countdown display
+  '/api/track-record', // Public track record endpoint for displaying trading results
 
   '/api/webhooks(.*)',
   '/api/sync-profiles',
@@ -27,18 +29,34 @@ const isPublicRoute = createRouteMatcher([
   '/api/2fa/verify-login',
   '/api/2fa/status',
   '/api/auth/signout',
-  '/api/csrf-token',
   '/api/user/validate-email',
-  '/api/auth/signout',
   '/api/get-participant-token',
 ]);
 
+// Helper function to get the current domain based on environment
+function getCurrentDomain() {
+  // Check for production domain first (main/master branch)
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (!process.env.AWS_BRANCH ||
+      process.env.AWS_BRANCH === 'main' ||
+      process.env.AWS_BRANCH === 'master')
+  ) {
+    return 'https://tradersutopia.com';
+  }
+
+  // AWS Amplify automatically sets these environment variables for all branches
+  if (process.env.AWS_APP_ID && process.env.AWS_BRANCH) {
+    // Amplify URLs follow the pattern: https://branch.appid.amplifyapp.com
+    return `https://${process.env.AWS_BRANCH}.${process.env.AWS_APP_ID}.amplifyapp.com`;
+  }
+
+  // Fallback to localhost for local development (when AWS vars are not present)
+  return 'http://localhost:3000';
+}
+
 const middlewareOptions: ClerkMiddlewareOptions = {
-  authorizedParties: [
-    process.env.NODE_ENV === 'production'
-      ? 'https://tradersutopia.com'
-      : 'http://localhost:3000',
-  ],
+  authorizedParties: [getCurrentDomain()],
   contentSecurityPolicy: {
     directives: {
       'frame-src': [
@@ -62,8 +80,16 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   }
   const { userId } = await auth();
   if (!userId) {
-    const signInUrl = new URL('/sign-in', req.url);
-    signInUrl.searchParams.set('redirect_url', req.url);
+    const currentDomain = getCurrentDomain();
+    const signInUrl = new URL('/sign-in', currentDomain);
+    console.log('signInUrl', signInUrl);
+    console.log('req.nextUrl', req.nextUrl);
+    console.log('currentDomain', currentDomain);
+
+    // Use only the pathname and search params, not the full URL with host
+    const redirectPath = req.nextUrl.pathname + req.nextUrl.search;
+    signInUrl.searchParams.set('redirect_url', redirectPath);
+
     return NextResponse.redirect(signInUrl);
   }
 

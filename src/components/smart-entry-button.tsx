@@ -6,100 +6,67 @@ import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { LogIn, Shield, Loader2 } from 'lucide-react';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
-import { makeSecureRequest } from '@/lib/csrf-client';
-import { useUnifiedAuth } from '@/contexts/unified-auth-provider';
-import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
 
 interface SmartEntryButtonProps {
-  customProductIds?: string[];
   className?: string;
 }
 
-export function SmartEntryButton({
-  customProductIds = [...TRADING_ALERT_PRODUCTS],
-  className = '',
-}: SmartEntryButtonProps) {
+export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useUser();
   const loading = useComprehensiveLoading('api');
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // ✅ OPTIMIZED: Use unified auth instead of making separate API call
-  const {
-    hasAccess,
-    isLoading: authLoading,
-    refetch,
-    isStale,
-  } = useUnifiedAuth();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const handleEntryClick = async () => {
-    if (!isLoaded) return;
+    if (!isLoaded || isNavigating) return;
 
     if (!isSignedIn) {
-      const returnUrl = `${window.location.origin}?auto_route=true`;
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`);
+      setIsNavigating(true);
+      router.push(`/sign-in?redirect_url=${encodeURIComponent('/pricing')}`);
+      // Keep loading state active during navigation
       return;
     }
 
-    setIsProcessing(true);
-
     try {
-      await refetch();
-      // ✅ OPTIMIZED: Check if auth data is stale and refresh if needed
-      if (isStale()) {
-        console.log('🔄 [SMART-ENTRY] Auth data is stale, refreshing...');
-        await refetch();
-      }
-
-      const result = await loading.withLoading(
+      setIsNavigating(true);
+      await loading.withLoading(
         async () => {
-          // ✅ OPTIMIZED: Use cached auth data instead of API call
-          if (hasAccess) {
-            // Get or create the default server and redirect to it
-            const serverResponse = await makeSecureRequest(
-              '/api/servers/ensure-default',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-              }
-            );
+          // Fetch server data
+          const serverResponse = await fetch('/api/servers');
 
-            const serverResult = await serverResponse.json();
-            return { hasAccess: true, serverResult };
-          } else {
-            return { hasAccess: false };
+          // Check if response is ok and contains valid server data
+          if (serverResponse.ok) {
+            const serverData = await serverResponse.json();
+
+            // Validate that we have the required server data
+            if (serverData?.serverId && serverData?.landingChannelId) {
+              // Valid server data - take user to the server
+              router.push(
+                `/servers/${serverData.serverId}/channels/${serverData.landingChannelId}`
+              );
+              // Keep isNavigating true - it will be reset by page unload or user interaction
+              return;
+            }
           }
+
+          // If we get here, either the response was not ok or the data is invalid
+          // Redirect to pricing page as fallback
+          router.push('/pricing');
+          // Keep isNavigating true - it will be reset by page unload or user interaction
         },
         {
           loadingMessage: '✨ Entering Traders Utopia...',
-          errorMessage: 'Failed to verify access',
+          errorMessage: 'Failed to enter application',
         }
       );
-
-      if (result.hasAccess && result.serverResult?.success) {
-        const server = result.serverResult.server;
-        const firstChannel = server.channels?.[0];
-
-        if (firstChannel) {
-          router.push(`/servers/${server.id}/channels/${firstChannel.id}`);
-        } else {
-          router.push(`/servers/${server.id}`);
-        }
-      } else {
-        router.push('/pricing');
-      }
     } catch (error) {
       console.error('❌ Error in smart entry:', error);
       router.push('/pricing');
-    } finally {
-      setIsProcessing(false);
+      // Keep isNavigating true - it will be reset by page unload or user interaction
     }
   };
 
-  const isLoadingState =
-    !isLoaded || authLoading || loading.isLoading || isProcessing;
+  const isLoadingState = !isLoaded || loading.isLoading || isNavigating;
 
   return (
     <Button
@@ -133,18 +100,10 @@ export function SmartEntryButton({
           {isLoadingState
             ? 'Loading...'
             : !isSignedIn
-              ? 'Enter Traders Utopia'
-              : 'Enter Traders Utopia'}
+            ? 'Enter Traders Utopia'
+            : 'Enter Traders Utopia'}
         </span>
       </div>
-
-      {/* ✅ PERFORMANCE: Show optimization indicator */}
-      {!isLoadingState && hasAccess && (
-        <div
-          className='absolute top-1 right-1 w-2 h-2 bg-green-400 rounded-full opacity-60'
-          title='Access verified via optimized cache'
-        />
-      )}
     </Button>
   );
 }

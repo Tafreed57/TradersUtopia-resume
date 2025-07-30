@@ -1,23 +1,18 @@
-import { NextResponse } from 'next/server';
+import { SubscriptionSyncService } from '@/services/subscription-sync-service';
 import Stripe from 'stripe';
-import { updateSubscriptionInDatabase } from '../utils';
 
-export const customerSubscriptionUpdated = async (event: any) => {
-  console.log('customerSubscriptionUpdated', event);
-  const updatedSubscription = event.data.object as Stripe.Subscription;
-  console.log(`🔄 Subscription updated: ${updatedSubscription.id}`);
+export async function handleSubscriptionUpdated(
+  subscription: Stripe.Subscription
+) {
+  const subscriptionSyncService = new SubscriptionSyncService();
 
   try {
-    await updateSubscriptionInDatabase(updatedSubscription);
-    console.log(
-      `⚡ [WEBHOOK-OPTIMIZED] Subscription update processed efficiently`
+    // Use the new unified sync method that leverages the data extraction service
+    await subscriptionSyncService.syncFromStripeObject(subscription);
+    await subscriptionSyncService.updateUserAccess(
+      subscription.customer as string
     );
-    return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error handling subscription update:', error);
-    return NextResponse.json(
-      { error: 'Subscription update failed' },
-      { status: 500 }
-    );
+    throw error;
   }
-};
+}

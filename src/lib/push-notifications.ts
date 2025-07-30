@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import { db } from '@/lib/db';
+import { UserService } from '@/services/database/user-service';
 
 // Configure web-push with proper VAPID subject
 let vapidSubject: string;
@@ -71,23 +71,25 @@ export async function sendPushNotification(
   data: PushNotificationData
 ): Promise<boolean> {
   try {
-    // Get user's profile with push subscriptions
-    const profile = await db.profile.findFirst({
-      where: { userId: data.userId },
-    });
+    // Initialize UserService
+    const userService = new UserService();
+
+    // Get user's push subscriptions using the service
+    const user = await userService.getUserWithPushSubscriptions(data.userId);
 
     if (
-      !profile ||
-      !profile.pushSubscriptions ||
-      profile.pushSubscriptions.length === 0
+      !user ||
+      !user.pushSubscriptions ||
+      user.pushSubscriptions.length === 0
     ) {
       // ✅ PERFORMANCE: Skip logging for better performance
       return false;
     }
 
-    const pushSubscriptions = profile.pushSubscriptions as any[];
+    const pushSubscriptions = user.pushSubscriptions;
     let successCount = 0;
     let failureCount = 0;
+    const invalidEndpoints: string[] = [];
 
     // Prepare notification payload
     const payload = JSON.stringify({
@@ -134,17 +136,9 @@ export async function sendPushNotification(
             error
           );
 
-          // If subscription is invalid (410 Gone), remove it
+          // If subscription is invalid (410 Gone), mark it for removal
           if (error.statusCode === 410 || error.statusCode === 404) {
-            // Remove invalid subscription from database
-            const updatedSubscriptions = pushSubscriptions.filter(
-              (_, i) => i !== index
-            );
-            // ✅ FIX: Use profile.id instead of userId for the database update
-            await db.profile.update({
-              where: { id: profile.id }, // Use profile.id instead of userId
-              data: { pushSubscriptions: updatedSubscriptions },
-            });
+            invalidEndpoints.push(subscription.endpoint);
           }
 
           failureCount++;
@@ -154,6 +148,14 @@ export async function sendPushNotification(
     );
 
     await Promise.all(sendPromises);
+
+    // Clean up invalid subscriptions if any were found
+    if (invalidEndpoints.length > 0) {
+      await userService.removeInvalidPushSubscriptions(
+        data.userId,
+        invalidEndpoints
+      );
+    }
 
     // ✅ PERFORMANCE: Push notification results (no console output for performance)
     return successCount > 0;
@@ -168,39 +170,20 @@ export async function subscribeToPushNotifications(
   subscription: PushSubscription
 ): Promise<boolean> {
   try {
-    const profile = await db.profile.findFirst({
-      where: { userId },
-    });
+    // Initialize UserService
+    const userService = new UserService();
 
-    if (!profile) {
-      console.error('❌ [PUSH] Profile not found for user:', userId);
-      return false;
-    }
-
-    const existingSubscriptions = (profile.pushSubscriptions as any[]) || [];
-
-    // Check if subscription already exists
-    const existingIndex = existingSubscriptions.findIndex(
-      (sub: PushSubscription) => sub.endpoint === subscription.endpoint
+    // Use the service to upsert the push subscription
+    const success = await userService.upsertPushSubscription(
+      userId,
+      subscription
     );
 
-    let updatedSubscriptions;
-    if (existingIndex >= 0) {
-      // Update existing subscription
-      updatedSubscriptions = [...existingSubscriptions];
-      updatedSubscriptions[existingIndex] = subscription;
-    } else {
-      // Add new subscription
-      updatedSubscriptions = [...existingSubscriptions, subscription];
+    if (success) {
+      console.log('✅ [PUSH] Push subscription saved successfully');
     }
 
-    // ✅ FIX: Use profile.id instead of userId for the database update
-    await db.profile.update({
-      where: { id: profile.id }, // Use profile.id instead of userId
-      data: { pushSubscriptions: updatedSubscriptions },
-    });
-
-    return true;
+    return success;
   } catch (error) {
     console.error('❌ [PUSH] Error saving push subscription:', error);
     console.error('❌ [PUSH] Full error details:', error);

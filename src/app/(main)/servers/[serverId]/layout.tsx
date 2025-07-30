@@ -3,9 +3,11 @@ import { redirect } from 'next/navigation';
 
 import { ServerHeader } from '@/components/layout/server-header';
 import { ServerSideBar } from '@/components/layout/server-side-bar';
+import { MainContent } from '@/components/layout/main-content';
 import { ProductPaymentGate } from '@/components/product-payment-gate';
-import { getCurrentProfileWithSync, getServer } from '@/lib/query';
+import { getCurrentProfileForAuth, getServer } from '@/lib/query';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
+import { ServerWithMembersWithUsers } from '@/types/server';
 
 const ServerIdLayout = async ({
   children,
@@ -14,7 +16,7 @@ const ServerIdLayout = async ({
   children: React.ReactNode;
   params: { serverId: string };
 }) => {
-  const profile = await getCurrentProfileWithSync();
+  const profile = await getCurrentProfileForAuth();
 
   if (!profile) {
     return <RedirectToSignIn />;
@@ -33,13 +35,13 @@ const ServerIdLayout = async ({
   return (
     <ProductPaymentGate allowedProductIds={allowedProductIds}>
       <div className='h-full'>
-        <div className='hidden md:flex h-full w-60 z-20 flex-col fixed inset-y-0'>
+        <div className='hidden md:flex h-full z-20 flex-col fixed inset-y-0'>
           <ServerSideBar serverId={params.serverId} />
         </div>
-        <main className='h-full md:pl-60'>
-          <ServerHeader server={server} />
+        <MainContent id='main-content'>
+          <ServerHeader server={server as ServerWithMembersWithUsers} />
           {children}
-        </main>
+        </MainContent>
       </div>
     </ProductPaymentGate>
   );

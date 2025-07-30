@@ -1,10 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { SmartEntryButton } from '@/components/smart-entry-button';
-import { AutoRouteAfterSignIn } from '@/components/auto-route-after-signin';
 import { SharedNavbar } from '@/components/shared-navbar';
 import { HeroBanner } from '@/components/hero-banner';
 import { TrackRecordMinimal } from '@/components/track-record/track-record-minimal';
-import { Suspense } from 'react';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import {
@@ -23,6 +21,7 @@ import {
 } from 'lucide-react';
 
 export default function HomePage() {
+  // const { user, hasAccess, isAdmin } = useExtendedUser();
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden pwa-layout safe-min-height'>
       {/* Animated Background Effects */}
@@ -34,9 +33,9 @@ export default function HomePage() {
 
       <div className='relative z-10 pwa-safe-top pwa-safe-bottom safe-area-inset-left safe-area-inset-right'>
         {/* Auto-route component for handling post-sign-in routing */}
-        <Suspense fallback={null}>
+        {/* <Suspense fallback={null}>
           <AutoRouteAfterSignIn />
-        </Suspense>
+        </Suspense> */}
 
         {/* Hero Banner */}
         <HeroBanner />
@@ -1033,8 +1032,8 @@ export default function HomePage() {
 
             <div className='border-t border-gray-800 pt-8 mt-8 text-center'>
               <p className='text-gray-400 text-sm'>
-                © 2024 TradersUtopia. All rights reserved. Trading involves
-                risk and may not be suitable for all investors.
+                © 2024 TradersUtopia. All rights reserved. Trading involves risk
+                and may not be suitable for all investors.
               </p>
             </div>
           </div>

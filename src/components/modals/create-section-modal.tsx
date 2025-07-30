@@ -1,16 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -19,102 +9,53 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/store';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { secureAxiosPost } from '@/lib/csrf-client';
-import { useRouter, useParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { FormModal } from './base';
 
 const schema = z.object({
   name: z.string().min(1, { message: 'Section name is required' }),
 });
 
 export function CreateSectionModal() {
-  const router = useRouter();
-  const params = useParams();
-  const type = useStore(state => state.type);
-  const isOpen = useStore(state => state.isOpen);
-  const onClose = useStore(state => state.onClose);
   const data = useStore(state => state.data);
 
-  const isModelOpen = isOpen && type === 'createSection';
-
-  const form = useForm({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      name: '',
-    },
-  });
-
-  const isLoading = form.formState.isSubmitting;
-
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    try {
-      const url = `/api/sections?serverId=${data?.server?.id}`;
-      await secureAxiosPost(url, values);
-
-      form.reset();
-      router.refresh();
-      onClose();
-    } catch (error) {
-      //
-    }
-  };
-
-  const handleClose = () => {
-    form.reset();
-    onClose();
+    const url = `/api/sections?serverId=${data?.server?.id}`;
+    await secureAxiosPost(url, values);
   };
 
   return (
-    <Dialog open={isModelOpen} onOpenChange={handleClose}>
-      <DialogContent className='bg-white text-black p-0 overflow-hidden'>
-        <DialogHeader className='pt-8 px-6'>
-          <DialogTitle className='text-2xl text-center font-bold'>
-            Create Section
-          </DialogTitle>
-          <DialogDescription className='text-center text-zinc-500'>
-            Organize your channels into sections for better structure
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
-            <div className='space-y-8 px-6'>
-              <FormField
-                control={form.control}
-                name='name'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
-                      Section name
-                    </FormLabel>
-
-                    <FormControl>
-                      <Input
-                        disabled={isLoading}
-                        className='bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0'
-                        placeholder='Enter section name'
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <DialogFooter className='bg-gray-100 px-6 py-4'>
-              <Button
-                type='submit'
-                variant='default'
-                disabled={isLoading}
-                className='w-full'
-              >
-                {isLoading ? 'Creating...' : 'Create Section'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <FormModal
+      type='createSection'
+      title='Create Section'
+      description='Organize your channels into sections for better structure'
+      schema={schema}
+      defaultValues={{ name: '' }}
+      onSubmit={onSubmit}
+      submitText='Create Section'
+    >
+      {form => (
+        <FormField
+          control={form.control}
+          name='name'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className='uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70'>
+                Section name
+              </FormLabel>
+              <FormControl>
+                <Input
+                  className='bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0'
+                  placeholder='Enter section name'
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+    </FormModal>
   );
 }

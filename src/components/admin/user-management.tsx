@@ -175,86 +175,6 @@ function UserManagement({
     }
   };
 
-  const handleGrant = async (userId: string) => {
-    if (
-      !confirm(
-        'Are you sure you want to GRANT SUBSCRIPTION ACCESS to this user? This will give them premium features.'
-      )
-    ) {
-      return;
-    }
-
-    setActionLoading(`grant-${userId}`);
-    try {
-      const response = await makeSecureRequest(
-        '/api/admin/users/grant-subscription',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId }),
-        }
-      );
-
-      if (response.ok) {
-        await fetchUsers(); // Refresh the user list
-        showToast.success(
-          'Subscription Granted',
-          'User has been granted subscription access'
-        );
-      } else {
-        const error = await response.json();
-        showToast.error('Grant Failed', error.message);
-      }
-    } catch (error) {
-      console.error('Error granting subscription:', error);
-      showToast.error('Error', 'Failed to grant subscription');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleCancel = async (userId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to CANCEL this user's subscription? They will lose premium access."
-      )
-    ) {
-      return;
-    }
-
-    setActionLoading(`cancel-${userId}`);
-    try {
-      const response = await makeSecureRequest(
-        '/api/admin/users/cancel-subscription',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId }),
-        }
-      );
-
-      if (response.ok) {
-        await fetchUsers(); // Refresh the user list
-        showToast.success(
-          'Subscription Cancelled',
-          'User subscription has been cancelled'
-        );
-      } else {
-        const error = await response.json();
-        showToast.error('Cancel Failed', error.message);
-      }
-    } catch (error) {
-      console.error('Error cancelling subscription:', error);
-      showToast.error('Error', 'Failed to cancel subscription');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const handleToggleAdmin = async (
     userId: string,
     isCurrentlyAdmin: boolean
@@ -300,48 +220,6 @@ function UserManagement({
     } catch (error) {
       console.error('Error toggling admin status:', error);
       showToast.error('Error', 'Failed to toggle admin status');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleFixAllAdminServerRoles = async () => {
-    if (
-      !confirm(
-        "Fix ALL admin server roles? This will update ALL global admins to have ADMIN role in ALL servers and join them to any admin-created servers they're not already in."
-      )
-    ) {
-      return;
-    }
-
-    setActionLoading('fix-admin-roles');
-    try {
-      const response = await makeSecureRequest(
-        '/api/admin/update-all-server-roles',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        showToast.success(
-          'Admin Server Roles Fixed!',
-          `Updated ${data.summary.totalRolesUpdated} roles and joined ${data.summary.totalServersJoined} servers for ${data.summary.totalAdmins} admins`
-        );
-
-        // Refresh user data to reflect changes
-        await fetchUsers();
-      } else {
-        const error = await response.json();
-        showToast.error('Fix Failed', error.message);
-      }
-    } catch (error) {
-      console.error('Error fixing admin server roles:', error);
-      showToast.error('Error', 'Failed to fix admin server roles');
     } finally {
       setActionLoading(null);
     }
@@ -412,21 +290,6 @@ function UserManagement({
               <Database className='w-4 h-4 mr-2' />
             )}
             {loading ? 'Loading...' : 'Load Users'}
-          </Button>
-          <Button
-            onClick={handleFixAllAdminServerRoles}
-            disabled={actionLoading === 'fix-admin-roles'}
-            size='sm'
-            className='bg-orange-600 hover:bg-orange-700 w-full sm:w-auto'
-          >
-            {actionLoading === 'fix-admin-roles' ? (
-              <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
-            ) : (
-              <UserCog className='w-4 h-4 mr-2' />
-            )}
-            {actionLoading === 'fix-admin-roles'
-              ? 'Fixing...'
-              : 'Fix Admin Server Roles'}
           </Button>
         </div>
       </div>
@@ -559,52 +422,7 @@ function UserManagement({
                             </Button>
 
                             {/* Quick Actions - Grid on Mobile */}
-                            <div className='grid grid-cols-3 gap-2 sm:flex sm:gap-1 order-2 sm:order-none'>
-                              {/* Subscription Action */}
-                              {userData.subscription?.status === 'active' ? (
-                                <Button
-                                  size='sm'
-                                  variant='destructive'
-                                  onClick={() => handleCancel(userData.userId)}
-                                  disabled={
-                                    actionLoading ===
-                                    `cancel-${userData.userId}`
-                                  }
-                                  className='bg-orange-600 hover:bg-orange-700 min-w-0'
-                                  title='Cancel Subscription'
-                                >
-                                  {actionLoading ===
-                                  `cancel-${userData.userId}` ? (
-                                    <RefreshCw className='w-3 h-3 sm:w-4 sm:h-4 animate-spin' />
-                                  ) : (
-                                    <CreditCard className='w-3 h-3 sm:w-4 sm:h-4' />
-                                  )}
-                                  <span className='ml-1 text-xs sm:hidden'>
-                                    Cancel
-                                  </span>
-                                </Button>
-                              ) : (
-                                <Button
-                                  size='sm'
-                                  onClick={() => handleGrant(userData.userId)}
-                                  disabled={
-                                    actionLoading === `grant-${userData.userId}`
-                                  }
-                                  className='bg-green-600 hover:bg-green-700 min-w-0'
-                                  title='Grant Subscription'
-                                >
-                                  {actionLoading ===
-                                  `grant-${userData.userId}` ? (
-                                    <RefreshCw className='w-3 h-3 sm:w-4 sm:h-4 animate-spin' />
-                                  ) : (
-                                    <UserPlus className='w-3 h-3 sm:w-4 sm:h-4' />
-                                  )}
-                                  <span className='ml-1 text-xs sm:hidden'>
-                                    Grant
-                                  </span>
-                                </Button>
-                              )}
-
+                            <div className='grid grid-cols-2 gap-2 sm:flex sm:gap-1 order-2 sm:order-none'>
                               {/* Admin Toggle */}
                               <Button
                                 size='sm'

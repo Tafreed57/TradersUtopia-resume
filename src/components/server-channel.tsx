@@ -1,6 +1,6 @@
 'use client';
 import { cn } from '@/lib/utils';
-import { Channel, ChannelType, MemberRole, Server } from '@prisma/client';
+import { Channel, ChannelType, Role, Server } from '@prisma/client';
 import { Edit, Hash, Trash, GripVertical, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,
@@ -16,16 +16,16 @@ import React, {
   useState,
   useTransition,
 } from 'react';
-import { useStore } from '@/store/store';
 import { ModalType } from '@/types/store';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDragDrop } from '@/contexts/drag-drop-provider';
+import { useStore } from '@/store/store';
 
 interface ServerChannelProps {
   channel: Channel;
   server: Server;
-  role?: MemberRole;
+  role?: Role;
 }
 
 // ✅ SIMPLIFIED: Only Hash icon for TEXT channels (removed Mic and Video)
@@ -37,7 +37,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const params = useParams();
   const router = useRouter();
   const onOpen = useStore(state => state.onOpen);
-  const { insertionIndicator } = useDragDrop();
+  const { insertionIndicator, canDragDrop } = useDragDrop();
   const [isPending, startTransition] = useTransition();
   const [optimisticActive, setOptimisticActive] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -50,16 +50,17 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   }, []);
 
   // ✅ SIMPLIFIED: Always Hash icon since we only support TEXT channels
-  const Icon = iconMap[channel.type];
+  const Icon = iconMap[channel.type as keyof typeof iconMap];
   const isActive = params?.channelId === channel.id;
 
   // ✅ UPDATED: Allow admins and moderators to edit any channel including general
-  const isAdmin = role === MemberRole.ADMIN;
-  const isModerator = role === MemberRole.MODERATOR;
+  const isAdmin = role?.name === 'admin';
+  const isModerator = role?.name === 'premium';
   const canModifyChannel = isAdmin || isModerator;
 
   // Enable drag and drop for channels when user can manage them
-  const isDraggable = canModifyChannel;
+  // Use centralized permission check from context
+  const isDraggable = canDragDrop && canModifyChannel;
 
   // Check if insertion indicator should be shown for this channel
   const showInsertionBefore =

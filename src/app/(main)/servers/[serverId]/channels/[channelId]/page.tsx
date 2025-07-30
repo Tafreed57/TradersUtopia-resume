@@ -1,15 +1,20 @@
 import { ChatHeader } from '@/components/chat/chat-header';
-import { ConditionalChatInput } from '@/components/chat/conditional-chat-input';
+import { ChatInput } from '@/components/chat/chat-input';
 import { ChatMessages } from '@/components/chat/chat-messages';
 import {
   getChannel,
-  getCurrentProfile,
   getMember,
   getServer,
   getAllServers,
+  getCurrentProfileForAuth,
 } from '@/lib/query';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import {
+  MemberWithUserAndRole,
+  ServerWithMembersWithUsers,
+} from '@/types/server';
+import { Role } from '@prisma/client';
 
 interface ChannelIdPageProps {
   params: {
@@ -34,21 +39,21 @@ function ChannelLoadingState() {
 }
 
 export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
-  const profile = await getCurrentProfile();
-  if (!profile) {
+  const user = await getCurrentProfileForAuth();
+  if (!user) {
     return redirect('/sign-in');
   }
 
-  const channel = await getChannel(params.channelId);
-  const member = await getMember(params.serverId, profile.id);
+  const channel = await getChannel(params.channelId, user.id);
+  const member = await getMember(params.serverId, user.id);
 
   if (!channel || !member) {
     return redirect('/');
   }
 
   // Fetch server data for mobile navigation
-  const server = await getServer(params.serverId, profile.id);
-  const servers = await getAllServers(profile.id);
+  const server = await getServer(params.serverId, user.id);
+  const servers = await getAllServers(user.id);
 
   return (
     <Suspense fallback={<ChannelLoadingState />}>
@@ -69,8 +74,8 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
           serverId={channel?.serverId}
           type='channel'
           channelId={channel?.id}
-          server={server || undefined}
-          role={member?.role}
+          server={server as ServerWithMembersWithUsers}
+          role={member?.role as Role}
           servers={servers?.map(server => ({
             id: server.id,
             name: server.name,
@@ -82,7 +87,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
         <div className='flex-1 relative z-10 overflow-visible'>
           <ChatMessages
             chatId={channel.id}
-            member={member}
+            member={member as MemberWithUserAndRole}
             name={channel.name}
             type='channel'
             apiUrl='/api/messages'
@@ -95,7 +100,7 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
             paramValue={channel.id}
           />
         </div>
-        <ConditionalChatInput
+        <ChatInput
           name={channel.name}
           type='channel'
           apiUrl='/api/messages'
@@ -103,10 +108,8 @@ export default async function ChannelIdPage({ params }: ChannelIdPageProps) {
             channelId: channel.id,
             serverId: channel.serverId,
           }}
-          member={member}
+          member={member as MemberWithUserAndRole}
         />
-
-        {/* ✅ REMOVED: Audio and Video channel MediaRoom components */}
       </div>
     </Suspense>
   );

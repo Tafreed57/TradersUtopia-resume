@@ -57,7 +57,7 @@ export function TimerSettingsModal() {
 
       setIsLoadingSettings(true);
       try {
-        const response = await fetch('/api/timer/settings');
+        const response = await fetch('/api/timer');
         const data = await response.json();
 
         if (data.success && data.settings) {
@@ -81,7 +81,7 @@ export function TimerSettingsModal() {
   // Get CSRF token
   const getCSRFToken = async () => {
     try {
-      const response = await fetch('/api/csrf-token');
+      const response = await fetch('/api/tokens/security?type=csrf');
       const data = await response.json();
       return data.token;
     } catch (error) {

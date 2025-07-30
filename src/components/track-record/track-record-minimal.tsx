@@ -2,44 +2,19 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
-import {
-  Plus,
-  Send,
-  FileText,
-  Image,
-  Loader2,
-  Clock,
-  TrendingUp,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useStore } from '@/store/store';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Loader2, Clock, TrendingUp, FileText, Image } from 'lucide-react';
 import { UserAvatar } from '../user/user-avatar';
 
 export function TrackRecordMinimal() {
-  const { userId, isLoaded } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isLoaded } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<any[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [messagesCount, setMessagesCount] = useState(0);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [adminStatusChecked, setAdminStatusChecked] = useState(false);
-  const onOpen = useStore(state => state.onOpen);
 
-  // Load messages only (optimized to not check admin status every time)
+  // Load messages only
   const loadMessages = async () => {
     try {
-      const messagesResponse = await fetch('/api/track-record/messages');
+      const messagesResponse = await fetch('/api/track-record');
       const messagesData = await messagesResponse.json();
       console.log(messagesData);
       setMessages(messagesData.items || []);
@@ -49,70 +24,9 @@ export function TrackRecordMinimal() {
     }
   };
 
-  // Check admin status only when needed (with caching)
-  const checkAdminStatus = async () => {
-    if (!userId || adminStatusChecked) return;
-
-    try {
-      // Check if we have cached admin status
-      const cacheKey = `admin_status_${userId}`;
-      const cached = sessionStorage.getItem(cacheKey);
-
-      if (cached) {
-        const { isAdmin: cachedAdmin, timestamp } = JSON.parse(cached);
-        // Use cache if it's less than 5 minutes old
-        if (Date.now() - timestamp < 5 * 60 * 1000) {
-          setIsAdmin(cachedAdmin);
-          setCurrentUserId(userId);
-          setAdminStatusChecked(true);
-          return;
-        }
-      }
-
-      // Only make API call if not cached or cache expired
-      const adminResponse = await fetch('/api/admin/check-status');
-
-      if (adminResponse.status === 429) {
-        // Rate limited - use cached value or default to false
-        const fallback = cached ? JSON.parse(cached).isAdmin : false;
-        setIsAdmin(fallback);
-        setCurrentUserId(userId);
-        setAdminStatusChecked(true);
-        return;
-      }
-
-      const adminData = await adminResponse.json();
-      setIsAdmin(adminData.isAdmin);
-      setCurrentUserId(userId);
-      setAdminStatusChecked(true);
-
-      // Cache the result
-      sessionStorage.setItem(
-        cacheKey,
-        JSON.stringify({
-          isAdmin: adminData.isAdmin,
-          timestamp: Date.now(),
-        })
-      );
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      setIsAdmin(false);
-      setCurrentUserId(userId);
-      setAdminStatusChecked(true);
-    }
-  };
-
   const loadData = async () => {
     try {
       await loadMessages();
-
-      if (userId && !adminStatusChecked) {
-        await checkAdminStatus();
-      } else if (!userId) {
-        setIsAdmin(false);
-        setCurrentUserId(null);
-        setAdminStatusChecked(true);
-      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -127,7 +41,6 @@ export function TrackRecordMinimal() {
 
     // Add event listener for refresh events
     const handleRefresh = () => {
-      // Only refresh messages, not admin status
       loadMessages();
     };
 
@@ -136,67 +49,7 @@ export function TrackRecordMinimal() {
     return () => {
       window.removeEventListener('trackRecordRefresh', handleRefresh);
     };
-  }, [isLoaded, userId]);
-
-  // Reset admin status check when user changes
-  useEffect(() => {
-    if (userId !== currentUserId) {
-      setAdminStatusChecked(false);
-    }
-  }, [userId, currentUserId]);
-
-  // Helper function to check if current user can edit/delete a message
-  const canEditMessage = (message: any) => {
-    return isAdmin && message.admin?.id === currentUserId;
-  };
-
-  const canDeleteMessage = (message: any) => {
-    return isAdmin; // Admins can delete any message
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || isSubmitting) return;
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch('/api/track-record/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content: inputValue }),
-      });
-
-      if (response.ok) {
-        setInputValue('');
-
-        // Reset textarea height
-        const textarea = document.querySelector(
-          'textarea'
-        ) as HTMLTextAreaElement;
-        if (textarea) {
-          textarea.style.height = 'auto';
-          textarea.style.height = '56px';
-        }
-
-        // Refresh messages only
-        loadMessages();
-      }
-    } catch (error) {
-      console.error('Error submitting:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
+  }, [isLoaded]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -335,60 +188,6 @@ export function TrackRecordMinimal() {
                         </span>
                       </div>
                     </div>
-
-                    <div className='opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
-                      {isAdmin &&
-                      (canEditMessage(message) || canDeleteMessage(message)) ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              className='h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50'
-                            >
-                              <MoreHorizontal className='h-4 w-4' />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align='end'
-                            className='w-48 bg-gray-800 border border-gray-700 shadow-xl'
-                          >
-                            {canEditMessage(message) && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  onOpen('editTrackRecordMessage', { message })
-                                }
-                                className='text-gray-300 hover:text-white hover:bg-gray-700 cursor-pointer'
-                              >
-                                <Edit className='h-4 w-4 mr-2' />
-                                Edit Message
-                              </DropdownMenuItem>
-                            )}
-                            {canDeleteMessage(message) && (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  onOpen('deleteTrackRecordMessage', {
-                                    message,
-                                  })
-                                }
-                                className='text-red-400 hover:text-red-300 hover:bg-red-900/20 cursor-pointer'
-                              >
-                                <Trash2 className='h-4 w-4 mr-2' />
-                                Delete Message
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50'
-                        >
-                          <Clock className='h-4 w-4' />
-                        </Button>
-                      )}
-                    </div>
                   </div>
 
                   {/* Message Content */}
@@ -436,25 +235,6 @@ export function TrackRecordMinimal() {
           </div>
         )}
       </div>
-
-      {/* Enhanced Admin Input */}
-      {isAdmin && (
-        <div className='border-t border-gray-700/50 bg-gradient-to-r from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl'>
-          <div className='p-4 md:p-6'>
-            <div className='flex items-center justify-between mb-3'>
-              <div className='flex items-center gap-2'>
-                <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse'></div>
-                <span className='text-green-400 text-sm font-medium'>
-                  LIVE UPDATES
-                </span>
-              </div>
-              <div className='text-xs text-gray-400'>
-                Share your trading insights
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

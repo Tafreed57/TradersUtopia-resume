@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { ChannelType, MemberRole } from '@prisma/client';
+import { ChannelType, Role } from '@prisma/client';
 import { ServerSectionHeader } from '@/components/server-section-header';
 import { ServerChannel } from '@/components/server-channel';
 import {
@@ -11,7 +11,7 @@ import {
 
 interface SectionContentProps {
   server: any;
-  role: MemberRole | undefined;
+  role: Role | undefined;
   channelsWithoutSection: any[];
   sectionsWithChannels: any[];
 }
@@ -25,7 +25,7 @@ function SectionItem({
 }: {
   section: any;
   server: any;
-  role: MemberRole | undefined;
+  role: Role | undefined;
   depth?: number;
 }) {
   const marginLeft = `${depth * 1.5}rem`;
@@ -219,7 +219,7 @@ export function SectionContent({
       {/* Show create section prompt if no sections exist and no ungrouped channels */}
       {localSectionsWithChannels.length === 0 &&
         localChannelsWithoutSection.length === 0 &&
-        role !== MemberRole.GUEST && (
+        role?.name !== 'free' && (
           <div className='px-3 py-4 text-center'>
             <p className='text-xs text-gray-500 mb-2'>
               No channels or sections created yet. Create your first section to
@@ -231,7 +231,7 @@ export function SectionContent({
       {/* Show create section prompt if only ungrouped channels exist */}
       {localSectionsWithChannels.length === 0 &&
         localChannelsWithoutSection.length > 0 &&
-        role !== MemberRole.GUEST && (
+        role?.name !== 'free' && (
           <div className='px-3 py-4 text-center'>
             <p className='text-xs text-gray-500 mb-2'>
               Create sections to organize your channels better!

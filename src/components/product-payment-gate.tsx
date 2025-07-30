@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useEffect } from 'react';
 import { useNavigationLoading } from '@/hooks/use-navigation-loading';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
-import { ApiLoading } from '@/components/ui/loading-components';
 import {
   Card,
   CardContent,
@@ -15,46 +13,20 @@ import {
 } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { Lock, Star, CheckCircle, Shield } from 'lucide-react';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 interface ProductPaymentGateProps {
   children: React.ReactNode;
-  allowedProductIds: string[];
+  allowedProductIds?: string[]; // Keep for compatibility but not used since useExtendedUser handles access
   productName?: string;
   upgradeUrl?: string;
   features?: string[];
   adminBypass?: boolean; // Allow parent to override admin check
 }
 
-interface ProductAccessStatus {
-  hasAccess: boolean;
-  productId?: string;
-  reason: string;
-  subscriptionEnd?: string;
-}
-
-// ✅ PERFORMANCE: Simple in-memory cache to avoid redundant API calls
-const accessCache = new Map<
-  string,
-  { status: ProductAccessStatus; timestamp: number }
->();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-function getCacheKey(userId: string, productIds: string[]): string {
-  return `${userId}:${productIds.sort().join(',')}`;
-}
-
-function setCachedAccess(
-  userId: string,
-  productIds: string[],
-  status: ProductAccessStatus
-): void {
-  const key = getCacheKey(userId, productIds);
-  accessCache.set(key, { status, timestamp: Date.now() });
-}
-
 export function ProductPaymentGate({
   children,
-  allowedProductIds,
+  allowedProductIds = [], // Keep for compatibility
   productName = 'Premium Product',
   upgradeUrl = '/pricing',
   features = [
@@ -62,95 +34,15 @@ export function ProductPaymentGate({
     'Premium features',
     'Priority support',
   ],
-  adminBypass = true, // ✅ UPDATED: Default to true so admins automatically get premium access
+  adminBypass = true, // Default to true so admins automatically get premium access
 }: ProductPaymentGateProps) {
-  const { isLoaded, user } = useUser();
+  const { isLoaded, user, isAdmin, hasAccess, isLoading, refetch } =
+    useExtendedUser();
   const { navigate } = useNavigationLoading();
-  const apiLoading = useComprehensiveLoading('api');
   const verifyLoading = useComprehensiveLoading('api');
-  const [accessStatus, setAccessStatus] = useState<ProductAccessStatus | null>(
-    null
-  );
-  const [loading, setLoading] = useState(true);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [hasChecked, setHasChecked] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-
-  const checkProductAccess = useCallback(async () => {
-    if (!isLoaded || !user) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setApiError(null);
-
-    try {
-      // Fetch profile data first
-      const profileResponse = await fetch('/api/user/profile');
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-        setProfile(profileData);
-      }
-      const result = await apiLoading.withLoading(
-        async () => {
-          const response = await fetch('/api/check-product-subscription', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              allowedProductIds,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-
-          return response.json();
-        },
-        {
-          loadingMessage: `Checking ${productName} access...`,
-          errorMessage: 'Failed to verify subscription',
-        }
-      );
-
-      if (result.hasAccess) {
-        setAccessStatus({
-          hasAccess: true,
-          productId: result.productId,
-          reason: result.reason,
-        });
-      } else {
-        setAccessStatus({
-          hasAccess: false,
-          reason: result.reason || 'No valid subscription found',
-        });
-      }
-    } catch (error) {
-      console.error('❌ [ProductPaymentGate] Access check failed:', error);
-      setApiError(
-        error instanceof Error ? error.message : 'Unknown error occurred'
-      );
-      setAccessStatus({
-        hasAccess: false,
-        reason: 'Failed to verify subscription access',
-      });
-    } finally {
-      setLoading(false);
-      setHasChecked(true);
-    }
-  }, [isLoaded, user?.id, allowedProductIds]); // ✅ SIMPLIFIED: Removed heavy dependencies
 
   const verifyStripePayment = async () => {
     try {
-      // ✅ PERFORMANCE: Clear cache on manual verification
-      if (user) {
-        const key = getCacheKey(user.id, allowedProductIds);
-        accessCache.delete(key);
-      }
-
       const result = await verifyLoading.withLoading(
         async () => {
           const response = await fetch('/api/verify-stripe-payment', {
@@ -170,8 +62,8 @@ export function ProductPaymentGate({
       );
 
       if (result.success) {
-        // Re-check product access after verification
-        await checkProductAccess();
+        // Re-check access after verification
+        await refetch();
       } else {
         alert(`❌ ${result.message || result.error}`);
       }
@@ -182,14 +74,6 @@ export function ProductPaymentGate({
   };
 
   useEffect(() => {
-    // ✅ PERFORMANCE: Only check once on mount if we don't have cached data
-    if (!hasChecked && isLoaded) {
-      checkProductAccess();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, hasChecked]); // ✅ FIXED: Exclude checkProductAccess to prevent re-render loops
-
-  useEffect(() => {
     if (!isLoaded || !user) {
       // Don't automatically redirect to sign-in to prevent homepage redirects
       // Users will see the payment gate with manual sign-in options
@@ -197,14 +81,11 @@ export function ProductPaymentGate({
   }, [isLoaded, user]);
 
   // ✅ ADMIN BYPASS: Skip all checks for admin users
-  if (isLoaded && user && profile?.isAdmin && adminBypass) {
-    console.log(
-      '🚀 [ProductPaymentGate] Admin bypass active - rendering content directly'
-    );
+  if (isLoaded && user && isAdmin && adminBypass) {
     return <>{children}</>;
   }
 
-  if (!isLoaded) {
+  if (!isLoaded || isLoading) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white flex items-center justify-center safe-area-full'>
         <div className='text-center'>
@@ -306,39 +187,8 @@ export function ProductPaymentGate({
     );
   }
 
-  if (loading) {
-    return (
-      <div className='min-h-screen bg-gradient-to-br from-gray-950 via-slate-950/90 to-black safe-area-full'>
-        <ApiLoading
-          isLoading={loading || apiLoading.isLoading}
-          error={apiError}
-          retry={checkProductAccess}
-          message={
-            apiLoading.isLoading
-              ? apiLoading.message
-              : `Checking ${productName} access...`
-          }
-        />
-      </div>
-    );
-  }
-
-  // Admin bypass check (fallback to Clerk metadata if adminBypass prop wasn't set)
-  const isAdminFromClerk =
-    user?.publicMetadata?.isAdmin || user?.unsafeMetadata?.isAdmin;
-  const isDev = process.env.NODE_ENV === 'development';
-
-  // Only log when there's an access issue, not for every successful access
-  if (!accessStatus?.hasAccess && !isAdminFromClerk) {
-    console.log('🔒 [ProductPaymentGate] Access denied:', {
-      clerkAdmin: isAdminFromClerk,
-      hasAccess: accessStatus?.hasAccess,
-      reason: accessStatus?.reason || 'No access status available',
-      productName,
-    });
-  }
-
-  if (!accessStatus?.hasAccess && !isAdminFromClerk) {
+  // Check if user has access using the useExtendedUser hook
+  if (!hasAccess) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white flex items-center justify-center p-4 relative overflow-hidden safe-area-full'>
         {/* Animated Background Effects */}
@@ -367,7 +217,9 @@ export function ProductPaymentGate({
                 <strong className='text-white'>Access Status:</strong>{' '}
                 <span className='font-semibold text-red-400'>Restricted</span>
               </p>
-              <p className='text-sm text-gray-400'>{accessStatus?.reason}</p>
+              <p className='text-sm text-gray-400'>
+                Subscription required to access {productName}
+              </p>
               {allowedProductIds.length > 0 && (
                 <p className='text-xs text-gray-500 mt-2'>
                   Required products: {allowedProductIds.join(', ')}
@@ -413,16 +265,11 @@ export function ProductPaymentGate({
                     size='lg'
                     className='flex-1 border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-300'
                     onClick={() => {
-                      // Clear cache and retry instead of going to homepage
-                      if (user) {
-                        const key = `${user.id}:${allowedProductIds.sort().join(',')}`;
-                        accessCache.delete(key);
-                      }
-                      checkProductAccess();
+                      refetch();
                     }}
-                    disabled={loading}
+                    disabled={isLoading}
                   >
-                    {loading ? 'Checking...' : 'Retry Access Check'}
+                    {isLoading ? 'Checking...' : 'Retry Access Check'}
                   </Button>
 
                   <Button

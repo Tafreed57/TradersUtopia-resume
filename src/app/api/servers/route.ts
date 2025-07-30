@@ -1,132 +1,19 @@
-import { prisma } from '@/lib/prismadb';
-import { getCurrentProfile } from '@/lib/query';
-import { MemberRole } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
-import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
-import { validateInput, serverCreationSchema } from '@/lib/validation';
+import { withAuth, authHelpers } from '@/middleware/auth-middleware';
+import { ServerService } from '@/services/database/server-service';
 
-// Force dynamic rendering due to rate limiting using request.headers
 export const dynamic = 'force-dynamic';
+/**
+ * Get Default Server
+ * Returns the default server information for authenticated users
+ * Requires either admin privileges or active subscription
+ */
+export const GET = withAuth(async (req: NextRequest, { user }) => {
+  const serverService = new ServerService();
+  const server = await serverService.getDefaultServer();
 
-export async function POST(req: NextRequest) {
-  try {
-    // ✅ SECURITY: Rate limiting for server operations
-    const rateLimitResult = await rateLimitServer()(req);
-    if (!rateLimitResult.success) {
-      trackSuspiciousActivity(req, 'SERVER_CREATION_RATE_LIMIT_EXCEEDED');
-      return rateLimitResult.error;
-    }
-
-    // ✅ SECURITY: Input validation for server creation
-    const validationResult = await validateInput(serverCreationSchema)(req);
-    if (!validationResult.success) {
-      trackSuspiciousActivity(req, 'INVALID_SERVER_CREATION_INPUT');
-      return validationResult.error;
-    }
-
-    const { name, imageUrl } = validationResult.data;
-    const profile = await getCurrentProfile();
-    if (!profile) {
-      trackSuspiciousActivity(req, 'UNAUTHENTICATED_SERVER_CREATION');
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    // ✅ ENHANCEMENT: Check if user is admin for auto-adding all users
-    const isAdmin = profile.isAdmin;
-
-    const server = await prisma.server.create({
-      data: {
-        profileId: profile.id,
-        name,
-        imageUrl,
-        inviteCode: uuidv4(),
-        channels: {
-          create: [{ name: 'general', profileId: profile.id }],
-        },
-        members: {
-          create: [{ role: MemberRole.ADMIN, profileId: profile.id }],
-        },
-      },
-    });
-
-    // ✅ ENHANCEMENT: If admin creates server, auto-add all existing users
-    if (isAdmin) {
-      // Get all existing profiles except the creator (already added)
-      const allProfiles = await prisma.profile.findMany({
-        where: {
-          id: {
-            not: profile.id, // Exclude creator
-          },
-        },
-        select: {
-          id: true,
-          email: true,
-          isAdmin: true,
-        },
-      });
-
-      // Auto-add all users to the admin-created server
-      if (allProfiles.length > 0) {
-        const memberData = allProfiles.map(userProfile => ({
-          profileId: userProfile.id,
-          serverId: server.id,
-          role: userProfile.isAdmin ? MemberRole.ADMIN : MemberRole.GUEST,
-        }));
-
-        await prisma.member.createMany({
-          data: memberData,
-          skipDuplicates: true, // Prevent duplicate memberships
-        });
-      }
-    }
-
-    return NextResponse.json(server);
-  } catch (error) {
-    trackSuspiciousActivity(req, 'SERVER_CREATION_DATABASE_ERROR');
-    return new NextResponse('Internal Server Error', { status: 500 });
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    // ✅ SECURITY: Rate limiting for server operations
-    const rateLimitResult = await rateLimitServer()(req);
-    if (!rateLimitResult.success) {
-      trackSuspiciousActivity(req, 'SERVER_LIST_RATE_LIMIT_EXCEEDED');
-      return rateLimitResult.error;
-    }
-
-    const profile = await getCurrentProfile();
-    if (!profile) {
-      trackSuspiciousActivity(req, 'UNAUTHENTICATED_SERVER_LIST');
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    // Get all servers the user is a member of
-    const servers = await prisma.server.findMany({
-      where: {
-        members: {
-          some: {
-            profileId: profile.id,
-          },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        imageUrl: true,
-        createdAt: true,
-        profileId: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-
-    return NextResponse.json(servers || []);
-  } catch (error) {
-    trackSuspiciousActivity(req, 'SERVER_LIST_DATABASE_ERROR');
-    return new NextResponse('Internal Server Error', { status: 500 });
-  }
-}
+  return NextResponse.json({
+    serverId: server.id,
+    landingChannelId: server.channels[0].id,
+  });
+}, authHelpers.subscriberOnly('get_default_server'));

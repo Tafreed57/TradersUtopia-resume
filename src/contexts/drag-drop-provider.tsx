@@ -25,6 +25,7 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { useRouter } from 'next/navigation';
 import { secureAxiosPatch } from '@/lib/csrf-client';
 import { toast } from 'sonner';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 type DragItem = {
   id: string;
@@ -43,6 +44,7 @@ interface DragDropContextValue {
   isDragging: boolean;
   dragItem: DragItem | null;
   insertionIndicator: InsertionIndicator;
+  canDragDrop: boolean;
   reorderChannel: (
     serverId: string,
     channelId: string,
@@ -80,6 +82,15 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
     useState<InsertionIndicator>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+
+  // Get admin status from useExtendedUser hook
+  const { isAdmin, isLoading } = useExtendedUser({
+    enableAutoCheck: true,
+    checkOnMount: true,
+  });
+
+  // Only allow drag and drop for admin users
+  const canDragDrop = isAdmin && !isLoading;
 
   // Debounced router refresh to avoid multiple refreshes during rapid operations
   const debouncedRefresh = useCallback(() => {
@@ -427,10 +438,18 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       isDragging,
       dragItem,
       insertionIndicator,
+      canDragDrop,
       reorderChannel,
       reorderSection,
     }),
-    [isDragging, dragItem, insertionIndicator, reorderChannel, reorderSection]
+    [
+      isDragging,
+      dragItem,
+      insertionIndicator,
+      reorderChannel,
+      reorderSection,
+      canDragDrop,
+    ]
   );
 
   return (

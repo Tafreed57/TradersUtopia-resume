@@ -11,10 +11,9 @@ import qs from 'query-string';
 import { useStore } from '@/store/store';
 import { EmojiPicker } from '@/components/ui/emoji-picker';
 import { Member } from '@prisma/client';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 interface ChatInputProps {
   apiUrl: string;
@@ -30,49 +29,18 @@ const formSchema = z.object({
 
 export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
   const onOpen = useStore(state => state.onOpen);
-  const { user } = useUser();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
 
-  const RATE_LIMIT_COOLDOWN = 5000; // 5 seconds in milliseconds
+  // Use the extended user hook for admin checking
+  const { isAdmin, isLoading: adminCheckLoading } = useExtendedUser();
 
-  // ✅ FIX: Move useForm hook call BEFORE any conditional returns
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       content: '',
     },
   });
-
-  // ✅ GLOBAL ADMIN CHECK: Only global admins can send messages
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!user) {
-        setIsAdmin(false);
-        setAdminCheckLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/admin/check-status');
-        if (response.ok) {
-          const data = await response.json();
-          setIsAdmin(data.isAdmin);
-        } else {
-          setIsAdmin(false);
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-      } finally {
-        setAdminCheckLoading(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, [user]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -128,10 +96,12 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
   // Show loading state while checking admin status
   if (adminCheckLoading) {
     return (
-      <div className='p-4 sm:p-6 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/50'>
-        <div className='flex items-center justify-center text-gray-400'>
-          <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2'></div>
-          <span className='text-sm'>Checking permissions...</span>
+      <div className='relative z-10 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/30'>
+        <div className='p-4 sm:p-6 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/50'>
+          <div className='flex items-center justify-center text-gray-400'>
+            <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2'></div>
+            <span className='text-sm'>Checking permissions...</span>
+          </div>
         </div>
       </div>
     );
@@ -143,81 +113,83 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
-          control={form.control}
-          name='content'
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <div className='relative p-4 sm:p-6 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/50'>
-                  {/* Background pattern */}
-                  <div className='absolute inset-0 bg-gradient-to-r from-blue-900/5 via-transparent to-purple-900/5 pointer-events-none' />
+    <div className='relative z-10 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/30 overflow-visible'>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <FormField
+            control={form.control}
+            name='content'
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <div className='relative p-4 sm:p-6 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/50'>
+                    {/* Background pattern */}
+                    <div className='absolute inset-0 bg-gradient-to-r from-blue-900/5 via-transparent to-purple-900/5 pointer-events-none' />
 
-                  {/* Add Media Button - vertically centered */}
-                  <button
-                    type='button'
-                    onClick={() => onOpen('messageFile', { apiUrl, query })}
-                    className='absolute top-1/2 -translate-y-1/2 left-6 sm:left-8 h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-br from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 rounded-xl flex items-center justify-center touch-manipulation group backdrop-blur-sm hover:scale-110 hover:shadow-lg hover:shadow-blue-400/20 z-10'
-                  >
-                    <Plus className='h-4 w-4 sm:h-5 sm:w-5 text-blue-400 group-hover:text-blue-300 transition-colors' />
-                  </button>
+                    {/* Add Media Button - vertically centered */}
+                    <button
+                      type='button'
+                      onClick={() => onOpen('messageFile', { apiUrl, query })}
+                      className='absolute top-1/2 -translate-y-1/2 left-6 sm:left-8 h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-br from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-400/30 hover:border-blue-400/50 transition-all duration-300 rounded-xl flex items-center justify-center touch-manipulation group backdrop-blur-sm hover:scale-110 hover:shadow-lg hover:shadow-blue-400/20 z-10'
+                    >
+                      <Plus className='h-4 w-4 sm:h-5 sm:w-5 text-blue-400 group-hover:text-blue-300 transition-colors' />
+                    </button>
 
-                  {/* Multi-line textarea with proper padding for buttons */}
-                  <Textarea
-                    disabled={isLoading}
-                    className='pl-16 sm:pl-20 pr-16 sm:pr-20 py-4 sm:py-5 bg-gradient-to-r from-gray-800/80 to-gray-700/80 border border-gray-600/30 focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:border-blue-400/50 focus-visible:ring-offset-0 text-white placeholder:text-gray-400 text-sm sm:text-base rounded-xl sm:rounded-2xl min-h-[52px] sm:min-h-[56px] max-h-[200px] touch-manipulation backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50 resize-none overflow-y-auto'
-                    placeholder={`Message #${name} (Shift+Enter for new line)`}
-                    autoComplete='off'
-                    spellCheck={true}
-                    autoCorrect='on'
-                    autoCapitalize='sentences'
-                    onKeyDown={handleKeyDown}
-                    rows={1}
-                    style={{
-                      resize: 'none',
-                      overflow: 'hidden',
-                    }}
-                    onChange={e => {
-                      // Auto-resize functionality
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
+                    {/* Multi-line textarea with proper padding for buttons */}
+                    <Textarea
+                      disabled={isLoading}
+                      className='pl-16 sm:pl-20 pr-16 sm:pr-20 py-4 sm:py-5 bg-gradient-to-r from-gray-800/80 to-gray-700/80 border border-gray-600/30 focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:border-blue-400/50 focus-visible:ring-offset-0 text-white placeholder:text-gray-400 text-sm sm:text-base rounded-xl sm:rounded-2xl min-h-[52px] sm:min-h-[56px] max-h-[200px] touch-manipulation backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50 resize-none overflow-y-auto'
+                      placeholder={`Message #${name} (Shift+Enter for new line)`}
+                      autoComplete='off'
+                      spellCheck={true}
+                      autoCorrect='on'
+                      autoCapitalize='sentences'
+                      onKeyDown={handleKeyDown}
+                      rows={1}
+                      style={{
+                        resize: 'none',
+                        overflow: 'hidden',
+                      }}
+                      onChange={e => {
+                        // Auto-resize functionality
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
 
-                      // Reset height if content is cleared
-                      if (e.target.value === '') {
-                        target.style.height = '52px';
-                      }
-
-                      // Update form field
-                      field.onChange(e);
-                    }}
-                    value={field.value}
-                    name={field.name}
-                  />
-
-                  {/* Emoji Button - vertically centered */}
-                  <div className='absolute top-1/2 -translate-y-1/2 right-6 sm:right-8'>
-                    <div className='h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-gray-700/50 to-gray-600/50 border border-gray-600/30 backdrop-blur-sm hover:from-purple-600/20 hover:to-pink-600/20 hover:border-purple-400/50 transition-all duration-300 hover:scale-110 flex items-center justify-center group z-10'>
-                      <EmojiPicker
-                        onChange={value =>
-                          form.setValue('content', field.value + ' ' + value)
+                        // Reset height if content is cleared
+                        if (e.target.value === '') {
+                          target.style.height = '52px';
                         }
-                      />
+
+                        // Update form field
+                        field.onChange(e);
+                      }}
+                      value={field.value}
+                      name={field.name}
+                    />
+
+                    {/* Emoji Button - vertically centered */}
+                    <div className='absolute top-1/2 -translate-y-1/2 right-6 sm:right-8'>
+                      <div className='h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-gray-700/50 to-gray-600/50 border border-gray-600/30 backdrop-blur-sm hover:from-purple-600/20 hover:to-pink-600/20 hover:border-purple-400/50 transition-all duration-300 hover:scale-110 flex items-center justify-center group z-10'>
+                        <EmojiPicker
+                          onChange={value =>
+                            form.setValue('content', field.value + ' ' + value)
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Helper text */}
+                    <div className='absolute bottom-1 right-6 sm:right-8 text-xs text-gray-400/70'>
+                      Enter to send • Shift+Enter for new line
                     </div>
                   </div>
-
-                  {/* Helper text */}
-                  <div className='absolute bottom-1 right-6 sm:right-8 text-xs text-gray-400/70'>
-                    Enter to send • Shift+Enter for new line
-                  </div>
-                </div>
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      </form>
-    </Form>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </form>
+      </Form>
+    </div>
   );
 }

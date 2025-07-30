@@ -1,19 +1,15 @@
-import { ourFileRouter } from '@/app/api/uploadthing/core';
 import '@/app/globals.css';
 import { ModalProvider } from '@/contexts/modal-provider';
 import { QueryProvider } from '@/contexts/query-provider';
 import { ThemeProvider } from '@/contexts/theme-provider';
 import { LoadingProvider } from '@/contexts/loading-provider';
-import { UnifiedAuthProvider } from '@/contexts/unified-auth-provider';
-import { AuthWrapper } from '@/components/auth-wrapper';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
 import { ClerkProvider } from '@clerk/nextjs';
-import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin';
 import type { Metadata, Viewport } from 'next';
 import { Open_Sans } from 'next/font/google';
-import { extractRouterConfig } from 'uploadthing/server';
 import { Toaster } from 'sonner';
+import Script from 'next/script';
 import { ServiceWorkerHandler } from '@/components/service-worker-handler';
 import { PushNotificationPrompt } from '@/components/notifications/push-notification-prompt';
 
@@ -130,6 +126,12 @@ export default function RootLayout({
           'bg-white dark:bg-gradient-to-br dark:from-gray-900/95 dark:via-gray-800/90 dark:to-gray-900/95 overflow-visible min-h-screen safe-area-full'
         )}
       >
+        {/* Rewardful Affiliate Tracking */}
+        <Script src='https://r.wdfl.co/rw.js' data-rewardful='3d3b7a'></Script>
+        <Script id='rewardful-queue' strategy='beforeInteractive'>
+          {`(function(w,r){w._rwq=r;w[r]=w[r]||function(){(w[r].q=w[r].q||[]).push(arguments)}})(window,'rewardful');`}
+        </Script>
+
         <ClerkProvider
           appearance={{
             variables: { colorPrimary: '#000000' },
@@ -154,40 +156,36 @@ export default function RootLayout({
             storageKey='traders-utopia-theme'
             disableTransitionOnChange
           >
-            <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
             <ErrorBoundary>
               <LoadingProvider>
                 <QueryProvider>
-                  <UnifiedAuthProvider>
-                    <AuthWrapper>
-                      <ModalProvider />
-                      <ServiceWorkerHandler />
-                      <PushNotificationPrompt />
-                      <Toaster
-                        position='top-right'
-                        expand={true}
-                        richColors
-                        closeButton
-                        className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
-                        style={
-                          {
-                            '--toaster-top': `calc(1rem + env(safe-area-inset-top))`,
-                            '--toaster-right': `calc(1rem + env(safe-area-inset-right))`,
-                          } as React.CSSProperties
-                        }
-                        toastOptions={{
-                          className:
-                            'text-sm p-4 min-h-[48px] touch-manipulation',
-                          style: {
-                            minHeight: '48px',
-                            fontSize: '14px',
-                            padding: '16px',
-                          },
-                        }}
-                      />
-                      {children}
-                    </AuthWrapper>
-                  </UnifiedAuthProvider>
+                  {/* <UnifiedAuthProvider> */}
+                  {/* <AuthWrapper> */}
+                  <ModalProvider />
+                  <ServiceWorkerHandler />
+                  <PushNotificationPrompt />
+                  <Toaster
+                    position='top-right'
+                    expand={true}
+                    richColors
+                    closeButton
+                    className='md:max-w-md sm:max-w-sm max-w-[calc(100vw-2rem)]'
+                    style={
+                      {
+                        '--toaster-top': `calc(1rem + env(safe-area-inset-top))`,
+                        '--toaster-right': `calc(1rem + env(safe-area-inset-right))`,
+                      } as React.CSSProperties
+                    }
+                    toastOptions={{
+                      className: 'text-sm p-4 min-h-[48px] touch-manipulation',
+                      style: {
+                        minHeight: '48px',
+                        fontSize: '14px',
+                        padding: '16px',
+                      },
+                    }}
+                  />
+                  {children}
                 </QueryProvider>
               </LoadingProvider>
             </ErrorBoundary>

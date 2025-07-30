@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { ServerWithMembersWithProfiles } from '@/types/server';
-import { MemberRole } from '@prisma/client';
+import { ServerWithMembersWithUsers } from '@/types/server';
+import { Role } from '@prisma/client';
 import { MobileCompleteSidebar } from '@/components/mobile-complete-sidebar';
 
 interface MobileToggleProps {
-  server: ServerWithMembersWithProfiles;
-  role?: MemberRole;
+  server: ServerWithMembersWithUsers;
+  role?: Role;
   servers?: Array<{
     id: string;
     name: string;

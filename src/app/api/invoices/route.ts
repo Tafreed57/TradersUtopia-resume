@@ -1,88 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { withAuth, authHelpers } from '@/middleware/auth-middleware';
+import { CustomerService } from '@/services/stripe/customer-service';
+import { UserService } from '@/services/database/user-service';
+import { apiLogger } from '@/lib/enhanced-logger';
+import { ValidationError } from '@/lib/error-handling';
 import Stripe from 'stripe';
-import { db } from '@/lib/db';
-import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-export async function GET(req: NextRequest) {
+/**
+ * Get User Invoices
+ * Fetches user's invoices from Stripe with formatting
+ */
+export const GET = withAuth(async (req: NextRequest, { user }) => {
+  const userService = new UserService();
+  const customerService = new CustomerService();
+
   try {
-    // 1. Rate limiting
-    const rateLimitResult = await rateLimitGeneral()(req);
-    if (!rateLimitResult.success) {
-      trackSuspiciousActivity(req, 'Rate limit exceeded on invoice fetch');
-      return rateLimitResult.error;
+    // Step 1: Get user profile using service layer
+    const profile = await userService.findByUserIdOrEmail(user.id);
+    if (!profile || !profile.email) {
+      throw new ValidationError('User profile or email not found');
     }
 
-    // 2. Authentication
-    const user = await currentUser();
-    if (!user) {
-      trackSuspiciousActivity(req, 'Unauthorized invoice fetch attempt');
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    // Step 2: Find or discover Stripe customer using service layer
+    let stripeCustomer = await customerService.findCustomerByEmail(
+      profile.email
+    );
 
-    // 3. Get user's profile to find their Stripe customer ID
-    const profile = await db.profile.findFirst({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        stripeCustomerId: true,
-      },
-    });
+    if (!stripeCustomer) {
+      // Customer not found via email, return empty results
+      apiLogger.databaseOperation('user_invoices_no_customer', true, {
+        userId: user.id.substring(0, 8) + '***',
+        email: profile.email.substring(0, 3) + '***',
+      });
 
-    if (!profile) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Profile not found',
-        },
-        { status: 404 }
-      );
-    }
-
-    let customerId = profile.stripeCustomerId;
-
-    // If no customer ID in database, try to find it in Stripe by user email
-    if (!customerId) {
-      // Get user email from current user object
-      const email = user.emailAddresses?.[0]?.emailAddress;
-
-      if (email) {
-        // Search for customer by email in Stripe
-        const customers = await stripe.customers.list({
-          email: email,
-          limit: 1,
-        });
-
-        if (customers.data.length > 0) {
-          customerId = customers.data[0].id;
-
-          // Update database with found customer ID
-          await db.profile.update({
-            where: { id: profile.id },
-            data: { stripeCustomerId: customerId },
-          });
-        }
-      }
-    }
-
-    if (!customerId) {
       return NextResponse.json({
         success: true,
         invoices: [],
+        total: 0,
         message: 'No Stripe customer found',
+        performance: {
+          optimized: true,
+          serviceLayerUsed: true,
+        },
       });
     }
 
-    // 4. Fetch invoices from Stripe
+    // Step 3: Fetch invoices from Stripe
     const invoices = await stripe.invoices.list({
-      customer: customerId,
+      customer: stripeCustomer.id,
       limit: 50, // Get last 50 invoices
       expand: ['data.subscription'],
     });
 
-    // 5. Format invoice data
+    // Step 4: Format invoice data
     const formattedInvoices = invoices.data.map(invoice => ({
       id: invoice.id,
       number: invoice.number,
@@ -108,30 +80,41 @@ export async function GET(req: NextRequest) {
         : null,
     }));
 
+    apiLogger.databaseOperation('user_invoices_retrieved', true, {
+      userId: user.id.substring(0, 8) + '***',
+      email: profile.email.substring(0, 3) + '***',
+      customerId: stripeCustomer.id.substring(0, 8) + '***',
+      invoiceCount: formattedInvoices.length,
+      totalAmount: formattedInvoices.reduce((sum, inv) => sum + inv.total, 0),
+    });
+
+    console.log(
+      `📧 [INVOICES] Retrieved ${formattedInvoices.length} invoices for user: ${profile.email}`
+    );
+
     return NextResponse.json({
       success: true,
       invoices: formattedInvoices,
-      total: invoices.data.length,
+      total: formattedInvoices.length,
+      performance: {
+        optimized: true,
+        serviceLayerUsed: true,
+      },
     });
   } catch (error) {
-    console.error('❌ Invoice fetch error:', error);
+    apiLogger.databaseOperation('user_invoices_retrieval_failed', false, {
+      userId: user.id.substring(0, 8) + '***',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
 
+    // Handle specific Stripe errors
     if (error instanceof Stripe.errors.StripeError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Stripe error: ${error.message}`,
-        },
-        { status: 400 }
-      );
+      throw new ValidationError(`Stripe error: ${error.message}`);
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch invoices',
-      },
-      { status: 500 }
+    throw new ValidationError(
+      'Failed to fetch invoices: ' +
+        (error instanceof Error ? error.message : 'Unknown error')
     );
   }
-}
+}, authHelpers.userOnly('VIEW_INVOICES'));

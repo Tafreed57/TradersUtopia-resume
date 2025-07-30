@@ -1,79 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
+import { withAuth, authHelpers } from '@/middleware/auth-middleware';
+import { UserService } from '@/services/database/user-service';
+import { apiLogger } from '@/lib/enhanced-logger';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+/**
+ * Check User Payment/Subscription Status
+ * Returns comprehensive subscription and access information using the latest subscription model
+ */
+export const GET = withAuth(async (req: NextRequest, { user }) => {
+  const userService = new UserService();
+
   try {
-    // ✅ SECURITY FIX: Add rate limiting
-    const rateLimitResult = await rateLimitGeneral()(request);
-    if (!rateLimitResult.success) {
-      trackSuspiciousActivity(request, 'PAYMENT_STATUS_RATE_LIMIT_EXCEEDED');
-      return rateLimitResult.error;
-    }
+    // Step 1: Get user's subscription status using the service layer
+    const subscriptionStatus = await userService.getUserSubscriptionStatus(
+      user.id
+    );
 
-    // Step 1: Test Clerk authentication
-    const user = await currentUser();
+    // Step 2: Get additional subscription details if needed
+    const subscriptionExpiry = await userService.getSubscriptionExpiryInfo(
+      user.id
+    );
 
-    if (!user) {
-      return NextResponse.json(
-        { hasAccess: false, reason: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
-
-    // Step 2: Search for profile
-    const profile = await db.profile.findFirst({
-      where: { userId: user.id },
+    apiLogger.databaseOperation('payment_status_checked', true, {
+      userId: user.id.substring(0, 8) + '***',
+      hasAccess: subscriptionStatus.hasActiveSubscription,
+      subscriptionStatus: subscriptionStatus.status,
+      currentPeriodEnd: subscriptionStatus.currentPeriodEnd,
+      isExpired: subscriptionExpiry.isExpired,
+      isInGracePeriod: subscriptionExpiry.isInGracePeriod,
     });
-
-    if (!profile) {
-      return NextResponse.json(
-        {
-          hasAccess: false,
-          reason: 'Profile not found in database',
-          userId: user.id,
-          suggestion: 'User needs to be created in database',
-        },
-        { status: 404 }
-      );
-    }
-
-    // Step 3: Check subscription status (no auto-sync for security)
-    let currentProfile = profile;
-    let autoSyncPerformed = false;
-
-    // Step 4: Final subscription status check
-    const hasActiveSubscription =
-      currentProfile.subscriptionStatus === 'ACTIVE' &&
-      currentProfile.subscriptionEnd &&
-      new Date() < currentProfile.subscriptionEnd;
 
     return NextResponse.json({
-      hasAccess: hasActiveSubscription,
-      subscriptionStatus: currentProfile.subscriptionStatus,
-      subscriptionEnd: currentProfile.subscriptionEnd,
-      reason: hasActiveSubscription
+      hasAccess: subscriptionStatus.hasActiveSubscription,
+      subscriptionStatus: subscriptionStatus.status,
+      subscriptionEnd: subscriptionStatus.currentPeriodEnd,
+      reason: subscriptionStatus.hasActiveSubscription
         ? 'Active subscription'
-        : 'No active subscription',
-      autoSyncPerformed: autoSyncPerformed,
-      debug: {
-        userId: user.id,
-        profileId: currentProfile.id,
-        profileEmail: currentProfile.email,
-      },
+        : `No active subscription (${subscriptionStatus.status})`,
+      stripeSubscriptionId: subscriptionStatus.stripeSubscriptionId,
     });
   } catch (error) {
-    // ✅ SECURITY: Generic error response - no internal details exposed
+    apiLogger.databaseOperation('payment_status_check_error', false, {
+      userId: user.id.substring(0, 8) + '***',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
     return NextResponse.json(
       {
         hasAccess: false,
-        reason: 'Unable to check payment status at this time',
-        message: 'Service temporarily unavailable. Please try again later.',
+        reason: 'Error checking subscription status',
+        subscriptionStatus: 'ERROR',
+        debug: {
+          userId: user.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
       },
       { status: 500 }
     );
   }
-}
+}, authHelpers.userOnly('CHECK_PAYMENT_STATUS'));

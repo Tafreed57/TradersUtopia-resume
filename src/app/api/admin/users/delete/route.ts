@@ -1,133 +1,121 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
+import { withAuth, authHelpers } from '@/middleware/auth-middleware';
+import { UserService } from '@/services/database/user-service';
+import { CustomerService } from '@/services/stripe/customer-service';
+import { apiLogger } from '@/lib/enhanced-logger';
+import { ValidationError, NotFoundError } from '@/lib/error-handling';
 import { clerkClient } from '@clerk/nextjs/server';
-import { rateLimitServer, trackSuspiciousActivity } from '@/lib/rate-limit';
-import { strictCSRFValidation } from '@/lib/csrf';
-import Stripe from 'stripe';
 
-export async function POST(request: NextRequest) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-  try {
-    // CSRF protection for admin operations
-    const csrfValid = await strictCSRFValidation(request);
-    if (!csrfValid) {
-      trackSuspiciousActivity(request, 'ADMIN_DELETE_CSRF_VALIDATION_FAILED');
-      return NextResponse.json(
-        {
-          error: 'CSRF validation failed',
-          message: 'Invalid security token. Please refresh and try again.',
-        },
-        { status: 403 }
-      );
-    }
+/**
+ * Delete User Account (Admin Only)
+ * Performs complete cleanup: Database, Clerk, and Stripe
+ */
+export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
+  // Only global admins can delete users
+  if (!isAdmin) {
+    throw new ValidationError('Admin access required for user deletion');
+  }
 
-    // Rate limiting for admin operations
-    const rateLimitResult = await rateLimitServer()(request);
-    if (!rateLimitResult.success) {
-      trackSuspiciousActivity(request, 'ADMIN_DELETE_RATE_LIMIT_EXCEEDED');
-      return rateLimitResult.error;
-    }
+  const body = await req.json();
+  const { targetUserId } = body;
 
-    const user = await currentUser();
+  if (!targetUserId) {
+    throw new ValidationError('Target user ID is required');
+  }
 
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
+  // Prevent admin from deleting themselves
+  if (targetUserId === user.id) {
+    throw new ValidationError('Cannot delete your own account');
+  }
 
-    // Find the admin's profile and check admin status
-    const adminProfile = await db.profile.findFirst({
-      where: { userId: user.id },
-    });
+  const userService = new UserService();
+  const customerService = new CustomerService();
 
-    if (!adminProfile || !adminProfile.isAdmin) {
-      trackSuspiciousActivity(request, 'NON_ADMIN_DELETE_ATTEMPT');
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
+  // Step 1: Find target user
+  const targetUser = await userService.findByUserIdOrEmail(targetUserId);
+  if (!targetUser) {
+    throw new NotFoundError('Target user not found');
+  }
 
-    const { userId } = await request.json();
+  // Prevent deleting other admins
+  if (targetUser.isAdmin) {
+    throw new ValidationError('Cannot delete other admin accounts');
+  }
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Prevent self-deletion
-    if (userId === user.id) {
-      return NextResponse.json(
-        { error: 'Cannot delete your own account' },
-        { status: 400 }
-      );
-    }
-
-    // Find the user to delete
-    const targetProfile = await db.profile.findFirst({
-      where: { userId },
-    });
-
-    if (!targetProfile) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Cancel Stripe subscription if exists
-    if (
-      targetProfile.stripeSessionId &&
-      targetProfile.subscriptionStatus === 'ACTIVE'
-    ) {
-      try {
-        // Try to find and cancel the subscription using the customer ID
-        if (targetProfile.stripeCustomerId) {
-          const subscriptions = await stripe.subscriptions.list({
-            customer: targetProfile.stripeCustomerId,
-            status: 'active',
-            limit: 10,
-          });
-
-          for (const subscription of subscriptions.data) {
-            await stripe.subscriptions.cancel(subscription.id);
-          }
-        }
-      } catch (stripeError) {
-        // Continue with deletion even if Stripe cancellation fails
-      }
-    }
-
-    // Delete from database (this will cascade delete related records)
-    await db.profile.delete({
-      where: { userId },
-    });
-
-    // Delete from Clerk
+  // Step 2: Cleanup Stripe customer if exists
+  let stripeCleanupResult = null;
+  if (targetUser.email) {
     try {
-      const clerk = await clerkClient();
-      await clerk.users.deleteUser(userId);
-    } catch (clerkError) {
-      // Log but don't fail the request since database deletion was successful
+      const stripeCustomer = await customerService.findCustomerByEmail(
+        targetUser.email
+      );
+      if (stripeCustomer) {
+        stripeCleanupResult = await customerService.deleteCustomer(
+          stripeCustomer.id
+        );
+        apiLogger.databaseOperation('stripe_customer_deleted', true, {
+          customerId: stripeCustomer.id.substring(0, 8) + '***',
+          email: targetUser.email.substring(0, 3) + '***',
+        });
+      }
+    } catch (error) {
+      apiLogger.databaseOperation('stripe_customer_deletion_failed', false, {
+        email: targetUser.email.substring(0, 3) + '***',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      // Continue with deletion even if Stripe cleanup fails
     }
+  }
 
-    return NextResponse.json({
-      success: true,
-      message: 'User account has been permanently deleted',
-      deletedUser: {
-        userId: targetProfile.userId,
-        email: targetProfile.email,
-        name: targetProfile.name,
-      },
+  // Step 3: Delete from Clerk
+  let clerkCleanupResult = null;
+  try {
+    const clerk = await clerkClient();
+    clerkCleanupResult = await clerk.users.deleteUser(targetUserId);
+    apiLogger.databaseOperation('clerk_user_deleted', true, {
+      userId: targetUserId.substring(0, 8) + '***',
     });
   } catch (error) {
-    trackSuspiciousActivity(request, 'ADMIN_DELETE_ERROR');
-
-    return NextResponse.json(
-      {
-        error: 'Failed to delete user',
-        message: 'Unable to delete user account. Please try again later.',
-      },
-      { status: 500 }
-    );
+    apiLogger.databaseOperation('clerk_user_deletion_failed', false, {
+      userId: targetUserId.substring(0, 8) + '***',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    // Continue with database deletion even if Clerk cleanup fails
   }
-}
+
+  // Step 4: Delete from database using UserService
+  let databaseCleanupResult = false;
+  try {
+    databaseCleanupResult = await userService.deleteUser(targetUserId);
+  } catch (error) {
+    apiLogger.databaseOperation('database_user_deletion_failed', false, {
+      userId: targetUserId.substring(0, 8) + '***',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    // Continue with response even if database cleanup fails
+  }
+
+  apiLogger.databaseOperation('admin_user_deleted', true, {
+    adminId: user.id.substring(0, 8) + '***',
+    targetUserId: targetUserId.substring(0, 8) + '***',
+    targetEmail: targetUser.email?.substring(0, 3) + '***',
+    stripeCleanup: !!stripeCleanupResult,
+    clerkCleanup: !!clerkCleanupResult,
+    databaseCleanup: databaseCleanupResult,
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: 'User deleted successfully',
+    cleanup: {
+      database: databaseCleanupResult,
+      clerk: !!clerkCleanupResult,
+      stripe: !!stripeCleanupResult,
+    },
+    deletedUser: {
+      id: targetUser.id,
+      email: targetUser.email,
+      name: targetUser.name,
+    },
+  });
+}, authHelpers.adminOnly('DELETE_USER'));

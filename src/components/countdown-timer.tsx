@@ -23,26 +23,24 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<TimerSettings | null>(null);
+  const [timer, setTimer] = useState<TimerSettings | null>(null);
 
   // Fetch timer settings from API
-  const fetchTimerSettings = useCallback(async () => {
+  const fetchTimer = useCallback(async () => {
     try {
-      const response = await fetch('/api/timer/settings', {
+      const response = await fetch('/api/timer', {
         method: 'GET',
-        cache: 'no-store',
       });
-
       if (!response.ok) {
         throw new Error(`Failed to fetch timer settings: ${response.status}`);
       }
-
       const data = await response.json();
-      if (data.success && data.settings) {
-        setSettings(data.settings);
+
+      if (data.success && data.timer) {
+        setTimer(data.timer);
 
         // Convert remaining hours to hours, minutes, seconds
-        const totalSeconds = Math.floor(data.settings.remainingHours * 3600);
+        const totalSeconds = Math.floor(data.timer.remainingHours * 3600);
         const hours = Math.floor(totalSeconds / 3600);
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
@@ -65,8 +63,8 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
 
   // Initialize timer on mount
   useEffect(() => {
-    fetchTimerSettings();
-  }, [fetchTimerSettings]);
+    fetchTimer();
+  }, [fetchTimer]);
 
   // Timer countdown logic
   useEffect(() => {
@@ -78,7 +76,7 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
 
         // If timer reaches zero, refetch settings (auto-reset)
         if (hours === 0 && minutes === 0 && seconds === 0) {
-          fetchTimerSettings();
+          fetchTimer();
           return prev;
         }
 
@@ -97,32 +95,29 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isLoading, error, fetchTimerSettings]);
+  }, [isLoading, error, fetchTimer]);
 
   // Refetch timer settings every 5 minutes to stay in sync
   useEffect(() => {
-    const syncTimer = setInterval(
-      () => {
-        if (!isLoading) {
-          fetchTimerSettings();
-        }
-      },
-      5 * 60 * 1000
-    ); // 5 minutes
+    const syncTimer = setInterval(() => {
+      if (!isLoading) {
+        fetchTimer();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
 
     return () => clearInterval(syncTimer);
-  }, [isLoading, fetchTimerSettings]);
+  }, [isLoading, fetchTimer]);
 
   // Listen for timer settings updates from admin modal
   useEffect(() => {
     const handleTimerUpdate = () => {
-      fetchTimerSettings();
+      fetchTimer();
     };
 
     window.addEventListener('timerSettingsUpdated', handleTimerUpdate);
     return () =>
       window.removeEventListener('timerSettingsUpdated', handleTimerUpdate);
-  }, [fetchTimerSettings]);
+  }, [fetchTimer]);
 
   const formatTime = (hours: number, minutes: number, seconds: number) => {
     const hh = hours.toString().padStart(2, '0');
