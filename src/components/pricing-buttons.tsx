@@ -35,8 +35,6 @@ PricingButtonsProps) {
         // ✅ OPTIMIZED: Use cached auth data to determine redirect
         if (hasAccess) {
           router.push('/dashboard');
-        } else {
-          router.push('/payment-verification');
         }
       } else {
         // Redirect to sign-up with pricing page as the redirect destination

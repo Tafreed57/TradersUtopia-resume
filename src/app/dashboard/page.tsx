@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SmartEntryButton } from '@/components/smart-entry-button';
 import { SubscriptionManager } from '@/components/subscription/subscription-manager';
-import { NotificationSettings } from '@/components/notifications/notification-settings';
+
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import UserManagement from '@/components/admin/user-management';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
@@ -71,9 +71,7 @@ export default function Dashboard() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const tab = urlParams.get('tab');
-      if (tab === 'settings' || tab === 'notifications') {
-        setActiveTab('notifications');
-      } else if (tab === 'subscription') {
+      if (tab === 'subscription') {
         setActiveTab('subscription');
       }
     }
@@ -436,7 +434,7 @@ export default function Dashboard() {
                     Account Management
                   </CardTitle>
                   <CardDescription className='text-gray-400'>
-                    Manage your account, notifications, and subscription
+                    Manage your account and subscription
                   </CardDescription>
                 </div>
               </div>
@@ -449,7 +447,7 @@ export default function Dashboard() {
               >
                 <TabsList
                   className={`grid w-full ${
-                    isAdmin ? 'grid-cols-4' : 'grid-cols-3'
+                    isAdmin ? 'grid-cols-3' : 'grid-cols-2'
                   } bg-gray-700/50 p-2 gap-1 rounded-xl min-h-[60px]`}
                 >
                   <TabsTrigger
@@ -459,13 +457,7 @@ export default function Dashboard() {
                     <User className='w-4 h-4 mr-2 flex-shrink-0' />
                     <span className='truncate'>Account</span>
                   </TabsTrigger>
-                  <TabsTrigger
-                    value='notifications'
-                    className='data-[state=active]:bg-amber-600 data-[state=active]:shadow-lg rounded-lg transition-all duration-200 px-3 py-2 text-sm font-medium'
-                  >
-                    <Bell className='w-4 h-4 mr-2 flex-shrink-0' />
-                    <span className='truncate'>Notifications</span>
-                  </TabsTrigger>
+
                   <TabsTrigger
                     value='subscription'
                     className='data-[state=active]:bg-green-600 data-[state=active]:shadow-lg rounded-lg transition-all duration-200 px-3 py-2 text-sm font-medium'
@@ -543,10 +535,6 @@ export default function Dashboard() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value='notifications' className='mt-6'>
-                  <NotificationSettings />
-                </TabsContent>
-
                 <TabsContent value='subscription' className='mt-6'>
                   <SubscriptionManager />
                 </TabsContent>
@@ -572,7 +560,7 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                           <div className='p-4 bg-red-500/10 border border-red-400/20 rounded-xl'>
                             <div className='flex items-center gap-2 mb-2'>
                               <Users className='w-4 h-4 text-red-400' />
@@ -582,18 +570,6 @@ export default function Dashboard() {
                             </div>
                             <p className='text-gray-300 text-xs'>
                               Full user control, subscriptions, and permissions
-                            </p>
-                          </div>
-
-                          <div className='p-4 bg-orange-500/10 border border-orange-400/20 rounded-xl'>
-                            <div className='flex items-center gap-2 mb-2'>
-                              <Settings className='w-4 h-4 text-orange-400' />
-                              <span className='text-orange-400 font-medium text-sm'>
-                                Server Management
-                              </span>
-                            </div>
-                            <p className='text-gray-300 text-xs'>
-                              Server synchronization and platform health
                             </p>
                           </div>
 
@@ -612,42 +588,8 @@ export default function Dashboard() {
                       </div>
 
                       {/* Admin Tools Row */}
-                      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                        {/* Server Management Card */}
-                        <div className='p-6 bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-400/30 rounded-2xl'>
-                          <div className='flex items-center gap-3 mb-4'>
-                            <div className='w-10 h-10 bg-orange-500/20 rounded-xl flex items-center justify-center'>
-                              <Settings className='w-5 h-5 text-orange-400' />
-                            </div>
-                            <div>
-                              <h5 className='text-white font-semibold'>
-                                Server Management
-                              </h5>
-                              <p className='text-gray-300 text-sm'>
-                                Synchronize and manage servers
-                              </p>
-                            </div>
-                          </div>
-                          <div className='space-y-3'>
-                            <Button
-                              onClick={() =>
-                                (window.location.href =
-                                  '/api/servers/ensure-all-users')
-                              }
-                              className='w-full bg-orange-600 hover:bg-orange-700'
-                            >
-                              <Settings className='w-4 h-4 mr-2' />
-                              Sync All Servers
-                            </Button>
-                            <div className='p-3 bg-orange-500/10 border border-orange-400/20 rounded-lg'>
-                              <p className='text-orange-400 text-xs'>
-                                Ensures all users are properly synced to servers
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Quick Actions Card */}
+                      <div className='grid grid-cols-1 gap-6'>
+                        {/* System Health Card */}
                         <div className='p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-400/30 rounded-2xl'>
                           <div className='flex items-center gap-3 mb-4'>
                             <div className='w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center'>

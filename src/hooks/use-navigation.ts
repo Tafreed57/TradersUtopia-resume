@@ -32,8 +32,6 @@ function getLoadingMessageForPath(path: string): string {
   if (path.includes('/sign-up')) return 'Redirecting to sign up...';
   if (path.includes('/free-videos')) return 'Loading free course videos...';
   if (path.includes('/user-profile')) return 'Loading your profile...';
-  if (path.includes('/payment-verification'))
-    return 'Loading payment verification...';
   if (path.includes('/subscription-status'))
     return 'Loading subscription status...';
   if (path.includes('/checkout')) return 'Loading checkout page...';
