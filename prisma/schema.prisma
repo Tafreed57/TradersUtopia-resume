@@ -193,6 +193,7 @@ model Channel {
   sectionId   String?
   creatorId   String      // Admin who created the channel
   position    Int         @default(0)
+  isTrackRecord Boolean   @default(false) // Mark if this is the track record channel
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   
@@ -207,6 +208,7 @@ model Channel {
   @@index([sectionId])
   @@index([creatorId])
   @@index([position])
+  @@index([isTrackRecord])
   @@map("channels")
 }
 
