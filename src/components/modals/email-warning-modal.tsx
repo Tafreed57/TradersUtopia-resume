@@ -21,7 +21,7 @@ declare global {
 export function EmailWarningModal() {
   const { user } = useUser();
   const [hasConfirmed, setHasConfirmed] = useState(false);
-  const [referral, setReferral] = useState(null);
+  const [referral, setReferral] = useState<any | null>(null);
 
   const data = useStore(state => state.data);
   const stripeUrl = data.stripeUrl || '';
@@ -31,11 +31,16 @@ export function EmailWarningModal() {
   const handleProceed = () => {
     if (stripeUrl && userEmail) {
       try {
-        // Add prefilled_email parameter to the Stripe URL
+        // Add prefilled_email and client_reference_id parameters to the Stripe URL
         const url = new URL(stripeUrl);
         url.searchParams.set('prefilled_email', userEmail);
 
-        // open in new tab with prefilled email
+        // Add client_reference_id based on referral status
+        if (referral) {
+          url.searchParams.set('client_reference_id', referral.id);
+        }
+
+        // open in new tab with prefilled email and client reference
         window.open(url.toString(), '_blank');
       } catch (error) {
         console.error('Invalid URL:', error);
@@ -57,6 +62,7 @@ export function EmailWarningModal() {
         }
         console.log('Referral:', window.Rewardful.referral);
       });
+      console.log('Referral:', window.Rewardful.referral);
     }
   }, []);
 
