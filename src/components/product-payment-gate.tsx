@@ -36,8 +36,7 @@ export function ProductPaymentGate({
   ],
   adminBypass = true, // Default to true so admins automatically get premium access
 }: ProductPaymentGateProps) {
-  const { isLoaded, user, isAdmin, hasAccess, isLoading, refetch } =
-    useExtendedUser();
+  const { isLoaded, user, isAdmin, hasAccess, isLoading } = useExtendedUser();
   const { navigate } = useNavigationLoading();
   const verifyLoading = useComprehensiveLoading('api');
 
@@ -63,7 +62,7 @@ export function ProductPaymentGate({
 
       if (result.success) {
         // Re-check access after verification
-        await refetch();
+        // await refetch();
       } else {
         alert(`❌ ${result.message || result.error}`);
       }
@@ -264,9 +263,10 @@ export function ProductPaymentGate({
                     variant='outline'
                     size='lg'
                     className='flex-1 border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-300'
-                    onClick={() => {
-                      refetch();
-                    }}
+                    // TODO: Add retry access check
+                    // onClick={() => {
+                    //   refetch();
+                    // }}
                     disabled={isLoading}
                   >
                     {isLoading ? 'Checking...' : 'Retry Access Check'}

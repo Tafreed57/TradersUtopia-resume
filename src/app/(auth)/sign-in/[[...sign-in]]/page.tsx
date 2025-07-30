@@ -55,7 +55,7 @@ export default function Page({
 
       <div className='w-full max-w-md'>
         <SignIn
-          // fallbackRedirectUrl={redirectUrl}
+          fallbackRedirectUrl={redirectUrl}
           appearance={{
             elements: {
               rootBox: 'w-full flex justify-center',

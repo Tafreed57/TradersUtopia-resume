@@ -25,15 +25,7 @@ export function ServerHeader({ server }: ServerHeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // ✅ UPDATED: Use extended user hook for admin checks and user data
-  const {
-    isAdmin,
-    hasAccess,
-    isLoading: authLoading,
-    profile,
-  } = useExtendedUser({
-    enableLogging: false,
-    checkOnMount: true,
-  });
+  const { isAdmin, hasAccess, isLoading: authLoading } = useExtendedUser();
 
   // Determine if user has moderator privileges (admin or has access)
   const isModerator = isAdmin || hasAccess;
@@ -96,10 +88,10 @@ export function ServerHeader({ server }: ServerHeaderProps) {
                   {authLoading
                     ? 'Checking access...'
                     : isAdmin
-                      ? 'Admin'
-                      : hasAccess
-                        ? 'Premium Member'
-                        : 'Free Member'}
+                    ? 'Admin'
+                    : hasAccess
+                    ? 'Premium Member'
+                    : 'Free Member'}
                 </span>
               </div>
             </div>

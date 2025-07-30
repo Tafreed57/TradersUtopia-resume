@@ -9,11 +9,8 @@ interface PricingButtonsProps {
   // ... existing code ...
 }
 
-export function PricingButtons(
-  {
-    // ... existing code ...
-  }: PricingButtonsProps
-) {
+export function PricingButtons({}: // ... existing code ...
+PricingButtonsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +19,6 @@ export function PricingButtons(
     isSignedIn,
     user,
     hasAccess,
-    subscriptionData,
     isLoading: authLoading,
   } = useExtendedUser();
 
@@ -79,8 +75,8 @@ export function PricingButtons(
         {isLoadingState
           ? 'Loading...'
           : hasAccess
-            ? 'Access Dashboard'
-            : 'Get Premium Access'}
+          ? 'Access Dashboard'
+          : 'Get Premium Access'}
       </Button>
 
       {/* ✅ PERFORMANCE: Show optimization indicator */}

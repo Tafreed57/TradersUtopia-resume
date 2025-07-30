@@ -36,9 +36,6 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import UserManagement from '@/components/admin/user-management';
 import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
 
-// Allowed product IDs for access control
-const allowedProductIds = [...TRADING_ALERT_PRODUCTS];
-
 // Professional card styling
 const cardClasses = `
   bg-gradient-to-br from-gray-800/90 via-gray-800/70 to-gray-900/90 
@@ -57,16 +54,13 @@ const statCardClasses = `
 `;
 
 export default function Dashboard() {
-  // ✅ EXTENDED: Use new extended user hook that includes all service data
   const {
     user,
     isLoaded,
     hasAccess,
-    subscriptionData,
-    profile,
-    dataSource,
+    isAdmin,
     isLoading: authLoading,
-  } = useExtendedUser({ enableLogging: true });
+  } = useExtendedUser();
 
   const [servers, setServers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +82,6 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchServersData = async () => {
       try {
-        // ✅ SIMPLIFIED: Payment verification now handled by useExtendedUser hook
         const serversResponse = await fetch('/api/servers');
         if (serversResponse.ok) {
           const serversData = await serversResponse.json();
@@ -122,7 +115,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!profile) {
+  if (!user) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black flex items-center justify-center'>
         <Card className={cardClasses}>
@@ -141,7 +134,7 @@ export default function Dashboard() {
   }
 
   const getStatusConfig = () => {
-    if (profile?.isAdmin) {
+    if (isAdmin) {
       return {
         status: 'Admin Access',
         color: 'from-red-500 to-red-600',
@@ -153,7 +146,7 @@ export default function Dashboard() {
       };
     }
 
-    if (hasAccess && subscriptionData) {
+    if (hasAccess) {
       return {
         status: 'Premium Active',
         color: 'from-green-500 to-emerald-600',
@@ -161,10 +154,9 @@ export default function Dashboard() {
         bgColor: 'bg-green-500/10',
         borderColor: 'border-green-400/30',
         icon: CheckCircle,
-        description:
-          subscriptionData.subscriptionStatus === 'ADMIN'
-            ? 'Administrative access'
-            : 'Active subscription access',
+        description: isAdmin
+          ? 'Administrative access'
+          : 'Active subscription access',
       };
     }
 
@@ -210,7 +202,7 @@ export default function Dashboard() {
                     !
                   </h1>
                   <p className='text-gray-400 text-sm mt-1'>
-                    {profile.email} • Trading Dashboard
+                    {user.email} • Trading Dashboard
                   </p>
                 </div>
               </div>
@@ -322,7 +314,7 @@ export default function Dashboard() {
             <CardContent className='p-6 relative z-10'>
               <div className='flex items-center justify-between mb-4'>
                 <div className='w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300'>
-                  {profile.isAdmin ? (
+                  {isAdmin ? (
                     <Crown className='w-6 h-6 text-white' />
                   ) : (
                     <Settings className='w-6 h-6 text-white' />
@@ -330,19 +322,19 @@ export default function Dashboard() {
                 </div>
                 <Badge
                   className={
-                    profile.isAdmin
+                    isAdmin
                       ? 'bg-red-500/10 text-red-400 border-red-400/30'
                       : 'bg-amber-500/10 text-amber-400 border-amber-400/30'
                   }
                 >
-                  {profile.isAdmin ? 'Admin' : 'User'}
+                  {isAdmin ? 'Admin' : 'User'}
                 </Badge>
               </div>
               <h3 className='font-bold text-white text-lg mb-1'>
                 Account Type
               </h3>
               <p className='text-gray-400 text-sm'>
-                {profile.isAdmin
+                {isAdmin
                   ? 'Administrative access enabled'
                   : 'Standard user privileges'}
               </p>
@@ -456,7 +448,9 @@ export default function Dashboard() {
                 className='w-full'
               >
                 <TabsList
-                  className={`grid w-full ${profile?.isAdmin ? 'grid-cols-4' : 'grid-cols-3'} bg-gray-700/50 p-2 gap-1 rounded-xl min-h-[60px]`}
+                  className={`grid w-full ${
+                    isAdmin ? 'grid-cols-4' : 'grid-cols-3'
+                  } bg-gray-700/50 p-2 gap-1 rounded-xl min-h-[60px]`}
                 >
                   <TabsTrigger
                     value='account'
@@ -480,7 +474,7 @@ export default function Dashboard() {
                     <span className='truncate'>Subscription</span>
                   </TabsTrigger>
                   {/* ⚡ ADMIN-ONLY TAB: Only visible to admin users */}
-                  {profile?.isAdmin && (
+                  {isAdmin && (
                     <TabsTrigger
                       value='admin'
                       className='data-[state=active]:bg-red-600 data-[state=active]:shadow-lg rounded-lg transition-all duration-200 px-3 py-2 text-sm font-medium'
@@ -529,9 +523,7 @@ export default function Dashboard() {
                         </p>
                         <p className='text-gray-400 text-xs'>
                           Member since:{' '}
-                          {new Date(
-                            profile.createdAt || ''
-                          ).toLocaleDateString()}
+                          {new Date(user.createdAt || '').toLocaleDateString()}
                         </p>
                       </div>
 
@@ -541,9 +533,7 @@ export default function Dashboard() {
                           <h5 className='text-white font-medium'>Security</h5>
                         </div>
                         <p className='text-gray-300 text-sm mb-2'>
-                          {profile.isAdmin
-                            ? 'Admin Account'
-                            : 'Standard Security'}
+                          {isAdmin ? 'Admin Account' : 'Standard Security'}
                         </p>
                         <p className='text-gray-400 text-xs'>
                           Two-factor authentication available
@@ -562,7 +552,7 @@ export default function Dashboard() {
                 </TabsContent>
 
                 {/* ⚡ ADMIN-ONLY PANEL: Complete admin management interface */}
-                {profile?.isAdmin && (
+                {isAdmin && (
                   <TabsContent value='admin' className='mt-6'>
                     <div className='space-y-6'>
                       {/* Admin Panel Header */}

@@ -7,10 +7,7 @@ import { useStore } from '@/store/store';
 import { useExtendedUser } from '@/hooks/use-extended-user';
 
 export function TimerAdminButton() {
-  const { isLoaded, isAdmin, isLoading } = useExtendedUser({
-    enableLogging: false,
-    checkOnMount: true,
-  });
+  const { isLoaded, isAdmin, isLoading } = useExtendedUser();
   const { onOpen } = useStore();
 
   const handleOpenTimerSettings = () => {

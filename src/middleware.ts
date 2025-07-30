@@ -56,6 +56,7 @@ function getCurrentDomain() {
 }
 
 const middlewareOptions: ClerkMiddlewareOptions = {
+  debug: true,
   authorizedParties: [getCurrentDomain()],
   contentSecurityPolicy: {
     directives: {
@@ -79,19 +80,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
   const { userId, redirectToSignIn } = await auth();
-  if (!userId || !isPublicRoute(req)) {
+  if (!userId && !isPublicRoute(req)) {
     redirectToSignIn();
-    // const currentDomain = getCurrentDomain();
-    // const signInUrl = new URL('/sign-in', currentDomain);
-    // console.log('signInUrl', signInUrl);
-    // console.log('req.nextUrl', req.nextUrl);
-    // console.log('currentDomain', currentDomain);
-
-    // // Use only the pathname and search params, not the full URL with host
-    // const redirectPath = req.nextUrl.pathname + req.nextUrl.search;
-    // signInUrl.searchParams.set('redirect_url', redirectPath);
-
-    // return NextResponse.redirect(signInUrl);
   }
 
   return NextResponse.next();

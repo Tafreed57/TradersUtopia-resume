@@ -84,10 +84,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
   const router = useRouter();
 
   // Get admin status from useExtendedUser hook
-  const { isAdmin, isLoading } = useExtendedUser({
-    enableAutoCheck: true,
-    checkOnMount: true,
-  });
+  const { isAdmin, isLoading } = useExtendedUser();
 
   // Only allow drag and drop for admin users
   const canDragDrop = isAdmin && !isLoading;
