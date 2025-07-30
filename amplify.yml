@@ -5,6 +5,15 @@ frontend:
       commands:
         - nvm use 20
         - corepack enable
+        # Set NODE_ENV based on branch
+        - |
+          if [ "$AWS_BRANCH" = "main" ] || [ "$AWS_BRANCH" = "master" ]; then
+            export NODE_ENV=production
+            echo "Building for production environment (branch: $AWS_BRANCH)"
+          else
+            export NODE_ENV=development
+            echo "Building for development environment (branch: $AWS_BRANCH)"
+          fi
         # Optimize Node.js memory settings
         - export NODE_OPTIONS="--max-old-space-size=14000"
         # Clear any existing cache to free up memory
@@ -18,15 +27,33 @@ frontend:
         - pnpm i
     build:
       commands:
-        - echo "Building for production..."
-        - env | grep -e DATABASE_URL >> .env.production
-        - env | grep -e STRIPE_SECRET_KEY >> .env.production
-        - env | grep -e CLERK_SECRET_KEY >> .env.production
-        - env | grep -e STRIPE_WEBHOOK_SECRET >> .env.production
-        - env | grep -e NEXT_PUBLIC_STRIPE_CHECKOUT_URL >> .env.production
-        - env | grep -e TRIGGER_SECRET_KEY >> .env.production
-        - echo "Deploying Trigger.dev tasks..."
-        - npx trigger.dev@latest deploy --env production --skip-typecheck || echo "Trigger.dev deployment failed, continuing..."
+        # Set NODE_ENV again for build phase
+        - |
+          if [ "$AWS_BRANCH" = "main" ] || [ "$AWS_BRANCH" = "master" ]; then
+            export NODE_ENV=production
+            echo "Building for production..."
+            # Production-specific environment setup
+            env | grep -e DATABASE_URL >> .env.production
+            env | grep -e STRIPE_SECRET_KEY >> .env.production
+            env | grep -e CLERK_SECRET_KEY >> .env.production
+            env | grep -e STRIPE_WEBHOOK_SECRET >> .env.production
+            env | grep -e NEXT_PUBLIC_STRIPE_CHECKOUT_URL >> .env.production
+            env | grep -e TRIGGER_SECRET_KEY >> .env.production
+            echo "Deploying Trigger.dev tasks..."
+            npx trigger.dev@latest deploy --env production --skip-typecheck || echo "Trigger.dev deployment failed, continuing..."
+          else
+            export NODE_ENV=development
+            echo "Building for development environment (branch: $AWS_BRANCH)..."
+            # Development-specific environment setup
+            env | grep -e DATABASE_URL >> .env.development
+            env | grep -e STRIPE_SECRET_KEY >> .env.development
+            env | grep -e CLERK_SECRET_KEY >> .env.development
+            env | grep -e STRIPE_WEBHOOK_SECRET >> .env.development
+            env | grep -e NEXT_PUBLIC_STRIPE_CHECKOUT_URL >> .env.development
+            env | grep -e TRIGGER_SECRET_KEY >> .env.development
+            # Skip Trigger.dev deployment for development branches or use different env
+            echo "Skipping Trigger.dev deployment for development branch"
+          fi
         - echo "Building Next.js application..."
         - pnpm build
         - pnpm migrate:deploy

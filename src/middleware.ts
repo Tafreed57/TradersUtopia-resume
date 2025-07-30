@@ -35,16 +35,22 @@ const isPublicRoute = createRouteMatcher([
 
 // Helper function to get the current domain based on environment
 function getCurrentDomain() {
-  if (process.env.NODE_ENV === 'production') {
+  // Check for production domain first (main/master branch)
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (!process.env.AWS_BRANCH ||
+      process.env.AWS_BRANCH === 'main' ||
+      process.env.AWS_BRANCH === 'master')
+  ) {
     return 'https://tradersutopia.com';
   }
 
-  // For AWS Amplify environments, check for site URL first
+  // For AWS Amplify environments (any branch), check for site URL first
   // if (process.env.NEXT_PUBLIC_SITE_URL) {
   //   return process.env.NEXT_PUBLIC_SITE_URL;
   // }
 
-  // AWS Amplify automatically sets these environment variables
+  // AWS Amplify automatically sets these environment variables for all branches
   if (process.env.AWS_APP_ID && process.env.AWS_BRANCH) {
     // Amplify URLs follow the pattern: https://branch.appid.amplifyapp.com
     return `https://${process.env.AWS_BRANCH}.${process.env.AWS_APP_ID}.amplifyapp.com`;
@@ -55,7 +61,7 @@ function getCurrentDomain() {
   //   return process.env.AMPLIFY_DIFF_DEPLOY_ROOT;
   // }
 
-  // Fallback to localhost for development
+  // Fallback to localhost for local development (when AWS vars are not present)
   return 'http://localhost:3000';
 }
 
