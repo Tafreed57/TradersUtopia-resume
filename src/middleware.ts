@@ -69,7 +69,18 @@ const middlewareOptions: ClerkMiddlewareOptions = {
         'https://www.youtube-nocookie.com',
         'https://*.youtube.com',
         'https://youtube.com',
+      ],
+      'script-src': [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        'https://r.wdfl.co',
+        'https://*.getrewardful.com',
+      ],
+      'connect-src': [
+        "'self'",
         'https://api.getrewardful.com',
+        'https://*.getrewardful.com',
       ],
     },
   },
