@@ -70,6 +70,7 @@ const middlewareOptions: ClerkMiddlewareOptions = {
         'https://www.youtube-nocookie.com',
         'https://*.youtube.com',
         'https://youtube.com',
+        'https://api.getrewardful.com',
       ],
     },
   },
