@@ -80,7 +80,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
   const { userId, redirectToSignIn } = await auth();
-  if (!userId || !isPublicRoute) {
+  if (!userId || !isPublicRoute(req)) {
     redirectToSignIn();
     // const currentDomain = getCurrentDomain();
     // const signInUrl = new URL('/sign-in', currentDomain);
