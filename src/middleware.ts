@@ -45,21 +45,11 @@ function getCurrentDomain() {
     return 'https://tradersutopia.com';
   }
 
-  // For AWS Amplify environments (any branch), check for site URL first
-  // if (process.env.NEXT_PUBLIC_SITE_URL) {
-  //   return process.env.NEXT_PUBLIC_SITE_URL;
-  // }
-
   // AWS Amplify automatically sets these environment variables for all branches
   if (process.env.AWS_APP_ID && process.env.AWS_BRANCH) {
     // Amplify URLs follow the pattern: https://branch.appid.amplifyapp.com
     return `https://${process.env.AWS_BRANCH}.${process.env.AWS_APP_ID}.amplifyapp.com`;
   }
-
-  // Alternative AWS Amplify URL pattern check
-  // if (process.env.AMPLIFY_DIFF_DEPLOY_ROOT) {
-  //   return process.env.AMPLIFY_DIFF_DEPLOY_ROOT;
-  // }
 
   // Fallback to localhost for local development (when AWS vars are not present)
   return 'http://localhost:3000';
@@ -92,6 +82,9 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   if (!userId) {
     const currentDomain = getCurrentDomain();
     const signInUrl = new URL('/sign-in', currentDomain);
+    console.log('signInUrl', signInUrl);
+    console.log('req.nextUrl', req.nextUrl);
+    console.log('currentDomain', currentDomain);
 
     // Use only the pathname and search params, not the full URL with host
     const redirectPath = req.nextUrl.pathname + req.nextUrl.search;

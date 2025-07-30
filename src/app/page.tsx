@@ -21,7 +21,6 @@ import {
   Target,
   Zap,
 } from 'lucide-react';
-import { useExtendedUser } from '@/hooks/use-extended-user';
 
 export default function HomePage() {
   // const { user, hasAccess, isAdmin } = useExtendedUser();
@@ -1035,8 +1034,8 @@ export default function HomePage() {
 
             <div className='border-t border-gray-800 pt-8 mt-8 text-center'>
               <p className='text-gray-400 text-sm'>
-                © 2024 TradersUtopia. All rights reserved. Trading involves
-                risk and may not be suitable for all investors.
+                © 2024 TradersUtopia. All rights reserved. Trading involves risk
+                and may not be suitable for all investors.
               </p>
             </div>
           </div>
