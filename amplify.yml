@@ -18,6 +18,8 @@ frontend:
         - export NODE_OPTIONS="--max-old-space-size=14000"
         # Clear any existing cache to free up memory
         - rm -rf node_modules/.cache || true
+        - rm -rf node_modules/@next || true
+        - rm -rf node_modules/next || true
         - rm -rf .next || true
         - rm -rf .turbo || true
         # Configure pnpm for optimal performance
