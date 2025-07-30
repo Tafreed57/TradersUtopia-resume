@@ -278,6 +278,7 @@ export function useExtendedUser(
     clerkUser.user?.id,
     checkOnMount,
     performExtendedCheck,
+    clerkUser.user,
   ]);
 
   // Effect: Reset state when user signs out
