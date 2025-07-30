@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser as useClerkUser } from '@clerk/nextjs';
+import { useUser as useClerkUser, useUser } from '@clerk/nextjs';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { makeSecureRequest } from '@/lib/csrf-client';
 
@@ -86,7 +86,7 @@ export function useExtendedUser(
   } = options;
 
   // Get Clerk's user data
-  const clerkUser = useClerkUser();
+  const clerkUser = useUser();
 
   // Extended state management
   const [extendedState, setExtendedState] = useState<
@@ -148,12 +148,9 @@ export function useExtendedUser(
         }
 
         // Call simplified session check API (includes profile + subscription data from database)
-        const sessionResponse = await makeSecureRequest(
-          '/api/auth/session-check',
-          {
-            method: 'POST',
-          }
-        );
+        const sessionResponse = await fetch('/api/auth/session-check', {
+          method: 'POST',
+        });
 
         if (!sessionResponse.ok) {
           throw new Error(`Session check failed: ${sessionResponse.status}`);

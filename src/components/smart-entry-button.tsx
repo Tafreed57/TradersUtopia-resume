@@ -22,8 +22,7 @@ export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
 
     if (!isSignedIn) {
       setIsNavigating(true);
-      const returnUrl = `${window.location.origin}?auto_route=true`;
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`);
+      router.push(`/sign-in?redirect_url=${encodeURIComponent('/pricing')}`);
       // Keep loading state active during navigation
       return;
     }
@@ -101,8 +100,8 @@ export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
           {isLoadingState
             ? 'Loading...'
             : !isSignedIn
-              ? 'Enter Traders Utopia'
-              : 'Enter Traders Utopia'}
+            ? 'Enter Traders Utopia'
+            : 'Enter Traders Utopia'}
         </span>
       </div>
     </Button>

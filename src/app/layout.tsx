@@ -156,7 +156,6 @@ export default function RootLayout({
             storageKey='traders-utopia-theme'
             disableTransitionOnChange
           >
-            {/* <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} /> */}
             <ErrorBoundary>
               <LoadingProvider>
                 <QueryProvider>

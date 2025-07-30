@@ -297,35 +297,6 @@ export function withOptionalAuth(
   }, options.action);
 }
 
-// trackSuspiciousActivity is imported from @/lib/rate-limit
-
-/**
- * Utility function to extract user context from request (for use in existing routes during migration)
- */
-export async function getCurrentUserContext(): Promise<AuthContext | null> {
-  try {
-    const clerkUser = await currentUser();
-    if (!clerkUser) return null;
-
-    const userService = new UserService();
-    const user = await userService.findByClerkId(clerkUser.id);
-    if (!user) return null;
-
-    return {
-      user,
-      userId: user.id,
-      userEmail: user.email,
-      isAdmin: user.isAdmin,
-      timestamp: new Date(),
-    };
-  } catch (error) {
-    apiLogger.databaseOperation('get_user_context_failed', false, {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
-  }
-}
-
 /**
  * Route-specific authentication helpers
  */

@@ -26,7 +26,7 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
   const [timer, setTimer] = useState<TimerSettings | null>(null);
 
   // Fetch timer settings from API
-  const fetchTimerSettings = useCallback(async () => {
+  const fetchTimer = useCallback(async () => {
     try {
       const response = await fetch('/api/timer', {
         method: 'GET',
@@ -63,8 +63,8 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
 
   // Initialize timer on mount
   useEffect(() => {
-    fetchTimerSettings();
-  }, [fetchTimerSettings]);
+    fetchTimer();
+  }, [fetchTimer]);
 
   // Timer countdown logic
   useEffect(() => {
@@ -76,7 +76,7 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
 
         // If timer reaches zero, refetch settings (auto-reset)
         if (hours === 0 && minutes === 0 && seconds === 0) {
-          fetchTimerSettings();
+          fetchTimer();
           return prev;
         }
 
@@ -95,32 +95,29 @@ export function CountdownTimer({ className = '' }: CountdownTimerProps) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isLoading, error, fetchTimerSettings]);
+  }, [isLoading, error, fetchTimer]);
 
   // Refetch timer settings every 5 minutes to stay in sync
   useEffect(() => {
-    const syncTimer = setInterval(
-      () => {
-        if (!isLoading) {
-          fetchTimerSettings();
-        }
-      },
-      5 * 60 * 1000
-    ); // 5 minutes
+    const syncTimer = setInterval(() => {
+      if (!isLoading) {
+        fetchTimer();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
 
     return () => clearInterval(syncTimer);
-  }, [isLoading, fetchTimerSettings]);
+  }, [isLoading, fetchTimer]);
 
   // Listen for timer settings updates from admin modal
   useEffect(() => {
     const handleTimerUpdate = () => {
-      fetchTimerSettings();
+      fetchTimer();
     };
 
     window.addEventListener('timerSettingsUpdated', handleTimerUpdate);
     return () =>
       window.removeEventListener('timerSettingsUpdated', handleTimerUpdate);
-  }, [fetchTimerSettings]);
+  }, [fetchTimer]);
 
   const formatTime = (hours: number, minutes: number, seconds: number) => {
     const hh = hours.toString().padStart(2, '0');
