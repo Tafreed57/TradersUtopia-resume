@@ -42,7 +42,7 @@ export function HeroBanner({ className = '' }: HeroBannerProps) {
           {/* Enhanced countdown timer */}
           <div className='bg-gradient-to-r from-red-800/50 to-orange-800/50 rounded-xl px-3 sm:px-4 py-2 sm:py-3 border border-red-300/30 backdrop-blur-sm shadow-lg flex items-center'>
             <CountdownTimer />
-            <TimerAdminButton />
+            {/* <TimerAdminButton /> */}
           </div>
         </div>
       </div>

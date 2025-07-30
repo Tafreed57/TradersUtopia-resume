@@ -1,4 +1,3 @@
-import { useUser } from '@clerk/nextjs';
 import {
   clerkMiddleware,
   ClerkMiddlewareOptions,
