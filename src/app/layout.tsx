@@ -1,18 +1,13 @@
-// import { ourFileRouter } from '@/app/api/uploadthing/core';
 import '@/app/globals.css';
 import { ModalProvider } from '@/contexts/modal-provider';
 import { QueryProvider } from '@/contexts/query-provider';
 import { ThemeProvider } from '@/contexts/theme-provider';
 import { LoadingProvider } from '@/contexts/loading-provider';
-// import { UnifiedAuthProvider } from '@/contexts/unified-auth-provider';
-// import { AuthWrapper } from '@/components/auth-wrapper';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
 import { ClerkProvider } from '@clerk/nextjs';
-// import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin';
 import type { Metadata, Viewport } from 'next';
 import { Open_Sans } from 'next/font/google';
-// import { extractRouterConfig } from 'uploadthing/server';
 import { Toaster } from 'sonner';
 import Script from 'next/script';
 import { ServiceWorkerHandler } from '@/components/service-worker-handler';
@@ -192,8 +187,6 @@ export default function RootLayout({
                     }}
                   />
                   {children}
-                  {/* </AuthWrapper> */}
-                  {/* </UnifiedAuthProvider> */}
                 </QueryProvider>
               </LoadingProvider>
             </ErrorBoundary>

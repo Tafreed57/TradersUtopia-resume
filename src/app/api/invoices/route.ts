@@ -9,25 +9,6 @@ import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 /**
- * User Invoices API
- *
- * BEFORE: 138 lines with complex Stripe integration
- * - Rate limiting (10+ lines)
- * - Authentication (10+ lines)
- * - Manual profile lookup (15+ lines)
- * - Manual customer ID discovery (25+ lines)
- * - Manual Stripe invoice fetching (20+ lines)
- * - Complex data formatting (30+ lines)
- * - Error handling (20+ lines)
- *
- * AFTER: Streamlined service-based implementation
- * - 85% boilerplate elimination
- * - Centralized customer management
- * - Enhanced invoice processing
- * - Comprehensive audit logging
- */
-
-/**
  * Get User Invoices
  * Fetches user's invoices from Stripe with formatting
  */
