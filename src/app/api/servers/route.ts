@@ -21,6 +21,7 @@ export const GET = withAuth(async (req: NextRequest, { user }) => {
   } else {
     // Return default server information
     const server = await serverService.getDefaultServer();
+    console.log('server', server);
     return NextResponse.json({
       serverId: server.id,
       landingChannelId: server.channels[0].id,

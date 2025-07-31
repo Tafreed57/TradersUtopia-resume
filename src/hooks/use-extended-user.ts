@@ -41,7 +41,13 @@ export function useExtendedUser(): ExtendedUserState {
     let isMounted = true;
 
     const fetchUserData = async () => {
-      if (!clerkUser.isLoaded || !clerkUser.isSignedIn) {
+      // Keep loading state true until Clerk is fully loaded
+      if (!clerkUser.isLoaded) {
+        return;
+      }
+
+      // If not signed in, set loading to false but keep access states false
+      if (!clerkUser.isSignedIn) {
         if (isMounted) {
           setAdditionalData({
             hasAccess: false,

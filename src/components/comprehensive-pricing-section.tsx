@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { PricingButtons } from '@/components/pricing-buttons';
-import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
-import { CheckCircle, Crown, Star, ArrowRight, Loader2 } from 'lucide-react';
+
+import { CheckCircle, Crown, Star, Loader2 } from 'lucide-react';
+import { SmartEntryButton } from '@/components/smart-entry-button';
 
 interface ComprehensivePricingSectionProps {
   isSignedIn: boolean;
@@ -14,7 +14,6 @@ interface ComprehensivePricingSectionProps {
 export function ComprehensivePricingSection({
   isSignedIn,
 }: ComprehensivePricingSectionProps) {
-  const router = useRouter();
   const { user } = useUser();
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
@@ -46,10 +45,6 @@ export function ComprehensivePricingSection({
     checkSubscription();
   }, [user]);
 
-  const handleGoToDashboard = () => {
-    router.push('/dashboard');
-  };
-
   // Show loading state while checking subscription for signed-in users
   if (isSignedIn && checkingStatus) {
     return (
@@ -79,13 +74,7 @@ export function ComprehensivePricingSection({
                 You already have access to Traders Utopia premium features!
               </p>
             </div>
-            <Button
-              onClick={handleGoToDashboard}
-              className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105'
-            >
-              <ArrowRight className='w-4 h-4 mr-2' />
-              Go to Dashboard
-            </Button>
+            <SmartEntryButton className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105' />
           </div>
         </div>
       )}

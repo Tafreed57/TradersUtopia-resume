@@ -20,20 +20,6 @@ const reorderSectionSchema = z.union([
 ]);
 
 /**
- * Test endpoint for section reorder API
- */
-export const GET = withAuth(async (req: NextRequest, { user }) => {
-  const serverId = req.nextUrl.searchParams.get('serverId');
-  return NextResponse.json({
-    message: 'Section reorder API is accessible',
-    timestamp: new Date().toISOString(),
-    method: 'GET',
-    user: user.id.substring(0, 8) + '***',
-    serverId: serverId?.substring(0, 8) + '***',
-  });
-}, authHelpers.userOnly('TEST_SECTION_REORDER'));
-
-/**
  * Reorder Sections
  * Admin-only operation with transaction safety
  */
@@ -49,7 +35,11 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError('Only administrators can reorder sections');
   }
 
-  const serverId = req.nextUrl.searchParams.get('serverId');
+  // Extract serverId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+
   if (!serverId) {
     throw new ValidationError('Server ID is required');
   }
@@ -100,58 +90,28 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     console.log('[API] Section reorder - Individual reordering mode');
     const { sectionId, newPosition, newParentId } = data;
 
-    console.log('[API] Section reorder - Individual params:', {
+    console.log('[API] Section reorder - Processing reorder request:', {
       serverId: serverId.substring(0, 8) + '***',
       sectionId: sectionId.substring(0, 8) + '***',
       newPosition,
       newParentId: newParentId ? newParentId.substring(0, 8) + '***' : null,
     });
 
-    // For individual reordering, we'll use a direct database operation since updateSection doesn't support position
-    // First verify permissions
-    console.log('[API] Section reorder - Verifying permissions');
-    const server = await sectionService.prisma.server.findFirst({
-      where: {
-        id: serverId,
-        OR: [
-          { ownerId: user.id },
-          {
-            members: {
-              some: {
-                userId: user.id,
-                user: { isAdmin: true },
-              },
-            },
-          },
-        ],
-      },
+    result = await sectionService.reorderSection(
+      sectionId,
+      serverId,
+      newPosition,
+      newParentId || null,
+      user.id!
+    );
+
+    console.log('[API] Section reorder - Operation completed:', {
+      success: result,
     });
 
-    console.log('[API] Section reorder - Permission check result:', {
-      serverFound: !!server,
-    });
-
-    if (!server) {
-      console.log('[API] Section reorder - Permission denied');
-      throw new ValidationError('Server not found or insufficient permissions');
-    }
-
-    // Update the section position directly
-    console.log('[API] Section reorder - Updating section position directly');
-    result = await sectionService.prisma.section.update({
-      where: { id: sectionId },
-      data: { position: newPosition },
-      include: {
-        channels: {
-          orderBy: { position: 'asc' },
-        },
-      },
-    });
-    console.log('[API] Section reorder - Individual result:', result);
-
-    apiLogger.databaseOperation('section_reordered_via_api', true, {
+    apiLogger.databaseOperation('section_reordered_via_api', result, {
       serverId: serverId.substring(0, 8) + '***',
-      adminId: user.id.substring(0, 8) + '***',
+      adminId: user.id!.substring(0, 8) + '***',
       sectionId: sectionId.substring(0, 8) + '***',
       newPosition,
       newParentId: newParentId ? newParentId.substring(0, 8) + '***' : null,
@@ -161,8 +121,13 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
 
   console.log('[API] Section reorder - Success, returning result');
   return NextResponse.json({
-    success: true,
-    message: 'Sections reordered successfully',
+    success: 'sectionOrder' in data ? true : result,
+    message:
+      'sectionOrder' in data
+        ? 'Sections reordered successfully'
+        : result
+        ? 'Section reordered successfully'
+        : 'Section reorder failed',
     result,
   });
 }, authHelpers.adminOnly('REORDER_SECTIONS'));

@@ -10,25 +10,6 @@ const messageEditSchema = z.object({
 });
 
 /**
- * Message Management API
- *
- * BEFORE: 304 lines with extensive boilerplate
- * - Rate limiting (10+ lines per method)
- * - CSRF validation (15+ lines per method)
- * - Authentication (10+ lines per method)
- * - Manual server/channel verification (40+ lines per method)
- * - Manual member/permission checks (30+ lines per method)
- * - Manual database operations (20+ lines per method)
- * - Duplicate error handling (25+ lines per method)
- *
- * AFTER: Clean service-based implementation
- * - 90%+ boilerplate elimination
- * - Centralized message management
- * - Enhanced permission verification
- * - Comprehensive audit logging
- */
-
-/**
  * Delete Message
  * Soft delete with author/admin permission verification
  */

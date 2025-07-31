@@ -17,12 +17,13 @@ import { User } from '@/services/types';
 /**
  * Authentication context provided to route handlers
  */
-interface AuthContext {
+export interface AuthContext {
   user: User;
   userId: string;
   userEmail: string;
   isAdmin: boolean;
   timestamp: Date;
+  params?: { [key: string]: string | string[] };
 }
 
 /**
@@ -50,7 +51,7 @@ type AuthenticatedHandler = (
  * Eliminates 300+ lines of duplicate security boilerplate
  */
 export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
-  return withErrorHandling(async (req: NextRequest) => {
+  return withErrorHandling(async (req: NextRequest, { params }) => {
     const startTime = Date.now();
 
     // Method validation
@@ -186,6 +187,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       userEmail: user.email,
       isAdmin: user.isAdmin,
       timestamp: new Date(),
+      params,
     };
 
     // 8. Log Successful Authentication
@@ -253,7 +255,7 @@ export function withOptionalAuth(
   ) => Promise<NextResponse | Response | any>,
   options: AuthOptions
 ) {
-  return withErrorHandling(async (req: NextRequest) => {
+  return withErrorHandling(async (req: NextRequest, { params }) => {
     // Rate limiting
     if (options.requireRateLimit !== false) {
       const rateLimitResult = await rateLimitGeneral()(req);
@@ -278,6 +280,7 @@ export function withOptionalAuth(
             userEmail: user.email,
             isAdmin: user.isAdmin,
             timestamp: new Date(),
+            params,
           };
         }
       }

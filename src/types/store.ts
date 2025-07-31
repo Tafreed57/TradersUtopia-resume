@@ -12,8 +12,7 @@ export type ModalType =
   | 'createSection'
   | 'editSection'
   | 'deleteSection'
-  | 'timerSettings'
-  | 'emailWarning';
+  | 'timerSettings';
 
 type ModalData = {
   server?: Server;
@@ -32,7 +31,6 @@ type ModalData = {
   channelId?: string;
   serverId?: string;
   userId?: string;
-  stripeUrl?: string;
 };
 
 interface ModalState {

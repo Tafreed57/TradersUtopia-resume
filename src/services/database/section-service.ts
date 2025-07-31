@@ -268,7 +268,211 @@ export class SectionService extends BaseDatabaseService {
   }
 
   /**
-   * Reorder sections within a server
+   * Reorder a single section with proper position shifting
+   * Handles position updates with gap management
+   * Admin-only operation
+   */
+  async reorderSection(
+    sectionId: string,
+    serverId: string,
+    newPosition: number,
+    newParentId: string | null,
+    userId: string
+  ): Promise<boolean> {
+    try {
+      this.validateId(sectionId, 'sectionId');
+      this.validateId(serverId, 'serverId');
+      this.validateId(userId, 'userId');
+      this.validateRequired(newPosition.toString(), 'newPosition');
+
+      // Step 1: Verify permissions
+      const server = await this.prisma.server.findFirst({
+        where: {
+          id: serverId,
+          OR: [
+            { ownerId: userId },
+            {
+              members: {
+                some: {
+                  userId,
+                  user: { isAdmin: true },
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      if (!server) {
+        throw new AuthorizationError(
+          'Server not found or insufficient permissions'
+        );
+      }
+
+      // Step 2: Get current section details
+      const currentSection = await this.prisma.section.findFirst({
+        where: { id: sectionId, serverId },
+      });
+
+      if (!currentSection) {
+        throw new ValidationError('Section not found');
+      }
+
+      const oldPosition = currentSection.position;
+      const oldParentId = currentSection.parentId;
+
+      // If no change needed, return early
+      if (newPosition === oldPosition && newParentId === oldParentId) {
+        return true;
+      }
+
+      // Step 3: Handle position shifting with transaction
+      return await this.executeTransaction(async tx => {
+        if (newParentId !== oldParentId) {
+          // Cross-parent move (hierarchical change)
+          await this.handleCrossParentSectionMove(
+            tx,
+            sectionId,
+            serverId,
+            oldPosition,
+            newPosition,
+            oldParentId,
+            newParentId
+          );
+        } else {
+          // Same-parent move (position change only)
+          await this.handleSameParentSectionMove(
+            tx,
+            sectionId,
+            serverId,
+            oldPosition,
+            newPosition,
+            oldParentId
+          );
+        }
+
+        this.logSuccess('section_reordered', {
+          sectionId: maskId(sectionId),
+          serverId: maskId(serverId),
+          userId: maskId(userId),
+          oldPosition,
+          newPosition,
+          oldParentId: oldParentId ? maskId(oldParentId) : null,
+          newParentId: newParentId ? maskId(newParentId) : null,
+          isCrossParent: newParentId !== oldParentId,
+        });
+
+        return true;
+      });
+    } catch (error) {
+      return await this.handleError(error, 'reorder_section', {
+        sectionId: maskId(sectionId),
+        serverId: maskId(serverId),
+        userId: maskId(userId),
+        newPosition,
+        newParentId: newParentId ? maskId(newParentId) : null,
+      });
+    }
+  }
+
+  /**
+   * Handle cross-parent section move with proper position shifting
+   */
+  private async handleCrossParentSectionMove(
+    tx: any,
+    sectionId: string,
+    serverId: string,
+    oldPosition: number,
+    newPosition: number,
+    oldParentId: string | null,
+    newParentId: string | null
+  ): Promise<void> {
+    // Step 1: Close gap in source parent (shift sections after old position up)
+    await tx.section.updateMany({
+      where: {
+        serverId,
+        parentId: oldParentId,
+        position: { gt: oldPosition },
+      },
+      data: {
+        position: { decrement: 1 },
+      },
+    });
+
+    // Step 2: Make room in destination parent (shift sections at/after new position down)
+    await tx.section.updateMany({
+      where: {
+        serverId,
+        parentId: newParentId,
+        position: { gte: newPosition },
+      },
+      data: {
+        position: { increment: 1 },
+      },
+    });
+
+    // Step 3: Update the moved section
+    await tx.section.update({
+      where: { id: sectionId },
+      data: {
+        position: newPosition,
+        parentId: newParentId,
+      },
+    });
+  }
+
+  /**
+   * Handle same-parent section move with proper position shifting
+   */
+  private async handleSameParentSectionMove(
+    tx: any,
+    sectionId: string,
+    serverId: string,
+    oldPosition: number,
+    newPosition: number,
+    parentId: string | null
+  ): Promise<void> {
+    if (newPosition < oldPosition) {
+      // Moving UP: shift sections [newPosition...oldPosition) down by 1
+      await tx.section.updateMany({
+        where: {
+          serverId,
+          parentId,
+          position: {
+            gte: newPosition,
+            lt: oldPosition,
+          },
+        },
+        data: {
+          position: { increment: 1 },
+        },
+      });
+    } else if (newPosition > oldPosition) {
+      // Moving DOWN: shift sections (oldPosition...newPosition] up by 1
+      await tx.section.updateMany({
+        where: {
+          serverId,
+          parentId,
+          position: {
+            gt: oldPosition,
+            lte: newPosition,
+          },
+        },
+        data: {
+          position: { decrement: 1 },
+        },
+      });
+    }
+
+    // Update the moved section
+    await tx.section.update({
+      where: { id: sectionId },
+      data: { position: newPosition },
+    });
+  }
+
+  /**
+   * Reorder sections within a server (legacy method for batch operations)
    */
   async reorderSections(
     serverId: string,

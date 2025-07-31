@@ -1,143 +1,132 @@
-<div align="center">
+# TRADERSUTOPIA
 
-<img src="logo.svg" alt="logo" width="300" height="250">
+A full-featured real-time communication platform with subscription management, built with Next.js 14, TypeScript, and modern web technologies.
 
-<h1 align="center" >Discord Clone</h1>
+## Local Development Setup
 
-![cntr](https://img.shields.io/github/contributors/issam-seghir/discord-clone?color=pink&style=for-the-badge)
-![pullreQ](https://img.shields.io/github/issues-pr/issam-seghir/discord-clone?color=orange&style=for-the-badge)
-![comt](https://img.shields.io/github/last-commit/issam-seghir/discord-clone?style=for-the-badge)
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://choosealicense.com/licenses/mit/)
+### Prerequisites
 
-![frk](https://img.shields.io/github/forks/issam-seghir/discord-clone?style=flat-square)
-![str](https://img.shields.io/github/stars/issam-seghir/discord-clone?style=flat-square)
-![deploy](https://img.shields.io/website?down_color=red&down_message=down&style=flat-square&up_color=succes&up_message=up&url=https%3A%2F%2Fdiscord-clone.vercel.app)
+- Node.js 18+ 
+- pnpm (recommended package manager)
+- PostgreSQL database (local or cloud)
+- Stripe CLI for webhook testing
+- ngrok for secure tunneling (optional but recommended)
 
-  <p align="center">
+### Installation
 
-  **Discord Clone | A Full-Featured Real Time (Video , Audio , Chat) Application Powered by Next.js, Socket io , LiveKit**
-  This project offers a robust and scalable solution for real-time communication,
-  emulating the core functionalities of Discord with a modern tech stack.
-    <br />
-    <br />
-    <!-- <a href="https://discord-clone-production-e15b.up.railway.app/">View Demo</a>-->
-   <a href="https://discord-clone.koyeb.app">View Demo</a>
-    .
-    <a href="https://github.com/issam-seghir/discord-clone/issues">Report Bug</a>
-    .
-    <a href="https://github.com/issam-seghir/discord-clone/pulls">Request Feature</a>
-  </p>
-
-<br>
-<hr>
-
-</div>
-
-<br>
-
-![alt text](mockup-desktop.png)
-![alt text](mockup-mobile.png)
-
-
-### Built With
-
-- ![Next JS](https://img.shields.io/badge/Next-black?style=for-the-badge&logo=next.js&logoColor=white)
-- ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
-- ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-- ![Shadcn](https://img.shields.io/badge/shadcn%2Fui-000000?style=for-the-badge&logo=shadcnui&logoColor=white)
-- ![React Hook Form](https://img.shields.io/badge/React%20Hook%20Form-%23EC5990.svg?style=for-the-badge&logo=reacthookform&logoColor=white)
-- ![Zustand](https://img.shields.io/badge/zustand-FFA351.svg?style=for-the-badge&logo=zustand&logoColor=white)
-- ![Zod](https://img.shields.io/badge/zod-%233068b7.svg?style=for-the-badge&logo=zod&logoColor=white)
-- ![uploadthing](https://img.shields.io/badge/uploadthing-B91C1C?style=for-the-badge&logo=upload%20thing)
-- ![React Query](https://img.shields.io/badge/-React%20Query-FF4154?style=for-the-badge&logo=react%20query&logoColor=white)
-- ![Socket.io](https://img.shields.io/badge/Socket.io-black?style=for-the-badge&logo=socket.io&badgeColor=010101)
-- ![livekit](https://img.shields.io/badge/livekit-black?style=for-the-badge&logo=livekit)
-- ![Prisma](https://img.shields.io/badge/Prisma-011627?style=for-the-badge&logo=prisma&logoColor=white)
-- ![Clerk](https://img.shields.io/badge/Clerk-765eff.svg?style=for-the-badge&logo=clerk&logoColor=white)
-
-## Features
-
-- 🔒 **Authentication + Google Auth** With **Clerk**
-- 🎉 **Server** **creation** and customization
-- 📱 **Real-time** messaging using **Socket.io**
-- 📳**Websocket** **fallback**: **Polling** with alerts
-- 🚀 **Create** **Text**, **Audio** and **Video** call **Channels**
-- 📨 **Conversation** between members
-- 🎬 **Video** **Calls** between members
-- 🔊 **Audio** **Calls** between members
----
-- 🎁 **Send** **attachments** as messages using **UploadThing**
-- 🧨 **Delete** & **Edit** messages in **real time** for all users
-- 🔰 **Member management** (**Kick**, Role change **Guest** / **Moderator**)
-- 🔗 **Unique** **invite** **link** **generation** & full working invite system
-- ⛓ **Infinite** **loading** for **messages** in batches of 10 (**@tanstack/query**)
-- 🔍 **Search** **Command Line** Functionality
-- 🎨 **Theme Toggler** (Light /Dark mode)
-- 🚀 **Optimized SEO and Performance**: The project is optimized for SEO and performance using the latest Next.js features and best practices for **meta** tags and **Next/Image** && **site maps**.
-- 🎊 **Responsive Design**
-
-
-
-## Getting Started
-
-First, run the development server:
-
-1. Clone or Fork the repo
-
-   ```sh
-   git clone https://github.com/issam-seghir/discord-clone.git
-   cd ./your_project
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd TRADERSUTOPIA
    ```
 
-2. Install Dependencies
-
-   ```sh
-   npm install
+2. **Install dependencies**
+   ```bash
+   pnpm install
    ```
 
-3. rename `.env.example` file to `.env`
+3. **Set up environment variables**
+   
+   Create a `.env.local` file in the root directory and add the following variables:
 
-4. Start the server
+   ```env
+   # Database
+   DATABASE_URL="postgresql://username:password@localhost:5432/tradersutopia"
 
-    ```sh
-    npm run dev
-    ```
+   # Authentication (Clerk)
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+   CLERK_SECRET_KEY="sk_test_..."
+   CLERK_WEBHOOK_SIGNING_SECRET="whsec_..."
+   NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
+   NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/dashboard"
+   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/dashboard"
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   # Payments (Stripe)
+   STRIPE_API_KEY="sk_test_..."
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+   STRIPE_WEBHOOK_SECRET="whsec_..."
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   # File Uploads (UploadThing)
+   UPLOADTHING_SECRET="sk_live_..."
+   UPLOADTHING_APP_ID="your-app-id"
 
-## Deploy on Vercel
+   # Push Notifications (VAPID)
+   NEXT_PUBLIC_VAPID_PUBLIC_KEY="your-vapid-public-key"
+   VAPID_PRIVATE_KEY="your-vapid-private-key"
+   VAPID_EMAIL="your-email@example.com"
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   # App Configuration
+   NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+   NEXT_PUBLIC_APP_URL="http://localhost:3000"
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+4. **Set up the database**
+   ```bash
+   # Generate Prisma client
+   pnpm prisma generate
 
-<!-- CONTRIBUTING -->
-## Contributing
+   # Run database migrations
+   pnpm prisma db push
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+   # (Optional) Seed the database
+   pnpm prisma db seed
+   ```
 
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-Don't forget to give the project a star! Thanks again!
+5. **Set up webhook forwarding for local development**
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+   **For Stripe webhooks:**
+   ```bash
+   stripe listen --forward-to localhost:3000/api/webhooks/stripe
+   ```
 
-<!-- LICENSE -->
-## License
+   **For secure tunneling (optional):**
+   ```bash
+   ngrok http --url=ringtail-modest-gull.ngrok-free.app 3000
+   ```
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+6. **Start the development server**
+   ```bash
+   pnpm dev
+   ```
 
+   The application will be available at [http://localhost:3000](http://localhost:3000)
 
-## State
-[![Stargazers over time](https://starchart.cc/issam-seghir/discord-clone.svg?variant=adaptive)](https://starchart.cc/issam-seghir/discord-clone)
+### Important Notes
 
+- **Stripe CLI**: Make sure you have the Stripe CLI installed and configured with your Stripe account
+- **Webhook Secret**: After running `stripe listen`, copy the webhook signing secret and add it to your `.env.local` as `STRIPE_WEBHOOK_SECRET`
+- **Database Setup**: Ensure your PostgreSQL database is running and accessible with the provided `DATABASE_URL`
+- **Environment Variables**: All environment variables are required for the application to function properly
 
-## Support Me
+### Development Workflow
 
-<a href="https://www.buymeacoffee.com/issam.seghir" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy ma A Coffee" style="width: 174px !important;height: 41px !important;box-shadow: 0 3px 2px 0 rgb(190 190 190 / 50%) !important;" ></a>
-</div>
+1. **Database Schema Changes**: After modifying `prisma/schema.prisma`, run:
+   ```bash
+   pnpm prisma db push
+   pnpm prisma generate
+   ```
+
+2. **Testing Payments**: Use Stripe's test card numbers for payment testing
+3. **File Uploads**: Configure UploadThing for file upload functionality
+4. **Push Notifications**: Generate VAPID keys for push notification testing
+
+### Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: Clerk
+- **Payments**: Stripe
+- **Styling**: Tailwind CSS + shadcn/ui
+- **State Management**: Zustand
+- **File Uploads**: UploadThing
+- **Push Notifications**: Web Push API
+- **Package Manager**: pnpm
+
+### Troubleshooting
+
+- **Database Connection Issues**: Verify your `DATABASE_URL` is correct and the database is running
+- **Webhook Issues**: Ensure Stripe CLI is running and the webhook secret is correctly set
+- **Authentication Issues**: Check Clerk configuration and environment variables
+- **Build Issues**: Clear `.next` folder and reinstall dependencies if needed

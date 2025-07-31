@@ -76,6 +76,7 @@ export default function ChannelIdPage({ params }: ChannelIdPageProps) {
 
   // Handle authentication and access control
   useEffect(() => {
+    // Wait for both Clerk and our extended user data to finish loading
     if (!isLoaded || isLoading) return;
 
     // Redirect to sign-in if not authenticated
@@ -84,10 +85,14 @@ export default function ChannelIdPage({ params }: ChannelIdPageProps) {
       return;
     }
 
-    // Redirect to pricing if signed in but no access (and not admin)
-    if (!hasAccess && !isAdmin) {
-      router.push('/pricing');
-      return;
+    // Only check access control after we're sure user is authenticated and data is loaded
+    // Additional safety check: ensure we're not in a loading state for access/admin data
+    if (user && !isLoading) {
+      // Redirect to pricing if signed in but no access (and not admin)
+      if (!hasAccess && !isAdmin) {
+        router.push('/pricing');
+        return;
+      }
     }
   }, [isLoaded, user, hasAccess, isAdmin, isLoading, router]);
 

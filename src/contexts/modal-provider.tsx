@@ -11,7 +11,6 @@ import { CreateSectionModal } from '@/components/modals/create-section-modal';
 import { EditSectionModal } from '@/components/modals/edit-section-modal';
 import { DeleteSectionModal } from '@/components/modals/delete-section-modal';
 import { TimerSettingsModal } from '@/components/modals/timer-settings-modal';
-import { EmailWarningModal } from '@/components/modals/email-warning-modal';
 import { useEffect, useState } from 'react';
 
 export function ModalProvider() {
@@ -38,7 +37,6 @@ export function ModalProvider() {
       <EditSectionModal />
       <DeleteSectionModal />
       <TimerSettingsModal />
-      <EmailWarningModal />
     </>
   );
 }

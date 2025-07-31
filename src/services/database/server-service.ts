@@ -77,13 +77,13 @@ export class ServerService extends BaseDatabaseService {
             },
           },
           channels: {
-            orderBy: { createdAt: 'asc' },
+            orderBy: { position: 'asc' },
           },
           sections: {
-            orderBy: { createdAt: 'asc' },
+            orderBy: { position: 'asc' },
             include: {
               channels: {
-                orderBy: { createdAt: 'asc' },
+                orderBy: { position: 'asc' },
               },
             },
           },

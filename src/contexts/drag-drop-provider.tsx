@@ -118,11 +118,15 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       newSectionId?: string
     ) => {
       try {
-        await secureAxiosPatch(`/api/servers/${serverId}/channels/reorder`, {
-          channelId,
-          newPosition,
-          newSectionId,
-        });
+        const response = await secureAxiosPatch(
+          `/api/servers/${serverId}/channels/${channelId}/reorder`,
+          {
+            channelId,
+            newPosition,
+            newSectionId,
+          }
+        );
+        console.log('🔄 [DRAG-DROP] Reorder channel response:', response);
 
         // Debounced refresh to sync with server data
         debouncedRefresh();
@@ -148,11 +152,14 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       newParentId?: string
     ) => {
       try {
-        await secureAxiosPatch(`/api/servers/${serverId}/sections/reorder`, {
-          sectionId,
-          newPosition,
-          newParentId,
-        });
+        await secureAxiosPatch(
+          `/api/servers/${serverId}/sections/${sectionId}/reorder`,
+          {
+            sectionId,
+            newPosition,
+            newParentId,
+          }
+        );
 
         // Use debounced refresh like channels do for consistency
         debouncedRefresh();

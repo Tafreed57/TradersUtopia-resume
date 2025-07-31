@@ -419,7 +419,185 @@ export class ChannelService extends BaseDatabaseService {
   }
 
   /**
-   * Reorder channels within a section
+   * Reorder a single channel with proper position shifting
+   * Handles both same-section and cross-section moves
+   * Admin-only operation
+   */
+  async reorderChannel(
+    channelId: string,
+    newPosition: number,
+    newSectionId: string | null,
+    userId: string
+  ): Promise<boolean> {
+    try {
+      this.validateId(channelId, 'channelId');
+      this.validateRequired(newPosition.toString(), 'newPosition');
+
+      // Verify admin access
+      const accessCheck = await this.verifyChannelAdminAccess(
+        channelId,
+        userId
+      );
+      if (!accessCheck.hasAccess) {
+        throw new AuthorizationError(accessCheck.reason);
+      }
+
+      const currentChannel = accessCheck.channel!;
+      const oldPosition = currentChannel.position;
+      const oldSectionId = currentChannel.sectionId;
+
+      // If no change needed, return early
+      if (newPosition === oldPosition && newSectionId === oldSectionId) {
+        return true;
+      }
+
+      return await this.executeTransaction(async tx => {
+        if (newSectionId !== null && newSectionId !== oldSectionId) {
+          // Cross-section move
+          await this.handleCrossSectionMove(
+            tx,
+            channelId,
+            oldPosition,
+            newPosition,
+            oldSectionId || null,
+            newSectionId,
+            currentChannel.serverId
+          );
+        } else {
+          // Same-section move
+          await this.handleSameSectionMove(
+            tx,
+            channelId,
+            oldPosition,
+            newPosition,
+            oldSectionId || null,
+            currentChannel.serverId
+          );
+        }
+
+        this.logSuccess('channel_reordered', {
+          channelId: maskId(channelId),
+          userId: maskId(userId),
+          serverId: maskId(currentChannel.serverId),
+          oldPosition,
+          newPosition,
+          oldSectionId: oldSectionId ? maskId(oldSectionId) : null,
+          newSectionId: newSectionId ? maskId(newSectionId) : null,
+          isCrossSection: newSectionId !== oldSectionId,
+        });
+
+        return true;
+      });
+    } catch (error) {
+      return await this.handleError(error, 'reorder_channel', {
+        channelId: maskId(channelId),
+        userId: maskId(userId),
+        newPosition,
+        newSectionId: newSectionId ? maskId(newSectionId) : null,
+      });
+    }
+  }
+
+  /**
+   * Handle cross-section channel move with proper position shifting
+   */
+  private async handleCrossSectionMove(
+    tx: any,
+    channelId: string,
+    oldPosition: number,
+    newPosition: number,
+    oldSectionId: string | null,
+    newSectionId: string,
+    serverId: string
+  ): Promise<void> {
+    // Step 1: Close gap in source section (shift channels after old position up)
+    if (oldSectionId) {
+      await tx.channel.updateMany({
+        where: {
+          serverId,
+          sectionId: oldSectionId,
+          position: { gt: oldPosition },
+        },
+        data: {
+          position: { decrement: 1 },
+        },
+      });
+    }
+
+    // Step 2: Make room in destination section (shift channels at/after new position down)
+    await tx.channel.updateMany({
+      where: {
+        serverId,
+        sectionId: newSectionId,
+        position: { gte: newPosition },
+      },
+      data: {
+        position: { increment: 1 },
+      },
+    });
+
+    // Step 3: Update the moved channel
+    await tx.channel.update({
+      where: { id: channelId },
+      data: {
+        position: newPosition,
+        sectionId: newSectionId,
+      },
+    });
+  }
+
+  /**
+   * Handle same-section channel move with proper position shifting
+   */
+  private async handleSameSectionMove(
+    tx: any,
+    channelId: string,
+    oldPosition: number,
+    newPosition: number,
+    sectionId: string | null,
+    serverId: string
+  ): Promise<void> {
+    if (newPosition < oldPosition) {
+      // Moving UP: shift channels [newPosition...oldPosition) down by 1
+      await tx.channel.updateMany({
+        where: {
+          serverId,
+          sectionId,
+          position: {
+            gte: newPosition,
+            lt: oldPosition,
+          },
+        },
+        data: {
+          position: { increment: 1 },
+        },
+      });
+    } else if (newPosition > oldPosition) {
+      // Moving DOWN: shift channels (oldPosition...newPosition] up by 1
+      await tx.channel.updateMany({
+        where: {
+          serverId,
+          sectionId,
+          position: {
+            gt: oldPosition,
+            lte: newPosition,
+          },
+        },
+        data: {
+          position: { decrement: 1 },
+        },
+      });
+    }
+
+    // Update the moved channel
+    await tx.channel.update({
+      where: { id: channelId },
+      data: { position: newPosition },
+    });
+  }
+
+  /**
+   * Reorder channels within a section (legacy method for batch operations)
    * Admin-only operation
    */
   async reorderChannels(

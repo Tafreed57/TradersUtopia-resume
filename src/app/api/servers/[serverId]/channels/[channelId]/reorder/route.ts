@@ -74,43 +74,27 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError(channelAccess.reason || 'Access denied');
   }
 
-  // Step 3: Handle channel reordering with section changes
-  let result;
-
-  console.log('[API] Channel reorder - Determining update type:', {
-    newSectionId,
-    currentSectionId: channelAccess.channel?.sectionId,
-    isMovingBetweenSections:
-      newSectionId !== undefined &&
-      newSectionId !== channelAccess.channel?.sectionId,
+  // Step 3: Handle channel reordering with proper position shifting
+  console.log('[API] Channel reorder - Processing reorder request:', {
+    channelId: channelId.substring(0, 8) + '***',
+    newPosition,
+    newSectionId: newSectionId ? newSectionId.substring(0, 8) + '***' : null,
+    currentSectionId:
+      channelAccess.channel?.sectionId?.substring(0, 8) + '***' || null,
   });
 
-  if (
-    newSectionId !== undefined &&
-    newSectionId !== channelAccess.channel?.sectionId
-  ) {
-    // Moving channel to a different section
-    console.log('[API] Channel reorder - Moving channel to different section');
-    result = await channelService.updateChannel(
-      channelId,
-      {
-        position: newPosition,
-        sectionId: newSectionId || undefined,
-      },
-      user.id!
-    );
-    console.log('[API] Channel reorder - Update channel result:', result);
-  } else {
-    // Just reordering within the same section
-    console.log('[API] Channel reorder - Reordering within same section');
-    result = await channelService.reorderChannels(
-      [{ id: channelId, position: newPosition }],
-      user.id!
-    );
-    console.log('[API] Channel reorder - Reorder channels result:', result);
-  }
+  const result = await channelService.reorderChannel(
+    channelId,
+    newPosition,
+    newSectionId || null,
+    user.id!
+  );
 
-  apiLogger.databaseOperation('channel_reordered_via_api', true, {
+  console.log('[API] Channel reorder - Operation completed:', {
+    success: result,
+  });
+
+  apiLogger.databaseOperation('channel_reordered_via_api', result, {
     channelId: channelId.substring(0, 8) + '***',
     serverId: serverId.substring(0, 8) + '***',
     userId: user.id!.substring(0, 8) + '***',
@@ -123,8 +107,9 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
 
   console.log('[API] Channel reorder - Success, returning result');
   return NextResponse.json({
-    success: true,
-    message: 'Channel reordered successfully',
-    result,
+    success: result,
+    message: result
+      ? 'Channel reordered successfully'
+      : 'Channel reorder failed',
   });
 }, authHelpers.adminOnly('REORDER_CHANNEL'));

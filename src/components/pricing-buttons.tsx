@@ -2,9 +2,19 @@
 
 import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useExtendedUser } from '@/hooks/use-extended-user';
-import { useStore } from '@/store/store';
+import { useUser } from '@clerk/nextjs';
+
+// Declare global Rewardful types
+declare global {
+  interface Window {
+    rewardful: (event: string, callback: () => void) => void;
+    Rewardful: {
+      referral: any;
+    };
+  }
+}
 
 interface PricingButtonsProps {
   // ... existing code ...
@@ -14,15 +24,25 @@ export function PricingButtons({}: // ... existing code ...
 PricingButtonsProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const onOpen = useStore(state => state.onOpen);
+  const [referral, setReferral] = useState<any | null>(null);
 
   // ✅ ENHANCED: Use extended user hook with comprehensive service data
-  const {
-    isSignedIn,
-    user,
-    hasAccess,
-    isLoading: authLoading,
-  } = useExtendedUser();
+  const { isSignedIn, hasAccess, isLoading: authLoading } = useExtendedUser();
+
+  // Get user data for email access
+  const { user } = useUser();
+
+  // Initialize Rewardful integration
+  useEffect(() => {
+    // Check if Rewardful is available before using it
+    if (typeof window !== 'undefined' && window.rewardful) {
+      window.rewardful('ready', function () {
+        if (window.Rewardful) {
+          setReferral(window.Rewardful.referral);
+        }
+      });
+    }
+  }, []);
 
   const handleFreeClick = async () => {
     setLoading(true);
@@ -38,8 +58,8 @@ PricingButtonsProps) {
         if (hasAccess) {
           router.push('/dashboard');
         } else {
-          // Show email warning modal before proceeding to payment
-          showEmailWarningModal();
+          // Direct redirect to Stripe checkout with email and referral integration
+          handleStripeRedirect();
         }
       } else {
         // Redirect to sign-up with pricing page as the redirect destination
@@ -54,7 +74,7 @@ PricingButtonsProps) {
     }
   };
 
-  const showEmailWarningModal = () => {
+  const handleStripeRedirect = () => {
     const checkoutUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL;
 
     if (!checkoutUrl) {
@@ -66,7 +86,30 @@ PricingButtonsProps) {
       return;
     }
 
-    onOpen('emailWarning', { stripeUrl: checkoutUrl });
+    const userEmail = user?.emailAddresses[0]?.emailAddress;
+
+    if (userEmail) {
+      try {
+        // Add prefilled_email and client_reference_id parameters to the Stripe URL
+        const url = new URL(checkoutUrl);
+        url.searchParams.set('locked_prefilled_email', userEmail);
+
+        // Add client_reference_id based on referral status
+        if (referral) {
+          url.searchParams.set('client_reference_id', referral);
+        }
+
+        // Open in new tab with prefilled email and client reference
+        window.open(url.toString(), '_blank');
+      } catch (error) {
+        console.error('Invalid URL:', error);
+        // Fallback to original URL if there's an error
+        window.open(checkoutUrl, '_blank');
+      }
+    } else {
+      // Fallback if no email is available
+      window.open(checkoutUrl, '_blank');
+    }
   };
 
   // ✅ PERFORMANCE: Show loading state while auth data loads
