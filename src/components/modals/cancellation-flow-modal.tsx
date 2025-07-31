@@ -190,23 +190,9 @@ export function CancellationFlowModal({
     percentOff: number;
   } | null>(null);
 
-  // Debug subscription data when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      console.log(
-        '🔍 Cancellation Modal Opened - Subscription Data:',
-        subscription
-      );
-    }
-  }, [isOpen, subscription]);
-
   // ✅ NEW: Fetch fresh subscription data directly from Stripe API
   const fetchFreshSubscriptionData = async () => {
     try {
-      console.log(
-        '🔄 [FRESH-STRIPE] Fetching subscription data directly from Stripe API...'
-      );
-
       const response = await makeSecureRequest(
         '/api/subscription?comprehensive=true',
         {
@@ -222,10 +208,6 @@ export function CancellationFlowModal({
       const data = await response.json();
 
       if (data.success && data.subscription) {
-        console.log(
-          '✅ [FRESH-STRIPE] Got fresh subscription data:',
-          data.subscription
-        );
         return data.subscription;
       } else {
         throw new Error(data.error || 'No subscription data returned');
@@ -243,14 +225,9 @@ export function CancellationFlowModal({
   const getStripeData = async () => {
     // First try to use existing subscription data if complete
     if (subscription?.stripe?.amount && subscription?.stripe?.id) {
-      console.log('✅ Using existing complete stripe data');
       return subscription.stripe;
     }
 
-    // If subscription data is incomplete, fetch fresh data from Stripe
-    console.log(
-      '⚠️ Subscription data incomplete, fetching fresh data from Stripe...'
-    );
     const freshData = await fetchFreshSubscriptionData();
 
     if (freshData) {
@@ -266,7 +243,6 @@ export function CancellationFlowModal({
 
     // Final fallback - try to construct from available data
     if (subscription?.status === 'active') {
-      console.log('⚠️ Using fallback pricing - will use default $149.99');
       return {
         id: subscription.stripeSubscriptionId || 'unknown',
         amount: 14999, // $149.99 in cents
@@ -316,8 +292,6 @@ export function CancellationFlowModal({
   const handlePriceSubmit = async () => {
     const inputPriceDollars = parseFloat(priceInput);
 
-    console.log('🎯 Price Submit:', { inputPriceDollars, priceInput });
-
     if (isNaN(inputPriceDollars) || inputPriceDollars <= 0) {
       showToast.error('Error', 'Please enter a valid price');
       return;
@@ -349,19 +323,6 @@ export function CancellationFlowModal({
     const savingsCents = originalPriceCents - offerPriceCents;
     const percentOff = Math.round((savingsCents / originalPriceCents) * 100);
 
-    console.log('💰 Calculated offer (all in cents):', {
-      inputPriceCents,
-      offerPriceCents,
-      originalPriceCents,
-      savingsCents,
-      percentOff,
-      // Display values for debugging
-      inputDisplay: formatCurrency(inputPriceCents),
-      offerDisplay: formatCurrency(offerPriceCents),
-      originalDisplay: formatCurrency(originalPriceCents),
-      savingsDisplay: formatCurrency(savingsCents),
-    });
-
     // Store offer details in cents
     setOfferDetails({
       originalPriceCents,
@@ -387,7 +348,6 @@ export function CancellationFlowModal({
         return;
       }
 
-      console.log('🔄 [CONFIRM-OFFER] Fetching fresh subscription data...');
       const stripeData = await getStripeData();
 
       if (!stripeData) {
@@ -398,23 +358,10 @@ export function CancellationFlowModal({
         return;
       }
 
-      console.log('✅ [CONFIRM-OFFER] Got stripe data:', stripeData);
       const currentDiscountedPriceCents = stripeData.amount; // Keep in cents
       const currentDiscountedPriceDollars = centsToDollars(
         currentDiscountedPriceCents
       ); // For API compatibility
-
-      console.log('💰 Applying discount:', {
-        originalPriceCents: offerDetails.originalPriceCents,
-        originalPriceDollars: centsToDollars(offerDetails.originalPriceCents), // For API compatibility
-        currentDiscountedPriceCents,
-        currentDiscountedPriceDollars, // For API compatibility
-        offerPriceCents: offerDetails.offerPriceCents,
-        offerPriceDisplay: formatCurrency(offerDetails.offerPriceCents),
-        percentOff: offerDetails.percentOff,
-        stripeData,
-        subscription,
-      });
 
       const response = await makeSecureRequest(
         '/api/subscription/apply-coupon',
@@ -439,9 +386,6 @@ export function CancellationFlowModal({
       const data = await response.json();
 
       if (response.ok) {
-        console.log('✅ Discount successfully applied:', data);
-
-        // Show success with detailed information
         showToast.success(
           '🎉 Custom Discount Applied!',
           `Your negotiated rate of ${formatCurrency(
@@ -507,13 +451,6 @@ export function CancellationFlowModal({
     // Use finalOfferPrice or default to $20.00 (2000 cents) for the final offer
     const finalOfferPriceCents = currentOfferCents || 2000;
 
-    console.log('🎯 Accept Offer clicked:', {
-      currentOfferCents,
-      finalOfferPriceCents,
-      finalOfferDisplay: formatCurrency(finalOfferPriceCents),
-      subscription,
-    });
-
     // ✅ NEW: Use direct Stripe API calls instead of webhook cache
     if (!subscription || subscription.status !== 'active') {
       showToast.error('Error', 'No active subscription found');
@@ -523,7 +460,6 @@ export function CancellationFlowModal({
     setIsLoading(true);
 
     try {
-      console.log('🔄 [ACCEPT-OFFER] Fetching fresh subscription data...');
       const stripeData = await getStripeData();
 
       if (!stripeData) {
@@ -533,8 +469,6 @@ export function CancellationFlowModal({
         );
         return;
       }
-
-      console.log('✅ [ACCEPT-OFFER] Got stripe data:', stripeData);
 
       // All calculations in cents
       const originalPriceCents = 15000; // $150.00 in cents
@@ -547,20 +481,6 @@ export function CancellationFlowModal({
       const percentOff = Math.round(
         (totalDiscountCents / originalPriceCents) * 100
       );
-
-      console.log('💰 Discount calculation (all in cents):', {
-        originalPriceCents,
-        currentDiscountedPriceCents,
-        finalOfferPriceCents,
-        totalDiscountCents,
-        percentOff,
-        // Display values for debugging
-        originalDisplay: formatCurrency(originalPriceCents),
-        currentDisplay: formatCurrency(currentDiscountedPriceCents),
-        finalOfferDisplay: formatCurrency(finalOfferPriceCents),
-        stripeData,
-        subscription,
-      });
 
       const response = await makeSecureRequest(
         '/api/subscription/apply-coupon',
@@ -583,28 +503,8 @@ export function CancellationFlowModal({
       );
 
       const data = await response.json();
-      console.log('📡 [FINAL OFFER] API Response:', {
-        status: response.status,
-        ok: response.ok,
-        data,
-        requestBody: {
-          percentOff,
-          newMonthlyPrice: finalOfferPriceCents, // ✅ FIXED: Log the cents value sent to API
-          currentPrice: currentDiscountedPriceCents,
-          originalPrice: originalPriceCents,
-          // ✅ FIXED: Use fresh Stripe data identifiers
-          customerId:
-            (stripeData as any).customerId ||
-            subscription?.customer?.id ||
-            subscription?.customerId,
-          subscriptionId: stripeData.id,
-        },
-      });
 
       if (response.ok) {
-        console.log('✅ Discount successfully applied:', data);
-
-        // Show success with detailed information
         showToast.success(
           '🎉 Discount Applied Successfully!',
           `Your subscription has been updated to ${formatCurrency(
@@ -1453,10 +1353,6 @@ export function CancellationFlowModal({
         // ✅ FIXED: Set final offer to exactly $20/month
         if (!currentOfferCents) {
           const finalOfferPriceCents = 2000; // Fixed $20/month final offer in cents
-          console.log('🔧 Setting final offer to exactly $20/month:', {
-            finalOfferPriceCents,
-            finalOfferDisplay: formatCurrency(finalOfferPriceCents),
-          });
           setCurrentOfferCents(finalOfferPriceCents);
         }
         return renderFinalOffer();

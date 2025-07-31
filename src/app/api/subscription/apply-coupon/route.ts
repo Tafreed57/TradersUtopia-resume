@@ -22,16 +22,8 @@ const createCouponSchema = z.object({
  * Admin-only operation for creating permanent discount coupons
  */
 export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
-  // Only global admins can create coupons
-  // if (!isAdmin) {
-  //   throw new ValidationError(
-  //     'Only administrators can create discount coupons'
-  //   );
-  // }
-
   // Step 1: Input validation
   const body = await req.json();
-  console.log('🔒 [APPLY-COUPON] Body:', body);
   const validationResult = createCouponSchema.safeParse(body);
   if (!validationResult.success) {
     throw new ValidationError(
@@ -112,16 +104,6 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
       percentOff: actualPercentOff,
       originalPrice: basePriceCents,
       newPrice: newMonthlyPrice,
-    });
-
-    console.log('Coupon created and applied:', {
-      couponId: coupon.id,
-      subscriptionId: subscription.id.substring(0, 8) + '***',
-      discounts:
-        updatedSubscription.discounts &&
-        updatedSubscription.discounts.length > 0
-          ? 'Applied'
-          : 'Not Applied',
     });
 
     return NextResponse.json({

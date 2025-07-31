@@ -170,7 +170,6 @@ export function SubscriptionManager() {
       }
 
       const data = await response.json();
-      console.log('data', data);
       setSubscription(data);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch subscription data');
