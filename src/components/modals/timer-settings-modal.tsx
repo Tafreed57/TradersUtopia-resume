@@ -100,7 +100,7 @@ export function TimerSettingsModal() {
         throw new Error('Failed to get security token');
       }
 
-      const response = await fetch('/api/timer/settings', {
+      const response = await fetch('/api/timer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
