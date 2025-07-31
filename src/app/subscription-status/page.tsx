@@ -27,7 +27,7 @@ export default function SubscriptionStatusPage() {
 
   const fetchStatus = async () => {
     try {
-      const response = await fetch('/api/check-payment-status');
+      const response = await fetch('/api/subscription?status=true');
       const data = await response.json();
       setStatus(data);
 

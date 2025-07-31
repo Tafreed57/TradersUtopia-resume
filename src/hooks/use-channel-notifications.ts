@@ -21,7 +21,7 @@ export function useChannelNotifications(channelId: string) {
       try {
         setIsInitialLoading(true);
         const response = await fetch(
-          `/api/channels/${channelId}/notifications`
+          `/api/notifications/channels/${channelId}`
         );
 
         if (response.ok) {
@@ -48,7 +48,7 @@ export function useChannelNotifications(channelId: string) {
     const newEnabled = !isEnabled;
 
     try {
-      const response = await fetch(`/api/channels/${channelId}/notifications`, {
+      const response = await fetch(`/api/notifications/channels/${channelId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

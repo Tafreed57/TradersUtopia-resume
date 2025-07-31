@@ -9,49 +9,27 @@ import { z } from 'zod';
 const reorderSectionSchema = z.union([
   // Individual section reorder (from drag-drop)
   z.object({
-    serverId: z.string().cuid(),
     sectionId: z.string().cuid(),
     newPosition: z.number().min(0),
     newParentId: z.string().cuid().nullable().optional(),
   }),
   // Bulk section reorder (existing API)
   z.object({
-    serverId: z.string().cuid(),
     sectionOrder: z.array(z.string().cuid()).min(1),
   }),
 ]);
 
 /**
- * Section Reordering API
- *
- * BEFORE: 209 lines with extremely complex logic
- * - CSRF validation (15+ lines)
- * - Rate limiting (5+ lines)
- * - Authentication (10+ lines)
- * - Manual admin verification (15+ lines)
- * - Complex circular reference checking (30+ lines)
- * - Manual position calculations (50+ lines)
- * - Complex transaction handling (40+ lines)
- * - Helper functions (25+ lines)
- * - Error handling (15+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 95%+ boilerplate elimination
- * - Simple array-based reordering
- * - Transaction-safe operations built-in
- * - Comprehensive validation and logging
- * - Eliminates complex position calculations
- */
-
-/**
  * Test endpoint for section reorder API
  */
 export const GET = withAuth(async (req: NextRequest, { user }) => {
+  const serverId = req.nextUrl.searchParams.get('serverId');
   return NextResponse.json({
     message: 'Section reorder API is accessible',
     timestamp: new Date().toISOString(),
     method: 'GET',
     user: user.id.substring(0, 8) + '***',
+    serverId: serverId?.substring(0, 8) + '***',
   });
 }, authHelpers.userOnly('TEST_SECTION_REORDER'));
 
@@ -69,6 +47,11 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
   if (!isAdmin) {
     console.log('[API] Section reorder - Access denied: not admin');
     throw new ValidationError('Only administrators can reorder sections');
+  }
+
+  const serverId = req.nextUrl.searchParams.get('serverId');
+  if (!serverId) {
+    throw new ValidationError('Server ID is required');
   }
 
   // Step 1: Input validation
@@ -96,7 +79,7 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
   if ('sectionOrder' in data) {
     // Bulk reordering (existing functionality)
     console.log('[API] Section reorder - Bulk reordering mode');
-    const { serverId, sectionOrder } = data;
+    const { sectionOrder } = data;
 
     result = await sectionService.reorderSections(
       serverId,
@@ -115,7 +98,7 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
   } else {
     // Individual section reordering (from drag-drop)
     console.log('[API] Section reorder - Individual reordering mode');
-    const { serverId, sectionId, newPosition, newParentId } = data;
+    const { sectionId, newPosition, newParentId } = data;
 
     console.log('[API] Section reorder - Individual params:', {
       serverId: serverId.substring(0, 8) + '***',

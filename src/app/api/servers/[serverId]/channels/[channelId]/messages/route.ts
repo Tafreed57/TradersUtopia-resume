@@ -15,32 +15,16 @@ const messageSchema = z.object({
 });
 
 /**
- * Messages API
- *
- * BEFORE: 251 lines with extensive boilerplate
- * - Rate limiting (10+ lines)
- * - Authentication (15+ lines)
- * - Manual CUID validation (15+ lines)
- * - Complex access verification (25+ lines)
- * - Manual pagination logic (20+ lines)
- * - Duplicate permission checks (30+ lines)
- * - Error handling (20+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 80%+ boilerplate elimination
- * - Admin-only messaging preserved
- * - Enhanced pagination with cursor support
- * - Centralized access control
- */
-
-/**
  * Get Messages from Channel
  * Returns paginated messages with cursor-based pagination
  */
 export const GET = withAuth(async (req: NextRequest, { user }) => {
-  const { searchParams } = new URL(req.url);
-  const channelId = searchParams.get('channelId');
-  const cursor = searchParams.get('cursor');
+  // Extract serverId and channelId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+  const channelId = pathSegments[pathSegments.indexOf('channels') + 1];
+  const cursor = url.searchParams.get('cursor');
 
   if (!channelId) {
     throw new ValidationError('Channel ID is required');
@@ -60,6 +44,7 @@ export const GET = withAuth(async (req: NextRequest, { user }) => {
 
   apiLogger.databaseOperation('messages_retrieved_via_api', true, {
     channelId: channelId.substring(0, 8) + '***',
+    serverId: serverId.substring(0, 8) + '***',
     userId: user.id.substring(0, 8) + '***',
     messageCount: result.messages.length,
     hasCursor: !!cursor,
@@ -83,9 +68,11 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError('Only administrators can send messages');
   }
 
-  const { searchParams } = new URL(req.url);
-  const channelId = searchParams.get('channelId');
-  const serverId = searchParams.get('serverId');
+  // Extract serverId and channelId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+  const channelId = pathSegments[pathSegments.indexOf('channels') + 1];
 
   if (!channelId || !serverId) {
     throw new ValidationError('Channel ID and Server ID are required');

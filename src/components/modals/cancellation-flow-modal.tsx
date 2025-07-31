@@ -29,6 +29,13 @@ import {
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
 import { OfferConfirmationModal } from './offer-confirmation-modal';
+import { useUser } from '@clerk/nextjs';
+import {
+  formatCurrency,
+  centsToDollars,
+  dollarsToCents,
+  formatCurrencyNumber,
+} from '@/lib/utils';
 
 interface CancellationFlowModalProps {
   isOpen: boolean;
@@ -168,15 +175,18 @@ export function CancellationFlowModal({
   const [selectedReason, setSelectedReason] =
     useState<CancellationReason | null>(null);
   const [priceInput, setPriceInput] = useState<string>('');
-  const [currentOffer, setCurrentOffer] = useState<number | null>(null);
+  const [currentOfferCents, setCurrentOfferCents] = useState<number | null>(
+    null
+  );
   const [password, setPassword] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [showOfferConfirmation, setShowOfferConfirmation] = useState(false);
+  const { user } = useUser();
   const [offerDetails, setOfferDetails] = useState<{
-    originalPrice: number;
-    userInput: number;
-    offerPrice: number;
-    savings: number;
+    originalPriceCents: number;
+    userInputCents: number;
+    offerPriceCents: number;
+    savingsCents: number;
     percentOff: number;
   } | null>(null);
 
@@ -198,11 +208,10 @@ export function CancellationFlowModal({
       );
 
       const response = await makeSecureRequest(
-        '/api/subscription/stripe-direct',
+        '/api/subscription?comprehensive=true',
         {
-          method: 'POST',
+          method: 'GET',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_subscription_data' }),
         }
       );
 
@@ -247,7 +256,7 @@ export function CancellationFlowModal({
     if (freshData) {
       return {
         id: freshData.id,
-        amount: freshData.amount,
+        amount: freshData.amount, // Already in cents from Stripe
         originalAmount: freshData.originalAmount || freshData.amount,
         currency: freshData.currency || 'usd',
         interval: freshData.interval || 'month',
@@ -256,12 +265,12 @@ export function CancellationFlowModal({
     }
 
     // Final fallback - try to construct from available data
-    if (subscription?.status === 'ACTIVE') {
+    if (subscription?.status === 'active') {
       console.log('⚠️ Using fallback pricing - will use default $149.99');
       return {
         id: subscription.stripeSubscriptionId || 'unknown',
-        amount: 14999, // Default to $149.99 if no amount available
-        originalAmount: 14999,
+        amount: 14999, // $149.99 in cents
+        originalAmount: 14999, // $149.99 in cents
         currency: 'usd',
         interval: 'month',
         customerId: subscription.customerId || subscription.customer?.id,
@@ -276,7 +285,7 @@ export function CancellationFlowModal({
     setStep('reason');
     setSelectedReason(null);
     setPriceInput('');
-    setCurrentOffer(null);
+    setCurrentOfferCents(null);
     setPassword('');
     setIsLoading(false);
     setShowOfferConfirmation(false);
@@ -305,20 +314,20 @@ export function CancellationFlowModal({
   };
 
   const handlePriceSubmit = async () => {
-    const inputPrice = parseFloat(priceInput);
+    const inputPriceDollars = parseFloat(priceInput);
 
-    console.log('🎯 Price Submit:', { inputPrice, priceInput });
+    console.log('🎯 Price Submit:', { inputPriceDollars, priceInput });
 
-    if (isNaN(inputPrice) || inputPrice <= 0) {
+    if (isNaN(inputPriceDollars) || inputPriceDollars <= 0) {
       showToast.error('Error', 'Please enter a valid price');
       return;
     }
 
-    // Calculate offer: $5 less than their input (minimum $20.00)
-    let offerPrice = Math.max(20.0, inputPrice - 5);
+    // Convert input to cents for all calculations
+    const inputPriceCents = dollarsToCents(inputPriceDollars);
 
     // If they can already afford the full price, keep them at current price
-    if (inputPrice >= 150) {
+    if (inputPriceDollars >= 150) {
       showToast.info(
         'Great!',
         "Since you can afford the full price, we'll keep you at your current rate!"
@@ -327,27 +336,41 @@ export function CancellationFlowModal({
       return;
     }
 
-    // Use 150 as the original price since that's our actual service price
-    const originalPrice = 150;
-    const savings = originalPrice - offerPrice;
-    const percentOff = Math.round((savings / originalPrice) * 100);
+    // All calculations in cents - $150 original, $5 discount, $20 minimum
+    const originalPriceCents = 15000; // $150.00 in cents
+    const discountCents = 500; // $5.00 discount in cents
+    const minimumPriceCents = 2000; // $20.00 minimum in cents
 
-    console.log('💰 Calculated offer:', {
-      inputPrice,
-      offerPrice,
-      savings,
+    // Calculate offer: $5 less than their input (minimum $20.00)
+    const offerPriceCents = Math.max(
+      minimumPriceCents,
+      inputPriceCents - discountCents
+    );
+    const savingsCents = originalPriceCents - offerPriceCents;
+    const percentOff = Math.round((savingsCents / originalPriceCents) * 100);
+
+    console.log('💰 Calculated offer (all in cents):', {
+      inputPriceCents,
+      offerPriceCents,
+      originalPriceCents,
+      savingsCents,
       percentOff,
+      // Display values for debugging
+      inputDisplay: formatCurrency(inputPriceCents),
+      offerDisplay: formatCurrency(offerPriceCents),
+      originalDisplay: formatCurrency(originalPriceCents),
+      savingsDisplay: formatCurrency(savingsCents),
     });
 
-    // Store offer details and show confirmation modal
+    // Store offer details in cents
     setOfferDetails({
-      originalPrice,
-      userInput: inputPrice,
-      offerPrice,
-      savings,
+      originalPriceCents,
+      userInputCents: inputPriceCents,
+      offerPriceCents,
+      savingsCents,
       percentOff,
     });
-    setCurrentOffer(offerPrice);
+    setCurrentOfferCents(offerPriceCents);
     setShowOfferConfirmation(true);
   };
 
@@ -359,7 +382,7 @@ export function CancellationFlowModal({
 
     try {
       // ✅ NEW: Use direct Stripe API calls instead of webhook cache
-      if (!subscription || subscription.status !== 'ACTIVE') {
+      if (!subscription || subscription.status !== 'active') {
         showToast.error('Error', 'No active subscription found');
         return;
       }
@@ -376,27 +399,33 @@ export function CancellationFlowModal({
       }
 
       console.log('✅ [CONFIRM-OFFER] Got stripe data:', stripeData);
-      const currentDiscountedPrice = stripeData.amount / 100;
+      const currentDiscountedPriceCents = stripeData.amount; // Keep in cents
+      const currentDiscountedPriceDollars = centsToDollars(
+        currentDiscountedPriceCents
+      ); // For API compatibility
 
       console.log('💰 Applying discount:', {
-        originalPrice: offerDetails.originalPrice,
-        currentDiscountedPrice,
-        offerPrice: offerDetails.offerPrice,
+        originalPriceCents: offerDetails.originalPriceCents,
+        originalPriceDollars: centsToDollars(offerDetails.originalPriceCents), // For API compatibility
+        currentDiscountedPriceCents,
+        currentDiscountedPriceDollars, // For API compatibility
+        offerPriceCents: offerDetails.offerPriceCents,
+        offerPriceDisplay: formatCurrency(offerDetails.offerPriceCents),
         percentOff: offerDetails.percentOff,
         stripeData,
         subscription,
       });
 
       const response = await makeSecureRequest(
-        '/api/subscription/create-coupon',
+        '/api/subscription/apply-coupon',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             percentOff: offerDetails.percentOff,
-            newMonthlyPrice: offerDetails.offerPrice,
-            currentPrice: currentDiscountedPrice,
-            originalPrice: offerDetails.originalPrice,
+            newMonthlyPrice: offerDetails.offerPriceCents, // Send in cents as API expects
+            currentPrice: currentDiscountedPriceCents, // Send in cents as API expects
+            originalPrice: offerDetails.originalPriceCents, // Send in cents as API expects
             // ✅ NEW: Use fresh Stripe data identifiers
             customerId:
               (stripeData as any).customerId ||
@@ -415,7 +444,9 @@ export function CancellationFlowModal({
         // Show success with detailed information
         showToast.success(
           '🎉 Custom Discount Applied!',
-          `Your negotiated rate of $${offerDetails.offerPrice}/month has been permanently applied!`
+          `Your negotiated rate of ${formatCurrency(
+            offerDetails.offerPriceCents
+          )}/month has been permanently applied!`
         );
 
         // Create a notification for the user about the permanent discount
@@ -427,7 +458,9 @@ export function CancellationFlowModal({
               action: 'create',
               type: 'PAYMENT',
               title: 'Custom Discount Applied! 🎉',
-              message: `Your negotiated rate of $${offerDetails.offerPrice}/month has been permanently applied. This discount will continue for the lifetime of your subscription.`,
+              message: `Your negotiated rate of ${formatCurrency(
+                offerDetails.offerPriceCents
+              )}/month has been permanently applied. This discount will continue for the lifetime of your subscription.`,
             }),
           });
         } catch (notifError) {
@@ -448,8 +481,8 @@ export function CancellationFlowModal({
         // If discount failed, offer to go to final offer
         setTimeout(() => {
           setStep('final-offer');
-          const finalOfferPrice = 20.0; // Fixed $20/month final offer
-          setCurrentOffer(finalOfferPrice);
+          const finalOfferPriceCents = 2000; // Fixed $20/month final offer in cents
+          setCurrentOfferCents(finalOfferPriceCents);
         }, 2000);
       }
     } catch (error) {
@@ -462,8 +495,8 @@ export function CancellationFlowModal({
       // If error, offer to go to final offer
       setTimeout(() => {
         setStep('final-offer');
-        const finalOfferPrice = 20.0; // Fixed $20/month final offer
-        setCurrentOffer(finalOfferPrice);
+        const finalOfferPriceCents = 2000; // Fixed $20/month final offer in cents
+        setCurrentOfferCents(finalOfferPriceCents);
       }, 2000);
     } finally {
       setIsLoading(false);
@@ -471,17 +504,18 @@ export function CancellationFlowModal({
   };
 
   const handleAcceptOffer = async () => {
-    // Use finalOfferPrice or default to 20.00 for the final offer
-    const finalOfferPrice = currentOffer || 20.0;
+    // Use finalOfferPrice or default to $20.00 (2000 cents) for the final offer
+    const finalOfferPriceCents = currentOfferCents || 2000;
 
     console.log('🎯 Accept Offer clicked:', {
-      currentOffer,
-      finalOfferPrice,
+      currentOfferCents,
+      finalOfferPriceCents,
+      finalOfferDisplay: formatCurrency(finalOfferPriceCents),
       subscription,
     });
 
     // ✅ NEW: Use direct Stripe API calls instead of webhook cache
-    if (!subscription || subscription.status !== 'ACTIVE') {
+    if (!subscription || subscription.status !== 'active') {
       showToast.error('Error', 'No active subscription found');
       return;
     }
@@ -502,35 +536,42 @@ export function CancellationFlowModal({
 
       console.log('✅ [ACCEPT-OFFER] Got stripe data:', stripeData);
 
-      // Use 150 as the original price since that's our actual service price
-      const originalPrice = 150;
-      const currentDiscountedPrice = stripeData.amount / 100;
+      // All calculations in cents
+      const originalPriceCents = 15000; // $150.00 in cents
+      const currentDiscountedPriceCents = stripeData.amount; // Keep in cents
+      const currentDiscountedPriceDollars = centsToDollars(
+        currentDiscountedPriceCents
+      ); // For API compatibility
 
-      const totalDiscountAmount = originalPrice - finalOfferPrice;
+      const totalDiscountCents = originalPriceCents - finalOfferPriceCents;
       const percentOff = Math.round(
-        (totalDiscountAmount / originalPrice) * 100
+        (totalDiscountCents / originalPriceCents) * 100
       );
 
-      console.log('💰 Discount calculation:', {
-        originalPrice,
-        currentDiscountedPrice,
-        finalOfferPrice,
-        totalDiscountAmount,
+      console.log('💰 Discount calculation (all in cents):', {
+        originalPriceCents,
+        currentDiscountedPriceCents,
+        finalOfferPriceCents,
+        totalDiscountCents,
         percentOff,
+        // Display values for debugging
+        originalDisplay: formatCurrency(originalPriceCents),
+        currentDisplay: formatCurrency(currentDiscountedPriceCents),
+        finalOfferDisplay: formatCurrency(finalOfferPriceCents),
         stripeData,
         subscription,
       });
 
       const response = await makeSecureRequest(
-        '/api/subscription/create-coupon',
+        '/api/subscription/apply-coupon',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             percentOff,
-            newMonthlyPrice: finalOfferPrice,
-            currentPrice: currentDiscountedPrice,
-            originalPrice: originalPrice,
+            newMonthlyPrice: finalOfferPriceCents, // Send in cents as API expects
+            currentPrice: currentDiscountedPriceCents, // Send in cents as API expects
+            originalPrice: originalPriceCents, // Send in cents as API expects
             // ✅ NEW: Use fresh Stripe data identifiers
             customerId:
               (stripeData as any).customerId ||
@@ -548,13 +589,15 @@ export function CancellationFlowModal({
         data,
         requestBody: {
           percentOff,
-          newMonthlyPrice: finalOfferPrice,
-          currentPrice: currentDiscountedPrice,
-          originalPrice: originalPrice,
-          // ✅ FIXED: Handle both new and legacy data formats
-          customerId: subscription.customer?.id || subscription.customerId,
-          subscriptionId:
-            subscription.stripe?.id || subscription.stripeSubscriptionId,
+          newMonthlyPrice: finalOfferPriceCents, // ✅ FIXED: Log the cents value sent to API
+          currentPrice: currentDiscountedPriceCents,
+          originalPrice: originalPriceCents,
+          // ✅ FIXED: Use fresh Stripe data identifiers
+          customerId:
+            (stripeData as any).customerId ||
+            subscription?.customer?.id ||
+            subscription?.customerId,
+          subscriptionId: stripeData.id,
         },
       });
 
@@ -564,7 +607,9 @@ export function CancellationFlowModal({
         // Show success with detailed information
         showToast.success(
           '🎉 Discount Applied Successfully!',
-          `Your subscription has been updated to $${finalOfferPrice}/month. Check your Stripe dashboard or next invoice to confirm the discount.`
+          `Your subscription has been updated to ${formatCurrency(
+            finalOfferPriceCents
+          )}/month. Check your Stripe dashboard or next invoice to confirm the discount.`
         );
 
         // Create a notification for the user about the permanent discount
@@ -576,7 +621,9 @@ export function CancellationFlowModal({
               action: 'create',
               type: 'PAYMENT',
               title: 'Permanent Discount Applied! 🎉',
-              message: `Your negotiated rate of $${finalOfferPrice}/month has been permanently applied. This discount will continue for the lifetime of your subscription.`,
+              message: `Your negotiated rate of ${formatCurrency(
+                finalOfferPriceCents
+              )}/month has been permanently applied. This discount will continue for the lifetime of your subscription.`,
             }),
           });
         } catch (notifError) {
@@ -1027,8 +1074,8 @@ export function CancellationFlowModal({
   );
 
   const renderFinalOffer = () => {
-    // Ensure we have a final offer price (default to $19.99 if not set)
-    const finalOfferPrice = currentOffer || 19.99;
+    // Ensure we have a final offer price (default to $20.00 if not set)
+    const finalOfferPriceCents = currentOfferCents || 2000;
 
     return (
       <div className='relative overflow-hidden bg-gradient-to-br from-red-900 via-red-800 to-orange-900 text-white rounded-2xl shadow-2xl'>
@@ -1070,7 +1117,7 @@ export function CancellationFlowModal({
 
               <div className='relative'>
                 <div className='text-5xl sm:text-6xl font-black text-red-600 animate-pulse'>
-                  ${finalOfferPrice.toFixed(2)}
+                  {formatCurrency(finalOfferPriceCents)}
                 </div>
                 <div className='text-lg sm:text-xl text-gray-600 font-semibold'>
                   per month • locked in forever
@@ -1114,8 +1161,8 @@ export function CancellationFlowModal({
               </p>
               <p className='text-yellow-300 text-sm'>
                 You will NEVER see a price this low again. This is your final
-                chance to secure premium access for just $
-                {finalOfferPrice.toFixed(2)}/month.
+                chance to secure premium access for just{' '}
+                {formatCurrency(finalOfferPriceCents)}/month.
               </p>
             </div>
           </div>
@@ -1123,7 +1170,8 @@ export function CancellationFlowModal({
           {/* Value Stack */}
           <div className='bg-gradient-to-br from-slate-800/50 to-slate-700/50 border border-slate-600/50 rounded-xl p-4 sm:p-6'>
             <h3 className='text-center text-lg sm:text-xl font-semibold text-white mb-4'>
-              What you get for just ${finalOfferPrice.toFixed(2)}/month:
+              What you get for just {formatCurrency(finalOfferPriceCents)}
+              /month:
             </h3>
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm sm:text-base'>
               {[
@@ -1148,7 +1196,7 @@ export function CancellationFlowModal({
                 Regular price: $150/month
               </div>
               <div className='text-emerald-400 text-xl font-bold'>
-                Your final offer: ${finalOfferPrice.toFixed(2)}/month
+                Your final offer: {formatCurrency(finalOfferPriceCents)}/month
               </div>
               <div className='text-orange-300 text-sm font-semibold mt-1'>
                 Save $130/month (87% off)
@@ -1403,12 +1451,13 @@ export function CancellationFlowModal({
         return renderPriceNegotiation();
       case 'final-offer':
         // ✅ FIXED: Set final offer to exactly $20/month
-        if (!currentOffer) {
-          const finalOfferPrice = 20.0; // Fixed $20/month final offer
+        if (!currentOfferCents) {
+          const finalOfferPriceCents = 2000; // Fixed $20/month final offer in cents
           console.log('🔧 Setting final offer to exactly $20/month:', {
-            finalOfferPrice,
+            finalOfferPriceCents,
+            finalOfferDisplay: formatCurrency(finalOfferPriceCents),
           });
-          setCurrentOffer(finalOfferPrice);
+          setCurrentOfferCents(finalOfferPriceCents);
         }
         return renderFinalOffer();
       case 'password':
@@ -1442,10 +1491,10 @@ export function CancellationFlowModal({
         <OfferConfirmationModal
           isOpen={showOfferConfirmation}
           onClose={handleConfirmOffer}
-          originalPrice={offerDetails.originalPrice}
-          userInput={offerDetails.userInput}
-          offerPrice={offerDetails.offerPrice}
-          savings={offerDetails.savings}
+          originalPrice={centsToDollars(offerDetails.originalPriceCents)}
+          userInput={centsToDollars(offerDetails.userInputCents)}
+          offerPrice={centsToDollars(offerDetails.offerPriceCents)}
+          savings={centsToDollars(offerDetails.savingsCents)}
           percentOff={offerDetails.percentOff}
         />
       )}

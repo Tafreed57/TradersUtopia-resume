@@ -13,27 +13,29 @@ import { EmojiPicker } from '@/components/ui/emoji-picker';
 import { Member } from '@prisma/client';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useExtendedUser } from '@/hooks/use-extended-user';
-
 interface ChatInputProps {
   apiUrl: string;
   query: Record<string, any>;
   name: string;
   type: 'channel';
   member: Member;
+  isAdmin: boolean;
 }
 
 const formSchema = z.object({
   content: z.string().min(1),
 });
 
-export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
+export function ChatInput({
+  apiUrl,
+  query,
+  name,
+  type,
+  isAdmin,
+}: ChatInputProps) {
   const onOpen = useStore(state => state.onOpen);
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
-
-  // Use the extended user hook for admin checking
-  const { isAdmin, isLoading: adminCheckLoading } = useExtendedUser();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,20 +95,6 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
     }
   };
 
-  // Show loading state while checking admin status
-  if (adminCheckLoading) {
-    return (
-      <div className='relative z-10 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/30'>
-        <div className='p-4 sm:p-6 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-t border-gray-700/50'>
-          <div className='flex items-center justify-center text-gray-400'>
-            <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2'></div>
-            <span className='text-sm'>Checking permissions...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Hide input bar completely for non-admin users
   if (!isAdmin) {
     return null;
@@ -154,7 +142,10 @@ export function ChatInput({ apiUrl, query, name, type }: ChatInputProps) {
                         // Auto-resize functionality
                         const target = e.target as HTMLTextAreaElement;
                         target.style.height = 'auto';
-                        target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
+                        target.style.height = `${Math.min(
+                          target.scrollHeight,
+                          200
+                        )}px`;
 
                         // Reset height if content is cleared
                         if (e.target.value === '') {

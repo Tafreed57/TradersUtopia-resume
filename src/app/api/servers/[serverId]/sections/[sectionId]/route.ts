@@ -14,9 +14,8 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError('Only administrators can edit sections');
   }
 
-  const { searchParams, pathname } = new URL(req.url);
-  const serverId = searchParams.get('serverId');
-  const sectionId = pathname.split('/').pop(); // Extract sectionId from URL
+  const serverId = req.nextUrl.searchParams.get('serverId');
+  const sectionId = req.nextUrl.searchParams.get('sectionId');
 
   if (!serverId) {
     throw new ValidationError('Server ID is required');
@@ -61,9 +60,8 @@ export const DELETE = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError('Only administrators can delete sections');
   }
 
-  const { searchParams, pathname } = new URL(req.url);
-  const serverId = searchParams.get('serverId');
-  const sectionId = pathname.split('/').pop(); // Extract sectionId from URL
+  const serverId = req.nextUrl.searchParams.get('serverId');
+  const sectionId = req.nextUrl.searchParams.get('sectionId');
 
   if (!serverId) {
     throw new ValidationError('Server ID is required');

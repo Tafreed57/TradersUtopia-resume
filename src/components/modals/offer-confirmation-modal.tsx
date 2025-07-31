@@ -15,6 +15,7 @@ import {
   Sparkles,
   Crown,
 } from 'lucide-react';
+import { formatCurrency, dollarsToCents } from '@/lib/utils';
 
 interface OfferConfirmationModalProps {
   isOpen: boolean;
@@ -81,7 +82,7 @@ export function OfferConfirmationModal({
                     You said you could afford:
                   </span>
                   <span className='text-white text-lg sm:text-xl font-bold'>
-                    ${userInput.toFixed(2)}/month
+                    {formatCurrency(dollarsToCents(userInput))}/month
                   </span>
                 </div>
               </div>
@@ -94,7 +95,7 @@ export function OfferConfirmationModal({
                     <span>Your New Price</span>
                   </div>
                   <div className='text-3xl xs:text-4xl sm:text-5xl font-black text-white'>
-                    ${offerPrice.toFixed(2)}
+                    {formatCurrency(dollarsToCents(offerPrice))}
                   </div>
                   <div className='text-emerald-200 text-base sm:text-lg font-medium'>
                     per month • locked forever
@@ -104,7 +105,8 @@ export function OfferConfirmationModal({
                   <div className='inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg'>
                     <TrendingDown className='w-3 h-3 sm:w-4 sm:h-4' />
                     <span className='whitespace-nowrap'>
-                      Save ${savings.toFixed(2)}/month ({percentOff}% OFF)
+                      Save {formatCurrency(dollarsToCents(savings))}/month (
+                      {percentOff}% OFF)
                     </span>
                   </div>
                 </div>
@@ -118,7 +120,7 @@ export function OfferConfirmationModal({
                       Original Price
                     </div>
                     <div className='text-white text-lg sm:text-xl font-bold line-through opacity-75'>
-                      ${originalPrice.toFixed(2)}
+                      {formatCurrency(dollarsToCents(originalPrice))}
                     </div>
                   </div>
                   <div>
@@ -126,7 +128,7 @@ export function OfferConfirmationModal({
                       Your Price
                     </div>
                     <div className='text-emerald-400 text-lg sm:text-xl font-bold'>
-                      ${offerPrice.toFixed(2)}
+                      {formatCurrency(dollarsToCents(offerPrice))}
                     </div>
                   </div>
                 </div>

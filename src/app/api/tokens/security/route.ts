@@ -89,51 +89,6 @@ export const GET = withAuth(
             },
           }
         );
-      } else if (type === 'csrf-stats') {
-        // Get CSRF statistics (development only)
-        try {
-          const statsResponse = await tokenService.getCSRFStats(user.id);
-
-          apiLogger.databaseOperation(
-            'csrf_stats_retrieved_successfully',
-            true,
-            {
-              userId: user.id.substring(0, 8) + '***',
-              environment: statsResponse.environment,
-              responseTime: `${Date.now() - startTime}ms`,
-            }
-          );
-
-          return NextResponse.json(
-            {
-              ...statsResponse,
-              metadata: {
-                generatedAt: new Date().toISOString(),
-                userId: user.id,
-                responseTime: `${Date.now() - startTime}ms`,
-                version: '2.0-service-based',
-              },
-            },
-            {
-              headers: {
-                'X-Environment': 'development',
-                'X-Security-Level': 'high',
-              },
-            }
-          );
-        } catch (error) {
-          if (error instanceof Error && error.message.includes('production')) {
-            return NextResponse.json(
-              {
-                error: 'CSRF stats disabled in production',
-                environment: 'production',
-                responseTime: `${Date.now() - startTime}ms`,
-              },
-              { status: 403 }
-            );
-          }
-          throw error;
-        }
       }
 
       // Fallback for unknown type

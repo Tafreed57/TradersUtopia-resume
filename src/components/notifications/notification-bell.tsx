@@ -8,13 +8,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuPortal,
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Bell,
   BellRing,
@@ -270,7 +268,9 @@ export function NotificationBell() {
           if (channelName) {
             // Redirect to the correct channel in the main server
             router.push(
-              `/servers/cmco7gxye0002zuystrej89un/channels/${getChannelIdByName(channelName)}`
+              `/servers/cmco7gxye0002zuystrej89un/channels/${getChannelIdByName(
+                channelName
+              )}`
             );
           } else {
             router.push('/servers/cmco7gxye0002zuystrej89un');

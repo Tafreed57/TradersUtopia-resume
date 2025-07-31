@@ -118,8 +118,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       newSectionId?: string
     ) => {
       try {
-        await secureAxiosPatch('/api/channels/reorder', {
-          serverId,
+        await secureAxiosPatch(`/api/servers/${serverId}/channels/reorder`, {
           channelId,
           newPosition,
           newSectionId,
@@ -149,8 +148,7 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       newParentId?: string
     ) => {
       try {
-        await secureAxiosPatch('/api/sections/reorder', {
-          serverId,
+        await secureAxiosPatch(`/api/servers/${serverId}/sections/reorder`, {
           sectionId,
           newPosition,
           newParentId,

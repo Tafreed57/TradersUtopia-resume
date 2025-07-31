@@ -6,7 +6,6 @@ import { ValidationError } from '@/lib/error-handling';
 import { z } from 'zod';
 
 const reorderChannelSchema = z.object({
-  serverId: z.string(),
   channelId: z.string(),
   newPosition: z.number().min(0),
   newSectionId: z.string().nullable().optional(),
@@ -28,6 +27,15 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError('Only administrators can reorder channels');
   }
 
+  // Extract serverId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+
+  if (!serverId) {
+    throw new ValidationError('Server ID is required');
+  }
+
   const channelService = new ChannelService();
 
   // Step 1: Input validation
@@ -46,7 +54,7 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw error;
   }
 
-  const { serverId, channelId, newPosition, newSectionId } = validatedData;
+  const { channelId, newPosition, newSectionId } = validatedData;
   console.log('newSectionId', validatedData);
 
   // Step 2: Verify channel access using service layer

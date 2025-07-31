@@ -60,9 +60,7 @@ export function EmailWarningModal() {
         if (window.Rewardful) {
           setReferral(window.Rewardful.referral);
         }
-        console.log('Referral:', window.Rewardful.referral);
       });
-      console.log('Referral:', window.Rewardful.referral);
     }
   }, []);
 

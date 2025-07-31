@@ -353,16 +353,4 @@ export const authHelpers = {
     requireCSRF: true,
     requireRateLimit: true,
   }),
-
-  /**
-   * For premium content/features
-   */
-  premiumContent: (action: string) => ({
-    action,
-    requireAdmin: false,
-    requireActiveSubscription: true,
-    requireCSRF: false,
-    requireRateLimit: true,
-    allowedMethods: ['GET'],
-  }),
 };

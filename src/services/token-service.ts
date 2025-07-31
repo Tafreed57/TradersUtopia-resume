@@ -1,7 +1,7 @@
 import { AccessToken } from 'livekit-server-sdk';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { BaseDatabaseService } from './database/base-service';
-import { getCSRFTokenForUser, getCSRFStats } from '@/lib/csrf';
+import { getCSRFTokenForUserId, getCSRFStats } from '@/lib/csrf';
 
 export interface MediaTokenRequest {
   room: string;
@@ -287,8 +287,8 @@ export class TokenService extends BaseDatabaseService {
     const operation = 'generate_csrf_token';
 
     try {
-      // Use the existing CSRF token generation function
-      const csrfToken = await getCSRFTokenForUser();
+      // Use the CSRF token generation function with the specific userId
+      const csrfToken = getCSRFTokenForUserId(userId);
 
       if (!csrfToken) {
         throw new Error('Failed to generate CSRF token');

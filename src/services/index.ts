@@ -16,10 +16,18 @@ export { StripeClientService } from './stripe/base/stripe-client';
 export { BaseStripeService } from './stripe/base/base-stripe-service';
 export { StripeServiceError, StripeConfigError } from './stripe/base/errors';
 export { StripeDataExtractionService } from './stripe/data-extraction-service';
+export { CustomerService } from './stripe/customer-service';
+export { SubscriptionService } from './stripe/subscription-service';
+export { InvoiceService } from './stripe/invoice-service';
+export { CouponService } from './stripe/coupon-service';
 export type {
   ExtractedSubscriptionData,
   StripeObjectWithSubscriptionData,
 } from './stripe/data-extraction-service';
+export type {
+  CreateCouponData,
+  CouponListOptions,
+} from './stripe/coupon-service';
 
 // Notification services
 export { NotificationTriggerService } from '../lib/notifications/trigger-integration';

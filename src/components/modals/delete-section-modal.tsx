@@ -11,10 +11,7 @@ export function DeleteSectionModal() {
   const data = useStore(state => state.data);
 
   const handleDeleteSection = async () => {
-    const url = qs.stringifyUrl({
-      url: `/api/sections/${data?.section?.id}`,
-      query: { serverId: data?.server?.id },
-    });
+    const url = `/api/servers/${data?.server?.id}/sections/${data?.section?.id}`;
     await secureAxiosDelete(url);
     router.refresh();
   };

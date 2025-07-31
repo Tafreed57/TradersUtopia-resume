@@ -33,10 +33,12 @@ const messageEditSchema = z.object({
  * Soft delete with author/admin permission verification
  */
 export const DELETE = withAuth(async (req: NextRequest, { user }) => {
-  const { searchParams, pathname } = new URL(req.url);
-  const channelId = searchParams.get('channelId');
-  const serverId = searchParams.get('serverId');
-  const messageId = pathname.split('/').pop(); // Extract messageId from URL
+  // Extract serverId, channelId, and messageId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+  const channelId = pathSegments[pathSegments.indexOf('channels') + 1];
+  const messageId = pathSegments[pathSegments.length - 1];
 
   if (!channelId || !serverId || !messageId) {
     throw new ValidationError(
@@ -64,10 +66,12 @@ export const DELETE = withAuth(async (req: NextRequest, { user }) => {
  * Edit message content with author-only permission verification
  */
 export const PATCH = withAuth(async (req: NextRequest, { user }) => {
-  const { searchParams, pathname } = new URL(req.url);
-  const channelId = searchParams.get('channelId');
-  const serverId = searchParams.get('serverId');
-  const messageId = pathname.split('/').pop(); // Extract messageId from URL
+  // Extract serverId, channelId, and messageId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+  const channelId = pathSegments[pathSegments.indexOf('channels') + 1];
+  const messageId = pathSegments[pathSegments.length - 1];
 
   if (!channelId || !serverId || !messageId) {
     throw new ValidationError(

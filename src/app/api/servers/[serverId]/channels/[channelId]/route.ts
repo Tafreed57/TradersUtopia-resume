@@ -11,6 +11,61 @@ import { revalidatePath } from 'next/cache';
 export const dynamic = 'force-dynamic';
 
 /**
+ * Get Server with Channel Context
+ * Retrieve server data with member access validation for a specific channel
+ */
+export const GET = withAuth(async (req: NextRequest, { user }) => {
+  // Extract serverId and channelId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+  const channelId = pathSegments[pathSegments.length - 1];
+
+  if (!serverId) {
+    throw new ValidationError('Server ID is required');
+  }
+
+  if (!channelId) {
+    throw new ValidationError('Channel ID is required');
+  }
+
+  const serverService = new ServerService();
+  const channelService = new ChannelService();
+
+  // Get server with member access validation
+  const server = await serverService.findServerWithMemberAccess(
+    serverId,
+    user.id
+  );
+
+  if (!server) {
+    return NextResponse.json(
+      { error: 'Server not found or access denied' },
+      { status: 404 }
+    );
+  }
+
+  // Verify channel exists and belongs to this server
+  const channel = server.channels?.find(c => c.id === channelId);
+  if (!channel) {
+    return NextResponse.json(
+      { error: 'Channel not found or access denied' },
+      { status: 404 }
+    );
+  }
+
+  apiLogger.databaseOperation('server_channel_retrieved_via_api', true, {
+    serverId: serverId.substring(0, 8) + '***',
+    channelId: channelId.substring(0, 8) + '***',
+    userId: user.id.substring(0, 8) + '***',
+    serverName: server.name,
+    channelName: channel.name,
+  });
+
+  return NextResponse.json(server);
+}, authHelpers.userOnly('GET_SERVER_CHANNEL'));
+
+/**
  * Update Channel
  * Admin-only operation
  */
@@ -20,9 +75,11 @@ export const PATCH = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError('Only administrators can edit channels');
   }
 
-  const channelId = new URL(req.url).pathname.split('/').pop();
-  const { searchParams } = new URL(req.url);
-  const serverId = searchParams.get('serverId');
+  // Extract serverId and channelId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+  const channelId = pathSegments[pathSegments.length - 1];
 
   if (!channelId) {
     throw new ValidationError('Channel ID is required');
@@ -78,9 +135,11 @@ export const DELETE = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError('Only administrators can delete channels');
   }
 
-  const channelId = new URL(req.url).pathname.split('/').pop();
-  const { searchParams } = new URL(req.url);
-  const serverId = searchParams.get('serverId');
+  // Extract serverId and channelId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+  const channelId = pathSegments[pathSegments.length - 1];
 
   if (!channelId) {
     throw new ValidationError('Channel ID is required');

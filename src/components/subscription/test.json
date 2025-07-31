@@ -1,0 +1,295 @@
+{
+  "id": "evt_1RqrUvCnZNXu29wPWxzh7IkE",
+  "object": "event",
+  "api_version": "2022-11-15",
+  "created": 1753949156,
+  "data": {
+    "object": {
+      "id": "sub_1RqnTwCnZNXu29wPFUEvJTp7",
+      "object": "subscription",
+      "application": null,
+      "application_fee_percent": null,
+      "automatic_tax": {
+        "disabled_reason": null,
+        "enabled": false,
+        "liability": null
+      },
+      "billing_cycle_anchor": 1753933718,
+      "billing_cycle_anchor_config": null,
+      "billing_mode": {
+        "type": "classic"
+      },
+      "billing_thresholds": null,
+      "cancel_at": 1754020118,
+      "cancel_at_period_end": false,
+      "canceled_at": 1753949156,
+      "cancellation_details": {
+        "comment": null,
+        "feedback": null,
+        "reason": "cancellation_requested"
+      },
+      "collection_method": "charge_automatically",
+      "created": 1753933718,
+      "currency": "cad",
+      "current_period_end": 1754020118,
+      "current_period_start": 1753933718,
+      "customer": "cus_SmMC7skNlp1U9C",
+      "days_until_due": null,
+      "default_payment_method": "pm_1RqnTtCnZNXu29wPx65lAihv",
+      "default_source": null,
+      "default_tax_rates": [],
+      "description": null,
+      "discount": {
+        "id": "di_1RqrTLCnZNXu29wPVs10LRIi",
+        "object": "discount",
+        "checkout_session": null,
+        "coupon": {
+          "id": "NkUngJ7p",
+          "object": "coupon",
+          "amount_off": null,
+          "created": 1753949059,
+          "currency": "usd",
+          "duration": "forever",
+          "duration_in_months": null,
+          "livemode": false,
+          "max_redemptions": null,
+          "metadata": {},
+          "name": "77% Permanent Discount",
+          "percent_off": 77,
+          "redeem_by": null,
+          "times_redeemed": 1,
+          "valid": true
+        },
+        "customer": "cus_SmMC7skNlp1U9C",
+        "end": null,
+        "invoice": null,
+        "invoice_item": null,
+        "promotion_code": null,
+        "start": 1753949059,
+        "subscription": "sub_1RqnTwCnZNXu29wPFUEvJTp7",
+        "subscription_item": null
+      },
+      "discounts": ["di_1RqrTLCnZNXu29wPVs10LRIi"],
+      "ended_at": null,
+      "invoice_settings": {
+        "account_tax_ids": null,
+        "issuer": {
+          "type": "self"
+        }
+      },
+      "items": {
+        "object": "list",
+        "data": [
+          {
+            "id": "si_SmMCIBz6J9Cvt7",
+            "object": "subscription_item",
+            "billing_thresholds": null,
+            "created": 1753933719,
+            "current_period_end": 1754020118,
+            "current_period_start": 1753933718,
+            "discounts": [],
+            "metadata": {},
+            "plan": {
+              "id": "price_1RbGMaCnZNXu29wPFjsKqRmf",
+              "object": "plan",
+              "active": true,
+              "aggregate_usage": null,
+              "amount": 15000,
+              "amount_decimal": "15000",
+              "billing_scheme": "per_unit",
+              "created": 1750231492,
+              "currency": "cad",
+              "interval": "month",
+              "interval_count": 1,
+              "livemode": false,
+              "metadata": {},
+              "meter": null,
+              "nickname": null,
+              "product": "prod_SWIyAf2tfVrJao",
+              "tiers_mode": null,
+              "transform_usage": null,
+              "trial_period_days": null,
+              "usage_type": "licensed"
+            },
+            "price": {
+              "id": "price_1RbGMaCnZNXu29wPFjsKqRmf",
+              "object": "price",
+              "active": true,
+              "billing_scheme": "per_unit",
+              "created": 1750231492,
+              "currency": "cad",
+              "custom_unit_amount": null,
+              "livemode": false,
+              "lookup_key": null,
+              "metadata": {},
+              "nickname": null,
+              "product": "prod_SWIyAf2tfVrJao",
+              "recurring": {
+                "aggregate_usage": null,
+                "interval": "month",
+                "interval_count": 1,
+                "meter": null,
+                "trial_period_days": null,
+                "usage_type": "licensed"
+              },
+              "tax_behavior": "exclusive",
+              "tiers_mode": null,
+              "transform_quantity": null,
+              "type": "recurring",
+              "unit_amount": 15000,
+              "unit_amount_decimal": "15000"
+            },
+            "quantity": 1,
+            "subscription": "sub_1RqnTwCnZNXu29wPFUEvJTp7",
+            "tax_rates": []
+          }
+        ],
+        "has_more": false,
+        "total_count": 1,
+        "url": "/v1/subscription_items?subscription=sub_1RqnTwCnZNXu29wPFUEvJTp7"
+      },
+      "latest_invoice": "in_1RqnTuCnZNXu29wPpQ4yMdeu",
+      "livemode": false,
+      "metadata": {},
+      "next_pending_invoice_item_invoice": null,
+      "on_behalf_of": null,
+      "pause_collection": null,
+      "payment_settings": {
+        "payment_method_options": {
+          "acss_debit": null,
+          "bancontact": null,
+          "card": {
+            "network": null,
+            "request_three_d_secure": "automatic"
+          },
+          "customer_balance": null,
+          "konbini": null,
+          "sepa_debit": null,
+          "us_bank_account": null
+        },
+        "payment_method_types": null,
+        "save_default_payment_method": "off"
+      },
+      "pending_invoice_item_interval": null,
+      "pending_setup_intent": "seti_1RqrTLCnZNXu29wP3wtjkIQX",
+      "pending_update": null,
+      "plan": {
+        "id": "price_1RbGMaCnZNXu29wPFjsKqRmf",
+        "object": "plan",
+        "active": true,
+        "aggregate_usage": null,
+        "amount": 15000,
+        "amount_decimal": "15000",
+        "billing_scheme": "per_unit",
+        "created": 1750231492,
+        "currency": "cad",
+        "interval": "month",
+        "interval_count": 1,
+        "livemode": false,
+        "metadata": {},
+        "meter": null,
+        "nickname": null,
+        "product": "prod_SWIyAf2tfVrJao",
+        "tiers_mode": null,
+        "transform_usage": null,
+        "trial_period_days": null,
+        "usage_type": "licensed"
+      },
+      "quantity": 1,
+      "schedule": null,
+      "start_date": 1753933718,
+      "status": "active",
+      "test_clock": null,
+      "transfer_data": null,
+      "trial_end": null,
+      "trial_settings": {
+        "end_behavior": {
+          "missing_payment_method": "create_invoice"
+        }
+      },
+      "trial_start": null
+    },
+    "previous_attributes": {
+      "cancel_at": null,
+      "canceled_at": null,
+      "cancellation_details": {
+        "reason": null
+      },
+      "current_period_end": 1756612118,
+      "items": {
+        "data": [
+          {
+            "id": "si_SmMCIBz6J9Cvt7",
+            "object": "subscription_item",
+            "billing_thresholds": null,
+            "created": 1753933719,
+            "current_period_end": 1756612118,
+            "current_period_start": 1753933718,
+            "discounts": [],
+            "metadata": {},
+            "plan": {
+              "id": "price_1RbGMaCnZNXu29wPFjsKqRmf",
+              "object": "plan",
+              "active": true,
+              "aggregate_usage": null,
+              "amount": 15000,
+              "amount_decimal": "15000",
+              "billing_scheme": "per_unit",
+              "created": 1750231492,
+              "currency": "cad",
+              "interval": "month",
+              "interval_count": 1,
+              "livemode": false,
+              "metadata": {},
+              "meter": null,
+              "nickname": null,
+              "product": "prod_SWIyAf2tfVrJao",
+              "tiers_mode": null,
+              "transform_usage": null,
+              "trial_period_days": null,
+              "usage_type": "licensed"
+            },
+            "price": {
+              "id": "price_1RbGMaCnZNXu29wPFjsKqRmf",
+              "object": "price",
+              "active": true,
+              "billing_scheme": "per_unit",
+              "created": 1750231492,
+              "currency": "cad",
+              "custom_unit_amount": null,
+              "livemode": false,
+              "lookup_key": null,
+              "metadata": {},
+              "nickname": null,
+              "product": "prod_SWIyAf2tfVrJao",
+              "recurring": {
+                "aggregate_usage": null,
+                "interval": "month",
+                "interval_count": 1,
+                "meter": null,
+                "trial_period_days": null,
+                "usage_type": "licensed"
+              },
+              "tax_behavior": "exclusive",
+              "tiers_mode": null,
+              "transform_quantity": null,
+              "type": "recurring",
+              "unit_amount": 15000,
+              "unit_amount_decimal": "15000"
+            },
+            "quantity": 1,
+            "subscription": "sub_1RqnTwCnZNXu29wPFUEvJTp7",
+            "tax_rates": []
+          }
+        ]
+      }
+    }
+  },
+  "livemode": false,
+  "pending_webhooks": 11,
+  "request": {
+    "id": "req_YApC6FmEostYkB",
+    "idempotency_key": "81ccf514-48d4-4c4a-91f3-195e5786708f"
+  },
+  "type": "customer.subscription.updated"
+}

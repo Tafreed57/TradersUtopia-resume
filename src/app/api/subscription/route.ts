@@ -9,22 +9,37 @@ import Stripe from 'stripe';
 
 export const dynamic = 'force-dynamic';
 
-// No query parameters needed - always include coupons
-
 /**
- * Subscription Status API
+ * Subscription API
  *
- * @route GET /api/subscription
- * @description Fetches minimal subscription information directly from Stripe:
+ * @route GET /api/subscription - Fetches subscription pricing information
+ * @route GET /api/subscription?status=true - Checks payment/subscription status
+ * @route GET /api/subscription?comprehensive=true - Returns detailed subscription data
+ * @description
+ * Default: Returns minimal subscription information directly from Stripe:
  * - isActive: boolean - whether subscription is active or trialing
  * - total: number - exact amount being charged (after discounts)
  * - currency: string - currency code
  * - discounts: array - active coupons/discounts applied (always included)
+ *
+ * With ?status=true: Returns comprehensive subscription status:
+ * - hasAccess: boolean - whether user has access
+ * - subscriptionStatus: string - detailed status
+ * - subscriptionEnd: date - when subscription ends
+ * - reason: string - explanation of access status
+ * - stripeSubscriptionId: string - Stripe subscription ID
+ *
+ * With ?comprehensive=true: Returns detailed subscription data (similar to stripe-direct):
+ * - success: boolean - operation success
+ * - subscription: object - comprehensive subscription details
  * @security Requires authentication with rate limiting
  */
 export const GET = withAuth(
   async (req: NextRequest, { user, isAdmin }) => {
     const startTime = Date.now();
+    const url = new URL(req.url);
+    const checkStatus = url.searchParams.get('status') === 'true';
+    const comprehensive = url.searchParams.get('comprehensive') === 'true';
 
     try {
       // Initialize services
@@ -32,6 +47,202 @@ export const GET = withAuth(
       const subscriptionService = new SubscriptionService();
       const customerService = new CustomerService();
 
+      if (checkStatus) {
+        apiLogger.databaseOperation('payment_status_check_started', true, {
+          userId: user.id.substring(0, 8) + '***',
+        });
+
+        try {
+          // Step 1: Get user's subscription status using the service layer
+          const subscriptionStatus =
+            await userService.getUserSubscriptionStatus(user.id);
+
+          // Step 2: Get additional subscription details if needed
+          const subscriptionExpiry =
+            await userService.getSubscriptionExpiryInfo(user.id);
+
+          apiLogger.databaseOperation('payment_status_checked', true, {
+            userId: user.id.substring(0, 8) + '***',
+            hasAccess: subscriptionStatus.hasActiveSubscription,
+            subscriptionStatus: subscriptionStatus.status,
+            currentPeriodEnd: subscriptionStatus.currentPeriodEnd,
+            isExpired: subscriptionExpiry.isExpired,
+            isInGracePeriod: subscriptionExpiry.isInGracePeriod,
+          });
+
+          return NextResponse.json({
+            hasAccess: subscriptionStatus.hasActiveSubscription,
+            subscriptionStatus: subscriptionStatus.status,
+            subscriptionEnd: subscriptionStatus.currentPeriodEnd,
+            reason: subscriptionStatus.hasActiveSubscription
+              ? 'Active subscription'
+              : `No active subscription (${subscriptionStatus.status})`,
+            stripeSubscriptionId: subscriptionStatus.stripeSubscriptionId,
+          });
+        } catch (error) {
+          apiLogger.databaseOperation('payment_status_check_error', false, {
+            userId: user.id.substring(0, 8) + '***',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+
+          return NextResponse.json(
+            {
+              hasAccess: false,
+              reason: 'Error checking subscription status',
+              subscriptionStatus: 'ERROR',
+              debug: {
+                userId: user.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            },
+            { status: 500 }
+          );
+        }
+      }
+
+      // Handle comprehensive subscription data request
+      if (comprehensive) {
+        apiLogger.databaseOperation(
+          'comprehensive_subscription_fetch_started',
+          true,
+          {
+            userId: user.id.substring(0, 8) + '***',
+          }
+        );
+
+        try {
+          // Step 1: Get user profile using service layer
+          const profile = await userService.findByUserIdOrEmail(user.id);
+          if (!profile || !profile.email) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'User profile or email not found',
+              },
+              { status: 404 }
+            );
+          }
+
+          // Step 2: Find Stripe customer using service layer
+          const stripeCustomer = await customerService.findCustomerByEmail(
+            profile.email
+          );
+          if (!stripeCustomer) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'No Stripe customer ID found',
+              },
+              { status: 404 }
+            );
+          }
+
+          // Step 3: Get active subscription using service layer
+          const subscription =
+            await subscriptionService.getSubscriptionByCustomerEmail(
+              profile.email
+            );
+          if (!subscription) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'No active subscription found',
+              },
+              { status: 404 }
+            );
+          }
+
+          // Step 4: Get subscription details with pricing
+          const subscriptionWithDetails =
+            await subscriptionService.getSubscription(subscription.id);
+
+          if (!subscriptionWithDetails?.items?.data?.[0]?.price) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'Subscription price information not available',
+              },
+              { status: 404 }
+            );
+          }
+
+          const price = subscriptionWithDetails.items.data[0].price;
+          const productId = price.product;
+
+          // Step 5: Calculate pricing with discounts
+          let originalAmount = price.unit_amount || 0;
+          let discountPercent = 0;
+          let discountAmount = 0;
+
+          // Handle subscription-level discount
+          if (subscriptionWithDetails.discounts?.length > 0) {
+            const discount = subscriptionWithDetails.discounts[0];
+            if (typeof discount === 'object' && discount.coupon) {
+              const coupon = discount.coupon;
+
+              if (coupon.percent_off) {
+                discountPercent = coupon.percent_off;
+                discountAmount = Math.round(
+                  (originalAmount * coupon.percent_off) / 100
+                );
+              } else if (coupon.amount_off) {
+                discountAmount = coupon.amount_off;
+                originalAmount = originalAmount + coupon.amount_off;
+              }
+            }
+          }
+
+          const subscriptionData = {
+            id: subscription.id,
+            amount: price?.unit_amount || 0,
+            originalAmount: originalAmount,
+            currency: price?.currency || 'usd',
+            interval: price?.recurring?.interval || 'month',
+            customerId: subscription.customer,
+          };
+
+          apiLogger.databaseOperation(
+            'comprehensive_subscription_retrieved',
+            true,
+            {
+              userId: user.id.substring(0, 8) + '***',
+              email: profile.email.substring(0, 3) + '***',
+              customerId: stripeCustomer.id.substring(0, 8) + '***',
+              subscriptionId: subscription.id.substring(0, 8) + '***',
+              status: subscription.status,
+              amount: subscriptionData.amount,
+              hasDiscount: !!(discountPercent || discountAmount),
+            }
+          );
+
+          return NextResponse.json({
+            success: true,
+            subscription: subscriptionData,
+            source: 'service_layer_optimized',
+          });
+        } catch (error) {
+          apiLogger.databaseOperation(
+            'comprehensive_subscription_retrieval_failed',
+            false,
+            {
+              userId: user.id.substring(0, 8) + '***',
+              error: error instanceof Error ? error.message : 'Unknown error',
+            }
+          );
+
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                'Failed to fetch comprehensive subscription data: ' +
+                (error instanceof Error ? error.message : 'Unknown error'),
+            },
+            { status: 500 }
+          );
+        }
+      }
+
+      // Handle pricing information request (existing functionality)
       apiLogger.databaseOperation('subscription_pricing_fetch_started', true, {
         userId: user.id.substring(0, 8) + '***',
       });
@@ -226,25 +437,44 @@ export const GET = withAuth(
 
       return NextResponse.json(response);
     } catch (error) {
-      apiLogger.databaseOperation('subscription_pricing_fetch_error', false, {
+      const operationType = checkStatus
+        ? 'payment_status_check_error'
+        : 'subscription_pricing_fetch_error';
+
+      apiLogger.databaseOperation(operationType, false, {
         userId: user.id.substring(0, 8) + '***',
         error: error instanceof Error ? error.message : 'Unknown error',
         responseTime: `${Date.now() - startTime}ms`,
       });
 
-      return NextResponse.json(
-        {
-          isActive: false,
-          total: 0,
-          currency: 'usd',
-          discounts: [],
-        },
-        { status: 500 }
-      );
+      if (checkStatus) {
+        return NextResponse.json(
+          {
+            hasAccess: false,
+            reason: 'Error checking subscription status',
+            subscriptionStatus: 'ERROR',
+            debug: {
+              userId: user.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          },
+          { status: 500 }
+        );
+      } else {
+        return NextResponse.json(
+          {
+            isActive: false,
+            total: 0,
+            currency: 'usd',
+            discounts: [],
+          },
+          { status: 500 }
+        );
+      }
     }
   },
   {
-    action: 'subscription_pricing_fetch',
+    action: 'subscription_api',
     requireAdmin: false,
     requireCSRF: false,
     requireRateLimit: true,

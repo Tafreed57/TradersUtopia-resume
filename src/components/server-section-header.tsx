@@ -215,17 +215,6 @@ export function ServerSectionHeader({
                         <DropdownMenuItem
                           onClick={e => {
                             e.stopPropagation();
-                            onOpen('editDefaultSection', { server });
-                          }}
-                          className='flex items-center gap-2 text-gray-300 hover:text-yellow-400 hover:bg-yellow-600/10 cursor-pointer px-3 py-2'
-                        >
-                          <Edit className='h-3 w-3' />
-                          Edit Section Name
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={e => {
-                            e.stopPropagation();
                             onOpen('createSection', { server });
                           }}
                           className='flex items-center gap-2 text-gray-300 hover:text-green-400 hover:bg-green-600/10 cursor-pointer px-3 py-2'

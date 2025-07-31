@@ -1,11 +1,4 @@
-// ✅ CSRF Client-Side Protection System
-// This module provides client-side CSRF protection for frontend API calls
-
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-
-// ✅ SECURITY: Debug mode for CSRF operations
-// Set to true temporarily if you need to debug CSRF issues
-const DEBUG_CSRF = process.env.NODE_ENV === 'development' && false; // Disabled after fixing the issue
 
 // Token cache for client-side CSRF protection
 let csrfTokenCache: { token: string; expires: number } | null = null;

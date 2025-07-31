@@ -27,7 +27,7 @@ export function ComprehensivePricingSection({
       }
 
       try {
-        const response = await fetch('/api/check-payment-status');
+        const response = await fetch('/api/subscription?status=true');
         const data = await response.json();
         setSubscriptionData(data);
       } catch (error) {

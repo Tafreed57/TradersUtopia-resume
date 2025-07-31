@@ -170,8 +170,14 @@ export class SubscriptionService extends BaseStripeService {
         this.stripe.subscriptions.update(subscriptionId, {
           cancel_at_period_end: data.cancel_at_period_end,
           items: data.items,
+          ...(data.coupon && { discounts: [{ coupon: data.coupon }] }),
           payment_behavior: data.payment_behavior || 'default_incomplete',
-          expand: this.buildExpandParams(['latest_invoice', 'customer']),
+          expand: this.buildExpandParams([
+            'latest_invoice',
+            'customer',
+            'discounts',
+            'discounts.coupon',
+          ]),
           metadata: data.metadata
             ? this.buildMetadata(data.metadata)
             : undefined,
@@ -181,6 +187,7 @@ export class SubscriptionService extends BaseStripeService {
         subscriptionId: maskId(subscriptionId),
         cancelAtPeriodEnd: data.cancel_at_period_end,
         itemsUpdated: !!data.items,
+        couponApplied: !!data.coupon,
       }
     );
   }
@@ -198,6 +205,25 @@ export class SubscriptionService extends BaseStripeService {
       'cancel_subscription',
       { subscriptionId: maskId(subscriptionId) }
     );
+  }
+
+  /**
+   * Apply coupon to subscription
+   * Used for applying discount coupons to existing subscriptions
+   */
+  async applyCouponToSubscription(
+    subscriptionId: string,
+    couponId: string
+  ): Promise<Stripe.Subscription> {
+    this.validateSubscriptionId(subscriptionId);
+
+    if (!couponId) {
+      throw new Error('Coupon ID is required');
+    }
+
+    return await this.updateSubscription(subscriptionId, {
+      coupon: couponId,
+    });
   }
 
   /**
@@ -437,12 +463,12 @@ export class SubscriptionService extends BaseStripeService {
       throw new Error('No pricing information found');
     }
 
-    const monthlyAmount = price.unit_amount ? price.unit_amount / 100 : 0;
+    const monthlyAmount = price.unit_amount ? price.unit_amount : 0;
     const isAnnual = price.recurring?.interval === 'year';
 
     return {
       subscription,
-      monthlyAmount: isAnnual ? monthlyAmount / 12 : monthlyAmount,
+      monthlyAmount: isAnnual ? Math.round(monthlyAmount / 12) : monthlyAmount,
       currency: price.currency || 'usd',
       isAnnual,
     };

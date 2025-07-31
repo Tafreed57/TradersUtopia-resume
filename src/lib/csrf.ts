@@ -9,18 +9,34 @@ import crypto from 'crypto';
 // 🔒 CSRF TOKEN GENERATION & VALIDATION
 // ==============================================
 
-// In-memory CSRF token store (use Redis in production)
-const csrfTokenStore = new Map<
-  string,
-  { token: string; expires: number; userId: string }
->();
+// Singleton CSRF token store that survives Next.js hot reloads
+declare global {
+  var __csrf_token_store:
+    | Map<string, { token: string; expires: number; userId: string }>
+    | undefined;
+  var __csrf_store_id: string | undefined;
+}
+
+// Initialize global store if it doesn't exist
+if (!global.__csrf_token_store) {
+  global.__csrf_token_store = new Map<
+    string,
+    { token: string; expires: number; userId: string }
+  >();
+  global.__csrf_store_id = Math.random().toString(36).substring(2, 15);
+}
+
+// Use the global store
+const csrfTokenStore = global.__csrf_token_store;
 
 // Generate a secure CSRF token
 const generateCSRFToken = (userId: string): string => {
   const token = crypto.randomBytes(32).toString('hex');
   const expires = Date.now() + 60 * 60 * 1000; // 1 hour
 
-  csrfTokenStore.set(token, { token, expires, userId });
+  // Store the token
+  const tokenData = { token, expires, userId };
+  csrfTokenStore.set(token, tokenData);
 
   // Clean up expired tokens
   cleanupExpiredTokens();
@@ -52,18 +68,15 @@ const validateCSRFToken = async (request: NextRequest): Promise<boolean> => {
     const tokenData = csrfTokenStore.get(csrfToken);
 
     if (!tokenData) {
-      console.warn('🚨 [CSRF] Invalid CSRF token provided');
       return false;
     }
 
     if (tokenData.expires < Date.now()) {
       csrfTokenStore.delete(csrfToken);
-      console.warn('🚨 [CSRF] Expired CSRF token provided');
       return false;
     }
 
     if (tokenData.userId !== user.id) {
-      console.warn('🚨 [CSRF] CSRF token user ID mismatch');
       return false;
     }
 
@@ -77,7 +90,7 @@ const validateCSRFToken = async (request: NextRequest): Promise<boolean> => {
   }
 };
 
-// Get CSRF token for current user
+// Get CSRF token for current user (using currentUser())
 export const getCSRFTokenForUser = async (): Promise<string | null> => {
   try {
     const user = await currentUser();
@@ -85,18 +98,28 @@ export const getCSRFTokenForUser = async (): Promise<string | null> => {
       return null;
     }
 
+    return getCSRFTokenForUserId(user.id);
+  } catch (error) {
+    console.error('❌ [CSRF] Error getting CSRF token for user:', error);
+    return null;
+  }
+};
+
+// Get CSRF token for specific user ID (more reliable for service calls)
+export const getCSRFTokenForUserId = (userId: string): string => {
+  try {
     // Check if user already has a valid token
     for (const [token, data] of Array.from(csrfTokenStore.entries())) {
-      if (data.userId === user.id && data.expires > Date.now()) {
+      if (data.userId === userId && data.expires > Date.now()) {
         return token;
       }
     }
 
     // Generate new token
-    return generateCSRFToken(user.id);
+    return generateCSRFToken(userId);
   } catch (error) {
-    console.error('❌ [CSRF] Error getting CSRF token for user:', error);
-    return null;
+    console.error('❌ [CSRF] Error getting CSRF token for user ID:', error);
+    throw error;
   }
 };
 

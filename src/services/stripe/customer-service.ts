@@ -309,13 +309,12 @@ export class CustomerService extends BaseStripeService {
         ).length;
 
         // Calculate total revenue from active subscriptions
-        const totalRevenue =
-          subscriptions.reduce((total, sub) => {
-            if (sub.status === 'active' || sub.status === 'trialing') {
-              return total + (sub.items.data[0]?.price.unit_amount || 0);
-            }
-            return total;
-          }, 0) / 100; // Convert from cents
+        const totalRevenue = subscriptions.reduce((total, sub) => {
+          if (sub.status === 'active' || sub.status === 'trialing') {
+            return total + (sub.items.data[0]?.price.unit_amount || 0);
+          }
+          return total;
+        }, 0);
 
         // Get last payment date
         const latestInvoice = subscriptions[0]?.latest_invoice;

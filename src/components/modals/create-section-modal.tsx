@@ -21,7 +21,7 @@ export function CreateSectionModal() {
   const data = useStore(state => state.data);
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    const url = `/api/sections?serverId=${data?.server?.id}`;
+    const url = `/api/servers/${data?.server?.id}/sections`;
     await secureAxiosPost(url, values);
   };
 

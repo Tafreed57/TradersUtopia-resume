@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { showToast } from '@/lib/notifications-client';
 import {
   Bell,
-  BellOff,
   Smartphone,
   Monitor,
   CheckCircle,

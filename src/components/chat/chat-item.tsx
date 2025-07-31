@@ -106,10 +106,7 @@ export function ChatItem({
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const url = qs.stringifyUrl({
-        url: `/api/messages/${id}`,
-        query: socketQuery,
-      });
+      const url = `/api/servers/${socketQuery.serverId}/channels/${socketQuery.channelId}/messages/${id}`;
 
       await secureAxiosPatch(url, values);
       form.reset();
@@ -222,7 +219,10 @@ export function ChatItem({
                               // Auto-resize functionality
                               const target = e.target as HTMLTextAreaElement;
                               target.style.height = 'auto';
-                              target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
+                              target.style.height = `${Math.min(
+                                target.scrollHeight,
+                                200
+                              )}px`;
                             }}
                             {...field}
                           />

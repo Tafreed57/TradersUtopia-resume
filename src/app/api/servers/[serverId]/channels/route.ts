@@ -18,8 +18,10 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError('Only administrators can create channels');
   }
 
-  const { searchParams } = new URL(req.url);
-  const serverId = searchParams.get('serverId');
+  // Extract serverId from URL path
+  const url = new URL(req.url);
+  const pathSegments = url.pathname.split('/');
+  const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
 
   if (!serverId) {
     throw new ValidationError('Server ID is required');

@@ -24,6 +24,7 @@ import {
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
 import { CancellationFlowModal } from '@/components/modals/cancellation-flow-modal';
+import { formatCurrency, centsToDollars } from '@/lib/utils';
 
 interface DiscountInfo {
   id: string;
@@ -237,35 +238,6 @@ export function SubscriptionManager() {
     }
   };
 
-  // Handle auto-renewal toggle - simplified since we don't have detailed subscription data
-  const handleToggleAutoRenew = async () => {
-    try {
-      const response = await makeSecureRequest(
-        '/api/subscription/toggle-autorenew',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ autoRenew: true }), // For now, we'll show cancellation flow for disable
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        showToast.success('🎉 Auto-Renewal Updated', data.message);
-        await fetchSubscription();
-      } else {
-        showToast.error(
-          'Error',
-          data.error || 'Failed to update auto-renewal setting'
-        );
-      }
-    } catch (error) {
-      console.error('Auto-renewal toggle error:', error);
-      showToast.error('Error', 'Failed to toggle auto-renewal');
-    }
-  };
-
   // Refresh subscription data
   const refreshSubscription = async () => {
     if (isLoading) return;
@@ -283,14 +255,6 @@ export function SubscriptionManager() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Format currency
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency.toUpperCase(),
-    }).format(amount);
   };
 
   // Render discount details
@@ -324,7 +288,7 @@ export function SubscriptionManager() {
             {discount.percentOff && `${discount.percentOff}% OFF`}
             {discount.amountOff &&
               !discount.percentOff &&
-              `$${discount.amountOff.toFixed(2)} OFF`}
+              `${formatCurrency(Math.round(discount.amountOff * 100))} OFF`}
           </div>
           {discount.duration && (
             <div className='text-sm text-gray-600 dark:text-gray-400'>
@@ -455,15 +419,12 @@ export function SubscriptionManager() {
                   </td>
                   <td className='py-4 px-2'>
                     <div className='font-semibold text-gray-900 dark:text-white'>
-                      {formatCurrency(invoice.total / 100, invoice.currency)}
+                      {formatCurrency(invoice.total, invoice.currency)}
                     </div>
                     {invoice.amount_due > 0 && (
                       <div className='text-xs text-orange-600 dark:text-orange-400'>
                         Due:{' '}
-                        {formatCurrency(
-                          invoice.amount_due / 100,
-                          invoice.currency
-                        )}
+                        {formatCurrency(invoice.amount_due, invoice.currency)}
                       </div>
                     )}
                   </td>
@@ -473,10 +434,10 @@ export function SubscriptionManager() {
                         invoice.status === 'paid'
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                           : invoice.status === 'open'
-                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                            : invoice.status === 'void'
-                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                          : invoice.status === 'void'
+                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                       }`}
                     >
                       {invoice.status.charAt(0).toUpperCase() +
@@ -716,7 +677,14 @@ export function SubscriptionManager() {
                           <div className='space-y-2'>
                             <div className='text-4xl sm:text-5xl font-black text-emerald-600 dark:text-emerald-400'>
                               {formatCurrency(
-                                subscription.total,
+                                Math.round(
+                                  subscription.total *
+                                    (1 -
+                                      (subscription.discounts[0]?.percentOff ||
+                                        0) /
+                                        100) *
+                                    100
+                                ),
                                 subscription.currency
                               )}
                             </div>
@@ -767,7 +735,7 @@ export function SubscriptionManager() {
                       <div className='text-left sm:text-right'>
                         <span className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white'>
                           {formatCurrency(
-                            subscription.total,
+                            Math.round(subscription.total * 100),
                             subscription.currency
                           )}
                         </span>

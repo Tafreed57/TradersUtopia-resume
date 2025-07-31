@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  * Consolidated endpoint for trading data source message retrieval
  * Replaces the functionality of source-messages/[channelId]
  *
- * @route GET /api/messages/source/[channelId]
+ * @route GET /api/servers/[serverId]/channels/[channelId]/messages/source
  * @description Retrieves messages from external trading database with proper authentication and service architecture
  * @security Requires authentication, includes rate limiting and comprehensive monitoring
  */
@@ -19,10 +19,11 @@ export const GET = withAuth(
     const startTime = Date.now();
 
     try {
-      // Extract channelId from URL
+      // Extract serverId and channelId from URL path
       const url = new URL(req.url);
       const pathSegments = url.pathname.split('/');
-      const channelId = pathSegments[pathSegments.length - 1];
+      const serverId = pathSegments[pathSegments.indexOf('servers') + 1];
+      const channelId = pathSegments[pathSegments.indexOf('channels') + 1];
 
       if (!channelId) {
         return NextResponse.json(
@@ -46,6 +47,7 @@ export const GET = withAuth(
 
       apiLogger.databaseOperation('source_messages_request_started', true, {
         userId: user.id.substring(0, 8) + '***',
+        serverId: serverId.substring(0, 8) + '***',
         channelId: channelId.substring(0, 8) + '***',
         cursor: cursor ? cursor.substring(0, 8) + '***' : null,
         limit,
@@ -69,6 +71,7 @@ export const GET = withAuth(
         true,
         {
           userId: user.id.substring(0, 8) + '***',
+          serverId: serverId.substring(0, 8) + '***',
           channelId: channelId.substring(0, 8) + '***',
           messageCount: result.items.length,
           hasNextCursor: !!result.nextCursor,

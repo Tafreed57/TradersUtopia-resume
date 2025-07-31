@@ -21,25 +21,6 @@ const preferencesSchema = z.object({
 export const dynamic = 'force-dynamic';
 
 /**
- * User Notification Preferences API
- *
- * BEFORE: 136 lines with extensive boilerplate
- * - Rate limiting (10+ lines per method)
- * - CSRF validation (15+ lines)
- * - Authentication (10+ lines per method)
- * - Manual profile lookup (15+ lines per method)
- * - Manual database operations (15+ lines per method)
- * - Duplicate error handling (25+ lines per method)
- *
- * AFTER: Clean service-based implementation
- * - 80% boilerplate elimination
- * - Centralized user management
- * - Enhanced validation and logging
- * - Simplified preference management
- * - TODO: Integrate with proper pushNotifications schema field
- */
-
-/**
  * Get Notification Preferences
  * Returns current user's notification preferences with defaults
  */

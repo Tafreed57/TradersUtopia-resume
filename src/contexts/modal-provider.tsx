@@ -1,7 +1,6 @@
 'use client';
 
 import { CreateServerModal } from '@/components/modals/create-server-modal';
-import { InviteModal } from '@/components/modals/invite-modal';
 import { EditServerModal } from '@/components/modals/edit-server-modal';
 import { CreateChannelModal } from '@/components/modals/create-channel-modal';
 import { EditChannelModal } from '@/components/modals/edit-channel-modal';
@@ -11,7 +10,6 @@ import { DeleteMessageModal } from '@/components/modals/delete-message-modal';
 import { CreateSectionModal } from '@/components/modals/create-section-modal';
 import { EditSectionModal } from '@/components/modals/edit-section-modal';
 import { DeleteSectionModal } from '@/components/modals/delete-section-modal';
-import { TrackRecordFileModal } from '@/components/modals/track-record-file-modal';
 import { TimerSettingsModal } from '@/components/modals/timer-settings-modal';
 import { EmailWarningModal } from '@/components/modals/email-warning-modal';
 import { useEffect, useState } from 'react';
@@ -31,7 +29,6 @@ export function ModalProvider() {
     <>
       <CreateServerModal />
       <EditServerModal />
-      <InviteModal />
       <CreateChannelModal />
       <EditChannelModal />
       <DeleteChannelModal />
@@ -39,9 +36,7 @@ export function ModalProvider() {
       <DeleteMessageModal />
       <CreateSectionModal />
       <EditSectionModal />
-      {/* <EditDefaultSectionModal /> */}
       <DeleteSectionModal />
-      <TrackRecordFileModal />
       <TimerSettingsModal />
       <EmailWarningModal />
     </>

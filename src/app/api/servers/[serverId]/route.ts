@@ -10,6 +10,41 @@ import { revalidatePath } from 'next/cache';
 export const dynamic = 'force-dynamic';
 
 /**
+ * Get Server
+ * Retrieve server data with member access validation
+ */
+export const GET = withAuth(async (req: NextRequest, { user }) => {
+  const serverId = new URL(req.url).pathname.split('/').pop();
+
+  if (!serverId) {
+    throw new ValidationError('Server ID is required');
+  }
+
+  const serverService = new ServerService();
+
+  // Get server with member access validation
+  const server = await serverService.findServerWithMemberAccess(
+    serverId,
+    user.id
+  );
+
+  if (!server) {
+    return NextResponse.json(
+      { error: 'Server not found or access denied' },
+      { status: 404 }
+    );
+  }
+
+  apiLogger.databaseOperation('server_retrieved_via_api', true, {
+    serverId: serverId.substring(0, 8) + '***',
+    userId: user.id.substring(0, 8) + '***',
+    serverName: server.name,
+  });
+
+  return NextResponse.json(server);
+}, authHelpers.userOnly('GET_SERVER'));
+
+/**
  * Update Server
  * Admin/Owner-only operation
  */

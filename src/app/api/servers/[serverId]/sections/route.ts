@@ -10,24 +10,6 @@ const sectionCreationSchema = z.object({
 });
 
 /**
- * Sections API
- *
- * BEFORE: 77 lines with extensive boilerplate
- * - Rate limiting (5+ lines)
- * - Authentication (10+ lines)
- * - Manual admin verification (10+ lines)
- * - Complex server verification (15+ lines)
- * - Manual database operations (20+ lines)
- * - Error handling (10+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 80%+ boilerplate elimination
- * - Centralized section management
- * - Enhanced validation
- * - Comprehensive audit logging
- */
-
-/**
  * Create Section in Server
  * Admin-only operation with automatic positioning
  */
@@ -37,8 +19,7 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     throw new ValidationError('Only administrators can create sections');
   }
 
-  const { searchParams } = new URL(req.url);
-  const serverId = searchParams.get('serverId');
+  const serverId = req.nextUrl.searchParams.get('serverId');
   if (!serverId) {
     throw new ValidationError('Server ID is required');
   }

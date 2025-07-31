@@ -3,9 +3,7 @@ import { StateCreator } from 'zustand';
 
 export type ModalType =
   | 'createServer'
-  | 'invite'
   | 'editServer'
-  | 'manageMembers'
   | 'createChannel'
   | 'editChannel'
   | 'deleteChannel'
@@ -13,11 +11,7 @@ export type ModalType =
   | 'deleteMessage'
   | 'createSection'
   | 'editSection'
-  | 'editDefaultSection'
   | 'deleteSection'
-  | 'trackRecordFile'
-  | 'editTrackRecordMessage'
-  | 'deleteTrackRecordMessage'
   | 'timerSettings'
   | 'emailWarning';
 

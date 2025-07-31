@@ -21,7 +21,7 @@ import { secureAxiosPost } from '@/lib/csrf-client';
 import { useParams } from 'next/navigation';
 import { z } from 'zod';
 import { useEffect } from 'react';
-import qs from 'query-string';
+
 import { FormModal } from './base';
 
 export function CreateChannelModal() {
@@ -34,12 +34,7 @@ export function CreateChannelModal() {
   });
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    const url = qs.stringifyUrl({
-      url: '/api/channels',
-      query: {
-        serverId: params?.serverId,
-      },
-    });
+    const url = `/api/servers/${params?.serverId}/channels`;
 
     const payload = {
       ...values,

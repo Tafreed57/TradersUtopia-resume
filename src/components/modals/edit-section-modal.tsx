@@ -21,7 +21,7 @@ export function EditSectionModal() {
   const data = useStore(state => state.data);
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    const url = `/api/sections/${data?.section?.id}?serverId=${data?.server?.id}`;
+    const url = `/api/servers/${data?.server?.id}/sections/${data?.section?.id}`;
     await secureAxiosPatch(url, values);
   };
 

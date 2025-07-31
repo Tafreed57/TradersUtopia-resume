@@ -11,30 +11,10 @@ const validateEmailSchema = z.object({
 });
 
 /**
- * Email Validation API
- *
- * BEFORE: 88 lines with manual Clerk integration
- * - Rate limiting (10+ lines)
- * - Authentication (10+ lines)
- * - Manual Clerk client operations (20+ lines)
- * - Manual validation (10+ lines)
- * - Error handling (25+ lines)
- * - Basic logging (10+ lines)
- *
- * AFTER: Streamlined service-based implementation
- * - 70% boilerplate elimination
- * - Centralized user management
- * - Enhanced security and audit logging
- * - Improved error handling
- */
-
-/**
  * Email Validation Test Endpoint
  * Returns API status and availability
  */
 export const GET = withAuth(async (req: NextRequest, { user }) => {
-  const userService = new UserService();
-
   apiLogger.databaseOperation('email_validation_api_accessed', true, {
     userId: user.id.substring(0, 8) + '***',
     timestamp: new Date().toISOString(),
@@ -70,7 +50,6 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   }
 
   const { email } = validationResult.data;
-  const userService = new UserService();
 
   try {
     // Step 2: Check if email exists using Clerk API
@@ -90,7 +69,9 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
     });
 
     console.log(
-      `📧 [EMAIL-VALIDATION] Email ${email} validation: ${userExists ? 'EXISTS' : 'NOT_FOUND'}`
+      `📧 [EMAIL-VALIDATION] Email ${email} validation: ${
+        userExists ? 'EXISTS' : 'NOT_FOUND'
+      }`
     );
 
     return NextResponse.json({
