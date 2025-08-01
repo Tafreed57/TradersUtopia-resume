@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +55,10 @@ export function NotificationBell() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
+
+  // Simplified push notification state
+  const [isPushEnabled, setIsPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     console.log(
@@ -156,24 +160,156 @@ export function NotificationBell() {
     }
   };
 
+  // Enhanced notification icons using Phase 5 system
   const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'SECURITY':
-        return '🔒';
-      case 'PAYMENT':
-        return '💳';
-      case 'MESSAGE':
-        return '💬';
-      case 'MENTION':
-        return '👤';
-      case 'SERVER_UPDATE':
-        return '📢';
-      case 'SYSTEM':
-        return '⚙️';
-      default:
-        return '📔';
-    }
+    const iconMap: Record<string, string> = {
+      SECURITY: '🔒',
+      PAYMENT: '💳',
+      MESSAGE: '💬',
+      NEW_MESSAGE: '💬',
+      MENTION: '👤',
+      SERVER_UPDATE: '📢',
+      ADMIN_ANNOUNCEMENT: '📢',
+      TRIAL_ENDING: '⏰',
+      SUBSCRIPTION_CANCELLED: '❌',
+      SUBSCRIPTION_RENEWED: '✅',
+      SUBSCRIPTION_PAST_DUE: '⚠️',
+      PAYMENT_FAILED: '💳❌',
+      DISCOUNT_APPLIED: '🎉',
+      SYSTEM: '⚙️',
+    };
+    return iconMap[type] || '📔';
   };
+
+  // Simple push notification toggle
+  const togglePushNotifications = useCallback(async () => {
+    if (pushLoading) return;
+
+    setPushLoading(true);
+    try {
+      if (!isPushEnabled) {
+        // Enable push notifications
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          showToast.error(
+            'Error',
+            'Push notifications are not supported in your browser'
+          );
+          return;
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          showToast.error(
+            'Permission Denied',
+            'Push notifications permission was denied'
+          );
+          return;
+        }
+
+        // Get VAPID public key
+        const vapidResponse = await fetch('/api/vapid-public-key');
+        const { publicKey } = await vapidResponse.json();
+
+        // Subscribe to push notifications
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: publicKey,
+        });
+
+        // Send subscription to server
+        const response = await fetch('/api/notifications/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscription: {
+              endpoint: subscription.endpoint,
+              keys: {
+                p256dh: btoa(
+                  String.fromCharCode(
+                    ...new Uint8Array(subscription.getKey('p256dh')!)
+                  )
+                ),
+                auth: btoa(
+                  String.fromCharCode(
+                    ...new Uint8Array(subscription.getKey('auth')!)
+                  )
+                ),
+              },
+            },
+            deviceInfo: {
+              browser: navigator.userAgent.includes('Chrome')
+                ? 'Chrome'
+                : navigator.userAgent.includes('Firefox')
+                ? 'Firefox'
+                : navigator.userAgent.includes('Safari')
+                ? 'Safari'
+                : 'Unknown',
+              os: navigator.platform,
+              deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent)
+                ? 'mobile'
+                : 'desktop',
+            },
+          }),
+        });
+
+        if (response.ok) {
+          setIsPushEnabled(true);
+          showToast.success(
+            'Push Notifications Enabled',
+            'You will now receive push notifications'
+          );
+        } else {
+          throw new Error('Failed to subscribe');
+        }
+      } else {
+        // Disable push notifications
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+
+        if (subscription) {
+          await subscription.unsubscribe();
+        }
+
+        // Remove subscription from server
+        await fetch('/api/notifications/push', {
+          method: 'DELETE',
+        });
+
+        setIsPushEnabled(false);
+        showToast.success(
+          'Push Notifications Disabled',
+          'You will no longer receive push notifications'
+        );
+      }
+    } catch (error) {
+      console.error('Push notification toggle error:', error);
+      showToast.error('Error', 'Failed to toggle push notifications');
+    } finally {
+      setPushLoading(false);
+    }
+  }, [isPushEnabled, pushLoading]);
+
+  // Check current push notification status
+  const checkPushStatus = useCallback(async () => {
+    if (
+      !isSignedIn ||
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window)
+    ) {
+      setIsPushEnabled(false);
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      setIsPushEnabled(!!subscription);
+    } catch (error) {
+      console.error('Failed to check push subscription:', error);
+      setIsPushEnabled(false);
+    }
+  }, [isSignedIn]);
 
   // Parse message notification data from title and message
   const parseMessageNotification = (
@@ -474,8 +610,9 @@ export function NotificationBell() {
   useEffect(() => {
     if (isLoaded) {
       fetchNotifications();
+      checkPushStatus();
     }
-  }, [isLoaded, fetchNotifications]);
+  }, [isLoaded, fetchNotifications, checkPushStatus]);
 
   // Fetch notifications when dropdown opens
   useEffect(() => {
@@ -499,9 +636,34 @@ export function NotificationBell() {
               size='sm'
               className='relative h-10 w-10 sm:h-12 sm:w-12 p-0 touch-manipulation
               min-h-[2.75rem] min-w-[2.75rem] md:h-10 md:w-10 lg:h-12 lg:w-12'
+              onClick={e => {
+                // Right click or Shift+click to toggle push notifications
+                if (e.shiftKey || e.button === 2) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  togglePushNotifications();
+                  return;
+                }
+                // Normal click opens dropdown (handled by DropdownMenuTrigger)
+              }}
+              onContextMenu={e => {
+                e.preventDefault();
+                togglePushNotifications();
+              }}
+              title={
+                unreadCount > 0
+                  ? `${unreadCount} unread notification${
+                      unreadCount > 1 ? 's' : ''
+                    }`
+                  : isPushEnabled
+                  ? 'Push notifications enabled (Shift+click to disable)'
+                  : 'Push notifications disabled (Shift+click to enable)'
+              }
             >
               {unreadCount > 0 ? (
                 <BellRing className='h-5 w-5 sm:h-6 sm:w-6' />
+              ) : isPushEnabled ? (
+                <BellRing className='h-5 w-5 sm:h-6 sm:w-6 text-yellow-500' />
               ) : (
                 <Bell className='h-5 w-5 sm:h-6 sm:w-6' />
               )}
@@ -513,6 +675,11 @@ export function NotificationBell() {
                 >
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </Badge>
+              )}
+              {pushLoading && (
+                <div className='absolute inset-0 flex items-center justify-center bg-white/50 rounded'>
+                  <div className='w-3 h-3 border-2 border-gray-600 border-t-transparent rounded-full animate-spin' />
+                </div>
               )}
             </Button>
           </DropdownMenuTrigger>
@@ -596,12 +763,8 @@ export function NotificationBell() {
                       size='sm'
                       className='w-full text-center'
                       onClick={() => {
-                        // Keep dropdown open and show all notifications functionality
-                        console.log(
-                          '📋 [NOTIFICATIONS] View All clicked - implementing full notifications page...'
-                        );
-                        // For now, just mark all as read as a useful action
                         markAllAsRead();
+                        setIsOpen(false);
                       }}
                     >
                       Mark All Read & Close
@@ -729,12 +892,8 @@ export function NotificationBell() {
                     size='sm'
                     className='w-full text-center'
                     onClick={() => {
-                      // Keep dropdown open and show all notifications functionality
-                      console.log(
-                        '📋 [NOTIFICATIONS] View All clicked - implementing full notifications page...'
-                      );
-                      // For now, just mark all as read as a useful action
                       markAllAsRead();
+                      setIsOpen(false);
                     }}
                   >
                     Mark All Read & Close

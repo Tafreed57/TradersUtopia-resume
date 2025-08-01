@@ -30,11 +30,18 @@ const colors = {
 
 // ✅ CONFIGURATION: Adjust logging based on environment
 const config: LogConfig = {
-  enableDebug: process.env.NODE_ENV === 'development',
+  enableDebug:
+    process.env.ENABLE_DETAILED_LOGS === 'false'
+      ? false
+      : process.env.NODE_ENV === 'development',
   enableInfo: true, // Always log important info
-  enableVerbose: process.env.ENABLE_VERBOSE_LOGS === 'true',
+  enableVerbose:
+    process.env.ENABLE_VERBOSE_LOGS === 'false'
+      ? false
+      : process.env.ENABLE_VERBOSE_LOGS === 'true',
   environment: process.env.NODE_ENV || 'development',
-  enableColors: process.env.NO_COLOR !== 'true', // Respect NO_COLOR env var
+  enableColors:
+    process.env.NO_COLOR !== 'true' && process.env.FORCE_COLOR !== '0', // Respect color settings
 };
 
 // ✅ COLOR HELPER: Apply colors if enabled

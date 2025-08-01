@@ -3,6 +3,8 @@ import { MemberService } from '@/services/database/member-service';
 import { ServerService } from '@/services/database/server-service';
 import { ChannelService } from '@/services/database/channel-service';
 import { NotificationService } from '@/services/database/notification-service';
+import { UserService } from '@/services/database/user-service';
+import { sendPushNotification } from '@/lib/push-notifications';
 import type { Member, User, Server, Channel } from '@/services/types';
 import type { NotificationType } from '@prisma/client';
 
@@ -65,6 +67,7 @@ export const sendMessageNotifications = task({
       const serverService = new ServerService();
       const channelService = new ChannelService();
       const notificationService = new NotificationService();
+      const userService = new UserService();
 
       // Get server and channel information in parallel
       const [serverInfo, channelInfo] = await Promise.all([
@@ -214,11 +217,14 @@ export const sendMessageNotifications = task({
 
       let totalSuccessCount = 0;
       let totalFailureCount = 0;
+      let totalPushNotificationSuccesses = 0;
 
       // Process batches sequentially to avoid overwhelming the system
       for (const [batchIndex, batch] of notificationBatches.entries()) {
         logger.info(
-          `Processing notification batch ${batchIndex + 1}/${notificationBatches.length}`,
+          `Processing notification batch ${batchIndex + 1}/${
+            notificationBatches.length
+          }`,
           {
             batchSize: batch.length,
           }
@@ -236,8 +242,8 @@ export const sendMessageNotifications = task({
             const userType = serverMember.user.isAdmin
               ? 'Admin'
               : serverMember.user.subscription?.status === 'ACTIVE'
-                ? 'Active Subscription'
-                : 'Unknown';
+              ? 'Active Subscription'
+              : 'Unknown';
 
             logger.info('Creating notification', {
               userId: serverMember.userId,
@@ -265,7 +271,53 @@ export const sendMessageNotifications = task({
                   userName: serverMember.user.name,
                   notificationId: notification.id,
                 });
-                return { success: true, userId: serverMember.userId };
+
+                // Send push notification using enhanced schema
+                try {
+                  const pushSuccess = await sendPushNotification({
+                    userId: serverMember.userId,
+                    title: isMentioned
+                      ? `You were mentioned in ${serverName} #${channelName}`
+                      : `New message in ${serverName} #${channelName}`,
+                    message: `${senderName}: ${truncatedContent}`,
+                    type: 'NEW_MESSAGE',
+                    actionUrl: `/servers/${serverId}/channels/${channelId}`,
+                    notificationId: notification.id,
+                    isMentioned,
+                  });
+
+                  logger.info('Push notification result', {
+                    userId: serverMember.userId,
+                    pushSuccess,
+                    notificationId: notification.id,
+                  });
+
+                  return {
+                    success: true,
+                    userId: serverMember.userId,
+                    notificationId: notification.id,
+                    pushNotificationSent: pushSuccess,
+                  };
+                } catch (pushError) {
+                  logger.warn(
+                    'Push notification failed but database notification succeeded',
+                    {
+                      userId: serverMember.userId,
+                      notificationId: notification.id,
+                      pushError:
+                        pushError instanceof Error
+                          ? pushError.message
+                          : String(pushError),
+                    }
+                  );
+
+                  return {
+                    success: true,
+                    userId: serverMember.userId,
+                    notificationId: notification.id,
+                    pushNotificationSent: false,
+                  };
+                }
               } else {
                 logger.error('Failed to create notification', {
                   userId: serverMember.userId,
@@ -293,12 +345,19 @@ export const sendMessageNotifications = task({
           (r: { success: boolean }) => !r.success
         ).length;
 
+        // Count push notification successes
+        const pushNotificationSuccesses = batchResults.filter(
+          (r: any) => r.success && r.pushNotificationSent
+        ).length;
+
         totalSuccessCount += batchSuccessCount;
         totalFailureCount += batchFailureCount;
+        totalPushNotificationSuccesses += pushNotificationSuccesses;
 
         logger.info(`Batch ${batchIndex + 1} completed`, {
           successful: batchSuccessCount,
           failed: batchFailureCount,
+          pushNotificationsSent: pushNotificationSuccesses,
         });
 
         // Small delay between batches to prevent rate limiting
@@ -311,13 +370,18 @@ export const sendMessageNotifications = task({
         total: membersToNotify.length,
         successful: totalSuccessCount,
         failed: totalFailureCount,
+        pushNotificationsSent: totalPushNotificationSuccesses,
       });
 
       return {
         success: true,
         notificationsSent: totalSuccessCount,
+        pushNotificationsSent: totalPushNotificationSuccesses,
         totalEligible: membersToNotify.length,
         batchesProcessed: notificationBatches.length,
+        messageId,
+        channelId,
+        serverId,
       };
     } catch (error) {
       logger.error('Error processing notifications', {

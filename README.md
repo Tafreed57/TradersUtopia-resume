@@ -25,7 +25,29 @@ A full-featured real-time communication platform with subscription management, b
    pnpm install
    ```
 
-3. **Set up environment variables**
+3. **Development Commands**
+   ```bash
+   # Standard development mode (Next.js + Trigger.dev)
+   pnpm dev
+
+   # Development with detailed debug logging
+   pnpm dev --debug
+   # or
+   pnpm dev:debug
+
+   # Development with verbose logging  
+   pnpm dev --verbose
+   # or
+   pnpm dev:verbose
+
+   # Next.js only (without Trigger.dev)
+   pnpm dev:next
+
+   # Clean build and start development
+   pnpm dev:clean
+   ```
+
+4. **Set up environment variables**
    
    Create a `.env.local` file in the root directory and add the following variables:
 

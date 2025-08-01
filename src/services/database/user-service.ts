@@ -440,16 +440,20 @@ export class UserService extends BaseDatabaseService {
 
   /**
    * Get user with push subscriptions
-   * Used for push notification targeting
+   * Used for push notification targeting - now filters by active subscriptions
    */
   async getUserWithPushSubscriptions(userId: string): Promise<{
     id: string;
     pushSubscriptions: Array<{
+      id: string;
       endpoint: string;
       keys: {
         p256dh: string;
         auth: string;
       };
+      isActive: boolean;
+      failureCount: number;
+      lastActive: Date;
     }>;
   } | null> {
     this.validateRequired(userId, 'userId');
@@ -460,9 +464,17 @@ export class UserService extends BaseDatabaseService {
         select: {
           id: true,
           pushSubscriptions: {
+            where: {
+              isActive: true,
+              failureCount: { lt: 5 }, // Skip subscriptions with too many failures
+            },
             select: {
+              id: true,
               endpoint: true,
               keys: true,
+              isActive: true,
+              failureCount: true,
+              lastActive: true,
             },
           },
         },
@@ -476,8 +488,12 @@ export class UserService extends BaseDatabaseService {
       return {
         id: user.id,
         pushSubscriptions: user.pushSubscriptions.map((sub: any) => ({
+          id: sub.id,
           endpoint: sub.endpoint,
           keys: sub.keys as { p256dh: string; auth: string },
+          isActive: sub.isActive,
+          failureCount: sub.failureCount,
+          lastActive: sub.lastActive,
         })),
       };
     } catch (error) {
@@ -489,6 +505,7 @@ export class UserService extends BaseDatabaseService {
 
   /**
    * Add or update push subscription for a user
+   * Enhanced with device tracking and activity updates
    */
   async upsertPushSubscription(
     userId: string,
@@ -498,6 +515,12 @@ export class UserService extends BaseDatabaseService {
         p256dh: string;
         auth: string;
       };
+    },
+    deviceInfo?: {
+      browser?: string;
+      os?: string;
+      deviceType?: string;
+      userAgent?: string;
     }
   ): Promise<boolean> {
     this.validateRequired(userId, 'userId');
@@ -517,17 +540,26 @@ export class UserService extends BaseDatabaseService {
         },
         update: {
           keys: subscription.keys,
+          deviceInfo: deviceInfo || undefined,
+          lastActive: new Date(),
+          isActive: true, // Reactivate if previously disabled
+          failureCount: 0, // Reset failure count on update
         },
         create: {
           userId: user.id, // Use the internal ID
           endpoint: subscription.endpoint,
           keys: subscription.keys,
+          deviceInfo: deviceInfo || undefined,
+          lastActive: new Date(),
+          isActive: true,
+          failureCount: 0,
         },
       });
 
       this.logSuccess('push_subscription_upsert', {
         userId: maskId(userId),
         endpoint: subscription.endpoint.substring(0, 50) + '...',
+        hasDeviceInfo: !!deviceInfo,
       });
 
       return true;
@@ -535,6 +567,82 @@ export class UserService extends BaseDatabaseService {
       return await this.handleError(error, 'upsert_push_subscription', {
         userId: maskId(userId),
         endpoint: subscription.endpoint.substring(0, 50) + '...',
+      });
+    }
+  }
+
+  /**
+   * Update last active timestamp for a push subscription
+   */
+  async updatePushSubscriptionActivity(subscriptionId: string): Promise<void> {
+    this.validateRequired(subscriptionId, 'subscriptionId');
+
+    try {
+      await this.prisma.pushSubscription.update({
+        where: { id: subscriptionId },
+        data: { lastActive: new Date() },
+      });
+
+      this.logSuccess('push_subscription_activity_updated', {
+        subscriptionId: maskId(subscriptionId),
+      });
+    } catch (error) {
+      return await this.handleError(
+        error,
+        'update_push_subscription_activity',
+        {
+          subscriptionId: maskId(subscriptionId),
+        }
+      );
+    }
+  }
+
+  /**
+   * Increment failure count for a push subscription
+   */
+  async incrementPushFailureCount(subscriptionId: string): Promise<void> {
+    this.validateRequired(subscriptionId, 'subscriptionId');
+
+    try {
+      await this.prisma.pushSubscription.update({
+        where: { id: subscriptionId },
+        data: {
+          failureCount: { increment: 1 },
+          lastActive: new Date(),
+        },
+      });
+
+      this.logSuccess('push_subscription_failure_incremented', {
+        subscriptionId: maskId(subscriptionId),
+      });
+    } catch (error) {
+      return await this.handleError(error, 'increment_push_failure_count', {
+        subscriptionId: maskId(subscriptionId),
+      });
+    }
+  }
+
+  /**
+   * Deactivate a push subscription (instead of deleting)
+   */
+  async deactivatePushSubscription(subscriptionId: string): Promise<void> {
+    this.validateRequired(subscriptionId, 'subscriptionId');
+
+    try {
+      await this.prisma.pushSubscription.update({
+        where: { id: subscriptionId },
+        data: {
+          isActive: false,
+          lastActive: new Date(),
+        },
+      });
+
+      this.logSuccess('push_subscription_deactivated', {
+        subscriptionId: maskId(subscriptionId),
+      });
+    } catch (error) {
+      return await this.handleError(error, 'deactivate_push_subscription', {
+        subscriptionId: maskId(subscriptionId),
       });
     }
   }
@@ -559,19 +667,23 @@ export class UserService extends BaseDatabaseService {
         throw new NotFoundError('User');
       }
 
-      // Remove invalid subscriptions
-      await this.prisma.pushSubscription.deleteMany({
+      // Deactivate invalid subscriptions instead of deleting
+      await this.prisma.pushSubscription.updateMany({
         where: {
           userId: user.id,
           endpoint: {
             in: invalidEndpoints,
           },
         },
+        data: {
+          isActive: false,
+          lastActive: new Date(),
+        },
       });
 
       this.logSuccess('push_subscription_cleanup', {
         userId: maskId(userId),
-        removedCount: invalidEndpoints.length,
+        deactivatedCount: invalidEndpoints.length,
       });
     } catch (error) {
       return await this.handleError(

@@ -4,6 +4,7 @@ import { MessageService } from '@/services/database/message-service';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { ValidationError } from '@/lib/error-handling';
 import { z } from 'zod';
+import { sendMessageNotifications } from '@/trigger/send-message-notifications';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -112,10 +113,36 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     contentLength: validatedData.content.length,
   });
 
-  // Database trigger will handle notifications automatically
-  console.log(
-    '📬 [NOTIFICATIONS] Message created - database trigger will handle notifications automatically'
-  );
+  // Trigger enhanced notification processing via Trigger.dev
+  let notificationJobId: string | null = null;
+  try {
+    const handle = await sendMessageNotifications.trigger({
+      messageId: message.id,
+      content: validatedData.content,
+      channelId: channelId,
+      serverId: serverId,
+      senderId: user.id,
+      senderName: user.name || user.email,
+    });
 
-  return NextResponse.json(message);
+    notificationJobId = handle.id;
+
+    apiLogger.databaseOperation('notification_job_triggered', true, {
+      messageId: message.id.substring(0, 8) + '***',
+      jobId: handle.id.substring(0, 8) + '***',
+      channelId: channelId.substring(0, 8) + '***',
+      serverId: serverId.substring(0, 8) + '***',
+    });
+  } catch (error) {
+    // Log the error but don't fail the message creation
+    apiLogger.databaseOperation('notification_job_trigger_failed', false, {
+      messageId: message.id.substring(0, 8) + '***',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  return NextResponse.json({
+    ...message,
+    notificationJobId, // Include job ID for tracking (null if failed)
+  });
 }, authHelpers.adminOnly('CREATE_MESSAGE'));

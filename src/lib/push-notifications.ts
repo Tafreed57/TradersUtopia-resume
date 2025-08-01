@@ -45,14 +45,44 @@ interface PushNotificationData {
   type: string;
   actionUrl?: string;
   icon?: string;
+  notificationId?: string;
+  isMentioned?: boolean;
 }
 
 interface PushSubscription {
+  id: string;
   endpoint: string;
   keys: {
     p256dh: string;
     auth: string;
   };
+  isActive: boolean;
+  failureCount: number;
+  lastActive: Date;
+}
+
+// Enhanced notification type definitions
+type NotificationPriority = 'low' | 'normal' | 'high';
+type NotificationCategory =
+  | 'message'
+  | 'social'
+  | 'reminder'
+  | 'system'
+  | 'payment';
+
+interface NotificationOptions {
+  priority?: NotificationPriority;
+  category?: NotificationCategory;
+  silent?: boolean;
+  actions?: Array<{
+    action: string;
+    title: string;
+    icon?: string;
+  }>;
+  image?: string;
+  badge?: string;
+  icon?: string;
+  vibrate?: number[];
 }
 
 const getNotificationIcon = (type: string): string => {
@@ -61,10 +91,68 @@ const getNotificationIcon = (type: string): string => {
     SECURITY: '🔒',
     PAYMENT: '💳',
     MESSAGE: '💬',
+    NEW_MESSAGE: '💬',
     MENTION: '👤',
     SERVER_UPDATE: '📢',
+    ADMIN_ANNOUNCEMENT: '📢',
+    TRIAL_ENDING: '⏰',
+    SUBSCRIPTION_CANCELLED: '❌',
+    SUBSCRIPTION_RENEWED: '✅',
   };
   return iconMap[type] || '📔';
+};
+
+const getNotificationPriority = (
+  type: string,
+  isMentioned?: boolean
+): NotificationPriority => {
+  if (isMentioned) return 'high';
+
+  const highPriorityTypes = ['SECURITY', 'PAYMENT_FAILED', 'TRIAL_ENDING'];
+  const lowPriorityTypes = ['SYSTEM', 'ADMIN_ANNOUNCEMENT'];
+
+  if (highPriorityTypes.includes(type)) return 'high';
+  if (lowPriorityTypes.includes(type)) return 'low';
+
+  return 'normal';
+};
+
+const buildNotificationPayload = (
+  data: PushNotificationData,
+  options?: NotificationOptions
+): string => {
+  const priority = getNotificationPriority(data.type, data.isMentioned);
+
+  return JSON.stringify({
+    title: data.title,
+    body: data.message,
+    icon: options?.icon || getNotificationIcon(data.type),
+    badge: options?.badge || '/logo.png',
+    image: options?.image,
+    data: {
+      url: data.actionUrl || '/',
+      notificationId: data.notificationId,
+      type: data.type,
+      timestamp: Date.now(),
+      priority,
+    },
+    actions:
+      options?.actions ||
+      (data.actionUrl
+        ? [
+            {
+              action: 'open',
+              title: 'View',
+              icon: '/logo.png',
+            },
+          ]
+        : []),
+    requireInteraction: data.type === 'NEW_MESSAGE' && data.isMentioned,
+    silent: options?.silent || false,
+    tag: `${data.type}-${Date.now()}`,
+    renotify: true,
+    vibrate: options?.vibrate || (data.isMentioned ? [200, 100, 200] : [100]),
+  });
 };
 
 export async function sendPushNotification(
@@ -86,78 +174,55 @@ export async function sendPushNotification(
       return false;
     }
 
-    const pushSubscriptions = user.pushSubscriptions;
-    let successCount = 0;
-    let failureCount = 0;
-    const invalidEndpoints: string[] = [];
-
-    // Prepare notification payload
-    const payload = JSON.stringify({
-      title: data.title,
-      body: data.message,
-      icon: '/logo.png',
-      badge: '/logo.png',
-      image: '/logo.png',
-      data: {
-        url: data.actionUrl || '/',
-        type: data.type,
-        timestamp: Date.now(),
-      },
-      actions: data.actionUrl
-        ? [
-            {
-              action: 'open',
-              title: 'View',
-              icon: '/logo.png',
-            },
-          ]
-        : [],
-      requireInteraction: data.type === 'SECURITY', // Security notifications require interaction
-      silent: false,
-      tag: `${data.type.toLowerCase()}-${Date.now()}`, // Prevent duplicate notifications
-      renotify: true,
-    });
-
-    // Send to all user's subscriptions
-    const sendPromises = pushSubscriptions.map(
-      async (subscription: PushSubscription, index: number) => {
-        try {
-          await webpush.sendNotification(subscription, payload, {
-            TTL: 24 * 60 * 60, // 24 hours
-            urgency: data.type === 'SECURITY' ? 'high' : 'normal',
-          });
-
-          // ✅ PERFORMANCE: Notification sent (no console output for performance)
-          successCount++;
-          return true;
-        } catch (error: any) {
-          console.error(
-            `❌ [PUSH] Failed to send to subscription ${index + 1}:`,
-            error
-          );
-
-          // If subscription is invalid (410 Gone), mark it for removal
-          if (error.statusCode === 410 || error.statusCode === 404) {
-            invalidEndpoints.push(subscription.endpoint);
-          }
-
-          failureCount++;
-          return false;
-        }
-      }
+    // Filter to only active subscriptions with low failure counts
+    const validSubscriptions = user.pushSubscriptions.filter(
+      sub => sub.isActive && sub.failureCount < 5
     );
 
-    await Promise.all(sendPromises);
-
-    // Clean up invalid subscriptions if any were found
-    if (invalidEndpoints.length > 0) {
-      await userService.removeInvalidPushSubscriptions(
-        data.userId,
-        invalidEndpoints
-      );
+    if (validSubscriptions.length === 0) {
+      return false;
     }
 
-    // ✅ PERFORMANCE: Push notification results (no console output for performance)
+    // Prepare notification payload using enhanced builder
+    const payload = buildNotificationPayload(data);
+
+    // Send to all valid subscriptions
+    const results = await Promise.allSettled(
+      validSubscriptions.map(async subscription => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: subscription.endpoint,
+              keys: subscription.keys,
+            },
+            payload,
+            {
+              TTL: 24 * 60 * 60,
+              urgency: data.isMentioned ? 'high' : 'normal',
+            }
+          );
+
+          // Update last active
+          await userService.updatePushSubscriptionActivity(subscription.id);
+
+          return { success: true, subscriptionId: subscription.id };
+        } catch (error: any) {
+          // Handle invalid subscriptions
+          if (error.statusCode === 410 || error.statusCode === 404) {
+            await userService.deactivatePushSubscription(subscription.id);
+          } else {
+            await userService.incrementPushFailureCount(subscription.id);
+          }
+
+          return { success: false, subscriptionId: subscription.id, error };
+        }
+      })
+    );
+
+    const successCount = results.filter(
+      r => r.status === 'fulfilled' && r.value.success
+    ).length;
+
     return successCount > 0;
   } catch (error) {
     console.error('❌ [PUSH] Error sending push notification:', error);
@@ -165,18 +230,165 @@ export async function sendPushNotification(
   }
 }
 
+/**
+ * Enhanced push notification sending with custom options
+ */
+export async function sendEnhancedPushNotification(
+  data: PushNotificationData,
+  options?: NotificationOptions
+): Promise<{
+  success: boolean;
+  sentCount: number;
+  failedCount: number;
+  results: Array<{ subscriptionId: string; success: boolean; error?: any }>;
+}> {
+  try {
+    const userService = new UserService();
+    const user = await userService.getUserWithPushSubscriptions(data.userId);
+
+    if (
+      !user ||
+      !user.pushSubscriptions ||
+      user.pushSubscriptions.length === 0
+    ) {
+      return { success: false, sentCount: 0, failedCount: 0, results: [] };
+    }
+
+    const validSubscriptions = user.pushSubscriptions.filter(
+      sub => sub.isActive && sub.failureCount < 5
+    );
+
+    if (validSubscriptions.length === 0) {
+      return { success: false, sentCount: 0, failedCount: 0, results: [] };
+    }
+
+    const payload = buildNotificationPayload(data, options);
+    const priority = getNotificationPriority(data.type, data.isMentioned);
+
+    const results = await Promise.allSettled(
+      validSubscriptions.map(async subscription => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: subscription.endpoint,
+              keys: subscription.keys,
+            },
+            payload,
+            {
+              TTL: 24 * 60 * 60,
+              urgency: priority === 'high' ? 'high' : 'normal',
+            }
+          );
+
+          await userService.updatePushSubscriptionActivity(subscription.id);
+          return { subscriptionId: subscription.id, success: true };
+        } catch (error: any) {
+          if (error.statusCode === 410 || error.statusCode === 404) {
+            await userService.deactivatePushSubscription(subscription.id);
+          } else {
+            await userService.incrementPushFailureCount(subscription.id);
+          }
+          return { subscriptionId: subscription.id, success: false, error };
+        }
+      })
+    );
+
+    const successfulResults = results.filter(
+      r => r.status === 'fulfilled' && r.value.success
+    );
+    const failedResults = results.filter(
+      r =>
+        r.status === 'rejected' ||
+        (r.status === 'fulfilled' && !r.value.success)
+    );
+
+    return {
+      success: successfulResults.length > 0,
+      sentCount: successfulResults.length,
+      failedCount: failedResults.length,
+      results: results.map(r =>
+        r.status === 'fulfilled'
+          ? r.value
+          : { subscriptionId: 'unknown', success: false, error: r.reason }
+      ),
+    };
+  } catch (error) {
+    console.error('❌ [PUSH] Error sending enhanced push notification:', error);
+    return { success: false, sentCount: 0, failedCount: 0, results: [] };
+  }
+}
+
+/**
+ * Send push notification to multiple users (batch)
+ */
+export async function sendBatchPushNotifications(
+  notifications: Array<PushNotificationData>,
+  options?: NotificationOptions
+): Promise<{
+  success: boolean;
+  totalSent: number;
+  totalFailed: number;
+  userResults: Array<{ userId: string; sent: number; failed: number }>;
+}> {
+  const userResults: Array<{ userId: string; sent: number; failed: number }> =
+    [];
+  let totalSent = 0;
+  let totalFailed = 0;
+
+  // Process notifications in batches to avoid overwhelming the system
+  const BATCH_SIZE = 20;
+  for (let i = 0; i < notifications.length; i += BATCH_SIZE) {
+    const batch = notifications.slice(i, i + BATCH_SIZE);
+
+    const batchPromises = batch.map(async notification => {
+      const result = await sendEnhancedPushNotification(notification, options);
+      userResults.push({
+        userId: notification.userId,
+        sent: result.sentCount,
+        failed: result.failedCount,
+      });
+      return result;
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+
+    totalSent += batchResults.reduce((sum, r) => sum + r.sentCount, 0);
+    totalFailed += batchResults.reduce((sum, r) => sum + r.failedCount, 0);
+  }
+
+  return {
+    success: totalSent > 0,
+    totalSent,
+    totalFailed,
+    userResults,
+  };
+}
+
 export async function subscribeToPushNotifications(
   userId: string,
-  subscription: PushSubscription
+  subscription: {
+    endpoint: string;
+    keys: {
+      p256dh: string;
+      auth: string;
+    };
+  },
+  deviceInfo?: {
+    browser?: string;
+    os?: string;
+    deviceType?: string;
+    userAgent?: string;
+  }
 ): Promise<boolean> {
   try {
     // Initialize UserService
     const userService = new UserService();
 
-    // Use the service to upsert the push subscription
+    // Use the service to upsert the push subscription with device info
     const success = await userService.upsertPushSubscription(
       userId,
-      subscription
+      subscription,
+      deviceInfo
     );
 
     if (success) {
@@ -188,5 +400,45 @@ export async function subscribeToPushNotifications(
     console.error('❌ [PUSH] Error saving push subscription:', error);
     console.error('❌ [PUSH] Full error details:', error);
     return false;
+  }
+}
+
+/**
+ * Get push subscription statistics for a user
+ */
+export async function getPushSubscriptionStats(userId: string): Promise<{
+  total: number;
+  active: number;
+  inactive: number;
+  highFailureCount: number;
+  recentlyActive: number;
+} | null> {
+  try {
+    const userService = new UserService();
+    const user = await userService.getUserWithPushSubscriptions(userId);
+
+    if (!user || !user.pushSubscriptions) {
+      return null;
+    }
+
+    const now = new Date();
+    const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const stats = {
+      total: user.pushSubscriptions.length,
+      active: user.pushSubscriptions.filter(sub => sub.isActive).length,
+      inactive: user.pushSubscriptions.filter(sub => !sub.isActive).length,
+      highFailureCount: user.pushSubscriptions.filter(
+        sub => sub.failureCount >= 3
+      ).length,
+      recentlyActive: user.pushSubscriptions.filter(
+        sub => sub.lastActive > dayAgo
+      ).length,
+    };
+
+    return stats;
+  } catch (error) {
+    console.error('❌ [PUSH] Error getting push subscription stats:', error);
+    return null;
   }
 }

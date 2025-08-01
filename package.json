@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npx concurrently --kill-others --names \"next,trigger\" --prefix-colors \"yellow,blue\" \"next dev\" \"pnpm run trigger:dev\"",
+    "dev": "node scripts/dev.js",
     "dev:next": "next dev",
     "dev:clean": "pnpm run clean && next dev",
+    "dev:debug": "node scripts/dev.js --debug",
+    "dev:verbose": "node scripts/dev.js --verbose",
     "trigger:dev": "npx trigger.dev@latest dev",
     "trigger:deploy": "npx trigger.dev@latest deploy",
     "trigger:deploy:prod": "npx trigger.dev@latest deploy --env production",
