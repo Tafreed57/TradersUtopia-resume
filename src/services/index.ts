@@ -30,8 +30,7 @@ export type {
 } from './stripe/coupon-service';
 
 // Notification services
-export { NotificationTriggerService } from '../lib/notifications/trigger-integration';
-export type { TriggerStats } from '../lib/notifications/trigger-integration';
+export { NotificationService } from './database/notification-service';
 
 // Subscription sync services
 export { SubscriptionSyncService } from './subscription-sync-service';
