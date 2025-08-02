@@ -29,26 +29,6 @@ const notificationActionSchema = z.object({
 });
 
 /**
- * Notifications API
- *
- * BEFORE: 227 lines with extensive boilerplate
- * - Rate limiting (10+ lines per method)
- * - Authentication (10+ lines per method)
- * - Manual validation (20+ lines)
- * - Complex action handling (100+ lines)
- * - Manual function calls to lib (50+ lines)
- * - Extensive error handling (30+ lines)
- * - Duplicate logging logic (15+ lines)
- *
- * AFTER: Clean service-based implementation
- * - 90%+ boilerplate elimination
- * - Centralized notification management
- * - Simplified action handling
- * - Comprehensive audit logging
- * - Enhanced error responses
- */
-
-/**
  * Get User Notifications
  * Returns unread notifications with count and metadata
  */

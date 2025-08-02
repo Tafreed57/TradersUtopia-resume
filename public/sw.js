@@ -75,7 +75,11 @@ self.addEventListener('activate', (event) => {
 
 // Enhanced push event with mobile-specific handling
 self.addEventListener('push', (event) => {
-  console.log('📱 [SW] Push notification received');
+  console.log('📱 [SW] Push notification received', {
+    isMobile: isMobile(),
+    hasData: !!event.data,
+    timestamp: new Date().toISOString()
+  });
 
   if (!event.data) {
     console.warn('⚠️ [SW] Push event received without data');

@@ -71,11 +71,21 @@ export function PushNotificationPrompt() {
 
     setBrowserInfo(browserCapabilities);
 
-    // Enhanced push notification support detection
+    // Enhanced push notification support detection with security context check
+    const isSecureContext =
+      window.isSecureContext || location.protocol === 'https:';
     const supported =
       browserCapabilities.supportsServiceWorker &&
       browserCapabilities.supportsPushManager &&
-      'Notification' in window;
+      'Notification' in window &&
+      isSecureContext; // Push notifications require secure context
+
+    console.log('🔍 [PUSH] Browser capability check:', {
+      ...browserCapabilities,
+      isSecureContext,
+      currentProtocol: location.protocol,
+      supported,
+    });
 
     setPushSupported(supported);
 
@@ -110,19 +120,59 @@ export function PushNotificationPrompt() {
   };
 
   const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
+    try {
+      if (!base64String) {
+        throw new Error('VAPID key is empty or null');
+      }
+
+      console.log('🔑 [PUSH] Converting VAPID key:', {
+        originalLength: base64String.length,
+        firstChars: base64String.substring(0, 10) + '...',
+        lastChars: '...' + base64String.substring(base64String.length - 10),
+      });
+
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+
+      console.log('✅ [PUSH] VAPID key converted successfully:', {
+        inputLength: base64String.length,
+        outputLength: outputArray.length,
+        expected: 65, // P-256 public key should be 65 bytes
+      });
+
+      if (outputArray.length !== 65) {
+        console.warn(
+          '⚠️ [PUSH] Unexpected VAPID key length. Expected 65 bytes, got:',
+          outputArray.length
+        );
+      }
+
+      return outputArray;
+    } catch (error) {
+      console.error('❌ [PUSH] VAPID key conversion failed:', error);
+      throw new Error(
+        `Invalid VAPID public key: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      );
     }
-    return outputArray;
   };
 
   const enablePushNotifications = async () => {
+    console.log('🚀 [PUSH] Starting push notification setup', {
+      pushSupported,
+      browserInfo,
+      userAgent: navigator.userAgent,
+    });
+
     if (!pushSupported) {
       if (browserInfo.isSafari && browserInfo.isMobile) {
         showToast.error(
@@ -140,6 +190,10 @@ export function PushNotificationPrompt() {
 
     // Enhanced VAPID key retrieval with fallback
     let vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    console.log(
+      '🔑 [PUSH] VAPID key from environment:',
+      vapidPublicKey ? `Present (${vapidPublicKey.length} chars)` : 'Missing'
+    );
 
     // Fallback: try to get from API if environment variable is not available
     if (!vapidPublicKey) {
@@ -191,13 +245,22 @@ export function PushNotificationPrompt() {
       setPushPermission(permission);
 
       if (permission === 'granted') {
+        console.log(
+          '✅ [PUSH] Permission granted, proceeding with service worker registration'
+        );
+
         // Register service worker with enhanced error handling
         let registration;
         try {
+          console.log('🔧 [PUSH] Registering service worker...');
           registration = await navigator.serviceWorker.register('/sw.js');
+          console.log(
+            '🔧 [PUSH] Service worker registered, waiting for ready state...'
+          );
           await navigator.serviceWorker.ready;
+          console.log('✅ [PUSH] Service worker ready');
         } catch (error) {
-          console.error('Service worker registration failed:', error);
+          console.error('❌ [PUSH] Service worker registration failed:', error);
           showToast.error(
             'Service Worker Error',
             'Failed to register service worker. Please try again.'
@@ -207,19 +270,40 @@ export function PushNotificationPrompt() {
 
         // Subscribe to push notifications
         try {
+          console.log('🔧 [PUSH] Converting VAPID key...');
+          const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+          console.log(
+            '🔧 [PUSH] VAPID key converted, length:',
+            applicationServerKey.length
+          );
+
+          console.log('🔧 [PUSH] Creating push subscription...');
           const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            applicationServerKey: applicationServerKey,
+          });
+          console.log('✅ [PUSH] Push subscription created:', {
+            endpoint: subscription.endpoint.substring(0, 50) + '...',
+            hasP256dh: !!subscription.getKey('p256dh'),
+            hasAuth: !!subscription.getKey('auth'),
           });
 
           // Send subscription to backend
-          const response = await fetch('/api/notifications/push/subscribe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription }),
-          });
+          console.log('🔧 [PUSH] Sending subscription to backend...');
+          const response = await fetch(
+            '/api/notifications/push?action=subscribe',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ subscription }),
+            }
+          );
+
+          console.log('🔧 [PUSH] Backend response status:', response.status);
 
           if (response.ok) {
+            const responseData = await response.json();
+            console.log('✅ [PUSH] Backend response:', responseData);
             setHasSubscription(true);
             setIsVisible(false);
             showToast.success(
@@ -230,14 +314,40 @@ export function PushNotificationPrompt() {
             );
           } else {
             const errorData = await response.json();
+            console.error('❌ [PUSH] Backend error:', errorData);
             throw new Error(errorData.message || 'Failed to save subscription');
           }
         } catch (subscriptionError) {
           console.error('Push subscription failed:', subscriptionError);
-          showToast.error(
-            'Subscription failed',
-            'Could not enable push notifications. Please try again later.'
-          );
+          console.error('Full subscription error details:', {
+            error: subscriptionError,
+            vapidKey: vapidPublicKey ? 'Present' : 'Missing',
+            permission: Notification.permission,
+            supportedFeatures: {
+              serviceWorker: 'serviceWorker' in navigator,
+              pushManager: 'PushManager' in window,
+              notifications: 'Notification' in window,
+            },
+            browserInfo: browserInfo,
+          });
+
+          // More specific error messages
+          let errorMessage =
+            'Could not enable push notifications. Please try again later.';
+          if (subscriptionError instanceof Error) {
+            if (subscriptionError.message.includes('not supported')) {
+              errorMessage =
+                'Push notifications are not supported in this browser or device.';
+            } else if (subscriptionError.message.includes('permission')) {
+              errorMessage =
+                'Permission denied. Please enable notifications in browser settings.';
+            } else if (subscriptionError.message.includes('VAPID')) {
+              errorMessage =
+                'Server configuration error. Please contact support.';
+            }
+          }
+
+          showToast.error('Subscription failed', errorMessage);
         }
       } else if (permission === 'denied') {
         showToast.error(
@@ -418,15 +528,6 @@ export function PushNotificationPrompt() {
                     <span>Enable</span>
                   </div>
                 )}
-              </Button>
-
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={openSettings}
-                className='border-gray-600/50 text-gray-300 hover:bg-gray-700/50 text-xs h-8'
-              >
-                <Settings className='h-3 w-3' />
               </Button>
             </div>
           </div>

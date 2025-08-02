@@ -516,29 +516,18 @@ export class NotificationService extends BaseDatabaseService {
           },
         });
 
-      // If no preference exists, create one with default (enabled: true)
-      if (!preference) {
-        preference = await this.prisma.channelNotificationPreference.create({
-          data: {
-            userId: userId,
-            channelId: channelId,
-            enabled: true,
-          },
-        });
-      }
-
       apiLogger.databaseOperation(
         'channel_notification_preference_retrieved',
         true,
         {
           userId: maskId(userId),
           channelId: maskId(channelId),
-          enabled: preference.enabled,
+          enabled: preference?.enabled || false,
         }
       );
 
       return {
-        enabled: preference.enabled,
+        enabled: preference?.enabled || false,
         channelId: channelId,
       };
     } catch (error) {
@@ -618,7 +607,9 @@ export class NotificationService extends BaseDatabaseService {
       return {
         enabled: preference.enabled,
         channelId: channelId,
-        message: `Notifications ${enabled ? 'enabled' : 'disabled'} for ${channel.name}`,
+        message: `Notifications ${enabled ? 'enabled' : 'disabled'} for ${
+          channel.name
+        }`,
       };
     } catch (error) {
       throw this.handleError(

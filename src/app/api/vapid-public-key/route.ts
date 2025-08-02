@@ -15,11 +15,11 @@ export async function GET() {
   const startTime = Date.now();
 
   try {
-    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
     if (!vapidPublicKey) {
       apiLogger.databaseOperation('vapid_key_not_configured', false, {
-        error: 'VAPID_PUBLIC_KEY environment variable not set',
+        error: 'NEXT_PUBLIC_VAPID_PUBLIC_KEY environment variable not set',
         responseTime: `${Date.now() - startTime}ms`,
       });
 
