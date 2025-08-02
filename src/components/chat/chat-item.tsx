@@ -14,7 +14,6 @@ import { secureAxiosPatch } from '@/lib/csrf-client';
 import { Edit, FileText, ShieldAlert, ShieldCheck, Trash } from 'lucide-react';
 import NextImage from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import qs from 'query-string';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import z from 'zod';
@@ -36,6 +35,7 @@ interface ChatItemProps {
   isUpdated: boolean;
   socketUrl: string;
   socketQuery: Record<string, string>;
+  isAdmin: boolean;
 }
 
 const roleIconMap: Record<string, React.ReactNode> = {
@@ -62,6 +62,7 @@ export function ChatItem({
   isUpdated,
   socketUrl,
   socketQuery,
+  isAdmin,
 }: ChatItemProps) {
   const onOpen = useStore(state => state.onOpen);
   const params = useParams();
@@ -78,11 +79,8 @@ export function ChatItem({
 
   const isLoading2 = form.formState.isSubmitting;
 
-  // Check if user is admin based on User.isAdmin field
-  const isAdmin = currentMember.user.isAdmin;
-  const isModerator = currentMember.role.name === 'premium'; // Premium users might have moderation rights
   const isOwner = currentMember.id === member.id;
-  const canDeleteMessage = !deleted && (isAdmin || isModerator || isOwner);
+  const canDeleteMessage = !deleted && isAdmin; // Only admins can delete messages
   const canEditMessage = !deleted && isOwner && !fileUrl;
   const isPDF = fileType === 'pdf';
   const isImage = !isPDF && fileUrl;

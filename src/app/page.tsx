@@ -23,7 +23,7 @@ import {
 export default function HomePage() {
   // const { user, hasAccess, isAdmin } = useExtendedUser();
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden pwa-layout safe-min-height'>
+    <div className='min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white relative overflow-hidden'>
       {/* Animated Background Effects */}
       <div className='absolute inset-0 overflow-hidden'>
         <div className='absolute -top-40 -right-40 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl animate-pulse'></div>
@@ -31,7 +31,7 @@ export default function HomePage() {
         <div className='absolute bottom-40 right-20 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-2000'></div>
       </div>
 
-      <div className='relative z-10 pwa-safe-top pwa-safe-bottom safe-area-inset-left safe-area-inset-right'>
+      <div className='relative z-10'>
         {/* Auto-route component for handling post-sign-in routing */}
         {/* <Suspense fallback={null}>
           <AutoRouteAfterSignIn />

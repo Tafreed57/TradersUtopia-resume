@@ -164,6 +164,7 @@ export function ChatMessages({
                 timestamp={format(new Date(message.createdAt), DATE_FORMAT)}
                 socketUrl={socketUrl}
                 socketQuery={socketQuery}
+                isAdmin={member.user.isAdmin}
               />
             ))}
           </Fragment>

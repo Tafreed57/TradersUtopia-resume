@@ -33,9 +33,8 @@ export function ChatHeader({
     <div
       className='sticky top-0 z-50 text-md font-semibold px-3 flex items-center border-neutral-200 dark:border-neutral-800 border-b-2 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl touch-manipulation'
       style={{
-        paddingTop: `env(safe-area-inset-top)`,
-        minHeight: `calc(3rem + env(safe-area-inset-top))`,
-        height: `calc(3rem + env(safe-area-inset-top))`,
+        minHeight: '3rem',
+        height: '3rem',
       }}
     >
       {server ? (

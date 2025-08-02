@@ -878,23 +878,6 @@ export function CancellationFlowModal({
                 style={{ fontSize: '2rem' }}
               />
             </div>
-
-            <div className='bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-xl p-4 sm:p-6'>
-              <div className='flex items-start gap-3'>
-                <div className='w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5'>
-                  <span className='text-white text-sm font-bold'>💡</span>
-                </div>
-                <div>
-                  <p className='text-emerald-800 font-semibold text-base mb-1'>
-                    Smart pricing guarantee
-                  </p>
-                  <p className='text-emerald-700 text-sm'>
-                    We'll create a custom offer based on your budget. Most
-                    members save 40-60% with our personalized pricing.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 

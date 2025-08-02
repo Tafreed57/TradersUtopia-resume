@@ -56,7 +56,7 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
         className={`w-full transition-all duration-300 ease-in-out ${
           isScrolled
             ? 'fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 py-2'
-            : 'px-4 sm:px-6 pt-4 sm:pt-6 safe-area-inset-top'
+            : 'px-4 sm:px-6 pt-4 sm:pt-6'
         }`}
         style={
           isScrolled
@@ -92,13 +92,6 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
                   <span className='text-white text-xs sm:text-sm lg:text-xl font-bold leading-tight whitespace-nowrap'>
                     TradersUtopia
                   </span>
-                  {isMounted && isLoaded && (
-                    <SignedIn>
-                      <span className='text-blue-400 text-xs font-medium whitespace-nowrap'>
-                        Welcome back!
-                      </span>
-                    </SignedIn>
-                  )}
                 </div>
                 <p className='text-gray-400 text-xs leading-tight whitespace-nowrap'>
                   Premium Trading Signals

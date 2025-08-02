@@ -47,7 +47,14 @@ export function AuthHeader() {
           <UserButton
             appearance={{
               elements: {
-                avatarBox: 'w-10 h-10',
+                avatarBox:
+                  'w-10 h-10 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200',
+                userButtonPopoverCard:
+                  'bg-black-800 border border-gray-600 shadow-2xl',
+                userButtonPopoverActionButton:
+                  'text-black-300 hover:bg-gray-700 hover:text-white',
+                userButtonPopoverActionButtonText: 'text-black-300',
+                userButtonPopoverFooter: 'hidden',
               },
             }}
           />

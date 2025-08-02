@@ -63,12 +63,7 @@ export function MobileCompleteSidebar({
   return (
     <div className='flex h-full'>
       {/* Main Server List - Left Side */}
-      <div
-        className='w-24 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30 touch-manipulation'
-        style={{
-          paddingTop: `calc(1.25rem + env(safe-area-inset-top))`,
-        }}
-      >
+      <div className='w-24 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30 touch-manipulation'>
         {/* Dashboard Link */}
         <div className='mb-5 overflow-visible'>
           <ActionTooltip label='Go to Dashboard' side='right' align='center'>
@@ -104,10 +99,16 @@ export function MobileCompleteSidebar({
         >
           <NotificationBell />
           <UserButton
-            afterSignOutUrl='/'
             appearance={{
               elements: {
-                avatarBox: 'h-[56px] w-[56px]',
+                avatarBox:
+                  'w-10 h-10 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200',
+                userButtonPopoverCard:
+                  'bg-black-800 border border-gray-600 shadow-2xl',
+                userButtonPopoverActionButton:
+                  'text-black-300 hover:bg-gray-700 hover:text-white',
+                userButtonPopoverActionButtonText: 'text-black-300',
+                userButtonPopoverFooter: 'hidden',
               },
             }}
           />

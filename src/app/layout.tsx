@@ -17,6 +17,7 @@ const open_sans = Open_Sans({ subsets: ['latin'] });
 
 export const viewport: Viewport = {
   width: 'device-width',
+  height: 'device-height',
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
@@ -123,7 +124,7 @@ export default function RootLayout({
       <body
         className={cn(
           open_sans.className,
-          'bg-white dark:bg-gradient-to-br dark:from-gray-900/95 dark:via-gray-800/90 dark:to-gray-900/95 overflow-visible min-h-screen safe-area-full'
+          'bg-white dark:bg-gradient-to-br dark:from-gray-900/95 dark:via-gray-800/90 dark:to-gray-900/95 overflow-visible min-h-screen'
         )}
       >
         {/* Rewardful Affiliate Tracking */}

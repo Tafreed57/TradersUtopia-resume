@@ -244,10 +244,10 @@ export default function Dashboard() {
                         avatarBox:
                           'w-10 h-10 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200',
                         userButtonPopoverCard:
-                          'bg-gray-800 border border-gray-600 shadow-2xl',
+                          'bg-black-800 border border-gray-600 shadow-2xl',
                         userButtonPopoverActionButton:
-                          'text-gray-300 hover:bg-gray-700 hover:text-white',
-                        userButtonPopoverActionButtonText: 'text-gray-300',
+                          'text-black-300 hover:bg-gray-700 hover:text-white',
+                        userButtonPopoverActionButtonText: 'text-black-300',
                         userButtonPopoverFooter: 'hidden',
                       },
                     }}

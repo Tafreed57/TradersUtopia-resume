@@ -338,10 +338,16 @@ export function GlobalMobileMenu({ currentPage }: GlobalMobileMenuProps) {
                     min-h-[2.75rem] touch-manipulation'
                   >
                     <UserButton
-                      afterSignOutUrl='/'
                       appearance={{
                         elements: {
-                          avatarBox: 'w-8 h-8 min-w-[2rem] min-h-[2rem]',
+                          avatarBox:
+                            'w-10 h-10 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200',
+                          userButtonPopoverCard:
+                            'bg-black-800 border border-gray-600 shadow-2xl',
+                          userButtonPopoverActionButton:
+                            'text-black-300 hover:bg-gray-700 hover:text-white',
+                          userButtonPopoverActionButtonText: 'text-black-300',
+                          userButtonPopoverFooter: 'hidden',
                         },
                       }}
                     />

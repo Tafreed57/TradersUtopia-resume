@@ -16,12 +16,7 @@ export async function SideBar() {
   const servers = await getAllServers(profile.id);
 
   return (
-    <div
-      className='flex flex-col items-center h-full text-primary w-full bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible touch-manipulation'
-      style={{
-        paddingTop: `calc(1.25rem + env(safe-area-inset-top))`,
-      }}
-    >
+    <div className='flex flex-col items-center h-full text-primary w-full bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible touch-manipulation'>
       {/* Dashboard Link */}
       <div className='mb-5 overflow-visible'>
         <ActionTooltip label='Go to Dashboard' side='right' align='center'>
@@ -60,10 +55,16 @@ export async function SideBar() {
         <NotificationBell />
         {/* <ModeToggle /> */}
         <UserButton
-          afterSignOutUrl='/'
           appearance={{
             elements: {
-              avatarBox: 'h-[56px] w-[56px]',
+              avatarBox:
+                'w-10 h-10 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200',
+              userButtonPopoverCard:
+                'bg-black-800 border border-gray-600 shadow-2xl',
+              userButtonPopoverActionButton:
+                'text-black-300 hover:bg-gray-700 hover:text-white',
+              userButtonPopoverActionButtonText: 'text-black-300',
+              userButtonPopoverFooter: 'hidden',
             },
           }}
         />
