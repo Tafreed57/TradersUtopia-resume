@@ -3,9 +3,8 @@ import { MemberService } from '@/services/database/member-service';
 import { ServerService } from '@/services/database/server-service';
 import { ChannelService } from '@/services/database/channel-service';
 import { NotificationService } from '@/services/database/notification-service';
-import { UserService } from '@/services/database/user-service';
 import { sendPushNotification } from '@/lib/push-notifications';
-import type { Member, User, Server, Channel } from '@/services/types';
+import type { Member, User } from '@/services/types';
 import type { NotificationType } from '@prisma/client';
 
 // Type definition for the task payload
@@ -29,14 +28,6 @@ type UserWithSubscription = User & {
 // Type for members with user details that have active subscriptions or admin access
 type EligibleMember = Member & {
   user: UserWithSubscription;
-};
-
-// Type for channel notification preference
-type ChannelNotificationPreference = {
-  id: string;
-  userId: string;
-  channelId: string;
-  enabled: boolean;
 };
 
 export const sendMessageNotifications = task({
@@ -67,7 +58,6 @@ export const sendMessageNotifications = task({
       const serverService = new ServerService();
       const channelService = new ChannelService();
       const notificationService = new NotificationService();
-      const userService = new UserService();
 
       // Get server and channel information in parallel
       const [serverInfo, channelInfo] = await Promise.all([
