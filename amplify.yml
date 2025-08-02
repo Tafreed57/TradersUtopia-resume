@@ -29,6 +29,9 @@ frontend:
         - export AWS_BRANCH=$AWS_BRANCH
         - env | grep -e AWS_APP_ID >> .env.production
         - env | grep -e AWS_BRANCH >> .env.production
+        - env | grep -e NEXT_PUBLIC_VAPID_PUBLIC_KEY >> .env.production
+        - env | grep -e VAPID_PRIVATE_KEY >> .env.production
+        - env | grep -e TRIGGER_SECRET_KEY >> .env.production
         - pnpm build
         - pnpm migrate:deploy
   artifacts:

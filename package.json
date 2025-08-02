@@ -11,7 +11,7 @@
     "dev:verbose": "node scripts/dev.js --verbose",
     "trigger:dev": "npx trigger.dev@latest dev",
     "trigger:deploy": "npx trigger.dev@latest deploy",
-    "trigger:deploy:prod": "npx trigger.dev@latest deploy --env production",
+    "trigger:deploy:prod": "npx trigger.dev@latest deploy --env prod",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
