@@ -52,7 +52,7 @@ function SectionItem({
           position={section.position}
         />
       </div>
-      <div className='flex flex-col space-y-0.5 ml-4 overflow-visible relative z-10'>
+      <div className='flex flex-col space-y-0.5 ml-1 overflow-visible relative z-10'>
         {/* Render child sections first */}
         {section.children && section.children.length > 0 && (
           <SortableContext

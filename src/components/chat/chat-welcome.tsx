@@ -24,9 +24,6 @@ export function ChatWelcome({ name, type }: ChatWelcomeProps) {
         <p className='text-base sm:text-lg text-gray-300 leading-relaxed max-w-md mx-auto sm:mx-0 font-medium'>
           This is the start of the #{name} channel.
         </p>
-        <p className='text-sm text-gray-500 max-w-md mx-auto sm:mx-0'>
-          Share your thoughts, ask questions, and collaborate with your community members.
-        </p>
       </div>
     </div>
   );

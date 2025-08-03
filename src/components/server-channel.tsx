@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useParams, useRouter } from 'next/navigation';
@@ -16,6 +17,7 @@ import React, {
   useState,
   useTransition,
 } from 'react';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 import { ModalType } from '@/types/store';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -38,6 +40,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const router = useRouter();
   const onOpen = useStore(state => state.onOpen);
   const { insertionIndicator, canDragDrop } = useDragDrop();
+  const { isAdmin } = useExtendedUser();
   const [isPending, startTransition] = useTransition();
   const [optimisticActive, setOptimisticActive] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -53,14 +56,9 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const Icon = iconMap[channel.type as keyof typeof iconMap];
   const isActive = params?.channelId === channel.id;
 
-  // ✅ UPDATED: Allow admins and moderators to edit any channel including general
-  const isAdmin = role?.name === 'admin';
-  const isModerator = role?.name === 'premium';
-  const canModifyChannel = isAdmin || isModerator;
-
   // Enable drag and drop for channels when user can manage them
   // Use centralized permission check from context
-  const isDraggable = canDragDrop && canModifyChannel;
+  const isDraggable = canDragDrop && isAdmin;
 
   // Check if insertion indicator should be shown for this channel
   const showInsertionBefore =
@@ -157,7 +155,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const buttonClasses = useMemo(
     () =>
       cn(
-        'group px-3 py-2.5 rounded-xl flex items-center gap-x-2 w-full transition-all duration-200 relative',
+        'group px-2 py-2.5 rounded-xl flex items-center gap-x-1.5 w-full transition-all duration-200 relative',
         'hover:bg-gradient-to-r hover:from-gray-700/50 hover:to-gray-600/50 hover:border-gray-500/30',
         'hover:transform hover:translate-x-0.5 hover:shadow-md',
         'border border-transparent backdrop-blur-sm',
@@ -185,7 +183,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
   const textClasses = useMemo(
     () =>
       cn(
-        'text-sm font-medium transition-colors duration-200 flex-1 text-left truncate pr-2',
+        'text-sm font-medium transition-colors duration-200 flex-1 text-left truncate pr-1',
         isActive
           ? 'text-white font-semibold'
           : 'text-gray-300 group-hover:text-white'
@@ -273,10 +271,10 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
       </div>
 
       {/* 3-dots dropdown menu for channel actions */}
-      {canModifyChannel && (
+      {isAdmin && (
         <div
           className={cn(
-            'absolute right-1 top-1/2 transform -translate-y-1/2 transition-all duration-200 z-[70]',
+            'absolute right-1 top-1/2 transform -translate-y-1/2 transition-all duration-200 z-[9999]',
             showActions || isDropdownOpen
               ? 'opacity-100 visible'
               : 'opacity-0 invisible'
@@ -289,42 +287,44 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
                   minWidth: '20px',
                   minHeight: '20px',
                 }}
-                className='p-1.5 rounded-md hover:bg-gray-600/20 transition-all duration-200 flex items-center justify-center backdrop-blur-sm border border-transparent hover:border-gray-400/30 relative z-[70]'
+                className='p-1.5 rounded-md hover:bg-gray-600/20 transition-all duration-200 flex items-center justify-center backdrop-blur-sm border border-transparent hover:border-gray-400/30 relative z-[9999]'
                 title='Channel Options'
                 onClick={e => e.stopPropagation()}
               >
                 <MoreHorizontal className='w-3 h-3 text-gray-400 hover:text-gray-200 transition-colors duration-200' />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align='end'
-              className='w-48 bg-gray-800 border-gray-700 z-[80]'
-              onCloseAutoFocus={e => {
-                // Prevent auto-focus after closing to avoid unwanted behavior
-                e.preventDefault();
-              }}
-            >
-              <DropdownMenuItem
-                onClick={e => {
-                  e.stopPropagation();
-                  onAction(e, 'editChannel');
+            <DropdownMenuPortal>
+              <DropdownMenuContent
+                align='end'
+                className='w-48 bg-gray-800 border-gray-700 z-[10000]'
+                onCloseAutoFocus={e => {
+                  // Prevent auto-focus after closing to avoid unwanted behavior
+                  e.preventDefault();
                 }}
-                className='flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-blue-600/20 hover:text-blue-400 cursor-pointer'
               >
-                <Edit className='w-4 h-4' />
-                Edit Channel
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={e => {
-                  e.stopPropagation();
-                  onAction(e, 'deleteChannel');
-                }}
-                className='flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-red-600/20 hover:text-red-400 cursor-pointer'
-              >
-                <Trash className='w-4 h-4' />
-                Delete Channel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
+                <DropdownMenuItem
+                  onClick={e => {
+                    e.stopPropagation();
+                    onAction(e, 'editChannel');
+                  }}
+                  className='flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-blue-600/20 hover:text-blue-400 cursor-pointer'
+                >
+                  <Edit className='w-4 h-4' />
+                  Edit Channel
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={e => {
+                    e.stopPropagation();
+                    onAction(e, 'deleteChannel');
+                  }}
+                  className='flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-red-600/20 hover:text-red-400 cursor-pointer'
+                >
+                  <Trash className='w-4 h-4' />
+                  Delete Channel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenuPortal>
           </DropdownMenu>
         </div>
       )}

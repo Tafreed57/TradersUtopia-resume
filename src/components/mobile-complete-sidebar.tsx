@@ -37,7 +37,7 @@ export function MobileCompleteSidebar({
   if (!isMounted) {
     return (
       <div className='flex h-full'>
-        <div className='w-24 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30'>
+        <div className='w-10 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30'>
           <div className='animate-pulse space-y-4'>
             <div className='h-14 w-14 bg-gray-700 rounded-full'></div>
             <div className='h-14 w-14 bg-gray-700 rounded-full'></div>
@@ -63,7 +63,7 @@ export function MobileCompleteSidebar({
   return (
     <div className='flex h-full'>
       {/* Main Server List - Left Side */}
-      <div className='w-24 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30 touch-manipulation'>
+      <div className='w-15 flex-shrink-0 flex flex-col items-center h-full text-primary bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl py-5 overflow-visible border-r border-gray-700/30 touch-manipulation'>
         {/* Dashboard Link */}
         <div className='mb-5 overflow-visible'>
           <ActionTooltip label='Go to Dashboard' side='right' align='center'>

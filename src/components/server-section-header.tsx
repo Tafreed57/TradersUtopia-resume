@@ -163,7 +163,7 @@ export function ServerSectionHeader({
           )}
         </div>
 
-        {canModifySection && (
+        {isAdmin && (
           <div className='flex items-center gap-1 flex-shrink-0'>
             <div className='relative z-[100]'>
               <DropdownMenu>
