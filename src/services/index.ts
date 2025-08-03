@@ -32,5 +32,8 @@ export type {
 // Notification services
 export { NotificationService } from './database/notification-service';
 
+// Discount offer services
+export { DiscountOfferService } from './database/discount-offer-service';
+
 // Subscription sync services
 export { SubscriptionSyncService } from './subscription-sync-service';

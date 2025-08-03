@@ -57,17 +57,11 @@ export const GET = withAuth(
           const subscriptionStatus =
             await userService.getUserSubscriptionStatus(user.id);
 
-          // Step 2: Get additional subscription details if needed
-          const subscriptionExpiry =
-            await userService.getSubscriptionExpiryInfo(user.id);
-
           apiLogger.databaseOperation('payment_status_checked', true, {
             userId: user.id.substring(0, 8) + '***',
             hasAccess: subscriptionStatus.hasActiveSubscription,
             subscriptionStatus: subscriptionStatus.status,
             currentPeriodEnd: subscriptionStatus.currentPeriodEnd,
-            isExpired: subscriptionExpiry.isExpired,
-            isInGracePeriod: subscriptionExpiry.isInGracePeriod,
           });
 
           return NextResponse.json({
@@ -418,6 +412,17 @@ export const GET = withAuth(
         total: actualPrice,
         currency: price.currency,
         discounts: coupons,
+        // Extract cancellation data from existing live Stripe fetch
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        currentPeriodEnd: subscription.cancel_at_period_end
+          ? (subscription as any).cancel_at
+            ? new Date((subscription as any).cancel_at * 1000).toISOString()
+            : null
+          : (subscriptionItem as any).current_period_end
+          ? new Date(
+              (subscriptionItem as any).current_period_end * 1000
+            ).toISOString()
+          : null,
       };
 
       apiLogger.databaseOperation(

@@ -14,27 +14,38 @@ import {
   TrendingDown,
   Sparkles,
   Crown,
+  Loader2,
 } from 'lucide-react';
 import { formatCurrency, dollarsToCents } from '@/lib/utils';
 
 interface OfferConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAccept: () => void;
+  onDecline: () => void;
   originalPrice: number;
   userInput: number;
   offerPrice: number;
   savings: number;
   percentOff: number;
+  isStoredOffer?: boolean;
+  isLoading?: boolean;
+  isFinalOffer?: boolean;
 }
 
 export function OfferConfirmationModal({
   isOpen,
   onClose,
+  onAccept,
+  onDecline,
   originalPrice,
   userInput,
   offerPrice,
   savings,
   percentOff,
+  isStoredOffer = false,
+  isLoading = false,
+  isFinalOffer = false,
 }: OfferConfirmationModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -65,28 +76,18 @@ export function OfferConfirmationModal({
 
               <div className='space-y-2 px-2'>
                 <DialogTitle className='text-xl xs:text-2xl sm:text-3xl font-black bg-gradient-to-r from-emerald-200 to-green-200 bg-clip-text text-transparent leading-tight'>
-                  🎉 Your Custom Offer
+                  {isFinalOffer ? '🚨 FINAL OFFER' : '🎉 Your Custom Offer'}
                 </DialogTitle>
                 <p className='text-emerald-200 text-sm sm:text-lg font-medium'>
-                  We've crafted the perfect price just for you!
+                  {isFinalOffer
+                    ? 'This is our absolute lowest price. Take it or lose it forever.'
+                    : "We've crafted the perfect price just for you!"}
                 </p>
               </div>
             </DialogHeader>
 
             {/* Offer Details - Mobile optimized spacing */}
             <div className='space-y-3 sm:space-y-4'>
-              {/* What you wanted - Mobile responsive */}
-              <div className='bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl sm:rounded-2xl p-3 sm:p-4'>
-                <div className='flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-0'>
-                  <span className='text-emerald-200 font-medium text-sm sm:text-base'>
-                    You said you could afford:
-                  </span>
-                  <span className='text-white text-lg sm:text-xl font-bold'>
-                    {formatCurrency(dollarsToCents(userInput))}/month
-                  </span>
-                </div>
-              </div>
-
               {/* Your offer - Mobile responsive */}
               <div className='bg-gradient-to-r from-emerald-500/20 to-green-500/20 border-2 border-emerald-400/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center'>
                 <div className='space-y-2 sm:space-y-3'>
@@ -160,16 +161,37 @@ export function OfferConfirmationModal({
               </div>
             </div>
 
-            {/* Action Button - Mobile optimized */}
-            <div className='text-center pt-1 sm:pt-2'>
+            {/* Action Buttons - Mobile optimized */}
+            <div className='flex flex-col gap-3 pt-1 sm:pt-2'>
               <Button
-                onClick={onClose}
-                className='w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold py-3 sm:py-4 text-base sm:text-lg rounded-xl sm:rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 touch-manipulation min-h-[48px]'
+                onClick={onAccept}
+                disabled={isLoading}
+                className='w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold py-3 sm:py-4 text-base sm:text-lg rounded-xl sm:rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 touch-manipulation min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
               >
-                <span className='flex items-center justify-center gap-2'>
-                  <span>Perfect! Apply This Offer</span>
-                  <span>🚀</span>
-                </span>
+                {isLoading ? (
+                  <span className='flex items-center justify-center gap-2'>
+                    <Loader2 className='w-5 h-5 animate-spin' />
+                    <span>Applying...</span>
+                  </span>
+                ) : (
+                  <span className='flex items-center justify-center gap-2'>
+                    <span>
+                      {isStoredOffer
+                        ? 'Accept Saved Offer'
+                        : 'Accept This Offer'}
+                    </span>
+                    <span>🚀</span>
+                  </span>
+                )}
+              </Button>
+
+              <Button
+                onClick={onDecline}
+                disabled={isLoading}
+                variant='outline'
+                className='w-full bg-transparent border-2 border-emerald-300/50 text-emerald-100 hover:bg-emerald-800/30 hover:border-emerald-300 font-semibold py-3 sm:py-4 text-base sm:text-lg rounded-xl sm:rounded-2xl transition-all duration-300 min-h-[48px] disabled:opacity-50'
+              >
+                No Thanks
               </Button>
             </div>
 

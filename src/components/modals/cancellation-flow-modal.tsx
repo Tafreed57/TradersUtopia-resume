@@ -2,20 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   AlertTriangle,
   CheckCircle,
   DollarSign,
-  Flame,
   ArrowLeft,
   X,
   Clock,
@@ -30,12 +23,7 @@ import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
 import { OfferConfirmationModal } from './offer-confirmation-modal';
 import { useUser } from '@clerk/nextjs';
-import {
-  formatCurrency,
-  centsToDollars,
-  dollarsToCents,
-  formatCurrencyNumber,
-} from '@/lib/utils';
+import { formatCurrency, centsToDollars, dollarsToCents } from '@/lib/utils';
 
 interface CancellationFlowModalProps {
   isOpen: boolean;
@@ -179,6 +167,7 @@ export function CancellationFlowModal({
     null
   );
   const [password, setPassword] = useState<string>('');
+  const [confirmationText, setConfirmationText] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [showOfferConfirmation, setShowOfferConfirmation] = useState(false);
   const { user } = useUser();
@@ -190,27 +179,104 @@ export function CancellationFlowModal({
     percentOff: number;
   } | null>(null);
 
-  // ✅ NEW: Fetch fresh subscription data directly from Stripe API
+  // ✅ NEW: State for improved cancellation flow
+  const [hasStoredOffer, setHasStoredOffer] = useState(false);
+  const [storedOfferDetails, setStoredOfferDetails] = useState<{
+    id: string;
+    originalPriceCents: number;
+    userInputCents: number;
+    offerPriceCents: number;
+    discountPercent: number;
+    savingsCents: number;
+    expiresAt: string;
+  } | null>(null);
+  const [showFinalOffer, setShowFinalOffer] = useState(false);
+  const [currentStep, setCurrentStep] = useState<
+    'generated' | 'stored' | 'final'
+  >('generated');
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(
+    null
+  );
+
+  // ✅ NEW: Fetch subscription end date when reaching final confirmation
+  useEffect(() => {
+    const fetchSubscriptionEndDate = async () => {
+      if (step === 'password') {
+        try {
+          // First try to use existing subscription data if complete
+          if (subscription?.stripe?.currentPeriodEnd) {
+            const endDate = new Date(subscription.stripe.currentPeriodEnd);
+            setSubscriptionEndDate(
+              endDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })
+            );
+            return;
+          }
+
+          // Fetch fresh data from status API to get subscription end date
+          const response = await makeSecureRequest(
+            '/api/subscription?status=true',
+            {
+              method: 'GET',
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.subscriptionEnd) {
+              const endDate = new Date(data.subscriptionEnd);
+              setSubscriptionEndDate(
+                endDate.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })
+              );
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch subscription end date:', error);
+        }
+      }
+    };
+
+    fetchSubscriptionEndDate();
+  }, [step, subscription]);
+
+  // ✅ NEW: Fetch fresh subscription data from both endpoints
   const fetchFreshSubscriptionData = async () => {
     try {
-      const response = await makeSecureRequest(
-        '/api/subscription?comprehensive=true',
-        {
+      // Get comprehensive subscription data
+      const [comprehensiveResponse, statusResponse] = await Promise.all([
+        makeSecureRequest('/api/subscription?comprehensive=true', {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
-        }
-      );
+        }),
+        makeSecureRequest('/api/subscription?status=true', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`API response not ok: ${response.status}`);
-      }
+      const comprehensiveData = comprehensiveResponse.ok
+        ? await comprehensiveResponse.json()
+        : null;
+      const statusData = statusResponse.ok ? await statusResponse.json() : null;
 
-      const data = await response.json();
-
-      if (data.success && data.subscription) {
-        return data.subscription;
+      // Combine data from both endpoints
+      if (comprehensiveData?.success && comprehensiveData.subscription) {
+        return {
+          ...comprehensiveData.subscription,
+          subscriptionEnd: statusData?.subscriptionEnd || null,
+        };
       } else {
-        throw new Error(data.error || 'No subscription data returned');
+        throw new Error(
+          comprehensiveData?.error || 'No subscription data returned'
+        );
       }
     } catch (error) {
       console.error(
@@ -238,6 +304,7 @@ export function CancellationFlowModal({
         currency: freshData.currency || 'usd',
         interval: freshData.interval || 'month',
         customerId: freshData.customerId,
+        currentPeriodEnd: freshData.subscriptionEnd,
       };
     }
 
@@ -250,10 +317,126 @@ export function CancellationFlowModal({
         currency: 'usd',
         interval: 'month',
         customerId: subscription.customerId || subscription.customer?.id,
+        currentPeriodEnd: (subscription as any).currentPeriodEnd,
       };
     }
 
     return null;
+  };
+
+  // ✅ NEW: Generate random discount between 5-10%
+  const generateRandomDiscount = (userInputCents: number) => {
+    const minDiscount = 5;
+    const maxDiscount = 10;
+    const discountPercent =
+      Math.random() * (maxDiscount - minDiscount) + minDiscount;
+    const discountAmount = Math.round(userInputCents * (discountPercent / 100));
+    const offerPriceCents = userInputCents - discountAmount;
+
+    return {
+      discountPercent: Math.round(discountPercent * 100) / 100,
+      offerPriceCents,
+      savingsCents: discountAmount,
+    };
+  };
+
+  // ✅ NEW: Check for existing stored offer
+  const checkForStoredOffer = async (subscriptionId: string) => {
+    try {
+      const response = await makeSecureRequest(
+        `/api/subscription/custom-offer?subscriptionId=${subscriptionId}`,
+        {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success && data.hasOffer) {
+        return data.offer;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error checking for stored offer:', error);
+      return null;
+    }
+  };
+
+  // ✅ NEW: Store rejected offer
+  const storeRejectedOffer = async (offerData: {
+    subscriptionId: string;
+    originalPriceCents: number;
+    userInputCents: number;
+    offerPriceCents: number;
+    discountPercent: number;
+  }) => {
+    try {
+      const response = await makeSecureRequest(
+        '/api/subscription/custom-offer/reject',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(offerData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        return data.offer;
+      }
+
+      throw new Error(data.error || 'Failed to store rejected offer');
+    } catch (error) {
+      console.error('Error storing rejected offer:', error);
+      throw error;
+    }
+  };
+
+  // ✅ NEW: Accept custom offer
+  const acceptCustomOffer = async (offerId: string) => {
+    try {
+      // 1. Accept the offer in database
+      const acceptResponse = await makeSecureRequest(
+        '/api/subscription/custom-offer/accept',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ offerId }),
+        }
+      );
+
+      const acceptData = await acceptResponse.json();
+
+      if (!acceptResponse.ok) {
+        throw new Error(acceptData.error || 'Failed to accept offer');
+      }
+
+      // 2. Apply the discount via Stripe
+      const couponResponse = await makeSecureRequest(
+        '/api/subscription/apply-coupon',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(acceptData.applyCouponData),
+        }
+      );
+
+      const couponData = await couponResponse.json();
+
+      if (!couponResponse.ok) {
+        throw new Error(
+          couponData.error || 'Failed to apply discount to Stripe'
+        );
+      }
+
+      return { acceptData, couponData };
+    } catch (error) {
+      console.error('Error accepting custom offer:', error);
+      throw error;
+    }
   };
 
   // Reset all state when modal closes
@@ -263,9 +446,16 @@ export function CancellationFlowModal({
     setPriceInput('');
     setCurrentOfferCents(null);
     setPassword('');
+    setConfirmationText('');
     setIsLoading(false);
     setShowOfferConfirmation(false);
     setOfferDetails(null);
+    // ✅ NEW: Reset improved flow state
+    setHasStoredOffer(false);
+    setStoredOfferDetails(null);
+    setShowFinalOffer(false);
+    setCurrentStep('generated');
+    setSubscriptionEndDate(null);
   };
 
   // Enhanced onClose that resets state
@@ -289,6 +479,7 @@ export function CancellationFlowModal({
     setStep('retention');
   };
 
+  // ✅ UPDATED: New improved price submission flow
   const handlePriceSubmit = async () => {
     const inputPriceDollars = parseFloat(priceInput);
 
@@ -310,58 +501,224 @@ export function CancellationFlowModal({
       return;
     }
 
-    // All calculations in cents - $150 original, $5 discount, $20 minimum
-    const originalPriceCents = 15000; // $150.00 in cents
-    const discountCents = 500; // $5.00 discount in cents
-    const minimumPriceCents = 2000; // $20.00 minimum in cents
+    setIsLoading(true);
 
-    // Calculate offer: $5 less than their input (minimum $20.00)
-    const offerPriceCents = Math.max(
-      minimumPriceCents,
-      inputPriceCents - discountCents
-    );
-    const savingsCents = originalPriceCents - offerPriceCents;
-    const percentOff = Math.round((savingsCents / originalPriceCents) * 100);
+    try {
+      // Get subscription ID for API calls
+      const stripeData = await getStripeData();
+      if (!stripeData?.id) {
+        showToast.error('Error', 'Unable to retrieve subscription information');
+        setIsLoading(false);
+        return;
+      }
 
-    // Store offer details in cents
-    setOfferDetails({
-      originalPriceCents,
-      userInputCents: inputPriceCents,
-      offerPriceCents,
-      savingsCents,
-      percentOff,
-    });
-    setCurrentOfferCents(offerPriceCents);
-    setShowOfferConfirmation(true);
+      // 1. Check for existing stored offer first
+      const existingOffer = await checkForStoredOffer(stripeData.id);
+
+      if (existingOffer) {
+        // User has a stored offer, show it
+        setStoredOfferDetails(existingOffer);
+        setHasStoredOffer(true);
+        setCurrentStep('stored');
+        setShowOfferConfirmation(true);
+      } else {
+        // No stored offer, generate new random discount (5-10%)
+        const originalPriceCents = 15000; // $150.00 in cents
+
+        // Generate random discount with $20 minimum enforcement
+        const minOfferPriceCents = 2000; // $20 minimum
+
+        // If user input is already at or below minimum, show minimum price
+        if (inputPriceCents <= minOfferPriceCents) {
+          setOfferDetails({
+            originalPriceCents,
+            userInputCents: inputPriceCents,
+            offerPriceCents: minOfferPriceCents,
+            savingsCents: 0,
+            percentOff: 0,
+          });
+          setCurrentOfferCents(minOfferPriceCents);
+          setHasStoredOffer(false);
+          setCurrentStep('generated');
+          setShowOfferConfirmation(true);
+          return;
+        }
+
+        const discountData = generateRandomDiscount(inputPriceCents);
+
+        // Ensure minimum price of $20
+        let finalOfferPriceCents = Math.max(
+          minOfferPriceCents,
+          discountData.offerPriceCents
+        );
+
+        const finalSavingsCents = inputPriceCents - finalOfferPriceCents;
+        const finalPercentOff =
+          finalSavingsCents > 0
+            ? Math.round((finalSavingsCents / inputPriceCents) * 100)
+            : 0;
+
+        // Store offer details for the modal
+        setOfferDetails({
+          originalPriceCents,
+          userInputCents: inputPriceCents,
+          offerPriceCents: finalOfferPriceCents,
+          savingsCents: finalSavingsCents,
+          percentOff: finalPercentOff,
+        });
+        setCurrentOfferCents(finalOfferPriceCents);
+        setHasStoredOffer(false);
+        setCurrentStep('generated');
+        setShowOfferConfirmation(true);
+      }
+    } catch (error) {
+      console.error('Error in price submission:', error);
+      showToast.error(
+        'Error',
+        'Failed to process your request. Please try again.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleConfirmOffer = async () => {
-    if (!offerDetails) return;
-
+  // ✅ NEW: Handle accepting offers (both stored and generated)
+  const handleOfferAccept = async () => {
     setIsLoading(true);
     setShowOfferConfirmation(false);
 
     try {
-      // ✅ NEW: Use direct Stripe API calls instead of webhook cache
-      if (!subscription || subscription.status !== 'active') {
-        showToast.error('Error', 'No active subscription found');
-        return;
-      }
+      if (hasStoredOffer && storedOfferDetails) {
+        // Accept stored offer
+        await acceptCustomOffer(storedOfferDetails.id);
 
-      const stripeData = await getStripeData();
-
-      if (!stripeData) {
-        showToast.error(
-          'Error',
-          'Unable to retrieve subscription data from Stripe. Please try again.'
+        showToast.success(
+          '🎉 Custom Discount Applied!',
+          `Your saved offer of ${formatCurrency(
+            storedOfferDetails.offerPriceCents
+          )}/month has been applied!`
         );
-        return;
+      } else if (offerDetails) {
+        // For generated offers, we need to "accept" them by applying directly
+        // (since they weren't stored until now)
+        const stripeData = await getStripeData();
+        if (!stripeData) {
+          throw new Error('Unable to retrieve subscription data');
+        }
+
+        const response = await makeSecureRequest(
+          '/api/subscription/apply-coupon',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              percentOff: offerDetails.percentOff,
+              newMonthlyPrice: offerDetails.offerPriceCents,
+              currentPrice: stripeData.amount,
+              originalPrice: offerDetails.originalPriceCents,
+              customerId:
+                (stripeData as any).customerId ||
+                subscription?.customer?.id ||
+                subscription?.customerId,
+              subscriptionId: stripeData.id,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to apply discount');
+        }
+
+        showToast.success(
+          '🎉 Custom Discount Applied!',
+          `Your negotiated rate of ${formatCurrency(
+            offerDetails.offerPriceCents
+          )}/month has been applied!`
+        );
       }
 
-      const currentDiscountedPriceCents = stripeData.amount; // Keep in cents
-      const currentDiscountedPriceDollars = centsToDollars(
-        currentDiscountedPriceCents
-      ); // For API compatibility
+      // Create notification
+      try {
+        const priceAmount = hasStoredOffer
+          ? storedOfferDetails?.offerPriceCents
+          : offerDetails?.offerPriceCents;
+        await makeSecureRequest('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create',
+            type: 'PAYMENT',
+            title: 'Custom Discount Applied! 🎉',
+            message: `Your negotiated rate of ${formatCurrency(
+              priceAmount || 0
+            )}/month has been permanently applied.`,
+          }),
+        });
+      } catch (notifError) {
+        console.log(
+          'Note: Could not create notification, but discount was applied successfully'
+        );
+      }
+
+      onComplete('discounted');
+      handleClose();
+    } catch (error) {
+      console.error('Error accepting offer:', error);
+      showToast.error('Error', 'Failed to apply discount. Please try again.');
+
+      // Show final offer as fallback
+      setShowFinalOffer(true);
+      setCurrentStep('final');
+      setCurrentOfferCents(2000); // $20 final offer
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ✅ NEW: Handle declining offers
+  const handleOfferDecline = async () => {
+    // Immediately show final offer, then store in background
+    setShowFinalOffer(true);
+    setCurrentStep('final');
+    setCurrentOfferCents(2000); // $20 final offer
+    setShowOfferConfirmation(false);
+
+    // Store the rejected offer in background (don't show loading state)
+    if (!hasStoredOffer && offerDetails) {
+      try {
+        const stripeData = await getStripeData();
+        if (stripeData) {
+          await storeRejectedOffer({
+            subscriptionId: stripeData.id,
+            originalPriceCents: offerDetails.originalPriceCents,
+            userInputCents: offerDetails.userInputCents,
+            offerPriceCents: offerDetails.offerPriceCents,
+            discountPercent: offerDetails.percentOff,
+          });
+        }
+      } catch (error) {
+        console.error('Error storing rejected offer in background:', error);
+        // Continue silently - user already sees final offer
+      }
+    }
+  };
+
+  // ✅ NEW: Handle accepting final $20 offer
+  const handleFinalOfferAccept = async () => {
+    setIsLoading(true);
+
+    try {
+      const stripeData = await getStripeData();
+      if (!stripeData) {
+        throw new Error('Unable to retrieve subscription data');
+      }
+
+      const finalOfferPriceCents = 2000; // $20
+      const originalPriceCents = 15000; // $150
+      const percentOff = Math.round(
+        ((originalPriceCents - finalOfferPriceCents) / originalPriceCents) * 100
+      );
 
       const response = await makeSecureRequest(
         '/api/subscription/apply-coupon',
@@ -369,11 +726,10 @@ export function CancellationFlowModal({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            percentOff: offerDetails.percentOff,
-            newMonthlyPrice: offerDetails.offerPriceCents, // Send in cents as API expects
-            currentPrice: currentDiscountedPriceCents, // Send in cents as API expects
-            originalPrice: offerDetails.originalPriceCents, // Send in cents as API expects
-            // ✅ NEW: Use fresh Stripe data identifiers
+            percentOff,
+            newMonthlyPrice: finalOfferPriceCents,
+            currentPrice: stripeData.amount,
+            originalPrice: originalPriceCents,
             customerId:
               (stripeData as any).customerId ||
               subscription?.customer?.id ||
@@ -383,68 +739,33 @@ export function CancellationFlowModal({
         }
       );
 
-      const data = await response.json();
-
-      if (response.ok) {
-        showToast.success(
-          '🎉 Custom Discount Applied!',
-          `Your negotiated rate of ${formatCurrency(
-            offerDetails.offerPriceCents
-          )}/month has been permanently applied!`
-        );
-
-        // Create a notification for the user about the permanent discount
-        try {
-          await makeSecureRequest('/api/notifications', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'create',
-              type: 'PAYMENT',
-              title: 'Custom Discount Applied! 🎉',
-              message: `Your negotiated rate of ${formatCurrency(
-                offerDetails.offerPriceCents
-              )}/month has been permanently applied. This discount will continue for the lifetime of your subscription.`,
-            }),
-          });
-        } catch (notifError) {
-          console.log(
-            'Note: Could not create notification, but discount was applied successfully'
-          );
-        }
-
-        onComplete('discounted');
-        handleClose();
-      } else {
-        console.error('❌ API Error:', data);
-        showToast.error(
-          'Failed to Apply Custom Discount',
-          data.message || data.error || 'Please try again or contact support.'
-        );
-
-        // If discount failed, offer to go to final offer
-        setTimeout(() => {
-          setStep('final-offer');
-          const finalOfferPriceCents = 2000; // Fixed $20/month final offer in cents
-          setCurrentOfferCents(finalOfferPriceCents);
-        }, 2000);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to apply final discount');
       }
-    } catch (error) {
-      console.error('❌ Network Error:', error);
-      showToast.error(
-        'Connection Error',
-        'Failed to apply custom discount. Please check your connection and try again.'
+
+      showToast.success(
+        '🎉 Final Offer Accepted!',
+        'Your subscription has been updated to $20/month!'
       );
 
-      // If error, offer to go to final offer
-      setTimeout(() => {
-        setStep('final-offer');
-        const finalOfferPriceCents = 2000; // Fixed $20/month final offer in cents
-        setCurrentOfferCents(finalOfferPriceCents);
-      }, 2000);
+      onComplete('discounted');
+      handleClose();
+    } catch (error) {
+      console.error('Error accepting final offer:', error);
+      showToast.error(
+        'Error',
+        'Failed to apply final discount. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ✅ NEW: Handle declining final offer (proceed to cancellation)
+  const handleFinalOfferDecline = () => {
+    setStep('password');
+    setShowFinalOffer(false);
   };
 
   const handleAcceptOffer = async () => {
@@ -553,8 +874,8 @@ export function CancellationFlowModal({
   };
 
   const handleFinalCancel = async () => {
-    if (!password.trim()) {
-      showToast.error('Error', 'Password is required to cancel subscription');
+    if (confirmationText.trim().toLowerCase() !== 'cancel subscription') {
+      showToast.error('Error', 'Please type "cancel subscription" to confirm');
       return;
     }
 
@@ -564,7 +885,6 @@ export function CancellationFlowModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          password: password,
           confirmCancel: true,
         }),
       });
@@ -572,14 +892,14 @@ export function CancellationFlowModal({
       const data = await response.json();
 
       if (response.ok) {
-        showToast.success('✅ Auto-Renewal Disabled', data.message);
+        showToast.success('✅ Subscription Cancelled', data.message);
         onComplete('cancelled');
         handleClose();
       } else {
-        showToast.error('Unable to Disable Auto-Renewal', data.error);
+        showToast.error('Unable to Cancel Subscription', data.error);
       }
     } catch (error) {
-      showToast.error('Error', 'Failed to disable auto-renewal');
+      showToast.error('Error', 'Failed to cancel subscription');
     } finally {
       setIsLoading(false);
     }
@@ -772,12 +1092,8 @@ export function CancellationFlowModal({
             </h3>
             <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm sm:text-base'>
               <div className='text-center'>
-                <div className='text-2xl font-bold text-white'>1,000+</div>
-                <div className='text-gray-300'>Active Members</div>
-              </div>
-              <div className='text-center'>
                 <div className='text-2xl font-bold text-white'>Daily</div>
-                <div className='text-gray-300'>Trade Alerts</div>
+                <div className='text-gray-300'>Live Trade Alerts</div>
               </div>
               <div className='text-center'>
                 <div className='text-2xl font-bold text-white'>24/7</div>
@@ -918,31 +1234,18 @@ export function CancellationFlowModal({
             {isLoading ? (
               <div className='flex items-center gap-2'>
                 <Loader2 className='w-5 h-5 animate-spin' />
-                Applying Discount...
+                Building your offer...
               </div>
             ) : (
-              '✨ Get My Custom Offer'
+              'Next'
             )}
           </Button>
           <Button
             variant='outline'
-            onClick={() => {
-              if (selectedReason?.id === 'cant-afford') {
-                setStep('reason');
-              } else {
-                setStep('retention');
-              }
-            }}
+            onClick={handleClose}
             className='w-full sm:flex-1 bg-transparent border-2 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500 min-h-[44px] rounded-xl'
           >
-            <ArrowLeft className='w-4 h-4 mr-2' />
-            Back
-          </Button>
-          <Button
-            onClick={() => setStep('final-offer')}
-            className='w-full sm:flex-1 bg-slate-600 hover:bg-slate-700 text-white min-h-[44px] rounded-xl'
-          >
-            Skip to Cancel
+            Cancel
           </Button>
         </div>
 
@@ -956,259 +1259,48 @@ export function CancellationFlowModal({
     </div>
   );
 
-  const renderFinalOffer = () => {
-    // Ensure we have a final offer price (default to $20.00 if not set)
-    const finalOfferPriceCents = currentOfferCents || 2000;
-
-    return (
-      <div className='relative overflow-hidden bg-gradient-to-br from-red-900 via-red-800 to-orange-900 text-white rounded-2xl shadow-2xl'>
-        {/* Animated Background */}
-        <div className='absolute inset-0 bg-gradient-to-br from-red-600/10 to-orange-600/10'></div>
-        <div className='absolute top-0 left-0 w-full h-full bg-gradient-to-r from-red-500/5 to-orange-500/5 animate-pulse'></div>
-        <div className='absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-orange-500/20 to-transparent rounded-full blur-3xl animate-pulse'></div>
-
-        <div className='relative z-10 p-4 sm:p-6 space-y-4 sm:space-y-5'>
-          {/* Urgent Header */}
-          <div className='text-center space-y-3 sm:space-y-4'>
-            <div className='mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl animate-bounce'>
-              <Flame className='w-8 h-8 sm:w-10 sm:h-10 text-white' />
-            </div>
-
-            <div className='space-y-3'>
-              <h2 className='text-2xl sm:text-4xl font-black bg-gradient-to-r from-red-200 to-orange-200 bg-clip-text text-transparent leading-tight animate-pulse'>
-                🚨 FINAL OFFER
-              </h2>
-              <div className='bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-400/30 rounded-xl p-3 sm:p-4 mx-auto max-w-lg'>
-                <p className='text-red-200 text-base sm:text-lg font-semibold'>
-                  This is the absolute lowest price we'll ever offer
-                </p>
-                <p className='text-red-300 text-sm'>
-                  No games. No second chances. Take it or lose it forever.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Dramatic Price Display */}
-          <div className='bg-gradient-to-br from-white to-gray-100 border-4 border-red-400 rounded-2xl p-4 sm:p-6 text-gray-900 shadow-2xl transform hover:scale-105 transition-transform duration-300'>
-            <div className='text-center space-y-4'>
-              {/* Countdown Effect */}
-              <div className='flex items-center justify-center gap-2 text-red-600 font-bold text-sm sm:text-base'>
-                <div className='w-3 h-3 bg-red-500 rounded-full animate-ping'></div>
-                LIMITED TIME • EXPIRES WHEN YOU LEAVE
-              </div>
-
-              <div className='relative'>
-                <div className='text-5xl sm:text-6xl font-black text-red-600 animate-pulse'>
-                  {formatCurrency(finalOfferPriceCents)}
-                </div>
-                <div className='text-lg sm:text-xl text-gray-600 font-semibold'>
-                  per month • locked in forever
-                </div>
-
-                {/* Savings Badge */}
-                <div className='absolute -top-4 -right-4 sm:-top-6 sm:-right-6 bg-gradient-to-r from-emerald-500 to-green-500 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold transform rotate-12 shadow-lg'>
-                  SAVE $130
-                </div>
-              </div>
-
-              {/* Feature Badges */}
-              <div className='flex flex-wrap items-center justify-center gap-3 sm:gap-4'>
-                <div className='flex items-center gap-2 bg-red-100 px-3 py-2 rounded-full border border-red-200'>
-                  <Flame className='w-4 h-4 text-red-500' />
-                  <span className='font-semibold text-red-700 text-sm'>
-                    Final Offer
-                  </span>
-                </div>
-                <div className='flex items-center gap-2 bg-green-100 px-3 py-2 rounded-full border border-green-200'>
-                  <span className='text-green-600'>🔒</span>
-                  <span className='font-semibold text-green-700 text-sm'>
-                    Price Locked
-                  </span>
-                </div>
-                <div className='flex items-center gap-2 bg-blue-100 px-3 py-2 rounded-full border border-blue-200'>
-                  <span className='text-blue-600'>⚡</span>
-                  <span className='font-semibold text-blue-700 text-sm'>
-                    Instant Access
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Urgency Message */}
-          <div className='bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-400/50 rounded-xl p-3 sm:p-4'>
-            <div className='text-center space-y-1'>
-              <p className='text-yellow-200 font-bold text-base sm:text-lg'>
-                ⚠️ This offer disappears forever when you close this window
-              </p>
-              <p className='text-yellow-300 text-sm'>
-                You will NEVER see a price this low again. This is your final
-                chance to secure premium access for just{' '}
-                {formatCurrency(finalOfferPriceCents)}/month.
-              </p>
-            </div>
-          </div>
-
-          {/* Value Stack */}
-          <div className='bg-gradient-to-br from-slate-800/50 to-slate-700/50 border border-slate-600/50 rounded-xl p-4 sm:p-6'>
-            <h3 className='text-center text-lg sm:text-xl font-semibold text-white mb-4'>
-              What you get for just {formatCurrency(finalOfferPriceCents)}
-              /month:
-            </h3>
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm sm:text-base'>
-              {[
-                '📈 Daily trade alerts & signals',
-                '💬 Private Discord community access',
-                '📊 Weekly market analysis',
-                '🎯 Trading guidance & support',
-                '📱 Mobile app & notifications',
-                '⚡ Real-time trade updates',
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  className='flex items-center gap-2 text-gray-300'
-                >
-                  <div className='w-2 h-2 bg-emerald-400 rounded-full flex-shrink-0'></div>
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-            <div className='mt-4 pt-4 border-t border-slate-600/50 text-center'>
-              <div className='text-gray-400 text-sm line-through'>
-                Regular price: $150/month
-              </div>
-              <div className='text-emerald-400 text-xl font-bold'>
-                Your final offer: {formatCurrency(finalOfferPriceCents)}/month
-              </div>
-              <div className='text-orange-300 text-sm font-semibold mt-1'>
-                Save $130/month (87% off)
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className='flex flex-col gap-3 sm:gap-4'>
-            {/* Primary Action Button */}
-            <Button
-              onClick={handleAcceptOffer}
-              disabled={isLoading}
-              className='w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black text-base sm:text-lg py-3 sm:py-4 rounded-xl shadow-2xl transition-all duration-300 hover:shadow-3xl hover:scale-105 disabled:opacity-50 disabled:transform-none min-h-[48px] animate-pulse'
-            >
-              {isLoading ? (
-                <div className='flex items-center gap-2'>
-                  <Loader2 className='w-5 h-5 animate-spin' />
-                  Processing...
-                </div>
-              ) : (
-                <div className='flex items-center gap-2'>
-                  ✅ SECURE THIS DEAL NOW
-                </div>
-              )}
-            </Button>
-
-            {/* Secondary Action Buttons */}
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
-              <Button
-                variant='outline'
-                onClick={() => setStep('price')}
-                className='w-full bg-transparent border-2 border-slate-500 text-slate-300 hover:bg-slate-600 hover:border-slate-400 min-h-[44px] rounded-xl'
-              >
-                <ArrowLeft className='w-4 h-4 mr-2' />
-                Back
-              </Button>
-              <Button
-                onClick={() => setStep('password')}
-                className='w-full bg-slate-700 hover:bg-slate-600 text-slate-300 min-h-[44px] rounded-xl text-sm sm:text-base'
-              >
-                Cancel Subscription
-              </Button>
-            </div>
-          </div>
-
-          {/* Final Trust Signal */}
-          <div className='text-center pt-4 border-t border-red-700/50'>
-            <p className='text-red-200 text-xs sm:text-sm'>
-              🛡️ Money-back guarantee • 🔐 Secure checkout • ⭐ Trusted by
-              1,000+ traders
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderPasswordConfirmation = () => (
     <div className='relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-2xl shadow-2xl'>
       {/* Background Pattern */}
-      <div className='absolute inset-0 bg-gradient-to-br from-orange-600/5 to-red-600/5'></div>
-      <div className='absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-orange-500/10 to-transparent rounded-full blur-3xl'></div>
+      <div className='absolute inset-0 bg-gradient-to-br from-red-600/5 to-orange-600/5'></div>
+      <div className='absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-red-500/10 to-transparent rounded-full blur-3xl'></div>
 
       <div className='relative z-10 p-6 sm:p-10 space-y-6 sm:space-y-8'>
         {/* Header */}
         <div className='text-center space-y-4 sm:space-y-6'>
-          <div className='mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center shadow-xl'>
+          <div className='mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-red-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-xl'>
             <AlertTriangle className='w-8 h-8 sm:w-10 sm:h-10 text-white' />
           </div>
 
           <div className='space-y-3'>
-            <h2 className='text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-300 to-red-300 bg-clip-text text-transparent leading-tight'>
-              Final Confirmation Required
+            <h2 className='text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-300 to-orange-300 bg-clip-text text-transparent leading-tight'>
+              Final Confirmation
             </h2>
             <p className='text-gray-300 text-base sm:text-lg max-w-md mx-auto leading-relaxed'>
-              You're about to disable auto-renewal. Here's what happens next:
+              You're about to cancel your subscription
             </p>
           </div>
         </div>
 
-        {/* What Happens Section */}
+        {/* Warning Section */}
         <div className='bg-gradient-to-br from-white to-gray-50 p-6 sm:p-8 rounded-2xl text-gray-900 shadow-xl border border-gray-200/20'>
           <h3 className='text-lg sm:text-xl font-semibold text-gray-800 mb-6 text-center'>
-            Your subscription timeline:
+            ⚠️ This action cannot be undone
           </h3>
           <div className='space-y-4 sm:space-y-5'>
             <div className='flex items-center gap-4'>
-              <div className='w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg'>
-                <span className='text-white text-sm font-bold'>✓</span>
+              <div className='w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg'>
+                <span className='text-white text-sm font-bold'>✗</span>
               </div>
               <div>
                 <span className='text-base sm:text-lg font-semibold block'>
-                  Your subscription stays{' '}
-                  <span className='text-emerald-600'>active</span> until{' '}
-                  {(() => {
-                    // ✅ FIXED: Handle both new webhook data and legacy subscription data
-                    const stripeData = subscription?.stripe;
-
-                    return stripeData?.currentPeriodEnd
-                      ? new Date(
-                          stripeData.currentPeriodEnd
-                        ).toLocaleDateString('en-US', {
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })
-                      : 'period end';
-                  })()}
+                  Your subscription will be{' '}
+                  <span className='text-red-600'>cancelled at period end</span>
                 </span>
                 <span className='text-gray-600 text-sm'>
-                  Continue enjoying all premium features
-                </span>
-              </div>
-            </div>
-
-            <div className='flex items-center gap-4'>
-              <div className='w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg'>
-                <span className='text-white text-sm font-bold'>i</span>
-              </div>
-              <div>
-                <span className='text-base sm:text-lg font-semibold block'>
-                  <span className='text-blue-600'>
-                    You can re-enable auto-renewal
-                  </span>{' '}
-                  anytime
-                </span>
-                <span className='text-gray-600 text-sm'>
-                  Simply toggle it back on before expiration
+                  {subscriptionEndDate
+                    ? `You'll lose access on ${subscriptionEndDate}`
+                    : "You'll lose access when your current billing period expires"}
                 </span>
               </div>
             </div>
@@ -1219,58 +1311,55 @@ export function CancellationFlowModal({
               </div>
               <div>
                 <span className='text-base sm:text-lg font-semibold block'>
-                  Access expires only if auto-renewal stays disabled
+                  No refunds will be processed
                 </span>
                 <span className='text-gray-600 text-sm'>
-                  You're always in control
+                  All payments are final
+                </span>
+              </div>
+            </div>
+
+            <div className='flex items-center gap-4'>
+              <div className='w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg'>
+                <span className='text-white text-sm font-bold'>💰</span>
+              </div>
+              <div>
+                <span className='text-base sm:text-lg font-semibold block'>
+                  <span className='text-purple-600'>No future discounts</span>{' '}
+                  if you re-subscribe
+                </span>
+                <span className='text-gray-600 text-sm'>
+                  You'll pay full price ($150/month) with no special offers
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Reassurance Message */}
-        <div className='bg-gradient-to-r from-blue-500/10 to-emerald-500/10 border border-blue-500/20 rounded-xl p-4 sm:p-6'>
-          <div className='text-center'>
-            <h3 className='text-lg sm:text-xl font-semibold text-blue-400 mb-2'>
-              💡 This is completely reversible
-            </h3>
-            <p className='text-blue-200 text-sm sm:text-base'>
-              You can re-enable auto-renewal anytime from your settings. This is
-              just turning off automatic billing - not deleting your account.
-            </p>
-          </div>
-        </div>
-
-        {/* Password Input */}
+        {/* Confirmation Input */}
         <div className='bg-gradient-to-br from-white to-gray-50 p-6 sm:p-8 rounded-2xl text-gray-900 shadow-xl border border-gray-200/20'>
           <div className='space-y-4 sm:space-y-5'>
             <div className='text-center'>
               <Label className='text-gray-700 text-lg sm:text-xl font-semibold block mb-2'>
-                Confirm with your password
+                Type "cancel subscription" to confirm
               </Label>
               <p className='text-gray-500 text-sm sm:text-base'>
-                For your security, please enter your account password
+                This ensures you really want to proceed with cancellation
               </p>
             </div>
 
             <div className='relative'>
               <Input
-                type='password'
-                placeholder='Enter your password'
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className='w-full h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 rounded-xl px-4 shadow-lg'
+                type='text'
+                placeholder='cancel subscription'
+                value={confirmationText}
+                onChange={e => setConfirmationText(e.target.value)}
+                className='w-full h-12 sm:h-14 text-base sm:text-lg border-2 border-gray-300 focus:border-red-400 focus:ring-2 focus:ring-red-200 rounded-xl px-4 shadow-lg text-center text-gray-900 bg-white placeholder:text-gray-500'
               />
-              <div className='absolute right-3 top-1/2 transform -translate-y-1/2'>
-                <div className='w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center'>
-                  <span className='text-gray-600 text-xs'>🔒</span>
-                </div>
-              </div>
             </div>
 
             <p className='text-xs sm:text-sm text-gray-600 text-center'>
-              🛡️ Your password is encrypted and secure
+              💭 Make sure you really want to cancel before typing this
             </p>
           </div>
         </div>
@@ -1290,18 +1379,14 @@ export function CancellationFlowModal({
             <Heart className='w-5 h-5 mr-2' />
             Actually, I want to stay!
           </Button>
-          <Button
-            variant='outline'
-            onClick={() => setStep('final-offer')}
-            className='w-full sm:flex-1 bg-transparent border-2 border-slate-600 text-slate-300 hover:bg-slate-700 hover:border-slate-500 min-h-[44px] rounded-xl'
-          >
-            <ArrowLeft className='w-4 h-4 mr-2' />
-            Go Back
-          </Button>
+
           <Button
             onClick={handleFinalCancel}
-            disabled={isLoading || !password.trim()}
-            className='w-full sm:flex-1 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] rounded-xl'
+            disabled={
+              isLoading ||
+              confirmationText.trim().toLowerCase() !== 'cancel subscription'
+            }
+            className='w-full sm:flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed font-medium min-h-[44px] rounded-xl'
           >
             {isLoading ? (
               <div className='flex items-center gap-2'>
@@ -1309,7 +1394,7 @@ export function CancellationFlowModal({
                 Processing...
               </div>
             ) : (
-              'Disable Auto-Renewal'
+              'Cancel Subscription'
             )}
           </Button>
         </div>
@@ -1317,7 +1402,7 @@ export function CancellationFlowModal({
         {/* Final Trust Signal */}
         <div className='text-center pt-4 border-t border-slate-700/50'>
           <p className='text-slate-400 text-xs sm:text-sm'>
-            🔐 Secure process • 🔄 Fully reversible • 📧 Confirmation email sent
+            ⚠️ Final step • 🔐 Secure process • 📧 Confirmation email sent
           </p>
         </div>
       </div>
@@ -1332,13 +1417,7 @@ export function CancellationFlowModal({
         return renderRetentionMessage();
       case 'price':
         return renderPriceNegotiation();
-      case 'final-offer':
-        // ✅ FIXED: Set final offer to exactly $20/month
-        if (!currentOfferCents) {
-          const finalOfferPriceCents = 2000; // Fixed $20/month final offer in cents
-          setCurrentOfferCents(finalOfferPriceCents);
-        }
-        return renderFinalOffer();
+
       case 'password':
         return renderPasswordConfirmation();
       default:
@@ -1366,15 +1445,67 @@ export function CancellationFlowModal({
       </Dialog>
 
       {/* Offer Confirmation Modal */}
-      {offerDetails && (
+      {showOfferConfirmation && (
         <OfferConfirmationModal
           isOpen={showOfferConfirmation}
-          onClose={handleConfirmOffer}
-          originalPrice={centsToDollars(offerDetails.originalPriceCents)}
-          userInput={centsToDollars(offerDetails.userInputCents)}
-          offerPrice={centsToDollars(offerDetails.offerPriceCents)}
-          savings={centsToDollars(offerDetails.savingsCents)}
-          percentOff={offerDetails.percentOff}
+          onClose={() => setShowOfferConfirmation(false)}
+          onAccept={handleOfferAccept}
+          onDecline={handleOfferDecline}
+          originalPrice={
+            hasStoredOffer && storedOfferDetails
+              ? centsToDollars(storedOfferDetails.originalPriceCents)
+              : offerDetails
+              ? centsToDollars(offerDetails.originalPriceCents)
+              : 150
+          }
+          userInput={
+            hasStoredOffer && storedOfferDetails
+              ? centsToDollars(storedOfferDetails.userInputCents)
+              : offerDetails
+              ? centsToDollars(offerDetails.userInputCents)
+              : 0
+          }
+          offerPrice={
+            hasStoredOffer && storedOfferDetails
+              ? centsToDollars(storedOfferDetails.offerPriceCents)
+              : offerDetails
+              ? centsToDollars(offerDetails.offerPriceCents)
+              : 0
+          }
+          savings={
+            hasStoredOffer && storedOfferDetails
+              ? centsToDollars(storedOfferDetails.savingsCents)
+              : offerDetails
+              ? centsToDollars(offerDetails.savingsCents)
+              : 0
+          }
+          percentOff={
+            hasStoredOffer && storedOfferDetails
+              ? storedOfferDetails.discountPercent
+              : offerDetails
+              ? offerDetails.percentOff
+              : 0
+          }
+          isStoredOffer={hasStoredOffer}
+          isLoading={isLoading}
+        />
+      )}
+
+      {/* Final $20 Offer Modal */}
+      {showFinalOffer && (
+        <OfferConfirmationModal
+          isOpen={showFinalOffer}
+          onClose={() => setShowFinalOffer(false)}
+          onAccept={handleFinalOfferAccept}
+          onDecline={handleFinalOfferDecline}
+          originalPrice={150}
+          userInput={0}
+          offerPrice={20}
+          savings={130}
+          percentOff={87}
+          isStoredOffer={false}
+          isLoading={isLoading}
+          isFinalOffer={true}
         />
       )}
     </>

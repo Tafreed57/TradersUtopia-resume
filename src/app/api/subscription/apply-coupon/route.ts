@@ -11,7 +11,6 @@ import { z } from 'zod';
 export const dynamic = 'force-dynamic';
 
 const createCouponSchema = z.object({
-  percentOff: z.number().min(1).max(99),
   newMonthlyPrice: z.number().min(2000), // Expected in cents (min $20.00)
   currentPrice: z.number().min(1), // Expected in cents (min $0.01)
   originalPrice: z.number().min(1).optional(), // Expected in cents (min $0.01)
@@ -19,7 +18,7 @@ const createCouponSchema = z.object({
 
 /**
  * Create Discount Coupon
- * Admin-only operation for creating permanent discount coupons
+ * Admin-only operation for creating permanent amount-based discount coupons
  */
 export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
   // Step 1: Input validation
@@ -32,19 +31,31 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
     );
   }
 
-  const { percentOff, newMonthlyPrice, currentPrice, originalPrice } =
+  const { newMonthlyPrice, currentPrice, originalPrice } =
     validationResult.data;
   const basePriceCents = originalPrice || currentPrice; // All prices now in cents
 
-  // Verify percentage calculation (all in cents)
-  const actualPercentOff = Math.round(
-    ((basePriceCents - newMonthlyPrice) / basePriceCents) * 100
-  );
-  if (Math.abs(actualPercentOff - percentOff) > 1) {
+  // Calculate exact discount amount (all in cents)
+  const discountAmountCents = basePriceCents - newMonthlyPrice;
+
+  // Validate discount amount
+  if (discountAmountCents <= 0) {
     throw new ValidationError(
-      `Percentage mismatch: expected ${percentOff}%, calculated ${actualPercentOff}%`
+      'Discount amount must be positive. New price must be less than current price.'
     );
   }
+
+  if (discountAmountCents > basePriceCents * 0.95) {
+    // Max 95% discount
+    throw new ValidationError(
+      'Discount cannot exceed 95% of the original price'
+    );
+  }
+
+  // Calculate percentage for display purposes only
+  const displayPercentOff = parseFloat(
+    ((discountAmountCents / basePriceCents) * 100).toFixed(2)
+  );
 
   const userService = new UserService();
   const customerService = new CustomerService();
@@ -83,9 +94,10 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
   // Step 5: Create coupon using service layer
   try {
     const coupon = await couponService.createCoupon({
-      percentOff: actualPercentOff,
+      discountAmountCents: Math.round(discountAmountCents),
+      originalPriceCents: basePriceCents,
       currency: 'usd',
-      name: `${actualPercentOff}% Permanent Discount`,
+      name: `$${(discountAmountCents / 100).toFixed(2)} Permanent Discount`,
       duration: 'forever',
     });
 
@@ -101,14 +113,17 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
       customerId: stripeCustomer.id.substring(0, 8) + '***',
       subscriptionId: subscription.id.substring(0, 8) + '***',
       couponId: coupon.id,
-      percentOff: actualPercentOff,
+      discountAmount: discountAmountCents,
+      displayPercentOff: displayPercentOff,
       originalPrice: basePriceCents,
       newPrice: newMonthlyPrice,
     });
 
     return NextResponse.json({
       success: true,
-      message: `${actualPercentOff}% discount coupon created and applied successfully`,
+      message: `$${(discountAmountCents / 100).toFixed(
+        2
+      )} discount coupon created and applied successfully`,
       coupon: {
         id: coupon.id,
         percent_off: coupon.percent_off,
@@ -129,12 +144,14 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
           typeof updatedSubscription.discounts[0] === 'object'
             ? updatedSubscription.discounts[0].coupon?.percent_off
             : undefined,
+        displayPercentOff: displayPercentOff,
       },
       pricing: {
         original: basePriceCents,
         current: currentPrice,
         new: newMonthlyPrice,
-        savings: basePriceCents - newMonthlyPrice,
+        savings: discountAmountCents,
+        displayPercentOff: displayPercentOff,
       },
     });
   } catch (serviceError) {

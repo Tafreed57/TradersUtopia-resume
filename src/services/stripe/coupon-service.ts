@@ -3,8 +3,9 @@ import { BaseStripeService } from './base/base-stripe-service';
 import { maskId } from '@/lib/error-handling';
 
 export interface CreateCouponData {
-  percentOff: number;
-  currency?: string;
+  discountAmountCents: number; // Discount amount in cents
+  originalPriceCents: number; // Original price for percentage calculation
+  currency: string; // Required for coupons
   name?: string;
   duration?: 'forever' | 'once' | 'repeating';
   durationInMonths?: number;
@@ -36,11 +37,19 @@ export class CouponService extends BaseStripeService {
 
     return await this.handleStripeOperation(
       async () => {
+        // Calculate percentage with precise rounding for Stripe
+        const percentOff = parseFloat(
+          ((data.discountAmountCents / data.originalPriceCents) * 100).toFixed(
+            2
+          )
+        );
+
         const couponParams: Stripe.CouponCreateParams = {
-          percent_off: data.percentOff,
+          percent_off: percentOff, // Use percent_off for forever duration
           duration: data.duration || 'forever',
-          currency: data.currency || 'usd',
+          currency: data.currency,
           name: data.name,
+          metadata: data.metadata || {}, // Ensure metadata is always present
         };
 
         if (data.durationInMonths && data.duration === 'repeating') {
@@ -55,10 +64,11 @@ export class CouponService extends BaseStripeService {
       },
       'create_coupon',
       {
-        percentOff: data.percentOff,
+        discountAmountCents: data.discountAmountCents,
+        originalPriceCents: data.originalPriceCents,
         duration: data.duration || 'forever',
         name: data.name,
-        currency: data.currency || 'usd',
+        currency: data.currency,
       }
     );
   }
@@ -175,8 +185,74 @@ export class CouponService extends BaseStripeService {
    * Validate coupon creation data
    */
   private validateCouponData(data: CreateCouponData): void {
-    if (!data.percentOff || data.percentOff < 1 || data.percentOff > 100) {
-      throw new Error('Percent off must be between 1 and 100');
+    // Enhanced validation with detailed checks
+    if (
+      !data.discountAmountCents ||
+      typeof data.discountAmountCents !== 'number' ||
+      isNaN(data.discountAmountCents)
+    ) {
+      throw new Error(
+        `Discount amount must be a valid number, received: ${
+          data.discountAmountCents
+        } (type: ${typeof data.discountAmountCents})`
+      );
+    }
+
+    if (
+      !data.originalPriceCents ||
+      typeof data.originalPriceCents !== 'number' ||
+      isNaN(data.originalPriceCents)
+    ) {
+      throw new Error(
+        `Original price must be a valid number, received: ${
+          data.originalPriceCents
+        } (type: ${typeof data.originalPriceCents})`
+      );
+    }
+
+    if (data.discountAmountCents < 1) {
+      throw new Error(
+        `Discount amount must be at least 1 cent, received: ${data.discountAmountCents}`
+      );
+    }
+
+    if (data.originalPriceCents < 1) {
+      throw new Error(
+        `Original price must be at least 1 cent, received: ${data.originalPriceCents}`
+      );
+    }
+
+    if (data.discountAmountCents >= data.originalPriceCents) {
+      throw new Error(
+        `Discount amount (${data.discountAmountCents}) must be less than original price (${data.originalPriceCents})`
+      );
+    }
+
+    // Calculate percentage to validate it's within Stripe limits
+    const percentOff =
+      (data.discountAmountCents / data.originalPriceCents) * 100;
+    if (percentOff < 1) {
+      throw new Error(
+        `Discount percentage must be at least 1%, calculated: ${percentOff.toFixed(
+          2
+        )}%`
+      );
+    }
+
+    if (percentOff > 100) {
+      throw new Error(
+        `Discount percentage cannot exceed 100%, calculated: ${percentOff.toFixed(
+          2
+        )}%`
+      );
+    }
+
+    if (!data.currency || typeof data.currency !== 'string') {
+      throw new Error('Currency is required for amount-based coupons');
+    }
+
+    if (data.currency !== 'usd') {
+      throw new Error('Only USD currency is currently supported');
     }
 
     if (data.duration === 'repeating' && !data.durationInMonths) {

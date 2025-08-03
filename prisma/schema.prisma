@@ -27,6 +27,7 @@ model User {
   channelNotificationPreferences ChannelNotificationPreference[]
   notifications                  Notification[]
   pushSubscriptions              PushSubscription[]
+  customDiscountOffers           CustomDiscountOffer[]
 
   @@map("users")
 }
@@ -318,6 +319,31 @@ model Timer {
   updatedAt    DateTime @updatedAt
 
   @@map("timers")
+}
+
+// Custom Discount Offers - Generated when users decline initial discount offers
+model CustomDiscountOffer {
+  id                  String    @id @default(cuid())
+  userId              String
+  subscriptionId      String
+  originalPriceCents  Int       // Original subscription price in cents
+  userInputCents      Int       // User's comfortable price in cents  
+  offerPriceCents     Int       // Generated offer price in cents
+  discountPercent     Float     // Percentage discount (5-10%)
+  savingsCents        Int       // Amount saved in cents
+  expiresAt           DateTime  // 2 days from creation
+  isExpired           Boolean   @default(false)
+  acceptedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, subscriptionId]) // Only one active offer per user/subscription
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isExpired])
+  @@map("custom_discount_offers")
 }
 
 // Enums

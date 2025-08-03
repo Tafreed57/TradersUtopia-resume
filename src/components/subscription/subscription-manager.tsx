@@ -4,7 +4,6 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { useComprehensiveLoading } from '@/hooks/use-comprehensive-loading';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import {
   CreditCard,
   RefreshCw,
@@ -24,7 +23,7 @@ import {
 import { showToast } from '@/lib/notifications-client';
 import { makeSecureRequest } from '@/lib/csrf-client';
 import { CancellationFlowModal } from '@/components/modals/cancellation-flow-modal';
-import { formatCurrency, centsToDollars } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 interface DiscountInfo {
   id: string;
@@ -45,6 +44,8 @@ interface SubscriptionData {
   total: number;
   currency: string;
   discounts: DiscountInfo[];
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: string; // ISO date string
 }
 
 interface DetailedSubscription {
@@ -123,13 +124,42 @@ export function SubscriptionManager() {
 
     // Active subscription
     if (subscription.isActive) {
+      // Check if subscription is cancelled but still active until period end
+      if (subscription.cancelAtPeriodEnd) {
+        const periodEndDate = subscription.currentPeriodEnd
+          ? new Date(subscription.currentPeriodEnd).toLocaleDateString(
+              'en-US',
+              {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              }
+            )
+          : 'period end';
+
+        return {
+          bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+          textColor: 'text-orange-600',
+          textColorCls: 'text-orange-600 dark:text-orange-400',
+          title: `Cancelled - Active Until ${periodEndDate}`,
+          description: () =>
+            `Your subscription will end on ${periodEndDate}. You have access until then.`,
+          Icon: () => (
+            <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-orange-500 flex items-center justify-center'>
+              <Clock className='w-4 h-4 sm:w-5 sm:h-5 text-white' />
+            </div>
+          ),
+        };
+      }
+
+      // Regular active subscription
       return {
         bgColor: 'bg-green-100 dark:bg-green-900/30',
         textColor: 'text-green-600',
         textColorCls: 'text-green-600 dark:text-green-400',
         title: 'Active',
         description: (date: string) =>
-          `Your subscription is active until ${date}`,
+          `Your subscription is will renew on ${date}`,
         Icon: () => (
           <div className='w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-green-500 flex items-center justify-center'>
             <CheckCircle className='w-4 h-4 sm:w-5 sm:h-5 text-white' />
@@ -624,7 +654,17 @@ export function SubscriptionManager() {
             </div>
             <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
               <p className='text-sm sm:text-base text-gray-700 dark:text-gray-300 font-medium leading-relaxed'>
-                {statusConfig.description('your next billing period')}
+                {subscription?.currentPeriodEnd
+                  ? statusConfig.description(
+                      new Date(
+                        subscription.currentPeriodEnd
+                      ).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    )
+                  : statusConfig.description('your next billing period')}
               </p>
             </div>
           </div>
@@ -651,7 +691,8 @@ export function SubscriptionManager() {
                       : 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20'
                   }`}
                 >
-                  {subscription.discounts.length > 0 ? (
+                  {subscription.discounts.length > 0 &&
+                  !subscription.cancelAtPeriodEnd ? (
                     // Enhanced Discount Active Display
                     <div className='space-y-4'>
                       <div className='text-center pb-2'>
@@ -746,6 +787,46 @@ export function SubscriptionManager() {
                   )}
                 </div>
 
+                {/* Cancellation Warning Section */}
+                {subscription.cancelAtPeriodEnd && (
+                  <div className='bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl p-4 sm:p-6 border-2 border-orange-200 dark:border-orange-700/50'>
+                    <div className='flex items-start gap-3'>
+                      <div className='flex-shrink-0'>
+                        <div className='w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center'>
+                          <AlertTriangle className='w-5 h-5 text-white' />
+                        </div>
+                      </div>
+                      <div className='flex-1 space-y-2'>
+                        <div className='font-bold text-orange-800 dark:text-orange-200 text-lg'>
+                          Subscription Cancelled
+                        </div>
+                        <div className='text-orange-700 dark:text-orange-300 text-sm sm:text-base'>
+                          Your subscription has been cancelled and will end on{' '}
+                          <span className='font-semibold'>
+                            {subscription.currentPeriodEnd
+                              ? new Date(
+                                  subscription.currentPeriodEnd
+                                ).toLocaleDateString('en-US', {
+                                  weekday: 'long',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })
+                              : 'your period end date'}
+                          </span>
+                          . You'll continue to have full access until then.
+                        </div>
+                        <div className='text-orange-600 dark:text-orange-400 text-xs sm:text-sm bg-orange-100 dark:bg-orange-900/30 rounded-lg p-2 mt-3'>
+                          <strong>What happens next:</strong> After your
+                          subscription ends, your account will automatically
+                          switch to our free plan. You can reactivate your
+                          subscription at any time.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Subscription Management Actions */}
                 <div className='bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4'>
                   <div className='text-center space-y-3'>
@@ -760,9 +841,16 @@ export function SubscriptionManager() {
                       onClick={() => setShowCancellationFlow(true)}
                       variant='outline'
                       size='sm'
-                      className='text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20'
+                      disabled={subscription.cancelAtPeriodEnd}
+                      className={`${
+                        subscription.cancelAtPeriodEnd
+                          ? 'text-gray-400 border-gray-300 cursor-not-allowed'
+                          : 'text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20'
+                      }`}
                     >
-                      Manage Subscription
+                      {subscription.cancelAtPeriodEnd
+                        ? 'Subscription Cancelled'
+                        : 'Manage Subscription'}
                     </Button>
                   </div>
                 </div>
