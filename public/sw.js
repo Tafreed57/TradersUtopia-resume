@@ -1,5 +1,5 @@
-// Service Worker for Push Notifications - Enhanced Mobile Support v4
-const CACHE_NAME = 'tradersutopia-notifications-v4';
+// Service Worker for Push Notifications - Enhanced Mobile Support v5 (No Caching)
+// Removed all caching functionality to ensure fresh data on every request
 
 // Mobile-specific optimizations
 const isMobile = () => {
@@ -26,50 +26,52 @@ function getVibrationPattern(type) {
   return patterns[type] || patterns['MESSAGE'];
 }
 
-// Enhanced install event with mobile-specific caching
+// Enhanced install event (no caching - always fresh data)
 self.addEventListener('install', (event) => {
-  console.log('📱 [SW] Installing service worker for mobile...');
-  
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      // Cache essential resources for offline functionality
-      return cache.addAll([
-        '/manifest.json',
-        '/logo.svg',
-        '/android-icon.png',
-        '/apple-icon.png',
-        '/icon.png',
-      ]).catch((error) => {
-        console.warn('⚠️ [SW] Failed to cache some resources:', error);
-        // Continue installation even if some resources fail to cache
-      });
-    })
-  );
+  console.log('📱 [SW] Installing service worker for mobile (no caching)...');
   
   // Force activation without waiting for old service worker to close
   self.skipWaiting();
 });
 
-// Enhanced activate event
+// Enhanced activate event (no cache cleanup needed)
 self.addEventListener('activate', (event) => {
-  console.log('✅ [SW] Activating service worker...');
+  console.log('✅ [SW] Activating service worker (no caching)...');
   
   event.waitUntil(
     Promise.all([
-      // Clean up old caches
+      // Clean up any existing caches from previous versions
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log(`🗑️ [SW] Deleting old cache: ${cacheName}`);
-              return caches.delete(cacheName);
-            }
+            console.log(`🗑️ [SW] Deleting old cache: ${cacheName}`);
+            return caches.delete(cacheName);
           })
         );
       }),
       // Take control of all clients immediately
       self.clients.claim(),
     ])
+  );
+});
+
+// Fetch event - Always bypass cache and fetch fresh data from network
+self.addEventListener('fetch', (event) => {
+  // Always fetch from network for fresh data
+  event.respondWith(
+    fetch(event.request.clone(), {
+      cache: 'no-store', // Never use cache
+      headers: {
+        ...event.request.headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    }).catch((error) => {
+      console.error('❌ [SW] Network request failed:', error);
+      // If network fails, try the original request without modified headers
+      return fetch(event.request);
+    })
   );
 });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 // Simplified user state interface
 interface ExtendedUserState {
@@ -24,6 +24,9 @@ interface ExtendedUserState {
  */
 export function useExtendedUser(): ExtendedUserState {
   const clerkUser = useUser();
+
+  // Extract stable user ID to prevent unnecessary re-renders
+  const userId = useMemo(() => clerkUser.user?.id, [clerkUser.user?.id]);
 
   const [additionalData, setAdditionalData] = useState<{
     hasAccess: boolean;
@@ -95,7 +98,7 @@ export function useExtendedUser(): ExtendedUserState {
     return () => {
       isMounted = false;
     };
-  }, [clerkUser.isLoaded, clerkUser.isSignedIn, clerkUser.user?.id]);
+  }, [clerkUser.isLoaded, clerkUser.isSignedIn, userId]);
 
   return {
     // Clerk passthrough
