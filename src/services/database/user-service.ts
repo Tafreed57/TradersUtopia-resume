@@ -886,6 +886,122 @@ export class UserService extends BaseDatabaseService {
   }
 
   /**
+   * Get users eligible for channel notifications - OPTIMIZED for message notifications
+   * Returns users who:
+   * - Have active push subscriptions
+   * - Are members of the specified server
+   * - Have explicitly enabled notifications for the specified channel
+   * - Have active Stripe subscriptions OR are admins
+   *
+   * This replaces the inefficient pattern of getting all server members + N+1 preference queries
+   */
+  async getUsersEligibleForChannelNotifications(
+    serverId: string,
+    channelId: string,
+    excludeUserId?: string
+  ): Promise<
+    Array<{
+      id: string;
+      name: string;
+      email: string;
+      isAdmin: boolean;
+      pushSubscriptions: Array<{
+        id: string;
+        endpoint: string;
+        keys: { p256dh: string; auth: string };
+        isActive: boolean;
+        failureCount: number;
+      }>;
+    }>
+  > {
+    this.validateId(serverId, 'serverId');
+    this.validateId(channelId, 'channelId');
+
+    try {
+      // Single optimized query that gets only users who need notifications
+      const eligibleUsers = await this.prisma.user.findMany({
+        where: {
+          // Must be a member of the server
+          members: {
+            some: {
+              serverId: serverId,
+            },
+          },
+          // Must have explicitly enabled notifications for this channel
+          channelNotificationPreferences: {
+            some: {
+              channelId: channelId,
+              enabled: true,
+            },
+          },
+          // Must have active push subscriptions
+          pushSubscriptions: {
+            some: {
+              isActive: true,
+              failureCount: { lt: 5 },
+            },
+          },
+          // Must have active subscription OR be admin
+          subscription: {
+            status: 'ACTIVE',
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          isAdmin: true,
+          pushSubscriptions: {
+            where: {
+              isActive: true,
+              failureCount: { lt: 5 },
+            },
+            select: {
+              id: true,
+              endpoint: true,
+              keys: true,
+              isActive: true,
+              failureCount: true,
+            },
+          },
+        },
+      });
+
+      // Transform push subscription keys to proper format
+      const transformedUsers = eligibleUsers.map(user => ({
+        ...user,
+        pushSubscriptions: user.pushSubscriptions.map(sub => ({
+          ...sub,
+          keys: sub.keys as { p256dh: string; auth: string },
+        })),
+      }));
+
+      this.logSuccess('users_eligible_for_channel_notifications', {
+        serverId: maskId(serverId),
+        channelId: maskId(channelId),
+        excludeUserId: excludeUserId ? maskId(excludeUserId) : undefined,
+        eligibleCount: transformedUsers.length,
+        totalPushSubscriptions: transformedUsers.reduce(
+          (acc, user) => acc + user.pushSubscriptions.length,
+          0
+        ),
+      });
+
+      return transformedUsers;
+    } catch (error) {
+      return this.handleError(
+        error,
+        'get_users_eligible_for_channel_notifications',
+        {
+          serverId: maskId(serverId),
+          channelId: maskId(channelId),
+          excludeUserId: excludeUserId ? maskId(excludeUserId) : undefined,
+        }
+      );
+    }
+  }
+
+  /**
    * Delete user and all related data (database only)
    * Handles cascade deletion of all user-related records in proper order
    * Used by Clerk webhooks and admin deletion operations

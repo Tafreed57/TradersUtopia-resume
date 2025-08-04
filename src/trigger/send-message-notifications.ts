@@ -1,10 +1,9 @@
 import { logger, task } from '@trigger.dev/sdk/v3';
-import { MemberService } from '@/services/database/member-service';
 import { ServerService } from '@/services/database/server-service';
 import { ChannelService } from '@/services/database/channel-service';
 import { NotificationService } from '@/services/database/notification-service';
+import { UserService } from '@/services/database/user-service';
 import { sendPushNotification } from '@/lib/push-notifications';
-import type { Member, User } from '@/services/types';
 import type { NotificationType } from '@prisma/client';
 
 // Type definition for the task payload
@@ -17,17 +16,19 @@ type MessageNotificationPayload = {
   content: string;
 };
 
-// Extended user type that includes subscription information
-type UserWithSubscription = User & {
-  subscription?: {
+// Type for eligible users with push subscriptions
+type EligibleUser = {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+  pushSubscriptions: Array<{
     id: string;
-    status: string;
-  } | null;
-};
-
-// Type for members with user details that have active subscriptions or admin access
-type EligibleMember = Member & {
-  user: UserWithSubscription;
+    endpoint: string;
+    keys: { p256dh: string; auth: string };
+    isActive: boolean;
+    failureCount: number;
+  }>;
 };
 
 export const sendMessageNotifications = task({
@@ -45,7 +46,7 @@ export const sendMessageNotifications = task({
     const { messageId, senderId, senderName, channelId, serverId, content } =
       payload;
 
-    logger.info('Starting notification processing', {
+    logger.info('Starting optimized notification processing', {
       messageId,
       senderId,
       channelId,
@@ -54,12 +55,12 @@ export const sendMessageNotifications = task({
 
     try {
       // Initialize database services
-      const memberService = new MemberService();
       const serverService = new ServerService();
       const channelService = new ChannelService();
       const notificationService = new NotificationService();
+      const userService = new UserService();
 
-      // Get server and channel information in parallel
+      // Get server and channel information in parallel (keep validation)
       const [serverInfo, channelInfo] = await Promise.all([
         serverService.findServerWithMemberAccess(serverId, senderId),
         channelService.findChannelWithAccess(channelId, senderId),
@@ -75,300 +76,117 @@ export const sendMessageNotifications = task({
         return { success: false, error: 'Channel not found or no access' };
       }
 
-      // Get all server members (excluding the sender) - need to get with subscription info
-      // Since MemberService doesn't include subscription by default, we'll need to get members manually with subscription
-      const allServerMembersRaw = await memberService.prisma.member.findMany({
-        where: {
+      // 🚀 OPTIMIZED: Single query to get only users who need notifications
+      const eligibleUsers =
+        await userService.getUsersEligibleForChannelNotifications(
           serverId,
-          userId: { not: senderId },
-        },
-        include: {
-          user: {
-            include: {
-              subscription: true,
-            },
-          },
-        },
-      });
-
-      // Filter members to only include those with active subscriptions OR admin users
-      const eligibleMembers = allServerMembersRaw.filter(member => {
-        const hasActiveSubscription =
-          member.user.subscription?.status === 'ACTIVE';
-        const isAdmin = member.user.isAdmin === true;
-        return hasActiveSubscription || isAdmin;
-      }) as EligibleMember[];
-
-      logger.info(`Message from ${senderName} in ${serverInfo.name}`);
-
-      // Count different types of eligible users
-      const activeSubscriptionUsers = eligibleMembers.filter(
-        (m: EligibleMember) => m.user.subscription?.status === 'ACTIVE'
-      );
-      const adminUsers = eligibleMembers.filter(
-        (m: EligibleMember) => m.user.isAdmin
-      );
-
-      logger.info('Notification targeting stats', {
-        totalEligibleMembers: eligibleMembers.length,
-        activeSubscriptionUsers: activeSubscriptionUsers.length,
-        adminUsers: adminUsers.length,
-      });
-
-      if (eligibleMembers.length === 0) {
-        logger.info(
-          'No members to notify (no active subscriptions/admin users found)'
+          channelId,
+          senderId
         );
+
+      logger.info('Optimized user targeting', {
+        serverName: serverInfo.name,
+        channelName: channelInfo.name,
+        senderName,
+        eligibleUsers: eligibleUsers.length,
+        totalPushSubscriptions: eligibleUsers.reduce(
+          (acc, user) => acc + user.pushSubscriptions.length,
+          0
+        ),
+      });
+
+      if (eligibleUsers.length === 0) {
+        logger.info('No users eligible for notifications');
         return { success: true, notificationsSent: 0 };
       }
 
-      // ✅ CHANNEL NOTIFICATION FILTERING: Get channel notification preferences
-      // We need to get preferences for all eligible members
-      const channelNotificationPreferences = await Promise.all(
-        eligibleMembers.map(async (member: EligibleMember) => {
+      // Prepare notification content
+      const truncatedContent =
+        content.length > 100 ? content.substring(0, 100) + '...' : content;
+      const title = `New message in ${serverInfo.name} #${channelInfo.name}`;
+      const message = `${senderName}: ${truncatedContent}`;
+      const actionUrl = `/servers/${serverId}/channels/${channelId}`;
+
+      // 🚀 OPTIMIZED: Send all push notifications in parallel FIRST
+      logger.info('Sending push notifications in parallel');
+      const pushNotificationPromises = eligibleUsers.flatMap(user =>
+        user.pushSubscriptions.map(async subscription => {
           try {
-            const preference =
-              await notificationService.getChannelNotificationPreference(
-                member.userId,
-                channelId
-              );
+            const success = await sendPushNotification({
+              userId: user.id,
+              title,
+              message,
+              type: 'NEW_MESSAGE',
+              actionUrl,
+              notificationId: undefined, // Will be set later from bulk creation
+              isMentioned: false, // Removed mention detection
+            });
+
             return {
-              userId: member.userId,
-              enabled: preference.enabled,
+              userId: user.id,
+              userName: user.name,
+              subscriptionId: subscription.id,
+              success,
             };
           } catch (error) {
-            // If we can't get preference, default to enabled
-            logger.warn(
-              'Failed to get channel notification preference, defaulting to enabled',
-              {
-                userId: member.userId,
-                error: error instanceof Error ? error.message : String(error),
-              }
-            );
+            logger.warn('Push notification failed', {
+              userId: user.id,
+              subscriptionId: subscription.id,
+              error: error instanceof Error ? error.message : String(error),
+            });
             return {
-              userId: member.userId,
-              enabled: true,
+              userId: user.id,
+              userName: user.name,
+              subscriptionId: subscription.id,
+              success: false,
             };
           }
         })
       );
 
-      // Create a map for quick lookup of notification preferences
-      const notificationPrefsMap = new Map(
-        channelNotificationPreferences.map(
-          (pref: { userId: string; enabled: boolean }) => [
-            pref.userId,
-            pref.enabled,
-          ]
-        )
-      );
+      // Wait for all push notifications to complete
+      const pushResults = await Promise.allSettled(pushNotificationPromises);
+      const pushSuccesses = pushResults
+        .filter(result => result.status === 'fulfilled')
+        .map(result => (result as PromiseFulfilledResult<any>).value)
+        .filter(result => result.success);
 
-      // Filter members based on channel notification preferences
-      // If no preference exists, default to enabled (true)
-      const membersToNotify = eligibleMembers.filter(
-        (member: EligibleMember) => {
-          const preference = notificationPrefsMap.get(member.userId);
-          return preference !== false; // Default to true if no preference set
-        }
-      );
-
-      logger.info('Channel notification filtering', {
-        membersWithNotificationsEnabled: membersToNotify.length,
+      logger.info('Push notification results', {
+        totalAttempted: pushResults.length,
+        successful: pushSuccesses.length,
+        failed: pushResults.length - pushSuccesses.length,
       });
 
-      if (membersToNotify.length === 0) {
-        logger.info(
-          'No members to notify (channel notifications disabled for all eligible users)'
+      // 🚀 OPTIMIZED: Bulk create database notifications
+      logger.info('Creating bulk database notifications');
+      const notificationData = {
+        type: 'NEW_MESSAGE' as NotificationType,
+        title,
+        message,
+        actionUrl,
+      };
+
+      const userIds = eligibleUsers.map(user => user.id);
+      const bulkCreateResult =
+        await notificationService.createBulkNotifications(
+          userIds,
+          notificationData
         );
-        return { success: true, notificationsSent: 0 };
-      }
-
-      // Detect mentions in the message content (@username pattern)
-      const mentionRegex = /@(\w+)/g;
-      const mentions = Array.from(content.matchAll(mentionRegex));
-      const mentionedUsernames = mentions.map((match: RegExpMatchArray) =>
-        match[1].toLowerCase()
-      );
-
-      const truncatedContent =
-        content.length > 100 ? content.substring(0, 100) + '...' : content;
-
-      const serverName = serverInfo.name;
-      const channelName = channelInfo.name;
-
-      // Process notifications in batches for better performance on AWS Amplify
-      const BATCH_SIZE = 10;
-      const notificationBatches = [];
-
-      for (let i = 0; i < membersToNotify.length; i += BATCH_SIZE) {
-        const batch = membersToNotify.slice(i, i + BATCH_SIZE);
-        notificationBatches.push(batch);
-      }
-
-      let totalSuccessCount = 0;
-      let totalFailureCount = 0;
-      let totalPushNotificationSuccesses = 0;
-
-      // Process batches sequentially to avoid overwhelming the system
-      for (const [batchIndex, batch] of notificationBatches.entries()) {
-        logger.info(
-          `Processing notification batch ${batchIndex + 1}/${
-            notificationBatches.length
-          }`,
-          {
-            batchSize: batch.length,
-          }
-        );
-
-        // Create notifications for each member in the batch
-        const notificationPromises = batch.map(
-          async (serverMember: EligibleMember) => {
-            const isMentioned = mentionedUsernames.some(
-              (username: string) =>
-                serverMember.user.name.toLowerCase().includes(username) ||
-                serverMember.user.email.toLowerCase().includes(username)
-            );
-
-            const userType = serverMember.user.isAdmin
-              ? 'Admin'
-              : serverMember.user.subscription?.status === 'ACTIVE'
-              ? 'Active Subscription'
-              : 'Unknown';
-
-            logger.info('Creating notification', {
-              userId: serverMember.userId,
-              userName: serverMember.user.name,
-              userType,
-              isMentioned,
-            });
-
-            try {
-              const notification = await notificationService.createNotification(
-                {
-                  userId: serverMember.userId,
-                  type: 'NEW_MESSAGE' as NotificationType,
-                  title: isMentioned
-                    ? `You were mentioned in ${serverName} #${channelName}`
-                    : `New message in ${serverName} #${channelName}`,
-                  message: `${senderName}: ${truncatedContent}`,
-                  actionUrl: `/servers/${serverId}/channels/${channelId}`,
-                }
-              );
-
-              if (notification) {
-                logger.info('Successfully created notification', {
-                  userId: serverMember.userId,
-                  userName: serverMember.user.name,
-                  notificationId: notification.id,
-                });
-
-                // Send push notification using enhanced schema
-                try {
-                  const pushSuccess = await sendPushNotification({
-                    userId: serverMember.userId,
-                    title: isMentioned
-                      ? `You were mentioned in ${serverName} #${channelName}`
-                      : `New message in ${serverName} #${channelName}`,
-                    message: `${senderName}: ${truncatedContent}`,
-                    type: 'NEW_MESSAGE',
-                    actionUrl: `/servers/${serverId}/channels/${channelId}`,
-                    notificationId: notification.id,
-                    isMentioned,
-                  });
-
-                  logger.info('Push notification result', {
-                    userId: serverMember.userId,
-                    pushSuccess,
-                    notificationId: notification.id,
-                  });
-
-                  return {
-                    success: true,
-                    userId: serverMember.userId,
-                    notificationId: notification.id,
-                    pushNotificationSent: pushSuccess,
-                  };
-                } catch (pushError) {
-                  logger.warn(
-                    'Push notification failed but database notification succeeded',
-                    {
-                      userId: serverMember.userId,
-                      notificationId: notification.id,
-                      pushError:
-                        pushError instanceof Error
-                          ? pushError.message
-                          : String(pushError),
-                    }
-                  );
-
-                  return {
-                    success: true,
-                    userId: serverMember.userId,
-                    notificationId: notification.id,
-                    pushNotificationSent: false,
-                  };
-                }
-              } else {
-                logger.error('Failed to create notification', {
-                  userId: serverMember.userId,
-                  userName: serverMember.user.name,
-                });
-                return { success: false, userId: serverMember.userId };
-              }
-            } catch (error) {
-              logger.error('Error creating notification', {
-                userId: serverMember.userId,
-                userName: serverMember.user.name,
-                error: error instanceof Error ? error.message : String(error),
-              });
-              return { success: false, userId: serverMember.userId };
-            }
-          }
-        );
-
-        // Wait for the current batch to complete
-        const batchResults = await Promise.all(notificationPromises);
-        const batchSuccessCount = batchResults.filter(
-          (r: { success: boolean }) => r.success
-        ).length;
-        const batchFailureCount = batchResults.filter(
-          (r: { success: boolean }) => !r.success
-        ).length;
-
-        // Count push notification successes
-        const pushNotificationSuccesses = batchResults.filter(
-          (r: any) => r.success && r.pushNotificationSent
-        ).length;
-
-        totalSuccessCount += batchSuccessCount;
-        totalFailureCount += batchFailureCount;
-        totalPushNotificationSuccesses += pushNotificationSuccesses;
-
-        logger.info(`Batch ${batchIndex + 1} completed`, {
-          successful: batchSuccessCount,
-          failed: batchFailureCount,
-          pushNotificationsSent: pushNotificationSuccesses,
-        });
-
-        // Small delay between batches to prevent rate limiting
-        if (batchIndex < notificationBatches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
 
       logger.info('Notification processing completed', {
-        total: membersToNotify.length,
-        successful: totalSuccessCount,
-        failed: totalFailureCount,
-        pushNotificationsSent: totalPushNotificationSuccesses,
+        eligibleUsers: eligibleUsers.length,
+        pushNotificationsSent: pushSuccesses.length,
+        databaseNotificationsCreated: bulkCreateResult,
+        messageId,
+        channelId,
+        serverId,
       });
 
       return {
         success: true,
-        notificationsSent: totalSuccessCount,
-        pushNotificationsSent: totalPushNotificationSuccesses,
-        totalEligible: membersToNotify.length,
-        batchesProcessed: notificationBatches.length,
+        notificationsSent: bulkCreateResult,
+        pushNotificationsSent: pushSuccesses.length,
+        totalEligible: eligibleUsers.length,
         messageId,
         channelId,
         serverId,
