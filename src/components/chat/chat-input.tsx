@@ -52,8 +52,12 @@ export function ChatInput({
         query,
       });
 
+      // Pre-process content to convert single newlines to markdown line breaks
+      // This allows users to just hit Enter for new lines instead of needing 4 spaces
+      const processedContent = values.content.replace(/(?<!\s\s)\n/g, '  \n');
+
       // Send the message to the API
-      await secureAxiosPost(url, values);
+      await secureAxiosPost(url, { ...values, content: processedContent });
       form.reset();
 
       // ✅ IMMEDIATE UI UPDATE: Refetch messages to show the new message instantly
@@ -79,19 +83,39 @@ export function ChatInput({
     }
   };
 
+  // Detect if user is on mobile device
+  const isMobile = () => {
+    return (
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      ) || window.innerWidth <= 768
+    );
+  };
+
   // Handle keyboard events for multi-line input
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      form.handleSubmit(onSubmit)();
+    if (event.key === 'Enter') {
+      // On mobile: Enter creates new line, use send button to submit
+      // On desktop: Enter submits (unless Shift+Enter for new line)
+      if (isMobile()) {
+        // On mobile, Enter always creates a new line
+        // User must use the send button to submit
+        return; // Don't prevent default, allow new line
+      } else {
+        // Desktop behavior: Enter submits unless Shift is held
+        if (!event.shiftKey) {
+          event.preventDefault();
+          form.handleSubmit(onSubmit)();
 
-      // ✅ RESET: Also reset height on Enter press (backup for immediate UI feedback)
-      setTimeout(() => {
-        const textarea = event.target as HTMLTextAreaElement;
-        if (textarea) {
-          textarea.style.height = '52px';
+          // ✅ RESET: Also reset height on Enter press (backup for immediate UI feedback)
+          setTimeout(() => {
+            const textarea = event.target as HTMLTextAreaElement;
+            if (textarea) {
+              textarea.style.height = '52px';
+            }
+          }, 100); // Small delay to allow form reset to complete
         }
-      }, 100); // Small delay to allow form reset to complete
+      }
     }
   };
 
@@ -127,7 +151,11 @@ export function ChatInput({
                     <Textarea
                       disabled={isLoading}
                       className='pl-16 sm:pl-20 pr-28 sm:pr-32 py-4 sm:py-5 bg-gradient-to-r from-gray-800/80 to-gray-700/80 border border-gray-600/30 focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:border-blue-400/50 focus-visible:ring-offset-0 text-white placeholder:text-gray-400 text-sm sm:text-base rounded-xl sm:rounded-2xl min-h-[52px] sm:min-h-[56px] max-h-[200px] touch-manipulation backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50 resize-none overflow-y-auto'
-                      placeholder={`Message #${name} (Shift+Enter for new line)`}
+                      placeholder={`Message #${name} ${
+                        isMobile()
+                          ? '(Enter for new line)'
+                          : '(Shift+Enter for new line)'
+                      }`}
                       autoComplete='off'
                       spellCheck={true}
                       autoCorrect='on'
@@ -182,7 +210,9 @@ export function ChatInput({
 
                     {/* Helper text */}
                     <div className='absolute bottom-1 left-16 sm:left-20 text-xs text-gray-400/70'>
-                      Enter to send • Shift+Enter for new line
+                      {isMobile()
+                        ? 'Tap send button • Enter for new line'
+                        : 'Enter to send • Shift+Enter for new line'}
                     </div>
                   </div>
                 </FormControl>
