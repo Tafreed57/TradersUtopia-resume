@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ServerHeader } from '@/components/layout/server-header';
 import { ServerSideBar } from '@/components/layout/server-side-bar';
 import { MainContent } from '@/components/layout/main-content';
 import { useExtendedUser } from '@/hooks/use-extended-user';
@@ -88,10 +87,7 @@ const ServerIdLayout = ({
       <div className='hidden md:flex h-full z-20 flex-col fixed inset-y-0'>
         <ServerSideBar serverId={params.serverId} />
       </div>
-      <MainContent id='main-content'>
-        <ServerHeader server={server} />
-        {children}
-      </MainContent>
+      <MainContent id='main-content'>{children}</MainContent>
     </div>
   );
 };

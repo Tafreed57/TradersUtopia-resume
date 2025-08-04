@@ -3,7 +3,7 @@
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus } from 'lucide-react';
+import { Plus, Send } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import z from 'zod';
 import { secureAxiosPost } from '@/lib/csrf-client';
@@ -126,7 +126,7 @@ export function ChatInput({
                     {/* Multi-line textarea with proper padding for buttons */}
                     <Textarea
                       disabled={isLoading}
-                      className='pl-16 sm:pl-20 pr-16 sm:pr-20 py-4 sm:py-5 bg-gradient-to-r from-gray-800/80 to-gray-700/80 border border-gray-600/30 focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:border-blue-400/50 focus-visible:ring-offset-0 text-white placeholder:text-gray-400 text-sm sm:text-base rounded-xl sm:rounded-2xl min-h-[52px] sm:min-h-[56px] max-h-[200px] touch-manipulation backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50 resize-none overflow-y-auto'
+                      className='pl-16 sm:pl-20 pr-28 sm:pr-32 py-4 sm:py-5 bg-gradient-to-r from-gray-800/80 to-gray-700/80 border border-gray-600/30 focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:border-blue-400/50 focus-visible:ring-offset-0 text-white placeholder:text-gray-400 text-sm sm:text-base rounded-xl sm:rounded-2xl min-h-[52px] sm:min-h-[56px] max-h-[200px] touch-manipulation backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50 resize-none overflow-y-auto'
                       placeholder={`Message #${name} (Shift+Enter for new line)`}
                       autoComplete='off'
                       spellCheck={true}
@@ -136,7 +136,6 @@ export function ChatInput({
                       rows={1}
                       style={{
                         resize: 'none',
-                        overflow: 'hidden',
                       }}
                       onChange={e => {
                         // Auto-resize functionality
@@ -159,8 +158,9 @@ export function ChatInput({
                       name={field.name}
                     />
 
-                    {/* Emoji Button - vertically centered */}
-                    <div className='absolute top-1/2 -translate-y-1/2 right-6 sm:right-8'>
+                    {/* Right side buttons container */}
+                    <div className='absolute top-1/2 -translate-y-1/2 right-6 sm:right-8 flex items-center gap-2'>
+                      {/* Emoji Button */}
                       <div className='h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-br from-gray-700/50 to-gray-600/50 border border-gray-600/30 backdrop-blur-sm hover:from-purple-600/20 hover:to-pink-600/20 hover:border-purple-400/50 transition-all duration-300 hover:scale-110 flex items-center justify-center group z-10'>
                         <EmojiPicker
                           onChange={value =>
@@ -168,10 +168,20 @@ export function ChatInput({
                           }
                         />
                       </div>
+
+                      {/* Send Button */}
+                      <button
+                        type='button'
+                        onClick={() => form.handleSubmit(onSubmit)()}
+                        disabled={isLoading || !field.value.trim()}
+                        className='h-9 w-9 sm:h-10 sm:w-10 bg-gradient-to-br from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 border border-green-400/30 hover:border-green-400/50 transition-all duration-300 rounded-xl flex items-center justify-center touch-manipulation group backdrop-blur-sm hover:scale-110 hover:shadow-lg hover:shadow-green-400/20 z-10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none'
+                      >
+                        <Send className='h-4 w-4 sm:h-5 sm:w-5 text-green-400 group-hover:text-green-300 transition-colors group-disabled:text-gray-500' />
+                      </button>
                     </div>
 
                     {/* Helper text */}
-                    <div className='absolute bottom-1 right-6 sm:right-8 text-xs text-gray-400/70'>
+                    <div className='absolute bottom-1 left-16 sm:left-20 text-xs text-gray-400/70'>
                       Enter to send • Shift+Enter for new line
                     </div>
                   </div>

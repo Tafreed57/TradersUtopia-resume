@@ -48,10 +48,9 @@ export function ServerHeader({ server }: ServerHeaderProps) {
   // ✅ UPDATED: Simple header for non-admin users (no dropdown, no member count)
   if (!isAdmin) {
     return (
-      <div className='relative z-50'>
+      <div className='sticky top-0 z-50 bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-b border-neutral-200 dark:border-neutral-800'>
         <div
-          className='w-full text-md font-semibold px-4 py-3 flex items-center h-14 transition-all duration-300 group relative overflow-hidden
-          min-h-[4rem] md:min-h-[3.5rem]
+          className='w-full text-md font-semibold px-4 py-3 flex items-center h-16 transition-all duration-300 group relative overflow-hidden
           touch-manipulation
           '
         >
@@ -104,12 +103,11 @@ export function ServerHeader({ server }: ServerHeaderProps) {
 
   // ✅ Full dropdown functionality for admin users
   return (
-    <div className='relative z-[100]'>
+    <div className='sticky top-0 z-[100] bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl border-b border-neutral-200 dark:border-neutral-800'>
       <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
         <DropdownMenuTrigger className='focus:outline-none' asChild>
           <button
-            className='w-full text-md font-semibold px-4 py-3 flex items-center h-14 hover:bg-gradient-to-r hover:from-gray-700/50 hover:to-gray-600/50 transition-all duration-300 group relative overflow-hidden
-            min-h-[4rem] md:min-h-[3.5rem]
+            className='w-full text-md font-semibold px-4 py-3 flex items-center h-16 hover:bg-gradient-to-r hover:from-gray-700/50 hover:to-gray-600/50 transition-all duration-300 group relative overflow-hidden
             touch-manipulation
             '
           >
