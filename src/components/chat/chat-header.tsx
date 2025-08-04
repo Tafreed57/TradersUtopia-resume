@@ -40,9 +40,7 @@ export function ChatHeader({
         {/* Mobile top row with server name */}
         {server && (
           <div className='flex items-center px-4 py-3 h-16 border-b border-neutral-200/10 dark:border-neutral-800/30'>
-            <MobileToggle server={server} role={role} servers={servers} />
-
-            <div className='flex items-center gap-3 flex-1 min-w-0 ml-3'>
+            <div className='flex items-center gap-3 flex-1 min-w-0'>
               {server?.imageUrl ? (
                 <div className='w-8 h-8 rounded-xl overflow-hidden border border-gray-600/50 transition-colors duration-300 flex-shrink-0'>
                   <Image
@@ -79,7 +77,9 @@ export function ChatHeader({
 
         {/* Mobile bottom row with channel name */}
         <div className='flex items-center px-3 py-2 h-12'>
-          {!server && (
+          {server ? (
+            <MobileToggle server={server} role={role} servers={servers} />
+          ) : (
             <div className='w-9 h-9 mr-3' /> // Placeholder to maintain spacing when no server
           )}
           <Hash className='w-5 h-5 text-zinc-500 dark:text-zinc-400 mr-2' />
