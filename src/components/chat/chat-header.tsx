@@ -19,6 +19,8 @@ interface ChatHeaderProps {
     imageUrl: string;
   }>;
   channelId?: string;
+  onChannelClick?: (channelId: string) => void;
+  activeChannelId?: string | null;
 }
 
 export function ChatHeader({
@@ -30,6 +32,8 @@ export function ChatHeader({
   role,
   servers,
   channelId,
+  onChannelClick,
+  activeChannelId,
 }: ChatHeaderProps) {
   const { isAdmin, hasAccess, isLoading: authLoading } = useExtendedUser();
 
@@ -78,7 +82,13 @@ export function ChatHeader({
         {/* Mobile bottom row with channel name */}
         <div className='flex items-center px-3 py-2 h-12'>
           {server ? (
-            <MobileToggle server={server} role={role} servers={servers} />
+            <MobileToggle
+              server={server}
+              role={role}
+              servers={servers}
+              onChannelClick={onChannelClick}
+              activeChannelId={activeChannelId}
+            />
           ) : (
             <div className='w-9 h-9 mr-3' /> // Placeholder to maintain spacing when no server
           )}

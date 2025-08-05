@@ -12,8 +12,9 @@ import {
 interface SectionContentProps {
   server: any;
   role: Role | undefined;
-  channelsWithoutSection: any[];
   sectionsWithChannels: any[];
+  onChannelClick?: (channelId: string) => void;
+  activeChannelId?: string | null;
 }
 
 // Recursive section component to handle nested sections
@@ -22,11 +23,15 @@ function SectionItem({
   server,
   role,
   depth = 0,
+  onChannelClick,
+  activeChannelId,
 }: {
   section: any;
   server: any;
   role: Role | undefined;
   depth?: number;
+  onChannelClick?: (channelId: string) => void;
+  activeChannelId?: string | null;
 }) {
   const marginLeft = `${depth * 1.5}rem`;
   const isDefaultSection = section.isDefaultSection || false;
@@ -66,6 +71,8 @@ function SectionItem({
                 server={server}
                 role={role}
                 depth={depth + 1}
+                onChannelClick={onChannelClick}
+                activeChannelId={activeChannelId}
               />
             ))}
           </SortableContext>
@@ -79,7 +86,13 @@ function SectionItem({
           >
             {section.channels.map((channel: any) => (
               <div key={channel.id} className='overflow-visible'>
-                <ServerChannel channel={channel} server={server} role={role} />
+                <ServerChannel
+                  channel={channel}
+                  server={server}
+                  role={role}
+                  onChannelClick={onChannelClick}
+                  activeChannelId={activeChannelId}
+                />
               </div>
             ))}
           </SortableContext>
@@ -99,19 +112,17 @@ function SectionItem({
 export function SectionContent({
   server,
   role,
-  channelsWithoutSection,
   sectionsWithChannels,
+  onChannelClick,
+  activeChannelId,
 }: SectionContentProps) {
-  const [localChannelsWithoutSection, setLocalChannelsWithoutSection] =
-    useState(channelsWithoutSection);
   const [localSectionsWithChannels, setLocalSectionsWithChannels] =
     useState(sectionsWithChannels);
 
   // Update local state when props change
   useEffect(() => {
-    setLocalChannelsWithoutSection(channelsWithoutSection);
     setLocalSectionsWithChannels(sectionsWithChannels);
-  }, [channelsWithoutSection, sectionsWithChannels]);
+  }, [sectionsWithChannels]);
 
   // Real-time channel deletion event listener
   useEffect(() => {
@@ -137,11 +148,6 @@ export function SectionContent({
                 ),
               })) || [],
           }))
-        );
-      } else {
-        // Remove channel from channels without section
-        setLocalChannelsWithoutSection(prev =>
-          prev.filter(channel => channel.id !== channelId)
         );
       }
     };
@@ -175,28 +181,10 @@ export function SectionContent({
     };
   }, [server?.id]);
 
-  // Create a unified list of all sections including the default section for ungrouped channels
+  // Create a sorted list of all sections
   const allSections = useMemo(() => {
-    const sections = [...localSectionsWithChannels];
-
-    // Add the default section for ungrouped channels if there are any
-    if (localChannelsWithoutSection.length > 0) {
-      const defaultSection = {
-        id: 'default-section',
-        name: server?.defaultSectionName || 'Text Channels',
-        position: -1, // Always show first
-        channels: localChannelsWithoutSection,
-        isDefaultSection: true,
-      };
-      sections.unshift(defaultSection);
-    }
-
-    return sections.sort((a, b) => a.position - b.position);
-  }, [
-    localSectionsWithChannels,
-    localChannelsWithoutSection,
-    server?.defaultSectionName,
-  ]);
+    return localSectionsWithChannels.sort((a, b) => a.position - b.position);
+  }, [localSectionsWithChannels]);
 
   return (
     <div className='space-y-1.5 overflow-visible'>
@@ -212,32 +200,21 @@ export function SectionContent({
             section={section}
             server={server}
             role={role}
+            onChannelClick={onChannelClick}
+            activeChannelId={activeChannelId}
           />
         ))}
       </SortableContext>
 
-      {/* Show create section prompt if no sections exist and no ungrouped channels */}
-      {localSectionsWithChannels.length === 0 &&
-        localChannelsWithoutSection.length === 0 &&
-        role?.name !== 'free' && (
-          <div className='px-3 py-4 text-center'>
-            <p className='text-xs text-gray-500 mb-2'>
-              No channels or sections created yet. Create your first section to
-              organize channels!
-            </p>
-          </div>
-        )}
-
-      {/* Show create section prompt if only ungrouped channels exist */}
-      {localSectionsWithChannels.length === 0 &&
-        localChannelsWithoutSection.length > 0 &&
-        role?.name !== 'free' && (
-          <div className='px-3 py-4 text-center'>
-            <p className='text-xs text-gray-500 mb-2'>
-              Create sections to organize your channels better!
-            </p>
-          </div>
-        )}
+      {/* Show create section prompt if no sections exist */}
+      {localSectionsWithChannels.length === 0 && role?.name !== 'free' && (
+        <div className='px-3 py-4 text-center'>
+          <p className='text-xs text-gray-500 mb-2'>
+            No sections created yet. Create your first section to organize
+            channels!
+          </p>
+        </div>
+      )}
     </div>
   );
 }

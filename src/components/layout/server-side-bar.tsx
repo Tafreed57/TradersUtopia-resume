@@ -16,13 +16,19 @@ import { ResizableWrapper } from './resizable-wrapper';
 
 interface ServerSideBarProps {
   serverId: string;
+  onChannelClick?: (channelId: string) => void;
+  activeChannelId?: string | null;
 }
 
 const iconMap = {
   [ChannelType.TEXT]: <Hash className='mr-2 h-4 w-4' />,
 };
 
-export function ServerSideBar({ serverId }: ServerSideBarProps) {
+export function ServerSideBar({
+  serverId,
+  onChannelClick,
+  activeChannelId,
+}: ServerSideBarProps) {
   const {
     server,
     isLoading: serverLoading,
@@ -69,10 +75,12 @@ export function ServerSideBar({ serverId }: ServerSideBarProps) {
 
   const role = member?.role;
 
-  const channelsWithoutSection = server.channels.filter(
-    channel => !channel.sectionId
-  );
-  const sectionsWithChannels = server.sections || [];
+  // All channels are now under sections - simplified structure
+  const sectionsWithChannels =
+    server.sections?.map(section => ({
+      ...section,
+      channels: server.channels.filter(ch => ch.sectionId === section.id),
+    })) || [];
 
   const searchData = [
     {
@@ -107,15 +115,16 @@ export function ServerSideBar({ serverId }: ServerSideBarProps) {
 
         <div className='flex-1 overflow-y-auto overflow-x-visible'>
           <div className='pt-3 mb-4 px-4 sticky top-0 bg-gradient-to-b from-gray-900/95 to-transparent backdrop-blur-sm z-40 pb-2 overflow-visible touch-manipulation'>
-            <ServerSearch data={searchData} />
+            <ServerSearch data={searchData} onChannelClick={onChannelClick} />
           </div>
 
           <div className='px-4 pb-6 overflow-visible'>
             <SectionContent
               server={server}
               role={role as Role}
-              channelsWithoutSection={channelsWithoutSection}
               sectionsWithChannels={sectionsWithChannels}
+              onChannelClick={onChannelClick}
+              activeChannelId={activeChannelId}
             />
           </div>
         </div>

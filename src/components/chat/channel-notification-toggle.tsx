@@ -98,7 +98,7 @@ export function ChannelNotificationToggle({
           {isLoading ? (
             <Loader2 className='w-4 h-4 animate-spin text-zinc-500' />
           ) : isEnabled ? (
-            <Bell className='w-4 h-4 text-zinc-300 hover:text-white transition-colors' />
+            <Bell className='w-4 h-4 text-yellow-400 hover:text-yellow-300 transition-colors fill-current' />
           ) : (
             <BellOff className='w-4 h-4 text-zinc-500 hover:text-zinc-300 transition-colors' />
           )}

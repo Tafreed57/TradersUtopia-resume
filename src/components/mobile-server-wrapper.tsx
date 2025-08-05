@@ -12,17 +12,22 @@ import { ServerWithMembersWithUsers } from '@/types/server';
 interface MobileServerWrapperProps {
   server: ServerWithMembersWithUsers;
   role?: Role;
+  onChannelClick?: (channelId: string) => void;
+  activeChannelId?: string | null;
 }
 
 export function MobileServerWrapper({
   server,
   role,
+  onChannelClick,
+  activeChannelId,
 }: MobileServerWrapperProps) {
-  // Use the exact same logic as desktop ServerSideBar
-  const channelsWithoutSection = server.channels.filter(
-    channel => !channel.sectionId
-  );
-  const sectionsWithChannels = server.sections || [];
+  // All channels are now under sections - simplified structure
+  const sectionsWithChannels =
+    server.sections?.map(section => ({
+      ...section,
+      channels: server.channels.filter(ch => ch.sectionId === section.id),
+    })) || [];
 
   const iconMap = {
     [ChannelType.TEXT]: <Hash className='mr-2 h-4 w-4' />,
@@ -69,7 +74,7 @@ export function MobileServerWrapper({
             min-h-[4rem] md:min-h-auto
             touch-manipulation'
           >
-            <ServerSearch data={searchData} />
+            <ServerSearch data={searchData} onChannelClick={onChannelClick} />
           </div>
 
           <div className='px-4 pb-6 overflow-visible'>
@@ -78,8 +83,9 @@ export function MobileServerWrapper({
             <SectionContent
               server={server}
               role={role}
-              channelsWithoutSection={channelsWithoutSection}
               sectionsWithChannels={sectionsWithChannels}
+              onChannelClick={onChannelClick}
+              activeChannelId={activeChannelId}
             />
           </div>
         </div>

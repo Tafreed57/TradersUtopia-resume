@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -16,15 +16,35 @@ interface MobileToggleProps {
     name: string;
     imageUrl: string;
   }>;
+  onChannelClick?: (channelId: string) => void;
+  activeChannelId?: string | null;
 }
 
-export function MobileToggle({ server, role, servers }: MobileToggleProps) {
+export function MobileToggle({
+  server,
+  role,
+  servers,
+  onChannelClick,
+  activeChannelId,
+}: MobileToggleProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Prevent hydration mismatch by ensuring component only renders on client
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Wrapper function that closes the mobile sidebar when a channel is clicked
+  const handleChannelClick = useCallback(
+    (channelId: string) => {
+      if (onChannelClick) {
+        onChannelClick(channelId);
+      }
+      setIsOpen(false); // Close the mobile sidebar
+    },
+    [onChannelClick]
+  );
 
   if (!isMounted) {
     return (
@@ -35,7 +55,7 @@ export function MobileToggle({ server, role, servers }: MobileToggleProps) {
   }
 
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button
           variant='ghost'
@@ -59,6 +79,8 @@ export function MobileToggle({ server, role, servers }: MobileToggleProps) {
             server={server}
             role={role}
             servers={servers || []}
+            onChannelClick={handleChannelClick}
+            activeChannelId={activeChannelId}
           />
         </div>
       </SheetContent>

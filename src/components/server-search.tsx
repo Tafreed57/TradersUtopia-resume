@@ -23,9 +23,10 @@ interface ServerSearchProps {
         }[]
       | undefined;
   }[];
+  onChannelClick?: (channelId: string) => void;
 }
 
-export function ServerSearch({ data }: ServerSearchProps) {
+export function ServerSearch({ data, onChannelClick }: ServerSearchProps) {
   const [open, setOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
@@ -64,7 +65,13 @@ export function ServerSearch({ data }: ServerSearchProps) {
     }
 
     if (type === 'channel') {
-      return router.push(`/servers/${params?.serverId}/channels/${id}`);
+      if (onChannelClick) {
+        setOpen(false);
+        return onChannelClick(id);
+      } else {
+        // Fallback to router push if no callback provided
+        return router.push(`/servers/${params?.serverId}?channel=${id}`);
+      }
     }
 
     // For sections, you might want to scroll to the section or highlight it

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 
@@ -13,13 +13,23 @@ export function useChannelNotifications(channelId: string) {
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const { userId } = useAuth();
 
+  // Track if a request is already in progress to prevent duplicates
+  const isRequestInProgress = useRef<boolean>(false);
+  const lastFetchedChannel = useRef<string>('');
+
   // Fetch current notification preference
   useEffect(() => {
     const fetchPreference = async () => {
-      if (!userId || !channelId) return;
+      // Guard conditions to prevent unnecessary calls
+      if (!userId || !channelId || isRequestInProgress.current) return;
+
+      // Skip if we already fetched this channel
+      if (lastFetchedChannel.current === channelId) return;
 
       try {
+        isRequestInProgress.current = true;
         setIsInitialLoading(true);
+
         const response = await fetch(
           `/api/notifications/channels/${channelId}`
         );
@@ -27,6 +37,7 @@ export function useChannelNotifications(channelId: string) {
         if (response.ok) {
           const data: ChannelNotificationPreference = await response.json();
           setIsEnabled(data.enabled);
+          lastFetchedChannel.current = channelId;
         } else {
           console.error('Failed to fetch channel notification preference');
         }
@@ -34,10 +45,16 @@ export function useChannelNotifications(channelId: string) {
         console.error('Error fetching channel notification preference:', error);
       } finally {
         setIsInitialLoading(false);
+        isRequestInProgress.current = false;
       }
     };
 
-    fetchPreference();
+    // Add a small delay to ensure channel loading is complete
+    const timeoutId = setTimeout(fetchPreference, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [userId, channelId]);
 
   // Toggle notification preference

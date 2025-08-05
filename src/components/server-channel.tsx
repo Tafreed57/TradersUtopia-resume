@@ -9,14 +9,8 @@ import {
   DropdownMenuPortal,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useParams, useRouter } from 'next/navigation';
-import React, {
-  useMemo,
-  useCallback,
-  useEffect,
-  useState,
-  useTransition,
-} from 'react';
+import { useParams } from 'next/navigation';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { useExtendedUser } from '@/hooks/use-extended-user';
 import { ModalType } from '@/types/store';
 import { useSortable } from '@dnd-kit/sortable';
@@ -28,6 +22,8 @@ interface ServerChannelProps {
   channel: Channel;
   server: Server;
   role?: Role;
+  onChannelClick?: (channelId: string) => void;
+  activeChannelId?: string | null;
 }
 
 // ✅ SIMPLIFIED: Only Hash icon for TEXT channels (removed Mic and Video)
@@ -35,13 +31,18 @@ const iconMap = {
   [ChannelType.TEXT]: Hash,
 };
 
-export function ServerChannel({ channel, server, role }: ServerChannelProps) {
+export function ServerChannel({
+  channel,
+  server,
+  role,
+  onChannelClick,
+  activeChannelId,
+}: ServerChannelProps) {
   const params = useParams();
-  const router = useRouter();
   const onOpen = useStore(state => state.onOpen);
   const { insertionIndicator, canDragDrop } = useDragDrop();
   const { isAdmin } = useExtendedUser();
-  const [isPending, startTransition] = useTransition();
+  // Removed useTransition since we're using callback-based navigation
   const [optimisticActive, setOptimisticActive] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -54,7 +55,10 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
 
   // ✅ SIMPLIFIED: Always Hash icon since we only support TEXT channels
   const Icon = iconMap[channel.type as keyof typeof iconMap];
-  const isActive = params?.channelId === channel.id;
+  // Determine if this channel is active using activeChannelId prop or URL params
+  const isActive = activeChannelId
+    ? activeChannelId === channel.id
+    : params?.channelId === channel.id;
 
   // Enable drag and drop for channels when user can manage them
   // Use centralized permission check from context
@@ -99,10 +103,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
     transition,
   };
 
-  // Prefetch the channel route for faster navigation
-  useEffect(() => {
-    router.prefetch(`/servers/${params?.serverId}/channels/${channel.id}`);
-  }, [router, params?.serverId, channel.id]);
+  // Removed prefetch since we're using callback-based navigation
 
   // Reset optimistic state when actual route changes
   useEffect(() => {
@@ -111,24 +112,34 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
     }
   }, [params?.channelId, channel.id]);
 
-  // Optimistic navigation with instant UI feedback
+  // Channel click handler with callback or fallback to router
   const onClick = useCallback(() => {
     if (!isMounted) return;
-    if (params?.channelId !== channel.id) {
+
+    // Check if this channel is already active
+    const isCurrentlyActive = activeChannelId
+      ? activeChannelId === channel.id
+      : params?.channelId === channel.id;
+
+    if (!isCurrentlyActive && onChannelClick) {
       // Optimistically update the UI immediately
       setOptimisticActive(true);
 
-      // Use startTransition for better UX
-      startTransition(() => {
-        router.push(`/servers/${params?.serverId}/channels/${channel.id}`);
-      });
+      // Use the callback for instant switching
+      onChannelClick(channel.id);
 
-      // Reset optimistic state after navigation
+      // Reset optimistic state
       setTimeout(() => {
         setOptimisticActive(false);
-      }, 1000);
+      }, 500);
     }
-  }, [router, params?.serverId, params?.channelId, channel.id, isMounted]);
+  }, [
+    onChannelClick,
+    activeChannelId,
+    channel.id,
+    params?.channelId,
+    isMounted,
+  ]);
 
   // Memoize the action handler to prevent unnecessary re-renders
   const onAction = useCallback(
@@ -163,12 +174,12 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
         isActive
           ? 'bg-gradient-to-r from-blue-600/30 to-purple-600/30 border-blue-400/40 shadow-md shadow-blue-900/20 transform translate-x-0.5'
           : 'hover:border-gray-500/30',
-        isPending && 'opacity-70 cursor-wait',
+        // Removed isPending since we use callback-based navigation
         isDragging && 'opacity-50 scale-95',
         isDraggable && 'hover:border-blue-400/30',
         isOver && 'border-blue-400/60 bg-blue-500/10'
       ),
-    [isActive, isPending, isDragging, isDraggable, isOver]
+    [isActive, isDragging, isDraggable, isOver]
   );
 
   const iconClasses = useMemo(
@@ -250,7 +261,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
           onClick={onClick}
           className={buttonClasses}
           title={channel.name}
-          disabled={isPending}
+          disabled={false}
           style={{ width: '100%' }}
         >
           <Icon className={iconClasses} />
@@ -261,12 +272,7 @@ export function ServerChannel({ channel, server, role }: ServerChannelProps) {
             <div className='absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-blue-400 to-purple-500 rounded-r-full' />
           )}
 
-          {/* Loading indicator */}
-          {isPending && (
-            <div className='absolute inset-0 bg-gray-900/20 rounded-xl flex items-center justify-center'>
-              <div className='w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin' />
-            </div>
-          )}
+          {/* Removed loading indicator since we use instant callback navigation */}
         </button>
       </div>
 

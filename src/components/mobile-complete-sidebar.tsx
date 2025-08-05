@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { SideBarItem } from '@/components/layout/side-bar-item';
 import { NotificationBell } from '@/components/notifications/notification-bell';
-import { Separator } from '@/components/ui/separator';
 import { ActionTooltip } from '@/components/ui/action-tooltip';
 import { UserButton } from '@clerk/nextjs';
 import { LayoutDashboard } from 'lucide-react';
@@ -20,12 +19,16 @@ interface MobileCompleteSidebarProps {
     name: string;
     imageUrl: string;
   }>;
+  onChannelClick?: (channelId: string) => void;
+  activeChannelId?: string | null;
 }
 
 export function MobileCompleteSidebar({
   server,
   role,
   servers,
+  onChannelClick,
+  activeChannelId,
 }: MobileCompleteSidebarProps) {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -117,7 +120,12 @@ export function MobileCompleteSidebar({
 
       {/* Server-Specific Content - Right Side */}
       <div className='flex-1 min-w-0'>
-        <MobileServerWrapper server={server} role={role} />
+        <MobileServerWrapper
+          server={server}
+          role={role}
+          onChannelClick={onChannelClick}
+          activeChannelId={activeChannelId}
+        />
       </div>
     </div>
   );

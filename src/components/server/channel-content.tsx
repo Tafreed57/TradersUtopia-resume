@@ -1,26 +1,25 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatMessages } from '@/components/chat/chat-messages';
-import { useExtendedUser } from '@/contexts/session-provider';
 import {
   useServerData,
   useCurrentMember,
 } from '@/contexts/server-data-provider';
+import { useExtendedUser } from '@/contexts/session-provider';
 import { MemberWithUserAndRole } from '@/types/server';
 import { Role } from '@prisma/client';
+import { Loader2 } from 'lucide-react';
 
-interface ChannelIdPageProps {
-  params: {
-    serverId: string;
-    channelId: string;
-  };
+interface ChannelContentProps {
+  channelId: string | null;
+  serverId: string;
+  onChannelClick?: (channelId: string) => void;
+  activeChannelId?: string | null;
 }
 
-// ✅ SIMPLIFIED: Loading state for text channels only
 function ChannelLoadingState() {
   return (
     <div className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full'>
@@ -35,48 +34,64 @@ function ChannelLoadingState() {
   );
 }
 
-export default function ChannelIdPage({ params }: ChannelIdPageProps) {
-  const router = useRouter();
-  const { isLoaded, user, hasAccess, isAdmin, isLoading } = useExtendedUser();
+function NoChannelState() {
+  return (
+    <div className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full items-center justify-center'>
+      <div className='text-center'>
+        <div className='w-16 h-16 bg-gray-600/20 rounded-full flex items-center justify-center mb-4 mx-auto'>
+          <span className='text-2xl text-gray-400'>#</span>
+        </div>
+        <h3 className='text-xl font-semibold text-gray-300 mb-2'>
+          Welcome to the server!
+        </h3>
+        <p className='text-gray-400 text-sm'>
+          Select a channel from the sidebar to start chatting.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MessageLoadingState() {
+  return (
+    <div className='flex-1 flex items-center justify-center relative z-10'>
+      <div className='text-center'>
+        <Loader2 className='w-8 h-8 text-blue-400 rounded-full animate-spin mx-auto mb-4' />
+        <p className='text-gray-400 text-sm'>Loading messages...</p>
+      </div>
+    </div>
+  );
+}
+
+export function ChannelContent({
+  channelId,
+  serverId,
+  onChannelClick,
+  activeChannelId,
+}: ChannelContentProps) {
   const {
     server,
     isLoading: serverLoading,
     error: serverError,
-    prefetchChannel,
   } = useServerData();
   const member = useCurrentMember();
+  const { isLoaded, user, hasAccess, isAdmin, isLoading } = useExtendedUser();
+  const [shouldLoadMessages, setShouldLoadMessages] = useState(false);
 
-  // Extract channel from server data
-  const channel = server?.channels?.find(c => c.id === params.channelId);
+  // Find the channel from server data
+  const channel = server?.channels?.find(c => c.id === channelId);
 
-  // Prefetch channel data for better performance
+  // Load messages after channel selection with a small delay for smooth UX
   useEffect(() => {
-    if (server && params.channelId) {
-      prefetchChannel(params.channelId);
-    }
-  }, [server, params.channelId, prefetchChannel]);
+    setShouldLoadMessages(false);
+    if (channelId && channel) {
+      const timer = setTimeout(() => {
+        setShouldLoadMessages(true);
+      }, 100); // Small delay allows header to render first
 
-  // Handle authentication and access control
-  useEffect(() => {
-    // Wait for both Clerk and our extended user data to finish loading
-    if (!isLoaded || isLoading) return;
-
-    // Redirect to sign-in if not authenticated
-    if (!user) {
-      router.push('/sign-in');
-      return;
+      return () => clearTimeout(timer);
     }
-
-    // Only check access control after we're sure user is authenticated and data is loaded
-    // Additional safety check: ensure we're not in a loading state for access/admin data
-    if (user && !isLoading) {
-      // Redirect to pricing if signed in but no access (and not admin)
-      if (!hasAccess && !isAdmin) {
-        router.push('/pricing');
-        return;
-      }
-    }
-  }, [isLoaded, user, hasAccess, isAdmin, isLoading, router]);
+  }, [channelId, channel]);
 
   // Show loading state while checking auth or loading server
   if (!isLoaded || isLoading || serverLoading) {
@@ -98,6 +113,11 @@ export default function ChannelIdPage({ params }: ChannelIdPageProps) {
         </div>
       </div>
     );
+  }
+
+  // No channel selected
+  if (!channelId) {
+    return <NoChannelState />;
   }
 
   // Handle channel not found
@@ -132,6 +152,7 @@ export default function ChannelIdPage({ params }: ChannelIdPageProps) {
         <div className='absolute bottom-1/3 right-1/4 w-48 h-48 bg-purple-500/3 rounded-full blur-2xl animate-pulse delay-1000' />
       </div>
 
+      {/* Header renders instantly from cached server data */}
       <ChatHeader
         name={channel.name}
         serverId={channel.serverId}
@@ -139,29 +160,37 @@ export default function ChannelIdPage({ params }: ChannelIdPageProps) {
         channelId={channel.id}
         server={server}
         role={member.role as Role}
+        onChannelClick={onChannelClick}
+        activeChannelId={activeChannelId}
       />
 
-      {/* ✅ SIMPLIFIED: Only handle TEXT channels */}
+      {/* Messages Section */}
       <div className='flex-1 relative z-10 overflow-visible'>
-        <ChatMessages
-          chatId={channel.id}
-          member={member as MemberWithUserAndRole}
-          name={channel.name}
-          type='channel'
-          apiUrl={`/api/servers/${params.serverId}/channels/${params.channelId}/messages`}
-          socketUrl={`/api/servers/${params.serverId}/channels/${params.channelId}/messages`}
-          socketQuery={{
-            channelId: channel.id,
-            serverId: channel.serverId,
-          }}
-          paramKey='channelId'
-          paramValue={channel.id}
-        />
+        {shouldLoadMessages ? (
+          <ChatMessages
+            chatId={channel.id}
+            member={member as MemberWithUserAndRole}
+            name={channel.name}
+            type='channel'
+            apiUrl={`/api/servers/${serverId}/channels/${channelId}/messages`}
+            socketUrl={`/api/servers/${serverId}/channels/${channelId}/messages`}
+            socketQuery={{
+              channelId: channel.id,
+              serverId: channel.serverId,
+            }}
+            paramKey='channelId'
+            paramValue={channel.id}
+          />
+        ) : (
+          <MessageLoadingState />
+        )}
       </div>
+
+      {/* Chat Input */}
       <ChatInput
         name={channel.name}
         type='channel'
-        apiUrl={`/api/servers/${params.serverId}/channels/${params.channelId}/messages`}
+        apiUrl={`/api/servers/${serverId}/channels/${channelId}/messages`}
         query={{
           channelId: channel.id,
           serverId: channel.serverId,

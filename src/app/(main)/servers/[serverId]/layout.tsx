@@ -1,7 +1,5 @@
 'use client';
 
-import { ServerSideBar } from '@/components/layout/server-side-bar';
-import { MainContent } from '@/components/layout/main-content';
 import {
   ServerDataProvider,
   useServerData,
@@ -77,14 +75,7 @@ function ServerLayoutContent({
     );
   }
 
-  return (
-    <div className='h-full'>
-      <div className='hidden md:flex h-full z-20 flex-col fixed inset-y-0'>
-        <ServerSideBar serverId={serverId} />
-      </div>
-      <MainContent id='main-content'>{children}</MainContent>
-    </div>
-  );
+  return <div className='h-full'>{children}</div>;
 }
 
 export default ServerIdLayout;

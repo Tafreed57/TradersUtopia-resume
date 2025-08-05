@@ -40,9 +40,9 @@ export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
 
             // Validate that we have the required server data
             if (serverData?.serverId && serverData?.landingChannelId) {
-              // Valid server data - take user to the server
+              // Valid server data - take user to the server with new routing format
               router.push(
-                `/servers/${serverData.serverId}/channels/${serverData.landingChannelId}`
+                `/servers/${serverData.serverId}?channel=${serverData.landingChannelId}`
               );
               // Keep isNavigating true - it will be reset by page unload or user interaction
               return;
