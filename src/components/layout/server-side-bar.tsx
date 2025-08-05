@@ -1,7 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useExtendedUser } from '@/hooks/use-extended-user';
+import { useExtendedUser } from '@/contexts/session-provider';
+import {
+  useServerData,
+  useCurrentMember,
+} from '@/contexts/server-data-provider';
 import { ServerHeader } from '@/components/layout/server-header';
 import { Hash, Loader2 } from 'lucide-react';
 import { ChannelType, Role } from '@prisma/client';
@@ -10,7 +13,6 @@ import { SectionContent } from '@/components/section-content';
 import { DragDropProvider } from '@/contexts/drag-drop-provider';
 import { ServerWithMembersWithUsers } from '@/types/server';
 import { ResizableWrapper } from './resizable-wrapper';
-import { useEffect, useState } from 'react';
 
 interface ServerSideBarProps {
   serverId: string;
@@ -21,84 +23,20 @@ const iconMap = {
 };
 
 export function ServerSideBar({ serverId }: ServerSideBarProps) {
-  const router = useRouter();
   const {
-    isLoaded,
-    isSignedIn,
-    user,
+    server,
+    isLoading: serverLoading,
+    error: serverError,
+  } = useServerData();
+  const member = useCurrentMember();
+  const {
     hasAccess,
     isLoading: userLoading,
     error: userError,
   } = useExtendedUser();
-  const [server, setServer] = useState<ServerWithMembersWithUsers | null>(null);
-  const [isLoadingServer, setIsLoadingServer] = useState(true);
-  const [serverError, setServerError] = useState<string | null>(null);
-
-  // Handle authentication redirects
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push('/');
-      return;
-    }
-  }, [isLoaded, isSignedIn, router]);
-
-  // Fetch server data when user is available
-  useEffect(() => {
-    const fetchServerData = async () => {
-      if (!isLoaded || !isSignedIn || !user?.id || userLoading) {
-        return;
-      }
-
-      if (!hasAccess) {
-        router.push('/pricing');
-        return;
-      }
-
-      try {
-        setIsLoadingServer(true);
-        setServerError(null);
-
-        const response = await fetch(`/api/servers/${serverId}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
-        });
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            router.push('/');
-            return;
-          }
-          throw new Error(`Failed to fetch server: ${response.status}`);
-        }
-
-        const serverData = await response.json();
-        setServer(serverData);
-      } catch (error) {
-        console.error('Error fetching server:', error);
-        setServerError(
-          error instanceof Error ? error.message : 'Failed to load server'
-        );
-        router.push('/');
-      } finally {
-        setIsLoadingServer(false);
-      }
-    };
-
-    fetchServerData();
-  }, [
-    isLoaded,
-    isSignedIn,
-    user?.id,
-    userLoading,
-    hasAccess,
-    serverId,
-    router,
-  ]);
 
   // Show loading state
-  if (!isLoaded || userLoading || isLoadingServer || !server) {
+  if (userLoading || serverLoading) {
     return (
       <ResizableWrapper>
         <div className='flex items-center justify-center h-full'>
@@ -109,13 +47,15 @@ export function ServerSideBar({ serverId }: ServerSideBarProps) {
   }
 
   // Show error state
-  if (userError || serverError) {
+  if (userError || serverError || !server) {
     return (
       <ResizableWrapper>
         <div className='flex items-center justify-center h-full p-4'>
           <div className='text-center text-zinc-500'>
             <p>Failed to load server</p>
-            <p className='text-sm mt-1'>{userError || serverError}</p>
+            <p className='text-sm mt-1'>
+              {userError || serverError || 'Server not found'}
+            </p>
           </div>
         </div>
       </ResizableWrapper>
@@ -127,9 +67,7 @@ export function ServerSideBar({ serverId }: ServerSideBarProps) {
     return null;
   }
 
-  const role = server?.members?.find(
-    member => member.user.id === user.id
-  )?.role;
+  const role = member?.role;
 
   const channelsWithoutSection = server.channels.filter(
     channel => !channel.sectionId

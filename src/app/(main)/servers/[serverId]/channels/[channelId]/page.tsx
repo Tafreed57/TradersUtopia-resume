@@ -1,15 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatInput } from '@/components/chat/chat-input';
 import { ChatMessages } from '@/components/chat/chat-messages';
-import { useExtendedUser } from '@/hooks/use-extended-user';
+import { useExtendedUser } from '@/contexts/session-provider';
 import {
-  MemberWithUserAndRole,
-  ServerWithMembersWithUsers,
-} from '@/types/server';
+  useServerData,
+  useCurrentMember,
+} from '@/contexts/server-data-provider';
+import { MemberWithUserAndRole } from '@/types/server';
 import { Role } from '@prisma/client';
 
 interface ChannelIdPageProps {
@@ -37,42 +38,23 @@ function ChannelLoadingState() {
 export default function ChannelIdPage({ params }: ChannelIdPageProps) {
   const router = useRouter();
   const { isLoaded, user, hasAccess, isAdmin, isLoading } = useExtendedUser();
-  const [server, setServer] = useState<ServerWithMembersWithUsers | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
+  const {
+    server,
+    isLoading: serverLoading,
+    error: serverError,
+    prefetchChannel,
+  } = useServerData();
+  const member = useCurrentMember();
 
-  // Extract channel and member from server data
+  // Extract channel from server data
   const channel = server?.channels?.find(c => c.id === params.channelId);
-  const member = server?.members?.[0]; // Current user's member data
 
-  // Fetch server data with channel context from API
+  // Prefetch channel data for better performance
   useEffect(() => {
-    const fetchData = async () => {
-      if (!isLoaded || !user) return;
-
-      try {
-        setDataLoading(true);
-
-        // Fetch server data with channel context
-        const serverResponse = await fetch(
-          `/api/servers/${params.serverId}/channels/${params.channelId}`
-        );
-        if (serverResponse.ok) {
-          const serverData = await serverResponse.json();
-          setServer(serverData);
-        } else {
-          router.push('/');
-          return;
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        router.push('/');
-      } finally {
-        setDataLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [isLoaded, user, params.serverId, params.channelId, router]);
+    if (server && params.channelId) {
+      prefetchChannel(params.channelId);
+    }
+  }, [server, params.channelId, prefetchChannel]);
 
   // Handle authentication and access control
   useEffect(() => {
@@ -96,8 +78,8 @@ export default function ChannelIdPage({ params }: ChannelIdPageProps) {
     }
   }, [isLoaded, user, hasAccess, isAdmin, isLoading, router]);
 
-  // Show loading state while checking auth
-  if (!isLoaded || isLoading) {
+  // Show loading state while checking auth or loading server
+  if (!isLoaded || isLoading || serverLoading) {
     return <ChannelLoadingState />;
   }
 
@@ -106,9 +88,30 @@ export default function ChannelIdPage({ params }: ChannelIdPageProps) {
     return null;
   }
 
-  // Show loading state while fetching server data
-  if (dataLoading) {
-    return <ChannelLoadingState />;
+  // Show error state for server errors
+  if (serverError) {
+    return (
+      <div className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full items-center justify-center'>
+        <div className='text-center'>
+          <p className='text-red-400 mb-2'>Failed to load server</p>
+          <p className='text-gray-400 text-sm'>{serverError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle channel not found
+  if (server && !channel) {
+    return (
+      <div className='bg-gradient-to-br from-gray-900/95 via-gray-800/90 to-gray-900/95 backdrop-blur-xl flex flex-col h-full items-center justify-center'>
+        <div className='text-center'>
+          <p className='text-orange-400 mb-2'>Channel not found</p>
+          <p className='text-gray-400 text-sm'>
+            This channel may have been deleted or you don't have access to it.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // Don't render if required data isn't loaded

@@ -42,6 +42,7 @@ export const sendMessageNotifications = task({
     factor: 2,
     randomize: true,
   },
+  machine: 'small-2x',
   run: async (payload: MessageNotificationPayload) => {
     const { messageId, senderId, senderName, channelId, serverId, content } =
       payload;

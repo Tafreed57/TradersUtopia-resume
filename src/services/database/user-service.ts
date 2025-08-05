@@ -942,9 +942,14 @@ export class UserService extends BaseDatabaseService {
             },
           },
           // Must have active subscription OR be admin
-          subscription: {
-            status: 'ACTIVE',
-          },
+          OR: [
+            { isAdmin: true },
+            {
+              subscription: {
+                status: 'ACTIVE',
+              },
+            },
+          ],
         },
         select: {
           id: true,

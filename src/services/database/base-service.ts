@@ -8,6 +8,9 @@ import type { PrismaTransaction } from './types';
  * Abstract base class for all database services that use Prisma ORM.
  * Provides common error handling, validation, pagination, and transaction utilities.
  *
+ * Uses a singleton pattern for PrismaClient to share database connections across
+ * all service instances for better performance and resource utilization.
+ *
  * @abstract
  * @example
  * ```typescript
@@ -26,22 +29,92 @@ import type { PrismaTransaction } from './types';
 export abstract class BaseDatabaseService {
   public prisma: PrismaClient;
 
+  // Singleton pattern for shared PrismaClient instance
+  private static sharedPrisma: PrismaClient | null = null;
+  private static cleanupHandlersRegistered = false;
+
   /**
-   * Creates a new database service instance.
-   *
-   * @param prisma - Optional Prisma client instance. Uses default if not provided.
+   * Creates a new database service instance using a shared PrismaClient.
+   * The PrismaClient singleton is created once and reused across all service instances
+   * to optimize database connection pooling and reduce resource consumption.
    */
   constructor() {
-    this.prisma = new PrismaClient({
-      datasources: {
-        db: {
-          // Use validated and properly formatted database URL
-          url: process.env.DATABASE_URL,
+    this.prisma = BaseDatabaseService.getSharedPrismaClient();
+  }
+
+  /**
+   * Gets or creates the shared PrismaClient instance.
+   * Uses singleton pattern to ensure only one PrismaClient exists across the application.
+   *
+   * @returns The shared PrismaClient instance
+   */
+  private static getSharedPrismaClient(): PrismaClient {
+    if (!BaseDatabaseService.sharedPrisma) {
+      BaseDatabaseService.sharedPrisma = new PrismaClient({
+        datasources: {
+          db: {
+            // Use validated and properly formatted database URL
+            url: process.env.DATABASE_URL,
+          },
         },
-      },
-      log:
-        process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    });
+        log:
+          process.env.NODE_ENV === 'development'
+            ? ['error', 'warn']
+            : ['error'],
+      });
+
+      // Register cleanup handlers only once
+      if (!BaseDatabaseService.cleanupHandlersRegistered) {
+        process.on('beforeExit', async () => {
+          await BaseDatabaseService.cleanup();
+        });
+
+        process.on('SIGINT', async () => {
+          await BaseDatabaseService.cleanup();
+          process.exit(0);
+        });
+
+        process.on('SIGTERM', async () => {
+          await BaseDatabaseService.cleanup();
+          process.exit(0);
+        });
+
+        BaseDatabaseService.cleanupHandlersRegistered = true;
+      }
+
+      apiLogger.databaseOperation('prisma_singleton_created', true, {
+        nodeEnv: process.env.NODE_ENV,
+        logLevel: process.env.NODE_ENV === 'development' ? 'warn' : 'error',
+      });
+    }
+
+    return BaseDatabaseService.sharedPrisma;
+  }
+
+  /**
+   * Cleanup method to properly disconnect the shared PrismaClient.
+   * Should be called during application shutdown to ensure clean disconnection.
+   */
+  public static async cleanup(): Promise<void> {
+    if (BaseDatabaseService.sharedPrisma) {
+      try {
+        await BaseDatabaseService.sharedPrisma.$disconnect();
+        apiLogger.databaseOperation('prisma_singleton_disconnected', true, {
+          message: 'PrismaClient singleton disconnected cleanly',
+        });
+      } catch (error) {
+        apiLogger.databaseOperation(
+          'prisma_singleton_disconnect_error',
+          false,
+          {
+            error: error instanceof Error ? error.message : String(error),
+          }
+        );
+      } finally {
+        BaseDatabaseService.sharedPrisma = null;
+        BaseDatabaseService.cleanupHandlersRegistered = false;
+      }
+    }
   }
 
   /**

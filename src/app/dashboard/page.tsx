@@ -200,7 +200,9 @@ export default function Dashboard() {
                     !
                   </h1>
                   <p className='text-gray-400 text-sm mt-1'>
-                    {user.email} • Trading Dashboard
+                    {user.primaryEmailAddress?.emailAddress ||
+                      user.emailAddresses?.[0]?.emailAddress}{' '}
+                    • Trading Dashboard
                   </p>
                 </div>
               </div>
