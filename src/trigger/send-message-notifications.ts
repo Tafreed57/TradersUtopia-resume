@@ -106,7 +106,7 @@ export const sendMessageNotifications = task({
         content.length > 100 ? content.substring(0, 100) + '...' : content;
       const title = `New message in ${serverInfo.name} #${channelInfo.name}`;
       const message = `${senderName}: ${truncatedContent}`;
-      const actionUrl = `/servers/${serverId}/channels/${channelId}`;
+      const actionUrl = `/servers/${serverId}?channelId=${channelId}`;
 
       // 🚀 OPTIMIZED: Send all push notifications in parallel FIRST
       logger.info('Sending push notifications in parallel');
