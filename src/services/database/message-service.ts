@@ -95,24 +95,6 @@ export class MessageService extends BaseDatabaseService {
   }
 
   /**
-   * Get source messages from external trading database
-   * Specialized endpoint for trading data integration
-   */
-  async getSourceMessages(
-    channelName: string,
-    userId: string,
-    options: {
-      cursor?: string;
-      limit?: number;
-    } = {}
-  ): Promise<{
-    items: any[];
-    nextCursor: string | null;
-  }> {
-    return this.trackRecord.getSourceMessages(channelName, userId, options);
-  }
-
-  /**
    * Create track record message
    * Admin-only operation for track record updates
    */

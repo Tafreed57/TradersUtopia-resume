@@ -48,12 +48,3 @@ export function centsToDollars(cents: number): number {
 export function dollarsToCents(dollars: number): number {
   return Math.round(dollars * 100);
 }
-
-/**
- * Format currency without symbol for display
- * @param cents - Amount in cents
- * @returns Formatted number string (e.g., "149.99")
- */
-export function formatCurrencyNumber(cents: number): string {
-  return (cents / 100).toFixed(2);
-}

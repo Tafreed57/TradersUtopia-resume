@@ -103,6 +103,7 @@ const nextConfig = {
   // ✅ EXPERIMENTAL: Only stable features
   experimental: {
     serverComponentsExternalPackages: ['web-push', 'resend'],
+    optimizePackageImports: [],
   },
 
   images: {

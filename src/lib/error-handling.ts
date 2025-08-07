@@ -185,13 +185,6 @@ export function withErrorHandling<T extends any[], R>(
   };
 }
 
-export function validateEmail(email: string): void {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    throw new ValidationError('Invalid email format');
-  }
-}
-
 /**
  * Security helpers
  */
@@ -205,14 +198,3 @@ export function maskId(id: string): string {
   if (!id || id.length < 4) return '***';
   return `${id.substring(0, 4)}***`;
 }
-
-/**
- * Common validation schemas
- */
-export const commonSchemas = {
-  id: z.string().min(1, 'ID is required'),
-  email: z.string().email('Invalid email format'),
-  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  url: z.string().url('Invalid URL format').optional(),
-  metadata: z.record(z.string()).optional(),
-};

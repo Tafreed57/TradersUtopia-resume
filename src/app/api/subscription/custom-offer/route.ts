@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, authHelpers } from '@/middleware/auth-middleware';
 import { rateLimitSubscription } from '@/lib/rate-limit';
-import { DiscountOfferService } from '@/services';
 import { apiLogger } from '@/lib/enhanced-logger';
 import { z } from 'zod';
+import { DiscountOfferService } from '@/services/database/discount-offer-service';
 
 const getOfferSchema = z.object({
   subscriptionId: z.string().min(1, 'Subscription ID is required'),

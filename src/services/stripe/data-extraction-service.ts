@@ -2,8 +2,8 @@ import Stripe from 'stripe';
 import { BaseStripeService } from './base/base-stripe-service';
 import { SubscriptionStatus } from '@prisma/client';
 import { apiLogger } from '@/lib/enhanced-logger';
-import { ValidationError } from '../database/errors';
-import { BatchExtractor, CheckoutExtractor } from './data-extraction';
+import { BatchExtractor } from './data-extraction/batch-extractor';
+import { CheckoutExtractor } from './data-extraction/checkout-extractor';
 
 // Extended type for invoices that include subscription information (from webhooks)
 type StripeInvoiceWithSubscription = Stripe.Invoice & {

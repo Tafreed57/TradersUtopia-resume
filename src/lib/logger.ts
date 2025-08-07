@@ -121,14 +121,3 @@ const logger = new Logger();
 
 // ✅ EXPORT THE LOGGER INSTANCE
 export { logger };
-
-// ✅ LEGACY SUPPORT: Replace common logging patterns
-export const conditionalLog = {
-  productCheck: (message: string, data?: any) => logger.debug(message, data),
-  subscriptionDetails: (message: string, data?: any) =>
-    logger.verbose(message, data),
-  webhook: (message: string, data?: any) => logger.webhook(message, data),
-  admin: (message: string, data?: any) => logger.info(message, data),
-  security: (message: string, data?: any) => logger.security(message, data),
-  error: (message: string, data?: any) => logger.error(message, data),
-};
