@@ -71,7 +71,6 @@ export const POST = withOptionalAuth(
         });
       }
 
-      console.log('userWithSubscription', userWithSubscription);
       // Check subscription status from database
       let hasActiveSubscription = false;
       if (userWithSubscription.subscription) {
