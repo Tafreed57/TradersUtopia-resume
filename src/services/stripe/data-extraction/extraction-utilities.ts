@@ -38,12 +38,24 @@ export class ExtractionUtilities extends BaseStripeService {
    * Extract current period end from subscription data
    */
   extractCurrentPeriodEnd(subscription: Stripe.Subscription): Date | null {
-    const currentPeriodEnd = (subscription as any).current_period_end;
-    if (!currentPeriodEnd) {
-      return null;
+    // Primary: Use current_period_end from subscription
+    // Note: TypeScript types don't include this field but it exists in the API response
+    const subscriptionWithPeriod = subscription as Stripe.Subscription & {
+      current_period_end?: number;
+    };
+    if (subscriptionWithPeriod.current_period_end) {
+      return new Date(subscriptionWithPeriod.current_period_end * 1000);
     }
 
-    return new Date(currentPeriodEnd * 1000);
+    // Fallback: Extract from subscription items if available
+    if (subscription.items?.data?.length > 0) {
+      const firstItem = subscription.items.data[0];
+      if ('current_period_end' in firstItem && firstItem.current_period_end) {
+        return new Date(firstItem.current_period_end * 1000);
+      }
+    }
+
+    return null;
   }
 
   /**
