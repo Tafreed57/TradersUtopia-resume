@@ -104,12 +104,12 @@ export class MessageCrudService extends BaseDatabaseService {
       });
 
       return {
-        messages: messages.reverse(), // Reverse to show oldest first
+        messages,
         nextCursor,
         hasMore,
       };
     } catch (error) {
-      return await this.handleError(error, 'get_messages_from_channel', {
+      return this.handleError(error, 'get_messages_from_channel', {
         channelId: maskId(channelId),
         userId: maskId(userId),
       });

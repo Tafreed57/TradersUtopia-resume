@@ -48,23 +48,16 @@ export function ChatMessages({
   const isSourceChannel = Object.keys(sourceChannelMap).includes(name);
 
   const fetchMessages = async ({ pageParam = undefined }) => {
-    const url = isSourceChannel
-      ? qs.stringifyUrl({
-          url: `/api/source-messages/${name}`,
-          query: {
-            cursor: pageParam,
-          },
-        })
-      : qs.stringifyUrl(
-          {
-            url: apiUrl,
-            query: {
-              [paramKey]: paramValue,
-              cursor: pageParam,
-            },
-          },
-          { skipNull: true }
-        );
+    const url = qs.stringifyUrl(
+      {
+        url: apiUrl,
+        query: {
+          [paramKey]: paramValue,
+          cursor: pageParam,
+        },
+      },
+      { skipNull: true }
+    );
 
     const res = await fetch(url);
     return res.json();
