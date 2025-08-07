@@ -99,16 +99,16 @@ export function ComprehensivePricingSection({
           url.searchParams.set('client_reference_id', referral);
         }
 
-        // Open in new tab with prefilled email and client reference
-        window.open(url.toString(), '_blank');
+        // Open on the same page with prefilled email and client reference
+        window.location.href = url.toString();
       } catch (error) {
         console.error('Invalid URL:', error);
         // Fallback to original URL if there's an error
-        window.open(checkoutUrl, '_blank');
+        window.location.href = checkoutUrl;
       }
     } else {
       // Fallback if no email is available
-      window.open(checkoutUrl, '_blank');
+      window.location.href = checkoutUrl;
     }
   };
 
