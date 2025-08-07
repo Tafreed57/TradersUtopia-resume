@@ -34,7 +34,6 @@ import { SubscriptionManager } from '@/components/subscription/subscription-mana
 
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import UserManagement from '@/components/admin/user-management';
-import { TRADING_ALERT_PRODUCTS } from '@/lib/product-config';
 
 // Professional card styling
 const cardClasses = `

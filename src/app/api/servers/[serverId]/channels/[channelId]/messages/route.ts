@@ -93,16 +93,25 @@ export const POST = withAuth(async (req: NextRequest, { user, isAdmin }) => {
 
   const messageService = new MessageService();
 
-  // Step 2: Create message using service layer (includes access verification)
-  const message = await messageService.createMessage(
-    {
-      content: validatedData.content,
-      fileUrl: validatedData.fileUrl,
-      channelId,
-      serverId,
-    },
-    user.id
+  // First get the member ID for this user in this server
+  const memberService = new (
+    await import('@/services/database/member-service')
+  ).MemberService();
+  const member = await memberService.findMemberByUserAndServer(
+    user.id,
+    serverId
   );
+
+  if (!member) {
+    return new NextResponse('Member not found', { status: 404 });
+  }
+
+  // Step 2: Create message using service layer (includes access verification)
+  const message = await messageService.createMessage({
+    content: validatedData.content,
+    channelId,
+    memberId: member.id,
+  });
 
   apiLogger.databaseOperation('message_created_via_api', true, {
     messageId: message.id.substring(0, 8) + '***',

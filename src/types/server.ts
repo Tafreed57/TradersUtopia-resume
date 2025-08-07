@@ -19,9 +19,7 @@ export type MemberWithUserAndRole = Member & {
   role: Role;
 };
 
-export type MessagesWithMemberWithUser = Message & {
-  member: Member & { user: User };
-};
+// MessagesWithMemberWithUser removed - unused export
 
 export type MessagesWithMemberWithUserAndRole = Message & {
   member: MemberWithUserAndRole;

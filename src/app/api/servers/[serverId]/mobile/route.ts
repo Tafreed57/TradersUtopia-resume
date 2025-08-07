@@ -70,11 +70,7 @@ export const GET = withAuth(
       const serverService = new ServerService();
 
       // Get mobile data using service layer
-      const result = await serverService.getMobileData(
-        serverId,
-        user.id,
-        ifModifiedSince || undefined
-      );
+      const result = await serverService.getMobileData(serverId, user.id);
 
       // Handle not modified response (304)
       if (result.notModified) {

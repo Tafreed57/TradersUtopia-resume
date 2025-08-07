@@ -1,11 +1,10 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { ServerSideBar } from '@/components/layout/server-side-bar';
 import { ChannelContent } from '@/components/server/channel-content';
 import { useServerData } from '@/contexts/server-data-provider';
-import { useExtendedUser } from '@/contexts/session-provider';
 import { useResizableSidebar } from '@/hooks/use-resizable-sidebar';
 import { Loader2 } from 'lucide-react';
 
@@ -16,10 +15,8 @@ interface ServerIdPageProps {
 }
 
 function ServerPageContent({ serverId }: { serverId: string }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { server, isLoading: serverLoading } = useServerData();
-  const { isLoaded, user, hasAccess, isAdmin, isLoading } = useExtendedUser();
   const { width: sidebarWidth } = useResizableSidebar({
     minWidth: 240,
     maxWidth: 600,
@@ -49,21 +46,6 @@ function ServerPageContent({ serverId }: { serverId: string }) {
 
     return () => window.removeEventListener('resize', checkWindowSize);
   }, []);
-
-  // Handle authentication redirects
-  useEffect(() => {
-    if (!isLoaded || isLoading) return;
-
-    if (!user) {
-      router.push('/sign-in');
-      return;
-    }
-
-    if (!hasAccess && !isAdmin) {
-      router.push('/pricing');
-      return;
-    }
-  }, [isLoaded, user, hasAccess, isAdmin, isLoading, router]);
 
   // Set default channel when server loads
   useEffect(() => {
@@ -114,8 +96,8 @@ function ServerPageContent({ serverId }: { serverId: string }) {
     [activeChannelId, serverId]
   );
 
-  // Loading state
-  if (!isLoaded || isLoading || serverLoading) {
+  // Loading state for server data only
+  if (serverLoading) {
     return (
       <div className='h-full flex items-center justify-center bg-gray-900'>
         <div className='text-center'>
@@ -124,11 +106,6 @@ function ServerPageContent({ serverId }: { serverId: string }) {
         </div>
       </div>
     );
-  }
-
-  // Don't render if user doesn't have access
-  if (!user || (!hasAccess && !isAdmin)) {
-    return null;
   }
 
   return (

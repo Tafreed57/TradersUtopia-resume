@@ -6,7 +6,6 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import { SignedIn, UserButton, useUser, SignedOut } from '@clerk/nextjs';
 import { AuthHeader } from '@/components/auth-header';
-import { GlobalMobileMenu } from '@/components/global-mobile-menu';
 import { useScrollPosition } from '@/hooks/use-scroll-position';
 import { useEffect, useState } from 'react';
 import {
@@ -313,11 +312,6 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
                 <div className='w-12 h-8 bg-white/10 rounded animate-pulse'></div>
               </div>
             )}
-
-            {/* Mobile Menu */}
-            <div className='md:hidden flex items-center'>
-              <GlobalMobileMenu currentPage={currentPage} />
-            </div>
           </div>
         </header>
 

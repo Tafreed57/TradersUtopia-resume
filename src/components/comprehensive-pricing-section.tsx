@@ -2,10 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { PricingButtons } from '@/components/pricing-buttons';
+import { useRouter } from 'next/navigation';
+import { useExtendedUser } from '@/hooks/use-extended-user';
 
 import { CheckCircle, Crown, Star, Loader2 } from 'lucide-react';
 import { SmartEntryButton } from '@/components/smart-entry-button';
+
+// Declare global Rewardful types
+declare global {
+  interface Window {
+    rewardful: (event: string, callback: () => void) => void;
+    Rewardful: {
+      referral: any;
+    };
+  }
+}
 
 interface ComprehensivePricingSectionProps {
   isSignedIn: boolean;
@@ -15,8 +26,26 @@ export function ComprehensivePricingSection({
   isSignedIn,
 }: ComprehensivePricingSectionProps) {
   const { user } = useUser();
+  const router = useRouter();
   const [subscriptionData, setSubscriptionData] = useState<any>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [referral, setReferral] = useState<any | null>(null);
+
+  // ✅ ENHANCED: Use extended user hook with comprehensive service data
+  const { hasAccess, isLoading: authLoading } = useExtendedUser();
+
+  // Initialize Rewardful integration
+  useEffect(() => {
+    // Check if Rewardful is available before using it
+    if (typeof window !== 'undefined' && window.rewardful) {
+      window.rewardful('ready', function () {
+        if (window.Rewardful) {
+          setReferral(window.Rewardful.referral);
+        }
+      });
+    }
+  }, []);
 
   useEffect(() => {
     async function checkSubscription() {
@@ -44,6 +73,72 @@ export function ComprehensivePricingSection({
 
     checkSubscription();
   }, [user]);
+
+  const handleStripeRedirect = () => {
+    const checkoutUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL;
+
+    if (!checkoutUrl) {
+      console.error(
+        'NEXT_PUBLIC_STRIPE_CHECKOUT_URL environment variable not found'
+      );
+      // Fallback: redirect to pricing page
+      router.push('/pricing');
+      return;
+    }
+
+    const userEmail = user?.emailAddresses[0]?.emailAddress;
+
+    if (userEmail) {
+      try {
+        // Add prefilled_email and client_reference_id parameters to the Stripe URL
+        const url = new URL(checkoutUrl);
+        url.searchParams.set('locked_prefilled_email', userEmail);
+
+        // Add client_reference_id based on referral status
+        if (referral) {
+          url.searchParams.set('client_reference_id', referral);
+        }
+
+        // Open in new tab with prefilled email and client reference
+        window.open(url.toString(), '_blank');
+      } catch (error) {
+        console.error('Invalid URL:', error);
+        // Fallback to original URL if there's an error
+        window.open(checkoutUrl, '_blank');
+      }
+    } else {
+      // Fallback if no email is available
+      window.open(checkoutUrl, '_blank');
+    }
+  };
+
+  const handlePremiumAccessClick = async () => {
+    setLoading(true);
+
+    try {
+      if (isSignedIn) {
+        // ✅ OPTIMIZED: Use cached auth data to determine redirect
+        if (hasAccess) {
+          router.push('/dashboard');
+        } else {
+          // Direct redirect to Stripe checkout with email and referral integration
+          handleStripeRedirect();
+        }
+      } else {
+        // Redirect to sign-up with pricing page as the redirect destination
+        router.push('/sign-up?redirect_url=' + encodeURIComponent('/pricing'));
+      }
+    } catch (error) {
+      console.error('Error in premium click:', error);
+      // Fallback to sign-up with pricing page as redirect destination
+      router.push('/sign-up?redirect_url=' + encodeURIComponent('/pricing'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ PERFORMANCE: Show loading state while auth data loads
+  const isLoadingState = loading || authLoading;
 
   // Show loading state while checking subscription for signed-in users
   if (isSignedIn && checkingStatus) {
@@ -102,10 +197,16 @@ export function ComprehensivePricingSection({
           </span>
         </div>
 
-        <div className='inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base'>
+        <button
+          onClick={handlePremiumAccessClick}
+          disabled={isLoadingState}
+          className='inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base transition-all duration-200 hover:scale-105 hover:shadow-lg cursor-pointer'
+        >
           <CheckCircle className='w-4 h-4 sm:w-5 sm:h-5' />
-          <span className='font-semibold'>Premium Access</span>
-        </div>
+          <span className='font-semibold'>
+            {isLoadingState ? 'Loading...' : 'Get Premium Access'}
+          </span>
+        </button>
       </div>
 
       {/* Enhanced Features List - Mobile-Optimized */}
@@ -199,36 +300,6 @@ export function ComprehensivePricingSection({
           </div>
         </div>
       </div>
-
-      {/* Enhanced Action Buttons - Mobile-Optimized */}
-      <div className='bg-gradient-to-r from-gray-800/60 to-gray-900/60 rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 border border-gray-600/30'>
-        <PricingButtons />
-      </div>
-
-      {/* Additional Info for Existing Members */}
-      {isSignedIn && subscriptionData?.hasAccess && (
-        <div className='mt-6 pt-6 border-t border-gray-600/30'>
-          <div className='text-center'>
-            <p className='text-gray-400 text-sm mb-3'>
-              As an active member, you have full access to:
-            </p>
-            <div className='flex flex-wrap justify-center gap-3 text-xs'>
-              <span className='bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full'>
-                Premium Alerts
-              </span>
-              <span className='bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full'>
-                Live Classes
-              </span>
-              <span className='bg-green-500/20 text-green-300 px-3 py-1 rounded-full'>
-                Private Channels
-              </span>
-              <span className='bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full'>
-                Community Resources
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

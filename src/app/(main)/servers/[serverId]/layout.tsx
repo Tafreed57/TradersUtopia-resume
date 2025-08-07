@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import {
   ServerDataProvider,
   useServerData,
@@ -13,9 +15,55 @@ const ServerIdLayout = ({
   children: React.ReactNode;
   params: { serverId: string };
 }) => {
+  const router = useRouter();
   const { isLoaded, user, hasAccess, isAdmin, isLoading } = useExtendedUser();
+  console.log('isLoaded', isLoaded);
+  console.log('isLoading', isLoading);
+  console.log('user', user);
+  console.log('hasAccess', hasAccess);
+  console.log('isAdmin', isAdmin);
+
+  // Handle authentication redirects
+  useEffect(() => {
+    if (!isLoaded || isLoading) return;
+
+    if (!user) {
+      router.push('/sign-in');
+      return;
+    }
+
+    if (!hasAccess && !isAdmin) {
+      router.push('/pricing');
+      return;
+    }
+  }, [isLoaded, user, hasAccess, isAdmin, isLoading, router]);
 
   // Show loading state while checking auth
+
+  // Show redirecting state for unauthenticated users
+  if (!user) {
+    return (
+      <div className='h-full flex items-center justify-center bg-gray-900'>
+        <div className='text-center'>
+          <div className='w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin mx-auto mb-4' />
+          <p className='text-gray-400'>Redirecting to sign in...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show redirecting state for users without access
+  if (!hasAccess && !isAdmin) {
+    return (
+      <div className='h-full flex items-center justify-center bg-gray-900'>
+        <div className='text-center'>
+          <div className='w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin mx-auto mb-4' />
+          <p className='text-gray-400'>Redirecting to pricing...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoaded || isLoading) {
     return (
       <div className='h-full flex items-center justify-center bg-gray-900'>
@@ -25,11 +73,6 @@ const ServerIdLayout = ({
         </div>
       </div>
     );
-  }
-
-  // Don't render if user doesn't have access and isn't admin
-  if (!user || (!hasAccess && !isAdmin)) {
-    return null;
   }
 
   return (

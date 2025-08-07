@@ -90,21 +90,6 @@ const validateCSRFToken = async (request: NextRequest): Promise<boolean> => {
   }
 };
 
-// Get CSRF token for current user (using currentUser())
-export const getCSRFTokenForUser = async (): Promise<string | null> => {
-  try {
-    const user = await currentUser();
-    if (!user) {
-      return null;
-    }
-
-    return getCSRFTokenForUserId(user.id);
-  } catch (error) {
-    console.error('❌ [CSRF] Error getting CSRF token for user:', error);
-    return null;
-  }
-};
-
 // Get CSRF token for specific user ID (more reliable for service calls)
 export const getCSRFTokenForUserId = (userId: string): string => {
   try {

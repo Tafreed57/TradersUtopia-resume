@@ -1,11 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 
-export interface PaginationOptions {
+interface PaginationOptions {
   cursor?: string;
   limit?: number;
 }
 
-export interface PaginatedResult<T> {
+interface PaginatedResult<T> {
   data: T[];
   nextCursor?: string;
   hasMore: boolean;

@@ -1,38 +1,6 @@
 import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 
-// ==============================================
-// 🔒 SECURITY INPUT VALIDATION SCHEMAS
-// ==============================================
-
-// Password change schema - Enhanced security validation
-export const passwordChangeSchema = z
-  .object({
-    currentPassword: z.string().optional(), // Optional for first-time password setup
-    newPassword: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-      ),
-    confirmPassword: z.string().min(1, 'Please confirm your password'),
-    action: z.enum(['change', 'setup']).optional(), // Optional action field to distinguish between setup and change
-  })
-  .refine(data => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  });
-
-export const serverCreationSchema = z.object({
-  name: z.string().min(1, {
-    message: 'Server name is required.',
-  }),
-  imageUrl: z.string().min(1, {
-    message: 'Server image is required.',
-  }),
-});
-
 export const serverUpdateSchema = z.object({
   name: z.string().min(1, {
     message: 'Server name is required.',
@@ -49,70 +17,11 @@ export const channelSchema = z.object({
   type: z.enum(['TEXT']),
 });
 
-export const memberRoleSchema = z.object({
-  memberId: z.string(),
-  role: z.enum(['GUEST', 'MODERATOR']),
-});
-
-export const notificationActionSchema = z.object({
-  action: z.enum(['mark_read', 'mark_all_read', 'delete', 'create']),
-  notificationId: z.string().optional(),
-  // Fields for creating notifications
-  type: z
-    .enum([
-      'MESSAGE',
-      'MENTION',
-      'SERVER_UPDATE',
-      'FRIEND_REQUEST',
-      'SYSTEM',
-      'PAYMENT',
-      'SECURITY',
-    ])
-    .optional(),
-  title: z.string().min(1).max(200).optional(),
-  message: z.string().min(1).max(1000).optional(),
-  actionUrl: z
-    .string()
-    .optional()
-    .refine(
-      url =>
-        !url ||
-        (!url.includes('💬') &&
-          !url.includes('%F0%9F%92%AC') &&
-          url.startsWith('/')),
-      { message: 'Action URL must be a valid path and cannot contain emojis' }
-    ),
-});
-
-export const revokeAccessSchema = z.object({
-  reason: z.string().max(500, 'Reason too long').optional(),
-});
-
-export const subscriptionActivationSchema = z.object({
-  paymentId: z.string().min(1, 'Payment ID is required'),
-  paymentData: z
-    .object({
-      amount: z.number().optional(),
-      currency: z.string().optional(),
-      paymentMethod: z.string().optional(),
-    })
-    .optional(),
-});
-
 export const subscriptionCancelSchema = z.object({
   password: z.string().optional(),
   confirmCancel: z.boolean().optional(),
   reason: z.string().max(500, 'Reason too long').optional(),
 });
-
-export const autoRenewalSchema = z.object({
-  autoRenew: z.boolean(),
-});
-
-// Legacy schemas for backward compatibility
-export const cuidSchema = z
-  .string()
-  .regex(/^c[a-z0-9]{24}$/, 'Invalid ID format');
 
 // ==============================================
 // 🛡️ VALIDATION MIDDLEWARE

@@ -9,7 +9,6 @@ import {
   secureTextInput,
 } from '@/lib/validation';
 import { ValidationError } from '@/lib/error-handling';
-import { createNotification } from '@/lib/notifications';
 
 export const POST = withAuth(async (req: NextRequest, { user, userEmail }) => {
   const subscriptionService = new SubscriptionService();
@@ -85,14 +84,6 @@ export const POST = withAuth(async (req: NextRequest, { user, userEmail }) => {
     name: user.name,
     email: userEmail,
     imageUrl: user.imageUrl,
-  });
-
-  // Step 7: Create notification for user
-  await createNotification({
-    userId: user.id,
-    type: 'SUBSCRIPTION_CANCELLED',
-    title: 'Subscription Cancellation Scheduled',
-    message: `Your subscription has been set to cancel at the end of your current billing period on ${subscriptionStatus.nextBillingDate?.toLocaleDateString()}.`,
   });
 
   // Step 8: Build comprehensive response

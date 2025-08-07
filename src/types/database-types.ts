@@ -1,14 +1,4 @@
-export interface BaseMessage {
-  id: number;
-  msg_id: string;
-  content: string | null;
-  attachments: any;
-  reference_msg: any;
-  image_url: any;
-  timestamp: Date | null;
-  relayed: number;
-  created_at: Date;
-}
+// BaseMessage interface removed - unused
 
 // Table names
 const TABLE_NAMES = {

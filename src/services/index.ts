@@ -5,11 +5,16 @@ export {
   DatabaseError,
   ValidationError,
 } from './database/errors';
-export type {
-  PaginationOptions,
-  PaginatedResult,
-  PrismaTransaction,
-} from './database/types';
+// Database types removed - only used internally
+
+// Main database services (reorganized with sub-services)
+export { UserService } from './database/user-service';
+export { ServerService } from './database/server-service';
+export { ChannelService } from './database/channel-service';
+export { MessageService } from './database/message-service';
+export { MemberService } from './database/member-service';
+export { SectionService } from './database/section-service';
+export { TimerService } from './database/timer-service';
 
 // Stripe service architecture
 export { StripeClientService } from './stripe/base/stripe-client';
@@ -20,14 +25,8 @@ export { CustomerService } from './stripe/customer-service';
 export { SubscriptionService } from './stripe/subscription-service';
 export { InvoiceService } from './stripe/invoice-service';
 export { CouponService } from './stripe/coupon-service';
-export type {
-  ExtractedSubscriptionData,
-  StripeObjectWithSubscriptionData,
-} from './stripe/data-extraction-service';
-export type {
-  CreateCouponData,
-  CouponListOptions,
-} from './stripe/coupon-service';
+// Stripe data extraction types removed - only used internally
+// Coupon types removed - only used internally
 
 // Notification services
 export { NotificationService } from './database/notification-service';

@@ -6,7 +6,7 @@ import { apiLogger } from '@/lib/enhanced-logger';
 /**
  * Base API Error class for all custom application errors
  */
-export class APIError extends Error {
+class APIError extends Error {
   constructor(
     message: string,
     public statusCode: number = 500,
@@ -55,15 +55,6 @@ export class NotFoundError extends APIError {
 }
 
 /**
- * Conflict Error - 409 Conflict
- */
-export class ConflictError extends APIError {
-  constructor(message: string, details?: any) {
-    super(message, 409, 'CONFLICT_ERROR', details);
-  }
-}
-
-/**
  * Rate Limit Error - 429 Too Many Requests
  */
 export class RateLimitError extends APIError {
@@ -73,23 +64,9 @@ export class RateLimitError extends APIError {
 }
 
 /**
- * External Service Error - 502 Bad Gateway
- */
-export class ExternalServiceError extends APIError {
-  constructor(service: string, message?: string) {
-    super(
-      message || `${service} service unavailable`,
-      502,
-      'EXTERNAL_SERVICE_ERROR',
-      { service }
-    );
-  }
-}
-
-/**
  * Standardized error response interface
  */
-export interface ErrorResponse {
+interface ErrorResponse {
   error: string;
   code?: string;
   details?: any;
@@ -99,10 +76,7 @@ export interface ErrorResponse {
 /**
  * Create standardized error response with proper logging
  */
-export function createErrorResponse(
-  error: unknown,
-  operation?: string
-): NextResponse {
+function createErrorResponse(error: unknown, operation?: string): NextResponse {
   const timestamp = new Date().toISOString();
 
   // Log error with structured logging
@@ -209,48 +183,6 @@ export function withErrorHandling<T extends any[], R>(
       return createErrorResponse(error, operation);
     }
   };
-}
-
-/**
- * Async error handling utility for service methods
- */
-export async function handleServiceError<T>(
-  operation: () => Promise<T>,
-  errorContext: string,
-  context?: Record<string, any>
-): Promise<T> {
-  try {
-    return await operation();
-  } catch (error) {
-    // Log error with context
-    apiLogger.databaseOperation(errorContext, false, {
-      error: error instanceof Error ? error.message : String(error),
-      context,
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-
-    // Re-throw for higher-level handling
-    throw error;
-  }
-}
-
-/**
- * Validation helpers
- */
-export function validateRequired<T>(
-  value: T | null | undefined,
-  fieldName: string
-): T {
-  if (value === null || value === undefined) {
-    throw new ValidationError(`${fieldName} is required`);
-  }
-  return value;
-}
-
-export function validateId(id: string, fieldName: string = 'id'): void {
-  if (!id || typeof id !== 'string' || id.trim().length === 0) {
-    throw new ValidationError(`Invalid ${fieldName} provided`);
-  }
 }
 
 export function validateEmail(email: string): void {

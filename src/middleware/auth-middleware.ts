@@ -17,7 +17,7 @@ import { User } from '@/services/types';
 /**
  * Authentication context provided to route handlers
  */
-export interface AuthContext {
+interface AuthContext {
   user: User;
   userId: string;
   userEmail: string;
@@ -29,7 +29,7 @@ export interface AuthContext {
 /**
  * Configuration options for withAuth middleware
  */
-export interface AuthOptions {
+interface AuthOptions {
   action: string;
   requireAdmin?: boolean;
   requireActiveSubscription?: boolean;
@@ -220,28 +220,6 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       });
       throw error;
     }
-  }, options.action);
-}
-
-/**
- * Lightweight version for public endpoints that only need rate limiting
- */
-export function withPublicAuth(
-  handler: (req: NextRequest) => Promise<NextResponse | Response | any>,
-  options: { action: string; requireRateLimit?: boolean }
-) {
-  return withErrorHandling(async (req: NextRequest) => {
-    // Rate limiting only
-    if (options.requireRateLimit !== false) {
-      const rateLimitResult = await rateLimitGeneral()(req);
-      if (!rateLimitResult.success) {
-        trackSuspiciousActivity(req, `${options.action}_RATE_LIMITED`);
-        throw new RateLimitError('Rate limit exceeded');
-      }
-    }
-
-    const result = await handler(req);
-    return result instanceof NextResponse ? result : NextResponse.json(result);
   }, options.action);
 }
 

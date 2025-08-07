@@ -48,14 +48,18 @@ console.log('🚀 Starting development servers...');
 if (isDebug) {
   console.log('   • Next.js with detailed logging');
   console.log('   • Trigger.dev');
+  console.log('   • Stripe webhook forwarding');
+  console.log('   • ngrok tunnel');
 } else {
   console.log('   • Next.js');
   console.log('   • Trigger.dev');
+  console.log('   • Stripe webhook forwarding');
+  console.log('   • ngrok tunnel');
 }
 console.log('');
 
 // Construct the full command as a string for better shell compatibility
-const command = `npx concurrently --kill-others --raw --names "next,trigger" --prefix-colors "yellow,blue" "next dev" "pnpm run trigger:dev"`;
+const command = `npx concurrently --kill-others --raw --names "next,trigger,stripe,ngrok" --prefix-colors "yellow,blue,green,magenta" "next dev" "pnpm run trigger:dev" "stripe listen --forward-to localhost:3000/api/webhooks/stripe" "ngrok http --url=ringtail-modest-gull.ngrok-free.app 3000"`;
 
 // Execute the concurrently process
 const child = exec(command, {

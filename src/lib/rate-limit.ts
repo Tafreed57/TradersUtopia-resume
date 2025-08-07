@@ -198,7 +198,10 @@ const rateLimit = (config: RateLimitConfig, prefix: string = 'default') => {
 
       // Log rate limit violation for security monitoring
       console.warn(
-        `⚠️ [RATE LIMIT] ${prefix} - Key: ${key.slice(0, 20)}... - Limit exceeded`
+        `⚠️ [RATE LIMIT] ${prefix} - Key: ${key.slice(
+          0,
+          20
+        )}... - Limit exceeded`
       );
 
       return {
@@ -246,22 +249,6 @@ export const rateLimitSubscription = () =>
 export const rateLimitGeneral = () =>
   rateLimit(RATE_LIMITS.GENERAL_API, 'general');
 
-// ✅ NEW: Additional rate limiters for comprehensive protection
-export const rateLimitServer = () =>
-  rateLimit(RATE_LIMITS.SERVER_OPERATIONS, 'server');
-export const rateLimitMessaging = () =>
-  rateLimit(RATE_LIMITS.MESSAGING_OPERATIONS, 'messaging');
-export const rateLimitAuth = () =>
-  rateLimit(RATE_LIMITS.AUTH_OPERATIONS, 'auth');
-export const rateLimitWebhook = () =>
-  rateLimit(RATE_LIMITS.WEBHOOK_OPERATIONS, 'webhook');
-export const rateLimitNotification = () =>
-  rateLimit(RATE_LIMITS.NOTIFICATION_OPERATIONS, 'notification');
-export const rateLimitMedia = () =>
-  rateLimit(RATE_LIMITS.MEDIA_OPERATIONS, 'media');
-export const rateLimitDragDrop = () =>
-  rateLimit(RATE_LIMITS.DRAG_DROP_OPERATIONS, 'dragdrop');
-
 // ==============================================
 // 🛡️ SECURITY MONITORING
 // ==============================================
@@ -292,7 +279,10 @@ export const trackSuspiciousActivity = (
   // Log high-risk activity
   if (activity.count > 5) {
     console.error(
-      `🚨 [SECURITY ALERT] High suspicious activity from ${key.slice(0, 30)}... - Reason: ${reason} - Count: ${activity.count}`
+      `🚨 [SECURITY ALERT] High suspicious activity from ${key.slice(
+        0,
+        30
+      )}... - Reason: ${reason} - Count: ${activity.count}`
     );
   }
 
