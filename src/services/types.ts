@@ -25,7 +25,7 @@ export interface Subscription {
   updatedAt: Date;
 }
 
-interface Server {
+export interface Server {
   id: string;
   name: string;
   imageUrl?: string;
@@ -69,7 +69,7 @@ export interface Member {
   updatedAt: Date;
 }
 
-interface Role {
+export interface Role {
   id: string;
   name: string;
   color?: string;
@@ -90,7 +90,23 @@ export interface Message {
   updatedAt: Date;
 }
 
-// Attachment interface removed - use Prisma's Attachment type instead
+export interface Attachment {
+  id: string;
+  messageId: string;
+  filename: string;
+  url: string;
+  cdnUrl?: string;
+  thumbnailUrl?: string;
+  fileType: string;
+  fileSize: number;
+  width?: number;
+  height?: number;
+  duration?: number;
+  uploadKey?: string;
+  metadata?: any;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface Notification {
   id: string;
@@ -176,12 +192,23 @@ export interface UpdateUserData {
   isAdmin?: boolean;
 }
 
-// UpsertUserData removed - unused interface
+export interface UpsertUserData extends CreateUserData {}
 
-// UserWithSubscription removed - unused interface (inline types used instead)
+export interface UserWithSubscription extends User {
+  subscription?: Subscription | null;
+  _count?: {
+    servers: number;
+    members: number;
+  };
+}
 
 // Server Service Types
-// CreateServerData removed - unused interface
+export interface CreateServerData {
+  name: string;
+  imageUrl?: string;
+  inviteCode?: string;
+  ownerId: string;
+}
 
 export interface UpdateServerData {
   name?: string;
@@ -195,7 +222,11 @@ export interface ServerWithMember extends Server {
   sections: Array<Section & { channels: Channel[] }>;
 }
 
-// ServerWithDetails removed - unused interface
+export interface ServerWithDetails extends Server {
+  channels: Channel[];
+  members: Array<Member & { user: User; role: Role }>;
+  sections: Array<Section & { channels: Channel[] }>;
+}
 
 // Channel Service Types
 export interface CreateChannelData {
@@ -213,7 +244,14 @@ export interface UpdateChannelData {
   position?: number;
 }
 
-// FindChannelCriteria removed - unused interface
+export interface FindChannelCriteria {
+  serverId?: string;
+  sectionId?: string;
+  name?: string;
+  type?: 'TEXT' | 'ANNOUNCEMENT';
+  limit?: number;
+  offset?: number;
+}
 
 export interface ChannelWithAccess extends Channel {
   server: {
@@ -229,7 +267,11 @@ export interface ChannelWithAccess extends Channel {
   creator: User;
 }
 
-// ChannelReorderData removed - unused interface
+export interface ChannelReorderData {
+  id: string;
+  position: number;
+}
+[];
 
 // Message Service Types
 export interface CreateMessageData {
@@ -243,7 +285,30 @@ export interface UpdateMessageData {
   deleted?: boolean;
 }
 
-interface AccessControlCheck {
+export interface MessageWithMember extends Message {
+  member: Member & { user: User };
+  attachments: Attachment[];
+}
+
+// =============================================================================
+// COMMON TYPES
+// =============================================================================
+
+export interface PaginationOptions {
+  limit?: number;
+  offset?: number;
+  orderBy?: Record<string, 'asc' | 'desc'>;
+}
+
+export interface ServiceResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  code?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface AccessControlCheck {
   hasAccess: boolean;
   reason?: string;
   requiredRole?: string;

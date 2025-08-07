@@ -76,7 +76,7 @@ export const PATCH = withAuth(async (req: NextRequest, { user }) => {
   // Step 2: Update message using service layer (includes permission verification)
   const updatedMessage = await messageService.updateMessage(
     messageId,
-    { content },
+    content,
     user.id
   );
 

@@ -3,7 +3,7 @@ import { apiLogger } from '@/lib/enhanced-logger';
 import { BaseDatabaseService } from './database/base-service';
 import { getCSRFTokenForUserId, getCSRFStats } from '@/lib/csrf';
 
-interface MediaTokenRequest {
+export interface MediaTokenRequest {
   room: string;
   username: string;
   permissions?: {
@@ -13,7 +13,7 @@ interface MediaTokenRequest {
   };
 }
 
-interface MediaTokenResponse {
+export interface MediaTokenResponse {
   token: string;
   expiresAt: Date;
   room: string;
@@ -25,14 +25,14 @@ interface MediaTokenResponse {
   };
 }
 
-interface CSRFTokenResponse {
+export interface CSRFTokenResponse {
   token: string;
   expiresIn: number;
   expiresAt: Date;
   usage: string;
 }
 
-interface CSRFStatsResponse {
+export interface CSRFStatsResponse {
   environment: string;
   timestamp: string;
   csrfStats: any;
