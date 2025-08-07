@@ -15,6 +15,7 @@ import {
 } from '@/lib/error-handling';
 
 /**
+ * ChannelService
  *
  * Consolidates channel access verification (15+ instances) and CRUD operations
  * with comprehensive audit logging for security compliance.
