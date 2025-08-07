@@ -12,7 +12,6 @@ import { useStore } from '@/store/store';
 import { ChannelType } from '@prisma/client';
 import { secureAxiosPatch } from '@/lib/csrf-client';
 import { z } from 'zod';
-import qs from 'query-string';
 import { FormModal } from './base';
 
 export function EditChannelModal() {
@@ -23,12 +22,8 @@ export function EditChannelModal() {
   });
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    const url = qs.stringifyUrl({
-      url: `/api/channels/${data?.channel?.id}`,
-      query: {
-        serverId: data?.server?.id,
-      },
-    });
+    // Use new server-based endpoint structure
+    const url = `/api/servers/${data?.server?.id}/channels/${data?.channel?.id}`;
     await secureAxiosPatch(url, { ...values, type: ChannelType.TEXT });
   };
 

@@ -41,11 +41,20 @@ export function FormModal({
 }: FormModalProps) {
   const router = useRouter();
   const closeModal = useStore(state => state.onClose);
+  const isOpen = useStore(state => state.isOpen);
+  const modalType = useStore(state => state.type);
 
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues,
   });
+
+  // Reset form with new default values when modal opens
+  React.useEffect(() => {
+    if (isOpen && modalType === type) {
+      form.reset(defaultValues);
+    }
+  }, [isOpen, modalType, type, defaultValues, form]);
 
   const isLoading = form.formState.isSubmitting;
 

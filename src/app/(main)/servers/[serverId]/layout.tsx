@@ -17,11 +17,6 @@ const ServerIdLayout = ({
 }) => {
   const router = useRouter();
   const { isLoaded, user, hasAccess, isAdmin, isLoading } = useExtendedUser();
-  console.log('isLoaded', isLoaded);
-  console.log('isLoading', isLoading);
-  console.log('user', user);
-  console.log('hasAccess', hasAccess);
-  console.log('isAdmin', isAdmin);
 
   // Handle authentication redirects
   useEffect(() => {

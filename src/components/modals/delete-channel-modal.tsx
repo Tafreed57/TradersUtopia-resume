@@ -4,17 +4,14 @@ import { ConfirmationModal } from './base';
 import { useStore } from '@/store/store';
 import { secureAxiosDelete } from '@/lib/csrf-client';
 import { useRouter } from 'next/navigation';
-import qs from 'query-string';
 
 export function DeleteChannelModal() {
   const router = useRouter();
   const data = useStore(state => state.data);
 
   const handleDeleteChannel = async () => {
-    const url = qs.stringifyUrl({
-      url: `/api/channels/${data?.channel?.id}`,
-      query: { serverId: data?.server?.id },
-    });
+    // Use new server-based endpoint structure
+    const url = `/api/servers/${data?.server?.id}/channels/${data?.channel?.id}`;
 
     // Perform the deletion
     await secureAxiosDelete(url);
