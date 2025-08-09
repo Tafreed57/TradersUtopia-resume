@@ -25,7 +25,7 @@ export interface Subscription {
   updatedAt: Date;
 }
 
-export interface Server {
+interface Server {
   id: string;
   name: string;
   imageUrl?: string;
@@ -69,7 +69,7 @@ export interface Member {
   updatedAt: Date;
 }
 
-export interface Role {
+interface Role {
   id: string;
   name: string;
   color?: string;
@@ -90,7 +90,7 @@ export interface Message {
   updatedAt: Date;
 }
 
-export interface Attachment {
+interface Attachment {
   id: string;
   messageId: string;
   filename: string;
@@ -194,7 +194,7 @@ export interface UpdateUserData {
 
 export interface UpsertUserData extends CreateUserData {}
 
-export interface UserWithSubscription extends User {
+interface UserWithSubscription extends User {
   subscription?: Subscription | null;
   _count?: {
     servers: number;
@@ -222,7 +222,7 @@ export interface ServerWithMember extends Server {
   sections: Array<Section & { channels: Channel[] }>;
 }
 
-export interface ServerWithDetails extends Server {
+interface ServerWithDetails extends Server {
   channels: Channel[];
   members: Array<Member & { user: User; role: Role }>;
   sections: Array<Section & { channels: Channel[] }>;
@@ -267,12 +267,6 @@ export interface ChannelWithAccess extends Channel {
   creator: User;
 }
 
-export interface ChannelReorderData {
-  id: string;
-  position: number;
-}
-[];
-
 // Message Service Types
 export interface CreateMessageData {
   content: string;
@@ -290,25 +284,7 @@ export interface MessageWithMember extends Message {
   attachments: Attachment[];
 }
 
-// =============================================================================
-// COMMON TYPES
-// =============================================================================
-
-export interface PaginationOptions {
-  limit?: number;
-  offset?: number;
-  orderBy?: Record<string, 'asc' | 'desc'>;
-}
-
-export interface ServiceResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  code?: string;
-  metadata?: Record<string, any>;
-}
-
-export interface AccessControlCheck {
+interface AccessControlCheck {
   hasAccess: boolean;
   reason?: string;
   requiredRole?: string;

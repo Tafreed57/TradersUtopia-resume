@@ -242,7 +242,7 @@ export function SessionProvider({
   );
 }
 
-export function useSession(): SessionContextType {
+function useSession(): SessionContextType {
   const context = useContext(SessionContext);
   if (!context) {
     throw new Error('useSession must be used within a SessionProvider');

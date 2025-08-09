@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { BaseStripeService } from './base/base-stripe-service';
 import { maskId } from '@/lib/error-handling';
 
-export interface CreateCouponData {
+interface CreateCouponData {
   discountAmountCents: number; // Discount amount in cents
   originalPriceCents: number; // Original price for percentage calculation
   currency: string; // Required for coupons
@@ -13,7 +13,7 @@ export interface CreateCouponData {
   metadata?: Record<string, string>;
 }
 
-export interface CouponListOptions {
+interface CouponListOptions {
   limit?: number;
   startingAfter?: string;
   endingBefore?: string;

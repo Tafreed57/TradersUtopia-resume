@@ -39,7 +39,7 @@ export const GET = withAuth(async (req: NextRequest, { user }) => {
     user.id,
     {
       cursor: cursor || undefined,
-      limit: 10,
+      limit: 30,
     }
   );
 
