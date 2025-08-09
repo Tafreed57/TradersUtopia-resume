@@ -78,9 +78,6 @@ export function TimerSettingsModal() {
     fetchCurrentSettings();
   }, [isModalOpen, form]);
 
-  // CSRF removed
-  const getCSRFToken = async () => null;
-
   const onSubmit = async (data: TimerSettingsForm) => {
     setIsLoading(true);
     setError(null);

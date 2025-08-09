@@ -77,23 +77,26 @@ export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
         group relative overflow-hidden
         bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600
         hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700
-        text-white font-semibold text-lg
-        px-8 py-4 rounded-xl
+        text-white font-semibold text-base md:text-lg lg:text-xl
+        px-4 py-3 md:px-8 md:py-4 lg:px-12 lg:py-6 rounded-lg md:rounded-xl
         shadow-lg hover:shadow-xl
         transform transition-all duration-200
-        hover:scale-105 hover:-translate-y-1
+        md:hover:scale-105 md:hover:-translate-y-1
         border border-blue-500/30
-        min-h-[56px] min-w-[200px]
+        min-h-[48px] md:min-h-[56px] lg:min-h-[64px]
+        w-full max-w-full
+        min-w-0
+        text-center
         ${className}
       `}
     >
-      <div className='flex items-center justify-center space-x-3'>
+      <div className='flex items-center justify-center w-full space-x-3'>
         {isLoadingState ? (
-          <Loader2 className='w-6 h-6 animate-spin' />
+          <Loader2 className='w-5 h-5 md:w-6 md:h-6 animate-spin' />
         ) : !isSignedIn ? (
-          <LogIn className='w-6 h-6' />
+          <LogIn className='w-5 h-5 md:w-6 md:h-6' />
         ) : (
-          <Shield className='w-6 h-6' />
+          <Shield className='w-5 h-5 md:w-6 md:h-6' />
         )}
 
         <span className='font-bold tracking-wide'>
