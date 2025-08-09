@@ -157,7 +157,7 @@ export function ComprehensivePricingSection({
       {/* Membership Status Banner - Show for signed-in users with subscription */}
       {isSignedIn && subscriptionData?.hasAccess && (
         <div className='bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-400/30 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8'>
-          <div className='flex items-center gap-4'>
+          <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4'>
             <div className='w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0'>
               <Star className='w-6 h-6 text-green-400' />
             </div>
@@ -169,7 +169,16 @@ export function ComprehensivePricingSection({
                 You already have access to Traders Utopia premium features!
               </p>
             </div>
-            <SmartEntryButton className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105' />
+            <SmartEntryButton
+              className='
+                bg-none bg-green-600 hover:bg-green-700 text-white
+                px-3 py-2.5 sm:px-4 sm:py-2.5
+                rounded-lg font-semibold transition-all duration-200 hover:scale-105
+                w-full sm:w-auto max-w-full sm:max-w-none sm:min-w-[220px]
+                min-h-[44px] sm:min-h-[48px]
+                text-sm md:text-base shadow-md mt-3 sm:mt-0 self-stretch sm:self-auto
+              '
+            />
           </div>
         </div>
       )}

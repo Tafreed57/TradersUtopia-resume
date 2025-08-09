@@ -84,22 +84,20 @@ export function SmartEntryButton({ className = '' }: SmartEntryButtonProps) {
         md:hover:scale-105 md:hover:-translate-y-1
         border border-blue-500/30
         min-h-[48px] md:min-h-[56px] lg:min-h-[64px]
-        w-full max-w-full
+        w-full max-w-full sm:w-auto sm:max-w-none
         min-w-0
         text-center
         ${className}
       `}
     >
-      <div className='flex items-center justify-center w-full space-x-3'>
+      <div className='flex flex-col md:flex-row items-center justify-center w-full gap-1.5 md:gap-3 text-center'>
         {isLoadingState ? (
           <Loader2 className='w-5 h-5 md:w-6 md:h-6 animate-spin' />
         ) : !isSignedIn ? (
           <LogIn className='w-5 h-5 md:w-6 md:h-6' />
-        ) : (
-          <Shield className='w-5 h-5 md:w-6 md:h-6' />
-        )}
+        ) : null}
 
-        <span className='font-bold tracking-wide'>
+        <span className='block font-bold tracking-wide whitespace-normal break-words leading-snug text-center max-w-full sm:max-w-none'>
           {isLoadingState
             ? 'Loading...'
             : !isSignedIn

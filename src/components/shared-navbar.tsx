@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 import Link from 'next/link';
 import NextImage from 'next/image';
@@ -18,6 +19,7 @@ import {
   TrendingUp,
   MessageSquare,
   Loader2,
+  Menu,
 } from 'lucide-react';
 import { SocialMediaButtons } from '@/components/social-media-buttons';
 
@@ -35,6 +37,7 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
   const [isMounted, setIsMounted] = useState(false);
   const { isScrolled } = useScrollPosition();
   const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // ✅ FIX: Prevent hydration mismatch by waiting for client-side mount
   useEffect(() => {
@@ -312,6 +315,199 @@ export function SharedNavbar({ currentPage }: SharedNavbarProps) {
                 <div className='w-12 h-8 bg-white/10 rounded animate-pulse'></div>
               </div>
             )}
+
+            {/* Mobile Menu Toggle */}
+            <div className='md:hidden'>
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='min-h-[2.5rem] min-w-[2.5rem] h-10 w-10 touch-manipulation'
+                    aria-label='Open menu'
+                  >
+                    <Menu className='h-5 w-5' />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side='right'
+                  className='p-0 w-[90vw] max-w-sm bg-gray-900 text-white border-l border-gray-700'
+                  style={{
+                    paddingTop: `calc(1rem + env(safe-area-inset-top))`,
+                  }}
+                >
+                  <div className='h-full flex flex-col'>
+                    <div className='px-4 pb-3 border-b border-gray-800'>
+                      <div className='flex items-center gap-3'>
+                        <div className='w-9 h-9 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg'>
+                          <NextImage
+                            src='/logo.png'
+                            alt='TradersUtopia'
+                            width={18}
+                            height={18}
+                          />
+                        </div>
+                        <div className='flex flex-col'>
+                          <span className='text-white text-sm font-semibold'>
+                            TradersUtopia
+                          </span>
+                          <span className='text-gray-400 text-xs'>
+                            Premium Trading Signals
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <nav className='flex-1 overflow-y-auto py-2'>
+                      {currentPage === 'home' ? (
+                        <div className='flex flex-col px-2'>
+                          <Link
+                            href='/dashboard'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <Crown className='w-4 h-4 mr-3' /> Dashboard
+                            </Button>
+                          </Link>
+                          <a
+                            href='#features'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <Target className='w-4 h-4 mr-3' /> Features
+                            </Button>
+                          </a>
+                          <a
+                            href='#free-videos'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <Video className='w-4 h-4 mr-3' /> Free Videos
+                            </Button>
+                          </a>
+                          <a
+                            href='#results'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <TrendingUp className='w-4 h-4 mr-3' /> Results
+                            </Button>
+                          </a>
+                          <a
+                            href='#testimonials'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <MessageSquare className='w-4 h-4 mr-3' /> Reviews
+                            </Button>
+                          </a>
+                          <a
+                            href='#pricing'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <DollarSign className='w-4 h-4 mr-3' /> Pricing
+                            </Button>
+                          </a>
+                        </div>
+                      ) : (
+                        <div className='flex flex-col px-2'>
+                          <Link
+                            href='/'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <Home className='w-4 h-4 mr-3' /> Home
+                            </Button>
+                          </Link>
+                          <Link
+                            href='/free-videos'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <Play className='w-4 h-4 mr-3' /> Free Videos
+                            </Button>
+                          </Link>
+                          <Link
+                            href='/pricing'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <DollarSign className='w-4 h-4 mr-3' /> Pricing
+                            </Button>
+                          </Link>
+                          <Link
+                            href='/dashboard'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <Crown className='w-4 h-4 mr-3' /> Dashboard
+                            </Button>
+                          </Link>
+                          <Link
+                            href='/track-record'
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className='w-full'
+                          >
+                            <Button
+                              variant='ghost'
+                              className='justify-start w-full h-11 text-white hover:bg-white/10'
+                            >
+                              <TrendingUp className='w-4 h-4 mr-3' /> Track
+                              Record
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
+                    </nav>
+
+                    <div className='px-4 py-3 border-t border-gray-800'>
+                      <SocialMediaButtons variant='compact' />
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </header>
 
