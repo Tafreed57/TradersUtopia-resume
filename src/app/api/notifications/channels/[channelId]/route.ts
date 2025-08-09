@@ -114,7 +114,6 @@ export const GET = withAuth(
   {
     action: 'channel_notification_get',
     requireAdmin: false,
-    requireCSRF: false,
     requireRateLimit: true,
     allowedMethods: ['GET'],
   }
@@ -244,7 +243,6 @@ export const PATCH = withAuth(
   {
     action: 'channel_notification_update',
     requireAdmin: false,
-    requireCSRF: true,
     requireRateLimit: true,
     allowedMethods: ['PATCH'],
   }

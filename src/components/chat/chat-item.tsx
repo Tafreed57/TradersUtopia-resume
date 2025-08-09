@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 import { useStore } from '@/store/store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Member, Role, User } from '@prisma/client';
-import { secureAxiosPatch } from '@/lib/csrf-client';
 import { Edit, FileText, ShieldAlert, ShieldCheck, Trash } from 'lucide-react';
 import NextImage from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
@@ -106,7 +105,12 @@ export function ChatItem({
     try {
       const url = `/api/servers/${socketQuery.serverId}/channels/${socketQuery.channelId}/messages/${id}`;
 
-      await secureAxiosPatch(url, values);
+      await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(values),
+      });
       form.reset();
       setIsEditing(false);
 

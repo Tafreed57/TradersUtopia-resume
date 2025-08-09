@@ -10,7 +10,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/store';
 import { ChannelType } from '@prisma/client';
-import { secureAxiosPatch } from '@/lib/csrf-client';
 import { z } from 'zod';
 import { FormModal } from './base';
 
@@ -24,7 +23,12 @@ export function EditChannelModal() {
   const onSubmit = async (values: z.infer<typeof schema>) => {
     // Use new server-based endpoint structure
     const url = `/api/servers/${data?.server?.id}/channels/${data?.channel?.id}`;
-    await secureAxiosPatch(url, { ...values, type: ChannelType.TEXT });
+    await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ ...values, type: ChannelType.TEXT }),
+    });
   };
 
   // Get initial values from the channel data

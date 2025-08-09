@@ -169,7 +169,6 @@ export const GET = withAuth(
   {
     action: 'mobile_data_retrieval',
     requireAdmin: false,
-    requireCSRF: false,
     requireRateLimit: true,
     allowedMethods: ['GET'],
   }

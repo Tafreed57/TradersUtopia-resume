@@ -60,7 +60,6 @@
     "@tanstack/react-query": "^5.81.5",
     "@trigger.dev/sdk": "^3.3.17",
     "@uploadthing/react": "^6.8.0",
-    "axios": "^1.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

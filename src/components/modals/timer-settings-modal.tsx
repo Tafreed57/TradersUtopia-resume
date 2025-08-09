@@ -78,34 +78,20 @@ export function TimerSettingsModal() {
     fetchCurrentSettings();
   }, [isModalOpen, form]);
 
-  // Get CSRF token
-  const getCSRFToken = async () => {
-    try {
-      const response = await fetch('/api/tokens/security?type=csrf');
-      const data = await response.json();
-      return data.token;
-    } catch (error) {
-      console.error('Failed to get CSRF token:', error);
-      return null;
-    }
-  };
+  // CSRF removed
+  const getCSRFToken = async () => null;
 
   const onSubmit = async (data: TimerSettingsForm) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const csrfToken = await getCSRFToken();
-      if (!csrfToken) {
-        throw new Error('Failed to get security token');
-      }
-
       const response = await fetch('/api/timer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
         },
+        credentials: 'include',
         body: JSON.stringify(data),
       });
 

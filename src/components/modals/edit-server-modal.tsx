@@ -11,7 +11,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { UploadDropzone } from '@/lib/uploadthing';
 import { useStore } from '@/store/store';
-import { secureAxiosPatch } from '@/lib/csrf-client';
 import NextImage from 'next/image';
 import { z } from 'zod';
 import { FormModal } from './base';
@@ -28,7 +27,12 @@ export function EditServerModal() {
     if (!data?.server?.id) {
       throw new Error('No server ID found');
     }
-    await secureAxiosPatch(`/api/servers/${data.server.id}`, values);
+    await fetch(`/api/servers/${data.server.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(values),
+    });
   };
 
   // Get initial values from server data

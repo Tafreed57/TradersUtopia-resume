@@ -20,7 +20,6 @@ import {
   Loader2,
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
-import { makeSecureRequest } from '@/lib/csrf-client';
 import { OfferConfirmationModal } from './offer-confirmation-modal';
 import { useUser } from '@clerk/nextjs';
 import { formatCurrency, centsToDollars, dollarsToCents } from '@/lib/utils';
@@ -217,13 +216,11 @@ export function CancellationFlowModal({
           }
 
           // Fetch fresh data from status API to get subscription end date
-          const response = await makeSecureRequest(
-            '/api/subscription?status=true',
-            {
-              method: 'GET',
-              headers: { 'Content-Type': 'application/json' },
-            }
-          );
+          const response = await fetch('/api/subscription?status=true', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+          });
 
           if (response.ok) {
             const data = await response.json();
@@ -252,13 +249,15 @@ export function CancellationFlowModal({
     try {
       // Get comprehensive subscription data
       const [comprehensiveResponse, statusResponse] = await Promise.all([
-        makeSecureRequest('/api/subscription?comprehensive=true', {
+        fetch('/api/subscription?comprehensive=true', {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         }),
-        makeSecureRequest('/api/subscription?status=true', {
+        fetch('/api/subscription?status=true', {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         }),
       ]);
 
@@ -343,11 +342,12 @@ export function CancellationFlowModal({
   // ✅ NEW: Check for existing stored offer
   const checkForStoredOffer = async (subscriptionId: string) => {
     try {
-      const response = await makeSecureRequest(
+      const response = await fetch(
         `/api/subscription/custom-offer?subscriptionId=${subscriptionId}`,
         {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         }
       );
 
@@ -373,14 +373,12 @@ export function CancellationFlowModal({
     discountPercent: number;
   }) => {
     try {
-      const response = await makeSecureRequest(
-        '/api/subscription/custom-offer/reject',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(offerData),
-        }
-      );
+      const response = await fetch('/api/subscription/custom-offer/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(offerData),
+      });
 
       const data = await response.json();
 
@@ -399,11 +397,12 @@ export function CancellationFlowModal({
   const acceptCustomOffer = async (offerId: string) => {
     try {
       // 1. Accept the offer in database
-      const acceptResponse = await makeSecureRequest(
+      const acceptResponse = await fetch(
         '/api/subscription/custom-offer/accept',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ offerId }),
         }
       );
@@ -415,14 +414,12 @@ export function CancellationFlowModal({
       }
 
       // 2. Apply the discount via Stripe
-      const couponResponse = await makeSecureRequest(
-        '/api/subscription/apply-coupon',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(acceptData.applyCouponData),
-        }
-      );
+      const couponResponse = await fetch('/api/subscription/apply-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(acceptData.applyCouponData),
+      });
 
       const couponData = await couponResponse.json();
 
@@ -606,24 +603,22 @@ export function CancellationFlowModal({
           throw new Error('Unable to retrieve subscription data');
         }
 
-        const response = await makeSecureRequest(
-          '/api/subscription/apply-coupon',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              percentOff: offerDetails.percentOff,
-              newMonthlyPrice: offerDetails.offerPriceCents,
-              currentPrice: stripeData.amount,
-              originalPrice: offerDetails.originalPriceCents,
-              customerId:
-                (stripeData as any).customerId ||
-                subscription?.customer?.id ||
-                subscription?.customerId,
-              subscriptionId: stripeData.id,
-            }),
-          }
-        );
+        const response = await fetch('/api/subscription/apply-coupon', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            percentOff: offerDetails.percentOff,
+            newMonthlyPrice: offerDetails.offerPriceCents,
+            currentPrice: stripeData.amount,
+            originalPrice: offerDetails.originalPriceCents,
+            customerId:
+              (stripeData as any).customerId ||
+              subscription?.customer?.id ||
+              subscription?.customerId,
+            subscriptionId: stripeData.id,
+          }),
+        });
 
         if (!response.ok) {
           const data = await response.json();
@@ -643,9 +638,10 @@ export function CancellationFlowModal({
         const priceAmount = hasStoredOffer
           ? storedOfferDetails?.offerPriceCents
           : offerDetails?.offerPriceCents;
-        await makeSecureRequest('/api/notifications', {
+        await fetch('/api/notifications', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             action: 'create',
             type: 'PAYMENT',
@@ -720,24 +716,22 @@ export function CancellationFlowModal({
         ((originalPriceCents - finalOfferPriceCents) / originalPriceCents) * 100
       );
 
-      const response = await makeSecureRequest(
-        '/api/subscription/apply-coupon',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            percentOff,
-            newMonthlyPrice: finalOfferPriceCents,
-            currentPrice: stripeData.amount,
-            originalPrice: originalPriceCents,
-            customerId:
-              (stripeData as any).customerId ||
-              subscription?.customer?.id ||
-              subscription?.customerId,
-            subscriptionId: stripeData.id,
-          }),
-        }
-      );
+      const response = await fetch('/api/subscription/apply-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          percentOff,
+          newMonthlyPrice: finalOfferPriceCents,
+          currentPrice: stripeData.amount,
+          originalPrice: originalPriceCents,
+          customerId:
+            (stripeData as any).customerId ||
+            subscription?.customer?.id ||
+            subscription?.customerId,
+          subscriptionId: stripeData.id,
+        }),
+      });
 
       if (!response.ok) {
         const data = await response.json();
@@ -803,25 +797,23 @@ export function CancellationFlowModal({
         (totalDiscountCents / originalPriceCents) * 100
       );
 
-      const response = await makeSecureRequest(
-        '/api/subscription/apply-coupon',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            percentOff,
-            newMonthlyPrice: finalOfferPriceCents, // Send in cents as API expects
-            currentPrice: currentDiscountedPriceCents, // Send in cents as API expects
-            originalPrice: originalPriceCents, // Send in cents as API expects
-            // ✅ NEW: Use fresh Stripe data identifiers
-            customerId:
-              (stripeData as any).customerId ||
-              subscription?.customer?.id ||
-              subscription?.customerId,
-            subscriptionId: stripeData.id,
-          }),
-        }
-      );
+      const response = await fetch('/api/subscription/apply-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          percentOff,
+          newMonthlyPrice: finalOfferPriceCents, // Send in cents as API expects
+          currentPrice: currentDiscountedPriceCents, // Send in cents as API expects
+          originalPrice: originalPriceCents, // Send in cents as API expects
+          // ✅ NEW: Use fresh Stripe data identifiers
+          customerId:
+            (stripeData as any).customerId ||
+            subscription?.customer?.id ||
+            subscription?.customerId,
+          subscriptionId: stripeData.id,
+        }),
+      });
 
       const data = await response.json();
 
@@ -835,9 +827,10 @@ export function CancellationFlowModal({
 
         // Create a notification for the user about the permanent discount
         try {
-          await makeSecureRequest('/api/notifications', {
+          await fetch('/api/notifications', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
               action: 'create',
               type: 'PAYMENT',
@@ -881,9 +874,10 @@ export function CancellationFlowModal({
 
     setIsLoading(true);
     try {
-      const response = await makeSecureRequest('/api/subscription/cancel', {
+      const response = await fetch('/api/subscription/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           confirmCancel: true,
         }),

@@ -10,7 +10,6 @@ import {
   ValidationError,
   withErrorHandling,
 } from '@/lib/error-handling';
-import { strictCSRFValidation } from '@/lib/csrf';
 import { rateLimitGeneral, trackSuspiciousActivity } from '@/lib/rate-limit';
 import { User } from '@/services/types';
 
@@ -33,7 +32,6 @@ interface AuthOptions {
   action: string;
   requireAdmin?: boolean;
   requireActiveSubscription?: boolean;
-  requireCSRF?: boolean;
   requireRateLimit?: boolean;
   allowedMethods?: string[];
 }
@@ -62,19 +60,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       throw new ValidationError(`Method ${req.method} not allowed`);
     }
 
-    // 1. CSRF Protection (default: enabled for state-changing operations)
-    if (
-      options.requireCSRF !== false &&
-      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
-    ) {
-      const csrfValid = await strictCSRFValidation(req);
-      if (!csrfValid) {
-        trackSuspiciousActivity(req, `${options.action}_CSRF_FAILED`);
-        throw new ValidationError('CSRF validation failed');
-      }
-    }
-
-    // 2. Rate Limiting (default: enabled)
+    // 1. Rate Limiting (default: enabled)
     if (options.requireRateLimit !== false) {
       const rateLimitResult = await rateLimitGeneral()(req);
       if (!rateLimitResult.success) {
@@ -83,7 +69,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       }
     }
 
-    // 3. User Authentication
+    // 2. User Authentication
     const clerkUser = await currentUser();
     if (!clerkUser) {
       apiLogger.databaseOperation(`${options.action}_auth_failed`, false, {
@@ -93,7 +79,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       throw new AuthenticationError('Authentication required');
     }
 
-    // 4. Profile/User Lookup with Service Layer
+    // 3. Profile/User Lookup with Service Layer
     const userService = new UserService();
     const user = await userService.findByClerkId(clerkUser.id);
 
@@ -110,7 +96,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       throw new AuthenticationError('User profile not found');
     }
 
-    // 5. Admin Authorization Check
+    // 4. Admin Authorization Check
     if (options.requireAdmin && !user.isAdmin) {
       apiLogger.databaseOperation(`${options.action}_admin_required`, false, {
         userId: user.id.substring(0, 8) + '***',
@@ -120,7 +106,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       throw new AuthorizationError('Admin privileges required');
     }
 
-    // 6. Active Subscription Check (with admin bypass)
+    // 5. Active Subscription Check (with admin bypass)
     if (options.requireActiveSubscription && !user.isAdmin) {
       try {
         const subscriptionService = new SubscriptionService();
@@ -180,7 +166,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       );
     }
 
-    // 7. Build Authentication Context
+    // 6. Build Authentication Context
     const authContext: AuthContext = {
       user,
       userId: user.id, // Clerk user ID
@@ -190,7 +176,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       params,
     };
 
-    // 8. Log Successful Authentication
+    // 7. Log Successful Authentication
     const duration = Date.now() - startTime;
     apiLogger.databaseOperation(`${options.action}_auth_success`, true, {
       userId: user.id.substring(0, 8) + '***',
@@ -199,7 +185,7 @@ export function withAuth(handler: AuthenticatedHandler, options: AuthOptions) {
       action: options.action,
     });
 
-    // 9. Execute the actual route handler
+    // 8. Execute the actual route handler
     try {
       const result = await handler(req, authContext);
 
@@ -288,7 +274,6 @@ export const authHelpers = {
   adminOnly: (action: string) => ({
     action,
     requireAdmin: true,
-    requireCSRF: true,
     requireRateLimit: true,
   }),
 
@@ -298,7 +283,6 @@ export const authHelpers = {
   userOnly: (action: string) => ({
     action,
     requireAdmin: false,
-    requireCSRF: true,
     requireRateLimit: true,
   }),
 
@@ -308,7 +292,6 @@ export const authHelpers = {
   readOnly: (action: string) => ({
     action,
     requireAdmin: false,
-    requireCSRF: false,
     requireRateLimit: true,
     allowedMethods: ['GET'],
   }),
@@ -319,7 +302,6 @@ export const authHelpers = {
   subscription: (action: string) => ({
     action,
     requireAdmin: false,
-    requireCSRF: true,
     requireRateLimit: true,
     allowedMethods: ['GET', 'POST', 'PATCH'],
   }),
@@ -331,7 +313,6 @@ export const authHelpers = {
     action,
     requireAdmin: false,
     requireActiveSubscription: true,
-    requireCSRF: true,
     requireRateLimit: true,
   }),
 };

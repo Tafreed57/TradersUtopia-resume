@@ -17,7 +17,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/store';
 import { ChannelType } from '@prisma/client';
-import { secureAxiosPost } from '@/lib/csrf-client';
 import { useParams } from 'next/navigation';
 import { z } from 'zod';
 import { useEffect } from 'react';
@@ -42,7 +41,12 @@ export function CreateChannelModal() {
       sectionId: values.sectionId,
     };
 
-    await secureAxiosPost(url, payload);
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
   };
 
   const hasServerSections = (server: any): server is { sections: any[] } => {

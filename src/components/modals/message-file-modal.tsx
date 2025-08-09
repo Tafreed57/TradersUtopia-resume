@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/form';
 import { UploadDropzone } from '@/lib/uploadthing';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { secureAxiosPost } from '@/lib/csrf-client';
 import NextImage from 'next/image';
 import qs from 'query-string';
 import { useForm } from 'react-hook-form';
@@ -63,7 +62,12 @@ export function MessageFileModal() {
       });
 
       console.log('💬 [MESSAGE] Sending file message:', values);
-      await secureAxiosPost(url, { ...values, content: values.fileUrl });
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ...values, content: values.fileUrl }),
+      });
       form.reset();
       router.refresh();
       handleClose();

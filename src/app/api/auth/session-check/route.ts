@@ -117,6 +117,5 @@ export const POST = withOptionalAuth(
   {
     action: 'SESSION_CHECK',
     requireRateLimit: true,
-    requireCSRF: true,
   }
 );

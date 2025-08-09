@@ -23,7 +23,6 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { useRouter } from 'next/navigation';
-import { secureAxiosPatch } from '@/lib/csrf-client';
 import { toast } from 'sonner';
 import { useExtendedUser } from '@/hooks/use-extended-user';
 
@@ -118,12 +117,17 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       newSectionId?: string
     ) => {
       try {
-        const response = await secureAxiosPatch(
+        const response = await fetch(
           `/api/servers/${serverId}/channels/${channelId}/reorder`,
           {
-            channelId,
-            newPosition,
-            newSectionId,
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              channelId,
+              newPosition,
+              newSectionId,
+            }),
           }
         );
         console.log('🔄 [DRAG-DROP] Reorder channel response:', response);
@@ -152,14 +156,12 @@ export function DragDropProvider({ children }: DragDropProviderProps) {
       newParentId?: string
     ) => {
       try {
-        await secureAxiosPatch(
-          `/api/servers/${serverId}/sections/${sectionId}/reorder`,
-          {
-            sectionId,
-            newPosition,
-            newParentId,
-          }
-        );
+        await fetch(`/api/servers/${serverId}/sections/${sectionId}/reorder`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ sectionId, newPosition, newParentId }),
+        });
 
         // Use debounced refresh like channels do for consistency
         debouncedRefresh();

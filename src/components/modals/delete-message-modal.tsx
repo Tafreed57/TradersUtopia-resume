@@ -2,7 +2,6 @@
 
 import { ConfirmationModal } from './base';
 import { useStore } from '@/store/store';
-import { secureAxiosDelete } from '@/lib/csrf-client';
 import { useRouter } from 'next/navigation';
 import qs from 'query-string';
 
@@ -15,7 +14,7 @@ export function DeleteMessageModal() {
       url: data?.apiUrl || '',
       query: data?.query,
     });
-    await secureAxiosDelete(url);
+    await fetch(url, { method: 'DELETE', credentials: 'include' });
     router.refresh();
   };
 

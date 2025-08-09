@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/store';
-import { secureAxiosPost } from '@/lib/csrf-client';
 import { z } from 'zod';
 import { FormModal } from './base';
 
@@ -22,7 +21,12 @@ export function CreateSectionModal() {
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     const url = `/api/servers/${data?.server?.id}/sections`;
-    await secureAxiosPost(url, values);
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(values),
+    });
   };
 
   return (

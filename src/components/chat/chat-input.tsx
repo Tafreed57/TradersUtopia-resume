@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Send } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import z from 'zod';
-import { secureAxiosPost } from '@/lib/csrf-client';
 import qs from 'query-string';
 import { useStore } from '@/store/store';
 import { EmojiPicker } from '@/components/ui/emoji-picker';
@@ -57,7 +56,12 @@ export function ChatInput({
       const processedContent = values.content.replace(/(?<!\s\s)\n/g, '  \n');
 
       // Send the message to the API
-      await secureAxiosPost(url, { ...values, content: processedContent });
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ...values, content: processedContent }),
+      });
       form.reset();
 
       // ✅ IMMEDIATE UI UPDATE: Refetch messages to show the new message instantly

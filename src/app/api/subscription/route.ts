@@ -481,7 +481,6 @@ export const GET = withAuth(
   {
     action: 'subscription_api',
     requireAdmin: false,
-    requireCSRF: false,
     requireRateLimit: true,
     allowedMethods: ['GET'],
   }

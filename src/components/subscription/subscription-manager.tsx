@@ -21,7 +21,6 @@ import {
   Eye,
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
-import { makeSecureRequest } from '@/lib/csrf-client';
 import { CancellationFlowModal } from '@/components/modals/cancellation-flow-modal';
 import { formatCurrency } from '@/lib/utils';
 
@@ -217,9 +216,10 @@ export function SubscriptionManager() {
     setInvoiceError(null);
 
     try {
-      const response = await makeSecureRequest('/api/invoices', {
+      const response = await fetch('/api/invoices', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
 
       if (!response.ok) {

@@ -2,7 +2,6 @@
 
 import { ConfirmationModal } from './base';
 import { useStore } from '@/store/store';
-import { secureAxiosDelete } from '@/lib/csrf-client';
 import { useRouter } from 'next/navigation';
 
 export function DeleteChannelModal() {
@@ -14,7 +13,7 @@ export function DeleteChannelModal() {
     const url = `/api/servers/${data?.server?.id}/channels/${data?.channel?.id}`;
 
     // Perform the deletion
-    await secureAxiosDelete(url);
+    await fetch(url, { method: 'DELETE', credentials: 'include' });
 
     // Emit custom event for real-time UI update
     const deleteEvent = new CustomEvent('channel-deleted', {

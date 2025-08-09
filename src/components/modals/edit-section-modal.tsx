@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/store/store';
-import { secureAxiosPatch } from '@/lib/csrf-client';
 import { z } from 'zod';
 import { FormModal } from './base';
 
@@ -22,7 +21,12 @@ export function EditSectionModal() {
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     const url = `/api/servers/${data?.server?.id}/sections/${data?.section?.id}`;
-    await secureAxiosPatch(url, values);
+    await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(values),
+    });
   };
 
   // Get initial values from the section data

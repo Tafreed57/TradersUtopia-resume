@@ -32,7 +32,6 @@ import {
   XCircle,
 } from 'lucide-react';
 import { showToast } from '@/lib/notifications-client';
-import { makeSecureRequest } from '@/lib/csrf-client';
 import { formatDistanceToNow } from 'date-fns';
 
 interface UserData {
@@ -110,11 +109,12 @@ function UserManagement({
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await makeSecureRequest('/api/admin/users', {
+      const response = await fetch('/api/admin/users', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -148,11 +148,12 @@ function UserManagement({
 
     setActionLoading(`delete-${userId}`);
     try {
-      const response = await makeSecureRequest('/api/admin/users/delete', {
+      const response = await fetch('/api/admin/users/delete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ userId }),
       });
 
@@ -194,16 +195,14 @@ function UserManagement({
 
     setActionLoading(`toggleAdmin-${userId}`);
     try {
-      const response = await makeSecureRequest(
-        '/api/admin/users/toggle-admin',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ userId, grantAdmin: !isCurrentlyAdmin }),
-        }
-      );
+      const response = await fetch('/api/admin/users/toggle-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ userId, grantAdmin: !isCurrentlyAdmin }),
+      });
 
       if (response.ok) {
         await fetchUsers(); // Refresh the user list

@@ -91,7 +91,6 @@ export const GET = withAuth(
   {
     action: 'push_notification_status',
     requireAdmin: false,
-    requireCSRF: false,
     requireRateLimit: true,
     allowedMethods: ['GET'],
   }
@@ -218,7 +217,6 @@ export const POST = withAuth(
   {
     action: 'push_notification_operations',
     requireAdmin: false,
-    requireCSRF: false,
     requireRateLimit: true,
     allowedMethods: ['POST'],
   }

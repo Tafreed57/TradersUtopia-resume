@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { UploadDropzone } from '@/lib/uploadthing';
-import { secureAxiosPost } from '@/lib/csrf-client';
 import NextImage from 'next/image';
 import { z } from 'zod';
 import { FormModal } from './base';
@@ -22,7 +21,12 @@ const formSchema = z.object({
 
 export function CreateServerModal() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    await secureAxiosPost('/api/servers', values);
+    await fetch('/api/servers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(values),
+    });
     // Force full page reload for server creation
     window.location.reload();
   };
