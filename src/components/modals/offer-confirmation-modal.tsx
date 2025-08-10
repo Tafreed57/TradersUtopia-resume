@@ -48,8 +48,17 @@ export function OfferConfirmationModal({
   isFinalOffer = false,
 }: OfferConfirmationModalProps) {
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className='max-w-[92vw] sm:max-w-md lg:max-w-lg max-h-[92vh] sm:max-h-[85vh] p-0 border-0 bg-transparent overflow-y-auto fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] z-50'>
+    <Dialog
+      open={isOpen}
+      onOpenChange={open => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent
+        onInteractOutside={e => e.preventDefault()}
+        onPointerDownOutside={e => e.preventDefault()}
+        className='max-w-[92vw] sm:max-w-md lg:max-w-lg max-h-[92vh] sm:max-h-[85vh] p-0 border-0 bg-transparent overflow-y-auto fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] z-50'
+      >
         <div className='relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-green-900 text-white rounded-2xl sm:rounded-3xl shadow-2xl border border-emerald-500/30'>
           {/* Animated Background */}
           <div className='absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-green-600/10'></div>

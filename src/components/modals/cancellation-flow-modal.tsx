@@ -1421,8 +1421,17 @@ export function CancellationFlowModal({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className='max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-transparent border-none p-0 w-[calc(100vw-1rem)] sm:w-full flex flex-col'>
+      <Dialog
+        open={isOpen}
+        onOpenChange={open => {
+          if (!open) handleClose();
+        }}
+      >
+        <DialogContent
+          onInteractOutside={e => e.preventDefault()}
+          onPointerDownOutside={e => e.preventDefault()}
+          className='max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-transparent border-none p-0 w-[calc(100vw-1rem)] sm:w-full flex flex-col'
+        >
           <div className='relative flex-1 overflow-y-auto p-2 sm:p-4'>
             {/* Custom X button that actually works */}
             <button
