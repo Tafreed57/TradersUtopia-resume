@@ -480,7 +480,7 @@ export function CancellationFlowModal({
   const handlePriceSubmit = async () => {
     const inputPriceDollars = parseFloat(priceInput);
 
-    if (isNaN(inputPriceDollars) || inputPriceDollars <= 0) {
+    if (isNaN(inputPriceDollars) || inputPriceDollars < 0) {
       showToast.error('Error', 'Please enter a valid price');
       return;
     }
@@ -1222,7 +1222,7 @@ export function CancellationFlowModal({
         <div className='flex flex-col sm:flex-row gap-3 sm:gap-4'>
           <Button
             onClick={handlePriceSubmit}
-            disabled={!priceInput || parseFloat(priceInput) <= 0 || isLoading}
+            disabled={!priceInput || parseFloat(priceInput) < 0 || isLoading}
             className='w-full sm:flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 sm:py-4 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none min-h-[48px]'
           >
             {isLoading ? (
