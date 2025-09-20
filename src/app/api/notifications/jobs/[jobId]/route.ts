@@ -51,7 +51,7 @@ export const GET = withAuth(
         // Enhanced information for admins
         ...(isAdmin && {
           adminDetails: {
-            attempts: run.attempts,
+            // attempts: run.attempts,
             version: run.version,
           },
         }),
